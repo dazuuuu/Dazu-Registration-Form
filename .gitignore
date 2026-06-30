@@ -1,0 +1,150 @@
+# ========================================
+
+# Dependencies
+
+# ========================================
+
+/vendor/
+
+# ========================================
+
+# Environment & Secrets
+
+# ========================================
+
+.env
+.env.*
+!.env.example
+
+# Database credentials (if they contain secrets)
+
+app/config/database.php
+app/config/db_connect.php
+
+# ========================================
+
+# User Uploaded Content
+
+# ========================================
+
+/public/uploads/
+/public/assets/images/branding/
+/public/assets/images/logo/
+
+# Keep folder structure if needed
+
+!/public/uploads/.gitkeep
+
+# ========================================
+
+# Logs & Cache
+
+# ========================================
+
+*.log
+logs/
+cache/
+tmp/
+temp/
+
+# ========================================
+
+# Generated Files
+
+# ========================================
+
+structure.txt
+show_structure.php
+check_structure.php
+create_upload_folders.php
+
+# ========================================
+
+# Composer
+
+# ========================================
+
+composer.lock
+
+# Uncomment if this is a reusable package
+
+# !composer.lock
+
+# ========================================
+
+# IDE Files
+
+# ========================================
+
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ========================================
+
+# OS Files
+
+# ========================================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========================================
+
+# Backup Files
+
+# ========================================
+
+*.bak
+*.old
+*.tmp
+
+# ========================================
+
+# Testing / Debug
+
+# ========================================
+
+debug.log
+error_log
+
+# ========================================
+
+# PHPStorm / NetBeans
+
+# ========================================
+
+nbproject/
+
+# ========================================
+
+# Node (if added later)
+
+# ========================================
+
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# ========================================
+
+# PHPUnit
+
+# ========================================
+
+.phpunit.result.cache
+
+# ========================================
+
+# Archive Files
+
+# ========================================
+
+*.zip
+*.tar
+*.gz
+*.rar
