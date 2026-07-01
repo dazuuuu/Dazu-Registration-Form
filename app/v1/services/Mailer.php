@@ -21,20 +21,29 @@ class Mailer {
             return;
         }
 
+        if (!defined('PROJECT_ROOT')) {
+            require_once __DIR__ . '/../config/paths.php';
+        }
+
         $candidates = [
-            __DIR__ . '/../../vendor/autoload.php',                  // composer
-            __DIR__ . '/../lib/PHPMailer/src/PHPMailer.php',         // manual drop-in
+            PROJECT_ROOT . '/vendor/autoload.php',
+            __DIR__ . '/../../../vendor/autoload.php',
+            __DIR__ . '/../../vendor/autoload.php',
+            __DIR__ . '/../lib/PHPMailer/src/PHPMailer.php',
         ];
         foreach ($candidates as $path) {
-            if (is_file($path)) {
-                if (substr($path, -12) === 'autoload.php') {
-                    require_once $path;
-                } else {
-                    $dir = dirname($path);
-                    require_once $dir . '/Exception.php';
-                    require_once $dir . '/PHPMailer.php';
-                    require_once $dir . '/SMTP.php';
-                }
+            if (!is_file($path)) {
+                continue;
+            }
+            if (substr($path, -12) === 'autoload.php') {
+                require_once $path;
+            } else {
+                $dir = dirname($path);
+                require_once $dir . '/Exception.php';
+                require_once $dir . '/PHPMailer.php';
+                require_once $dir . '/SMTP.php';
+            }
+            if (class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
                 self::$loaded = true;
                 return;
             }
@@ -47,7 +56,7 @@ class Mailer {
      */
     public function send(string $toEmail, string $toName, string $subject, string $htmlBody): array {
         if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
-            return ['ok' => false, 'message' => 'PHPMailer is not installed (run composer require phpmailer/phpmailer)'];
+            return ['ok' => false, 'message' => 'PHPMailer is not installed. Upload app/v1/lib/PHPMailer/ or run composer install in the project root.'];
         }
         if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
             return ['ok' => false, 'message' => 'Invalid recipient email'];
