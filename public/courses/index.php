@@ -5,6 +5,7 @@ $page_description = 'Browse Python, PHP, Full-Stack, AI and more tech courses at
 
 require_once __DIR__ . '/../../app/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../app/v1/helpers/course_share.php';
 require_once __DIR__ . '/../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../app/v1/models/CourseModel.php';
 
@@ -40,7 +41,8 @@ ob_start();
                     <p class="dh-course-meta"><?php echo (int)$c['duration_months']; ?> months · KSh <?php echo number_format($c['course_fee']); ?></p>
                     <p class="dh-course-desc"><?php echo htmlspecialchars(mb_substr(strip_tags($c['overview'] ?: $c['description'] ?: ''), 0, 140)); ?>…</p>
                     <div class="dh-course-actions">
-                        <a href="<?php echo url('courses/view.php?id=' . (int)$c['id']); ?>" class="dh-btn dh-btn-primary dh-btn--sm">View & Apply</a>
+                        <a href="<?php echo url('courses/share.php?id=' . (int)$c['id']); ?>" class="dh-btn dh-btn-primary dh-btn--sm">View & Apply</a>
+                        <a href="<?php echo course_share_url((int)$c['id']); ?>" class="dh-btn dh-btn-outline dh-btn--sm" title="Copy share link"><i class="fas fa-share-nodes"></i></a>
                     </div>
                 </div>
             </article>

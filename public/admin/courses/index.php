@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../../../app/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/helpers/course_share.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 
@@ -84,7 +85,11 @@ ob_start();
                                 <span class="badge bg-secondary">Inactive</span>
                             <?php endif; ?>
                         </td>
-                        <td class="text-end">
+                        <td class="text-end text-nowrap">
+                            <?php if ($c['is_active']): ?>
+                            <a href="<?php echo course_share_url((int)$c['id']); ?>" target="_blank" rel="noopener"
+                               class="btn btn-sm btn-outline-success" title="Share registration link"><i class="fas fa-share-nodes"></i></a>
+                            <?php endif; ?>
                             <a href="<?php echo url('admin/courses/edit.php?id=' . (int)$c['id']); ?>"
                                class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
                             <form method="POST" class="d-inline" onsubmit="return confirm('<?php echo $c['is_active'] ? 'Deactivate' : 'Activate'; ?> this course?');">

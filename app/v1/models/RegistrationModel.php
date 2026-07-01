@@ -92,16 +92,9 @@ class RegistrationModel {
         $regFee = self::registrationFeeFor($data['study_mode']);
         $returning = $this->findPossibleReturningStudent($data['email'], $data['phone']);
 
-        $sql = "INSERT INTO registrations
-                (full_name, email, phone, course_id, study_mode, id_document_path,
-                 registration_fee, course_fee, payment_plan, installment_count, installment_amount,
-                 payment_reference, possible_returning_student)
-                VALUES
-                (:full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
-                 :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
-                 :payment_reference, :returning)";
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute([
+        $referralNo = !empty($data['referral_registration_no']) ? trim($data['referral_registration_no']) : null;
+
+        $params = [
             ':full_name'          => trim($data['full_name']),
             ':email'              => strtolower(trim($data['email'])),
             ':phone'              => trim($data['phone']),
@@ -115,7 +108,35 @@ class RegistrationModel {
             ':installment_amount' => $installments['amount'],
             ':payment_reference'  => trim($data['payment_reference']),
             ':returning'          => $returning ? 1 : 0,
-        ]);
+        ];
+
+        try {
+            $sql = "INSERT INTO registrations
+                    (full_name, email, phone, course_id, study_mode, id_document_path,
+                     registration_fee, course_fee, payment_plan, installment_count, installment_amount,
+                     payment_reference, referral_registration_no, possible_returning_student)
+                    VALUES
+                    (:full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
+                     :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
+                     :payment_reference, :referral, :returning)";
+            $params[':referral'] = $referralNo;
+            $this->db->prepare($sql)->execute($params);
+        } catch (\PDOException $e) {
+            if ($referralNo !== null && str_contains($e->getMessage(), 'referral_registration_no')) {
+                $sql = "INSERT INTO registrations
+                        (full_name, email, phone, course_id, study_mode, id_document_path,
+                         registration_fee, course_fee, payment_plan, installment_count, installment_amount,
+                         payment_reference, possible_returning_student)
+                        VALUES
+                        (:full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
+                         :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
+                         :payment_reference, :returning)";
+                unset($params[':referral']);
+                $this->db->prepare($sql)->execute($params);
+            } else {
+                throw $e;
+            }
+        }
 
         return ['ok' => true, 'id' => (int) $this->db->lastInsertId()];
     }
