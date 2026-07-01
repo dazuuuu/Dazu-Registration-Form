@@ -1,0 +1,8 @@
+# Dazu Hub Institute — cPanel / Apache hosting
+# public/ is the document root: web URLs start at / (no /Registration-System/public prefix).
+SetEnv APP_WEB_ROOT ""
+
+# Optional: route friendly URLs if you add rewrite rules later.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+</IfModule>
