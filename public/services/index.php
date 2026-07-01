@@ -1,5 +1,6 @@
 <?php
-// public/services/index.php
+// public/services/index.php — Dazu Hub Institute
+require_once __DIR__ . '/../../app/v1/config/paths.php';
 require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
@@ -32,8 +33,8 @@ if ($search) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Our Services — Ismano Portfolio</title>
-  <meta name="description" content="Explore our comprehensive range of creative and technical services.">
+  <title>Our Services — Dazu Hub Institute</title>
+  <meta name="description" content="Training services and support offered by Dazu Hub Institute — Nairobi's hands-on tech education centre.">
 
   <link rel="stylesheet" href="../assets/css/theme.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -322,8 +323,8 @@ if ($search) {
 <?php
   $hero_eyebrow = 'What we offer';
   $hero_title   = 'Our Services';
-  $hero_sub     = 'Creative & technical solutions, end to end';
-  $hero_desc    = 'Comprehensive digital solutions tailored to elevate your business and bring your ideas to life.';
+  $hero_sub     = 'Training, mentorship & career support';
+  $hero_desc    = 'From course enrollment to career guidance — everything Dazu Hub Institute offers to help you grow as a developer.';
   $hero_image   = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=1600&q=80';
   include __DIR__ . '/../components/public/page_hero.php';
 ?>

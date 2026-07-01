@@ -1,5 +1,6 @@
 <?php
-// public/blogs/index.php
+// public/blogs/index.php — Dazu Hub Institute
+require_once __DIR__ . '/../../app/v1/config/paths.php';
 require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
@@ -62,8 +63,8 @@ if ($category_slug) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo $activeCategory ? htmlspecialchars($activeCategory['name']) . ' - ' : ''; ?>Blog - Ismano</title>
-    <meta name="description" content="Latest news, updates, and insights from Ismano">
+    <title><?php echo $activeCategory ? htmlspecialchars($activeCategory['name']) . ' - ' : ''; ?>Blog — Dazu Hub Institute</title>
+    <meta name="description" content="Latest news, updates, and insights from Dazu Hub Institute">
 
     <link rel="stylesheet" href="../assets/css/theme.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -339,7 +340,8 @@ if ($category_slug) {
 <?php
   $hero_eyebrow = 'From our blog';
   $hero_title   = 'Latest Insights';
-  $hero_sub     = 'Stories, thoughts & perspectives from our team';
+  $hero_sub     = 'News, tips & stories from Dazu Hub';
+  $hero_desc    = 'Updates on courses, student success, and the tech community in Nairobi.';
   $hero_image   = 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1600&q=80';
   include __DIR__ . '/../components/public/page_hero.php';
 ?>

@@ -1,5 +1,6 @@
 <?php
-// public/projects/index.php
+// public/projects/index.php — Dazu Hub Institute
+require_once __DIR__ . '/../../app/v1/config/paths.php';
 require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../../app/v1/controllers/ProjectController.php';
 
@@ -39,8 +40,8 @@ $projects = array_values($projects); // reset keys for indexed loops
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Our Projects — Ismano Portfolio</title>
-  <meta name="description" content="Browse our full portfolio of creative projects across all categories.">
+  <title>Student Projects — Dazu Hub Institute</title>
+  <meta name="description" content="Browse student and graduate projects built at Dazu Hub Institute.">
 
   <link rel="stylesheet" href="../assets/css/theme.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -443,10 +444,10 @@ $projects = array_values($projects); // reset keys for indexed loops
 
 
 <?php
-  $hero_eyebrow = 'Our work';
-  $hero_title   = 'Creative Projects';
-  $hero_sub     = 'Innovative work across every discipline';
-  $hero_desc    = 'Explore our portfolio of innovative solutions and creative work.';
+  $hero_eyebrow = 'Student work';
+  $hero_title   = 'Projects';
+  $hero_sub     = 'Built by Dazu Hub learners';
+  $hero_desc    = 'Real applications and portfolios created by our students during their training programs.';
   $hero_image   = 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1600&q=80';
   include __DIR__ . '/../components/public/page_hero.php';
 ?>
@@ -505,7 +506,7 @@ $projects = array_values($projects); // reset keys for indexed loops
         <p class="sidebar-block-title"><i class="fas fa-layer-group"></i> Categories</p>
         <ul class="cat-list" role="list">
           <li>
-            <a href=url('projects/<?php echo $search ? '?search=' . urlencode($search) : ''; ?>')
+            <a href="<?php echo url('projects/' . ($search ? '?search=' . urlencode($search) : '')); ?>"
                class="cat-link <?php echo !$category_filter ? 'is-active' : ''; ?>">
               <span class="cat-link-left">
                 <i class="fas fa-border-all" aria-hidden="true"></i> All Projects
@@ -574,7 +575,7 @@ $projects = array_values($projects); // reset keys for indexed loops
         <!-- Active filter pills -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <?php if ($category_filter && $activeCat ?? null): ?>
-            <a href=url('projects/<?php echo $search ? '?search=' . urlencode($search) : ''; ?>')
+            <a href="<?php echo url('projects/' . ($search ? '?search=' . urlencode($search) : '')); ?>"
                class="filter-pill" title="Remove category filter">
               <i class="fas fa-folder" aria-hidden="true"></i>
               <?php echo htmlspecialchars($activeCat['category_name']); ?>
@@ -582,7 +583,7 @@ $projects = array_values($projects); // reset keys for indexed loops
             </a>
           <?php endif; ?>
           <?php if ($search): ?>
-            <a href=url('projects/<?php echo $category_filter ? '?category=' . urlencode($category_filter) : ''; ?>')
+            <a href="<?php echo url('projects/' . ($category_filter ? '?category=' . urlencode($category_filter) : '')); ?>"
                class="filter-pill" title="Clear search">
               <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
               "<?php echo htmlspecialchars(mb_strimwidth($search, 0, 20, '…')); ?>"

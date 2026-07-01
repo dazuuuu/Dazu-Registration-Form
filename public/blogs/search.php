@@ -7,6 +7,7 @@ if (empty($keyword)) {
     exit();
 }
 
+require_once __DIR__ . '/../../app/v1/config/paths.php';
 require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 
 // Search blogs
@@ -31,7 +32,7 @@ $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search Results for "<?php echo htmlspecialchars($keyword); ?>" - Ismano Blog</title>
+    <title>Search Results for "<?php echo htmlspecialchars($keyword); ?>" — Dazu Hub Institute</title>
     <link rel="stylesheet" href="../assets/css/theme.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -73,7 +74,7 @@ $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 </head>
 <body>
 
-<?php include __DIR__ . '/../components/public/nav_home.php'; ?>
+<?php include __DIR__ . '/../components/public/navbar.php'; ?>
 
 <?php
   $hero_eyebrow = 'Search';

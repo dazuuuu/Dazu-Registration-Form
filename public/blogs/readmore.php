@@ -7,6 +7,7 @@ if (!$slug) {
     exit();
 }
 
+require_once __DIR__ . '/../../app/v1/config/paths.php';
 require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 
 // Get blog post with all details
@@ -69,7 +70,7 @@ function getYoutubeId($url) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?php echo htmlspecialchars($blog['meta_title'] ?? $blog['title']); ?> - Ismano Blog</title>
+    <title><?php echo htmlspecialchars($blog['meta_title'] ?? $blog['title']); ?> — Dazu Hub Institute</title>
     <meta name="description" content="<?php echo htmlspecialchars($blog['meta_description'] ?? substr(strip_tags($blog['excerpt']), 0, 160)); ?>">
     <meta name="keywords" content="<?php echo htmlspecialchars($blog['meta_keywords'] ?? ''); ?>">
     
@@ -285,7 +286,7 @@ function getYoutubeId($url) {
 <?php
   $hero_eyebrow = $blog['category_name'] ?? 'Article';
   $hero_title   = $blog['title'];
-  $hero_sub     = 'By ' . ($blog['author_name'] ?? 'Ismano') . ' · '
+  $hero_sub     = 'By ' . ($blog['author_name'] ?? 'Dazu Hub') . ' · '
                 . date('M d, Y', strtotime($blog['published_at']))
                 . ' · ' . ceil(str_word_count(strip_tags($blog['content'])) / 200) . ' min read';
   $hero_desc    = mb_strimwidth(strip_tags($blog['excerpt'] ?? ''), 0, 160, '…');

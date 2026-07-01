@@ -14,7 +14,7 @@ $webRoot = WEB_ROOT === '' ? '' : WEB_ROOT;
 <title><?php echo htmlspecialchars($page_title ?? 'Dazu Hub Institute'); ?></title>
 <meta name="description" content="<?php echo htmlspecialchars($page_description ?? 'Tech training institute offering Python, PHP, Node.js, Frontend and AI courses in Nairobi, Kenya.'); ?>">
 <meta name="theme-color" content="#2E7D32">
-<link rel="manifest" href="<?php echo url('manifest.json'); ?>">
+<link rel="manifest" href="<?php echo url('manifest.php'); ?>">
 <link rel="apple-touch-icon" href="<?php echo asset('icons/icon-192.png'); ?>">
 
 <!-- Anti-flash: apply saved theme before any CSS renders -->

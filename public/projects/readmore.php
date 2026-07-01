@@ -11,6 +11,7 @@ if (!$id) {
     exit();
 }
 
+require_once __DIR__ . '/../../app/v1/config/paths.php';
 require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 
 // Get project details directly from database
@@ -29,7 +30,7 @@ if (!$project) {
 }
 
 // Set page title and description
-$page_title = htmlspecialchars($project['small_title']) . ' — Ismano Portfolio';
+$page_title = htmlspecialchars($project['small_title']) . ' — Dazu Hub Institute';
 $page_description = htmlspecialchars(substr($project['description'], 0, 160));
 
 // Update view count
@@ -360,7 +361,7 @@ function getVimeoId($url) {
         <div class="tags-section">
             <h2>Tags</h2>
             <?php foreach ($tags as $tag): ?>
-                <a href=url('projects/?tag=<?php echo $tag['tag_slug']; ?>') class="tag">
+                <a href="<?php echo url('projects/?tag=' . urlencode($tag['tag_slug'])); ?>" class="tag">
                     <i class="fas fa-tag"></i> <?php echo htmlspecialchars($tag['tag_name']); ?>
                 </a>
             <?php endforeach; ?>

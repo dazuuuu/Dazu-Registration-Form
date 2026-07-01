@@ -1,5 +1,6 @@
 <?php
 // public/admin/portal.php
+require_once __DIR__ . '/../../app/v1/config/paths.php';
 require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../../app/v1/helpers/functions.php';
 
@@ -51,7 +52,7 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Portal — Prime Estate</title>
+    <title>Admin Portal — Dazu Hub Institute</title>
 
     <link rel="stylesheet" href="../assets/css/theme.css">
     <link rel="stylesheet" href="../assets/css/auth.css">
@@ -60,7 +61,7 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
 
     <style>
         /* Admin variant: deeper, more "secure" brand panel */
-        .auth-brand.is-admin{ background:linear-gradient(135deg, #050B16 0%, #0A1320 55%, #0B2D7A 130%); }
+        .auth-brand.is-admin{ background:linear-gradient(135deg, #0D1F0D 0%, #1B5E20 55%, #2E7D32 130%); }
     </style>
 </head>
 <body class="auth-body">
@@ -70,9 +71,9 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
     <!-- Brand panel (admin variant) -->
     <aside class="auth-brand is-admin">
         <div class="auth-brand-inner">
-            <a class="auth-logo" href="<?php echo url('/'); ?>" aria-label="Ismano — Home">
+            <a class="auth-logo" href="<?php echo url('/'); ?>" aria-label="Dazu Hub Institute — Home">
                 <?php if ($logoExists): ?>
-                    <img src="<?php echo $logoPath; ?>" alt="Ismano logo" class="brand-logo">
+                    <img src="<?php echo $logoPath; ?>" alt="Dazu Hub Institute logo" class="brand-logo">
                 <?php else: ?>
                     <svg class="brand-mark" width="30" height="30" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <rect width="12" height="12" fill="currentColor"/>
@@ -81,11 +82,11 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
                         <rect x="16" y="16" width="12" height="12" fill="currentColor"/>
                     </svg>
                 <?php endif; ?>
-                <span class="brand-name">Ismano</span>
+                <span class="brand-name">Dazu Hub</span>
             </a>
 
             <h1>Administrator <span>access</span>.</h1>
-            <p class="lead">A restricted area for managing projects, services, blog content, and accounts.</p>
+            <p class="lead">A restricted area for managing students, tutors, courses, payments, and content.</p>
 
             <ul class="auth-points">
                 <li><i class="fas fa-lock"></i> Restricted to admin accounts only</li>
@@ -93,7 +94,7 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
                 <li><i class="fas fa-clock-rotate-left"></i> Sign-in attempts are recorded</li>
             </ul>
         </div>
-        <p class="auth-brand-foot">&copy; <?php echo date('Y'); ?> Ismano. Authorised personnel only.</p>
+        <p class="auth-brand-foot">&copy; <?php echo date('Y'); ?> Dazu Hub Institute. Authorised personnel only.</p>
     </aside>
 
     <!-- Form panel -->
