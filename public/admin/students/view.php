@@ -234,7 +234,7 @@ ob_start();
             </div>
         </div>
 
-        <a href="<?php echo url('admin/registrations/view.php?id=<?php echo $id; ?>'); ?>"
+        <a href="<?php echo url('admin/registrations/view.php?id=' . (int)$id); ?>"
            class="btn btn-link btn-sm ps-0">
             <i class="fas fa-arrow-left me-1"></i> View Registration
         </a>

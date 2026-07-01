@@ -345,7 +345,7 @@ ob_start();
                             <i class="fas fa-paper-plane me-1"></i> Email Credentials
                         </button>
                     </form>
-                    <a href="<?php echo url('admin/students/view.php?id=<?php echo $id; ?>'); ?>"
+                    <a href="<?php echo url('admin/students/view.php?id=' . (int)$id); ?>"
                        class="btn btn-link btn-sm ps-0 mt-2">
                         <i class="fas fa-user-graduate me-1"></i> Open Student Profile
                     </a>

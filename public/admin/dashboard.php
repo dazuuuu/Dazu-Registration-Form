@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }, options: { plugins: { legend: { position: 'bottom' }}}});
   new Chart(document.getElementById('chartCourses'), { type: 'bar', data: {
     labels: $courseLabels, datasets: [{ label: 'Students', data: $courseData, backgroundColor: green }]
-  }, options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 }}}});
+  }, options: { scales: { y: { beginAtZero: true, ticks: { stepSize: 1 }}}}});
   new Chart(document.getElementById('chartRevenue'), { type: 'line', data: {
     labels: $revLabels, datasets: [{ label: 'KSh', data: $revData, borderColor: green, fill: true, backgroundColor: 'rgba(46,125,50,0.15)', tension: 0.3 }]
   }, options: { scales: { y: { beginAtZero: true }}}});

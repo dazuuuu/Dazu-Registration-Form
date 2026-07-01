@@ -1,6 +1,9 @@
 <?php
 // public/templates/admin/layout.php
 if (session_status() === PHP_SESSION_NONE) session_start();
+if (!function_exists('url')) {
+    require_once __DIR__ . '/../../../app/v1/config/paths.php';
+}
 
 // Check authentication
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
@@ -23,6 +26,15 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+    (function () {
+        var base = <?php echo json_encode(WEB_ROOT === '' ? '' : rtrim(WEB_ROOT, '/')); ?>;
+        window.url = function (path) {
+            path = String(path || '').replace(/^\//, '');
+            return (base ? base + '/' : '/') + path;
+        };
+    })();
+    </script>
     
     <style>
         /* ============================================================

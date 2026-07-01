@@ -7,9 +7,13 @@ class StudentNotifier {
     private $pdo;
     private $mailer;
     private $companyName;
-    private $loginUrl = url('auth/login.php');
+    private $loginUrl;
 
     public function __construct($pdo, ?Mailer $mailer = null) {
+        if (!function_exists('url')) {
+            require_once __DIR__ . '/../config/paths.php';
+        }
+        $this->loginUrl = url('auth/login.php');
         $this->pdo = $pdo;
         $cfg = require __DIR__ . '/../config/mail.php';
         $this->mailer = $mailer ?? new Mailer($cfg);
