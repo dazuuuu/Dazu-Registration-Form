@@ -11,8 +11,11 @@ $success = '';
 // If already logged in, redirect based on role
 if (isLoggedIn()) {
     $role_id = $_SESSION['role_id'] ?? 0;
+    $role = $_SESSION['role'] ?? '';
     if ($role_id <= 2) {
         redirect('/Registration-System/public/profile/admin/index.php');
+    } elseif ($role === 'student') {
+        redirect('/Registration-System/public/students/dashboard/index.php');
     } else {
         redirect('/Registration-System/public/profile/client/index.php');
     }
@@ -49,6 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Redirect based on role
             if ($user['role_id'] <= 2) {
                 header("refresh:2;url=/Registration-System/public/profile/admin/index.php");
+            } elseif ($user['role_name'] === 'student') {
+                header("refresh:2;url=/Registration-System/public/students/dashboard/index.php");
             } else {
                 header("refresh:2;url=/Registration-System/public/profile/client/index.php");
             }

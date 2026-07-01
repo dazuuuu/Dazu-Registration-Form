@@ -36,6 +36,19 @@ class Middleware {
     }
     
     /**
+     * Require student role access
+     */
+    public static function requireStudent() {
+        self::requireAuth();
+
+        $role = SessionModel::get('role');
+        if ($role !== 'student') {
+            header('Location: /Registration-System/public/auth/login.php?error=access_denied');
+            exit();
+        }
+    }
+
+    /**
      * Require admin access (admin or superadmin)
      */
     public static function requireAdmin() {

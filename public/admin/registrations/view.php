@@ -7,12 +7,14 @@ require_once __DIR__ . '/../../../app/models/Connection.php';
 require_once __DIR__ . '/../../../app/models/CourseModel.php';
 require_once __DIR__ . '/../../../app/models/RegistrationModel.php';
 require_once __DIR__ . '/../../../app/controllers/RegistrationController.php';
+require_once __DIR__ . '/../../../app/controllers/StudentController.php';
 require_once __DIR__ . '/../../../app/models/Session.php';
 
 use Models\Connection;
 use Models\CourseModel;
 use Models\RegistrationModel;
 use Controllers\RegistrationController;
+use Controllers\StudentController;
 
 Middleware::requireAdmin();
 
@@ -51,10 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $controller->approve($id, $waive, $adminId);
 
             if ($result['ok']) {
-                // TODO Phase 2: send approval email with $result['reg_no'] + $result['temp_password']
                 SessionModel::setFlash('success',
                     'Registration approved. Student ID: <strong>' . htmlspecialchars($result['reg_no']) . '</strong>. ' .
-                    'Email the student their temporary password: <code>' . htmlspecialchars($result['temp_password']) . '</code>'
+                    'Login credentials and receipt have been emailed to the student.'
                 );
                 header('Location: /Registration-System/public/admin/registrations/view.php?id=' . $id);
                 exit();
@@ -66,8 +67,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $controller->reject($id, $reason, $adminId);
 
             if ($result['ok']) {
-                // TODO Phase 2: send rejection email with reason
-                SessionModel::setFlash('success', 'Registration rejected.');
+                SessionModel::setFlash('success', 'Registration rejected. The student has been notified by email.');
+                header('Location: /Registration-System/public/admin/registrations/view.php?id=' . $id);
+                exit();
+            }
+            $error = $result['error'];
+
+        } elseif ($action === 'send_credentials' && $reg['status'] === 'approved') {
+            $studentCtrl = new StudentController();
+            $result = $studentCtrl->sendCredentials($id);
+            if ($result['ok']) {
+                SessionModel::setFlash('success', 'Login credentials emailed to the student.');
                 header('Location: /Registration-System/public/admin/registrations/view.php?id=' . $id);
                 exit();
             }
@@ -302,7 +312,7 @@ ob_start();
                         <label class="form-label">Reason for rejection <span class="text-danger">*</span></label>
                         <textarea name="rejection_reason" class="form-control" rows="3" required
                                   placeholder="e.g. Payment reference could not be verified on the NCBA statement."></textarea>
-                        <small class="text-muted">This reason is recorded. You will need to communicate it to the student manually.</small>
+                        <small class="text-muted">This reason is emailed to the student automatically.</small>
                     </div>
                     <button type="submit" class="btn btn-danger w-100"
                             onclick="return confirm('Reject this registration?');">
@@ -313,13 +323,35 @@ ob_start();
         </div>
 
         <?php else: ?>
-            <div class="card">
-                <div class="card-body text-muted text-center py-5">
+            <div class="card mb-4">
+                <div class="card-body text-muted text-center py-4">
                     <i class="fas fa-lock fa-2x mb-2 d-block"></i>
                     This registration has been <?php echo $reg['status']; ?>.<br>
-                    No further actions available.
+                    No further review actions available.
                 </div>
             </div>
+
+            <?php if ($reg['status'] === 'approved' && $reg['user_id']): ?>
+            <div class="card border-primary">
+                <div class="card-header bg-primary text-white fw-semibold">
+                    <i class="fas fa-envelope me-1"></i> Send Credentials
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small">Email the student their portal login credentials (resets their password).</p>
+                    <form method="POST" onsubmit="return confirm('Send login credentials to this student?');">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="action" value="send_credentials">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-paper-plane me-1"></i> Email Credentials
+                        </button>
+                    </form>
+                    <a href="/Registration-System/public/admin/students/view.php?id=<?php echo $id; ?>"
+                       class="btn btn-link btn-sm ps-0 mt-2">
+                        <i class="fas fa-user-graduate me-1"></i> Open Student Profile
+                    </a>
+                </div>
+            </div>
+            <?php endif; ?>
         <?php endif; ?>
 
         <!-- Back link -->

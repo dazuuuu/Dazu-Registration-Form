@@ -22,6 +22,9 @@ function getRoleBasedProfileUrl() {
     if (isAdmin()) {
         return '/Registration-System/public/profile/admin/index.php';
     }
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'student') {
+        return '/Registration-System/public/students/dashboard/index.php';
+    }
     return '/Registration-System/public/profile/client/index.php';
 }
 ?>

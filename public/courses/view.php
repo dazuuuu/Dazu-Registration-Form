@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../app/helpers/uploads.php';
 require_once __DIR__ . '/../../app/models/Connection.php';
 require_once __DIR__ . '/../../app/models/CourseModel.php';
 require_once __DIR__ . '/../../app/models/RegistrationModel.php';
+require_once __DIR__ . '/../../app/services/StudentNotifier.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -78,6 +79,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dh_register'])) {
 
             if ($result['ok']) {
                 $reg_success = true;
+                $reg = $regModel->getById($result['id']);
+                if ($reg) {
+                    (new StudentNotifier($pdo))->sendRegistrationReceived($reg);
+                }
             } else {
                 $reg_error = $result['error'];
             }

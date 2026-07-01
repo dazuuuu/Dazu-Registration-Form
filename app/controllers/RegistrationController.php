@@ -8,6 +8,9 @@ use Models\RegistrationModel;
 use Models\UserModel;
 use Models\SessionModel;
 
+require_once __DIR__ . '/../services/StudentNotifier.php';
+require_once __DIR__ . '/StudentController.php';
+
 class RegistrationController {
 
     private $db;
@@ -106,6 +109,21 @@ class RegistrationController {
 
             $pdo->commit();
 
+            $approvedReg = $this->regModel->getById($registrationId);
+            $approvedReg['registration_no'] = $regNo;
+
+            $notifier = new \StudentNotifier($pdo);
+            $notifier->sendRegistrationApproved($approvedReg, $tempPassword);
+
+            $studentCtrl = new StudentController();
+            $paymentResult = $studentCtrl->recordInitialPayment($approvedReg, $reviewedBy);
+            if (!empty($paymentResult['ok']) && !empty($paymentResult['receipt_html'])) {
+                require_once __DIR__ . '/../models/PaymentModel.php';
+                $paymentModel = new \Models\PaymentModel($pdo);
+                $payment = $paymentModel->getById($paymentResult['payment_id']);
+                $notifier->sendPaymentApproved($approvedReg, $payment, $paymentResult['receipt_html']);
+            }
+
             return [
                 'ok'           => true,
                 'reg_no'       => $regNo,
@@ -136,6 +154,10 @@ class RegistrationController {
              WHERE id = :id"
         );
         $stmt->execute([':reason' => trim($reason), ':admin' => $reviewedBy, ':id' => $registrationId]);
+
+        $notifier = new \StudentNotifier($this->db);
+        $notifier->sendRegistrationRejected($reg, trim($reason));
+
         return ['ok' => true];
     }
 }
