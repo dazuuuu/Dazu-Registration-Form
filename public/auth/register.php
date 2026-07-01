@@ -7,7 +7,6 @@ $userModel = new UserModel($pdo);
 $error = '';
 $success = '';
 
-// Redirect if already logged in
 if (isLoggedIn()) {
     redirect(url('profile/'));
 }
@@ -21,200 +20,122 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $last_name = $_POST['last_name'] ?? '';
     $phone = $_POST['phone'] ?? '';
 
-    // Validate
     if (empty($username) || empty($email) || empty($password)) {
-        $error = 'All fields are required';
+        $error = '[err] USERNAME, EMAIL, and PASS are required';
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error = 'Invalid email format';
+        $error = '[err] invalid EMAIL format';
     } elseif (strlen($password) < 6) {
-        $error = 'Password must be at least 6 characters';
+        $error = '[err] PASS must be at least 6 characters';
     } elseif ($password !== $confirm_password) {
-        $error = 'Passwords do not match';
+        $error = '[err] PASS and PASS_CONFIRM do not match';
     } else {
-        // Check if user exists
         $existingUser = $userModel->getUserByEmail($email);
         if ($existingUser) {
-            $error = 'Email already registered';
+            $error = '[err] EMAIL already registered';
         } else {
             $existingUsername = $userModel->getUserByUsername($username);
             if ($existingUsername) {
-                $error = 'Username already taken';
+                $error = '[err] USERNAME already taken';
             } else {
-                // Create user (role_id: 3 = regular user)
                 if ($userModel->createUser($username, $email, $password, 3)) {
                     $user = $userModel->getUserByEmail($email);
                     if ($user) {
                         $userModel->updateProfile($user['id'], $first_name, $last_name, $phone);
                     }
-                    $success = 'Registration successful! Redirecting to login...';
+                    $success = '[ ok ] account created — redirecting to login...';
                     header("refresh:2;url=login.php");
                 } else {
-                    $error = 'Registration failed. Please try again.';
+                    $error = '[err] provisioning failed — try again';
                 }
             }
         }
     }
 }
 
-// Safe redisplay helper for sticky form values (prevents reflected XSS)
 function old(string $key): string {
     return htmlspecialchars($_POST[$key] ?? '', ENT_QUOTES, 'UTF-8');
 }
 
-// Logo (mirrors the navbar's logic — PNG if present, else inline mark)
-$logoPath = url('assets/images/logo/logo.png');
-$logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROOT'] . $logoPath);
+$auth_page_title = 'Create account';
+$auth_window_title = 'dazu@hub — register.dazu.hub';
+$auth_page_mode = 'register';
+require __DIR__ . '/../components/auth/terminal_layout_start.php';
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create account — Registration System</title>
 
-    <link rel="stylesheet" href="../assets/css/theme.css">
-    <link rel="stylesheet" href="../assets/css/auth.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-</head>
-<body class="auth-body">
+<div id="authBootLog" class="auth-terminal-boot" aria-live="polite"></div>
 
-<div class="auth-wrap">
+<?php if ($error): ?>
+    <div class="auth-terminal-alert error" role="alert">
+        <i class="fas fa-times-circle me-1"></i> <?php echo htmlspecialchars($error); ?>
+    </div>
+<?php endif; ?>
+<?php if ($success): ?>
+    <div class="auth-terminal-alert success" role="alert">
+        <i class="fas fa-check-circle me-1"></i> <?php echo htmlspecialchars($success); ?>
+    </div>
+<?php endif; ?>
 
-    <!-- Brand panel -->
-    <aside class="auth-brand">
-        <img class="auth-brand-bgimg"
-             src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1400&q=80" alt="" aria-hidden="true">
-        <div class="auth-brand-inner">
-            <a class="auth-logo" href="<?php echo url('/'); ?>" aria-label="Registration System — Home">
-                <?php if ($logoExists): ?>
-                    <img src="<?php echo $logoPath; ?>" alt="Registration System logo" class="brand-logo">
-                <?php else: ?>
-                    <svg class="brand-mark" width="30" height="30" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <rect width="12" height="12" fill="currentColor"/>
-                        <rect x="16" width="12" height="12" fill="currentColor" opacity=".45"/>
-                        <rect y="16" width="12" height="12" fill="currentColor" opacity=".45"/>
-                        <rect x="16" y="16" width="12" height="12" fill="currentColor"/>
-                    </svg>
-                <?php endif; ?>
-                <span class="brand-name">Registration System</span>
-            </a>
+<form method="POST" class="auth-terminal-form" novalidate>
+    <div class="auth-cmd-row">
+        <span class="auth-cmd-prompt">dazu@hub:~/register$</span>
+        <label class="auth-cmd-label" for="username">export USERNAME=</label>
+        <input type="text" id="username" name="username" class="auth-cmd-input"
+               placeholder="your_handle" value="<?php echo old('username'); ?>" required autocomplete="username">
+    </div>
 
-            <h1>Start your journey with <span>Registration System</span>.</h1>
-            <p class="lead">Create an account to follow your projects, receive updates, and work with us directly.</p>
+    <div class="auth-cmd-row">
+        <span class="auth-cmd-prompt">dazu@hub:~/register$</span>
+        <label class="auth-cmd-label" for="email">export EMAIL=</label>
+        <input type="email" id="email" name="email" class="auth-cmd-input"
+               placeholder="you@dazuhub.institute" value="<?php echo old('email'); ?>" required autocomplete="email">
+    </div>
 
-            <ul class="auth-points">
-                <li><i class="fas fa-check"></i> Track every project in one dashboard</li>
-                <li><i class="fas fa-check"></i> Direct, transparent communication</li>
-                <li><i class="fas fa-check"></i> Free to join — no commitment</li>
-            </ul>
-        </div>
-        <p class="auth-brand-foot">&copy; <?php echo date('Y'); ?> Registration System. All rights reserved.</p>
-    </aside>
+    <div class="auth-cmd-row">
+        <span class="auth-cmd-prompt">dazu@hub:~/register$</span>
+        <label class="auth-cmd-label" for="first_name">export FNAME=</label>
+        <input type="text" id="first_name" name="first_name" class="auth-cmd-input"
+               placeholder="optional" value="<?php echo old('first_name'); ?>" autocomplete="given-name">
+    </div>
 
-    <!-- Form panel -->
-    <main class="auth-form">
-        <div class="auth-form-top">
-            <a href="<?php echo url('/'); ?>" class="auth-back"><i class="fas fa-arrow-left"></i> Back to home</a>
-        </div>
+    <div class="auth-cmd-row">
+        <span class="auth-cmd-prompt">dazu@hub:~/register$</span>
+        <label class="auth-cmd-label" for="last_name">export LNAME=</label>
+        <input type="text" id="last_name" name="last_name" class="auth-cmd-input"
+               placeholder="optional" value="<?php echo old('last_name'); ?>" autocomplete="family-name">
+    </div>
 
-        <div class="auth-form-body">
-            <div class="auth-mark"><i class="fas fa-user-plus"></i></div>
-            <h2>Create your account</h2>
-            <p class="sub">It only takes a minute to get started.</p>
+    <div class="auth-cmd-row">
+        <span class="auth-cmd-prompt">dazu@hub:~/register$</span>
+        <label class="auth-cmd-label" for="phone">export PHONE=</label>
+        <input type="tel" id="phone" name="phone" class="auth-cmd-input"
+               placeholder="optional" value="<?php echo old('phone'); ?>" autocomplete="tel">
+    </div>
 
-            <?php if ($error): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    <?php echo htmlspecialchars($error); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            <?php endif; ?>
-            <?php if ($success): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
-                    <?php echo htmlspecialchars($success); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            <?php endif; ?>
+    <div class="auth-cmd-row">
+        <span class="auth-cmd-prompt">dazu@hub:~/register$</span>
+        <label class="auth-cmd-label" for="password">export PASS=</label>
+        <input type="password" id="password" name="password" class="auth-cmd-input"
+               placeholder="min 6 chars" required autocomplete="new-password">
+    </div>
 
-            <form method="POST" novalidate>
-                <div class="auth-field">
-                    <label for="username">Username *</label>
-                    <div class="auth-input">
-                        <i class="fas fa-at"></i>
-                        <input type="text" id="username" name="username" placeholder="Choose a username"
-                               value="<?php echo old('username'); ?>" required>
-                    </div>
-                </div>
+    <div class="auth-cmd-row">
+        <span class="auth-cmd-prompt">dazu@hub:~/register$</span>
+        <label class="auth-cmd-label" for="confirm_password">export PASS_CONFIRM=</label>
+        <input type="password" id="confirm_password" name="confirm_password" class="auth-cmd-input"
+               placeholder="repeat password" required autocomplete="new-password">
+    </div>
 
-                <div class="auth-field">
-                    <label for="email">Email address *</label>
-                    <div class="auth-input">
-                        <i class="fas fa-envelope"></i>
-                        <input type="email" id="email" name="email" placeholder="you@example.com"
-                               value="<?php echo old('email'); ?>" required>
-                    </div>
-                </div>
+    <button type="submit" class="auth-cmd-submit">
+        <i class="fas fa-user-plus"></i> ./register.sh --execute
+    </button>
+</form>
 
-                <div class="auth-row">
-                    <div class="auth-field">
-                        <label for="first_name">First name</label>
-                        <div class="auth-input">
-                            <i class="fas fa-user"></i>
-                            <input type="text" id="first_name" name="first_name" placeholder="First name"
-                                   value="<?php echo old('first_name'); ?>">
-                        </div>
-                    </div>
-                    <div class="auth-field">
-                        <label for="last_name">Last name</label>
-                        <div class="auth-input">
-                            <i class="fas fa-user"></i>
-                            <input type="text" id="last_name" name="last_name" placeholder="Last name"
-                                   value="<?php echo old('last_name'); ?>">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="auth-field">
-                    <label for="phone">Phone</label>
-                    <div class="auth-input">
-                        <i class="fas fa-phone"></i>
-                        <input type="tel" id="phone" name="phone" placeholder="Phone number"
-                               value="<?php echo old('phone'); ?>">
-                    </div>
-                </div>
-
-                <div class="auth-field">
-                    <label for="password">Password *</label>
-                    <div class="auth-input">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="password" name="password" placeholder="Create a password" required>
-                    </div>
-                    <small class="auth-hint">Minimum 6 characters.</small>
-                </div>
-
-                <div class="auth-field">
-                    <label for="confirm_password">Confirm password *</label>
-                    <div class="auth-input">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="confirm_password" name="confirm_password" placeholder="Re-enter your password" required>
-                    </div>
-                </div>
-
-                <button type="submit" class="auth-submit">
-                    <i class="fas fa-user-plus"></i> Create account
-                </button>
-            </form>
-
-            <p class="auth-alt">
-                Already have an account? <a href="login.php">Sign in</a>
-            </p>
-        </div>
-    </main>
-
+<div class="auth-terminal-links">
+    <div class="row">
+        <span class="guest">guest@hub:~$</span>
+        <span>have an account?</span>
+        <a href="login.php">./signin.sh</a>
+    </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<?php require __DIR__ . '/../components/auth/terminal_layout_end.php'; ?>
