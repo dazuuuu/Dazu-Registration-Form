@@ -1,8 +1,8 @@
 <?php
 require_once __DIR__ . '/../../../../app/bootstrap.php';
-require_once __DIR__ . '/../../../../app/config/db_connect.php';
-require_once __DIR__ . '/../../../../app/controllers/StoreController.php';
-require_once __DIR__ . '/../../../../app/helpers/uploads.php';
+require_once __DIR__ . '/../../../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../../../app/v1/controllers/StoreController.php';
+require_once __DIR__ . '/../../../../app/v1/helpers/uploads.php';
 
 $storeController = new StoreController($pdo);
 $page_title = 'Store Categories';
@@ -255,7 +255,7 @@ function updateSortOrder(input) {
     const id = input.dataset.id;
     const sortOrder = input.value;
     
-    fetch('/Registration-System/public/api/store/update_category_sort.php', {
+    fetch(url('api/store/update_category_sort.php'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: id, sort_order: sortOrder })

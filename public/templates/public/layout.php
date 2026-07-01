@@ -1,6 +1,10 @@
 <?php
 // public/templates/public/layout.php
 if (session_status() === PHP_SESSION_NONE) session_start();
+if (!function_exists('url')) {
+    require_once __DIR__ . '/../../../app/v1/config/paths.php';
+}
+$webRoot = WEB_ROOT === '' ? '' : WEB_ROOT;
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -9,6 +13,9 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title><?php echo htmlspecialchars($page_title ?? 'Dazu Hub Institute'); ?></title>
 <meta name="description" content="<?php echo htmlspecialchars($page_description ?? 'Tech training institute offering Python, PHP, Node.js, Frontend and AI courses in Nairobi, Kenya.'); ?>">
+<meta name="theme-color" content="#2E7D32">
+<link rel="manifest" href="<?php echo url('manifest.json'); ?>">
+<link rel="apple-touch-icon" href="<?php echo asset('icons/icon-192.png'); ?>">
 
 <!-- Anti-flash: apply saved theme before any CSS renders -->
 <script>
@@ -379,5 +386,12 @@ main { animation: dhFadeIn 0.45s ease both; }
 </script>
 
 <?php if (isset($extra_js)) echo $extra_js; ?>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('<?php echo url('sw.js'); ?>').catch(function () {});
+  });
+}
+</script>
 </body>
 </html>

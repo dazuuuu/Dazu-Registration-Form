@@ -14,12 +14,12 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Simple admin check
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
-    header('Location: /Registration-System/public/auth/login.php');
+    header('Location: ' . url('auth/login.php'));
     exit();
 }
 
 // Include database connection
-require_once __DIR__ . '/../../../app/config/db_connect.php';
+require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
 
 // Get all services directly from database
 $sql = "SELECT s.*, u.username as creator_name 
@@ -329,7 +329,7 @@ document.getElementById('createServiceForm').addEventListener('submit', async (e
     submitBtn.disabled = true;
     
     try {
-        const response = await fetch('/Registration-System/public/api/services/create.php', {
+        const response = await fetch(url('api/services/create.php'), {
             method: 'POST',
             body: formData
         });
@@ -354,7 +354,7 @@ document.getElementById('createServiceForm').addEventListener('submit', async (e
 async function deleteService(id) {
     if (confirm('Are you sure you want to delete this service? This action cannot be undone.')) {
         try {
-            const response = await fetch('/Registration-System/public/api/services/delete.php', {
+            const response = await fetch(url('api/services/delete.php'), {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({id: id})

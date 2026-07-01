@@ -10,12 +10,12 @@ ob_start();
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
-    header('Location: /Registration-System/public/auth/login.php');
+    header('Location: ' . url('auth/login.php'));
     exit();
 }
 
-require_once __DIR__ . '/../../../app/config/db_connect.php';
-require_once __DIR__ . '/../../../app/models/BlogModel.php';
+require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../../app/v1/models/BlogModel.php';
 
 $blogModel = new BlogModel($pdo);
 $blogs = $blogModel->getAll(null, 100);
@@ -340,7 +340,7 @@ $(document).ready(function() {
 async function deleteBlog(id) {
     if (confirm('Are you sure you want to delete this blog post? This action cannot be undone.')) {
         try {
-            const response = await fetch('/Registration-System/public/api/blog/delete.php', {
+            const response = await fetch(url('api/blog/delete.php'), {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({id: id})

@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../app/bootstrap.php';
-require_once __DIR__ . '/../../../app/config/db_connect.php';
-require_once __DIR__ . '/../../../app/controllers/EnquiryController.php';
+require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../../app/v1/controllers/EnquiryController.php';
 
 $enquiryController = new EnquiryController($pdo);
 $page_title = 'Enquiries Management';
@@ -175,7 +175,7 @@ document.querySelectorAll('.priority-select').forEach(select => {
         const id = this.dataset.id;
         const priority = this.value;
         
-        const response = await fetch('/Registration-System/public/api/enquiry/update_priority.php', {
+        const response = await fetch(url('api/enquiry/update_priority.php'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: id, priority: priority })

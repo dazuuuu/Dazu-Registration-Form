@@ -220,7 +220,7 @@ class ProjectController {
     
     // File Upload Helper
     private function uploadFile($file, $subdirectory) {
-        $target_dir = $_SERVER['DOCUMENT_ROOT'] . "/Registration-System/public/uploads/" . $subdirectory . "/";
+        $target_dir = $_SERVER['DOCUMENT_ROOT'] . url('uploads/') . $subdirectory . "/";
         
         // Create directory if not exists
         if (!file_exists($target_dir)) {
@@ -238,7 +238,7 @@ class ProjectController {
         $target_file = $target_dir . $new_filename;
         
         if (move_uploaded_file($file['tmp_name'], $target_file)) {
-            return ['success' => true, 'path' => "/Registration-System/public/uploads/" . $subdirectory . "/" . $new_filename];
+            return ['success' => true, 'path' => url('uploads/') . $subdirectory . "/" . $new_filename];
         }
         
         return ['success' => false, 'message' => 'Failed to upload file'];

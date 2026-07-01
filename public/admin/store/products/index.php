@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../../app/bootstrap.php';
-require_once __DIR__ . '/../../../../app/config/db_connect.php';
-require_once __DIR__ . '/../../../../app/controllers/StoreController.php';
+require_once __DIR__ . '/../../../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../../../app/v1/controllers/StoreController.php';
 
 $storeController = new StoreController($pdo);
 $page_title = 'Store Products';

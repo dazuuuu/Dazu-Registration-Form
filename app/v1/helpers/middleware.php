@@ -13,7 +13,7 @@ class Middleware {
         SessionModel::start();
         
         if (!SessionModel::has('logged_in') || SessionModel::get('logged_in') !== true) {
-            header('Location: /Registration-System/public/auth/login.php');
+            header('Location: ' . url('auth/login.php'));
             exit();
         }
     }
@@ -27,9 +27,9 @@ class Middleware {
         if (SessionModel::has('logged_in') && SessionModel::get('logged_in') === true) {
             $role = SessionModel::get('role');
             if ($role === 'admin' || $role === 'superadmin') {
-                header('Location: /Registration-System/public/admin/dashboard.php');
+                header('Location: ' . url('admin/dashboard.php'));
             } else {
-                header('Location: /Registration-System/public/profile/');
+                header('Location: ' . url('profile/'));
             }
             exit();
         }
@@ -41,7 +41,7 @@ class Middleware {
     public static function requireTutor() {
         self::requireAuth();
         if (SessionModel::get('role') !== 'tutor') {
-            header('Location: /Registration-System/public/auth/login.php?error=access_denied');
+            header('Location: ' . url('auth/login.php?error=access_denied'));
             exit();
         }
     }
@@ -54,7 +54,7 @@ class Middleware {
 
         $role = SessionModel::get('role');
         if ($role !== 'student') {
-            header('Location: /Registration-System/public/auth/login.php?error=access_denied');
+            header('Location: ' . url('auth/login.php?error=access_denied'));
             exit();
         }
     }
@@ -69,7 +69,7 @@ class Middleware {
         
         // role_id 1 = superadmin, 2 = admin, 3 = user
         if ($roleId > 2) {
-            header('Location: /Registration-System/public/auth/login.php?error=access_denied');
+            header('Location: ' . url('auth/login.php?error=access_denied'));
             exit();
         }
     }
@@ -83,7 +83,7 @@ class Middleware {
         $roleId = SessionModel::get('role_id');
         
         if ($roleId !== 1) {
-            header('Location: /Registration-System/public/admin/dashboard.php?error=unauthorized');
+            header('Location: ' . url('admin/dashboard.php?error=unauthorized'));
             exit();
         }
     }

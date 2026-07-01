@@ -27,7 +27,7 @@ if (!$service_id) {
     exit();
 }
 
-require_once __DIR__ . '/../../../app/config/db_connect.php';
+require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
 
 try {
     // Start transaction

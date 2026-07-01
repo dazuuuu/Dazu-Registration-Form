@@ -23,8 +23,8 @@ try {
         sendJsonResponse(false, 'Blog ID is required');
     }
     
-    require_once __DIR__ . '/../../../app/config/db_connect.php';
-    require_once __DIR__ . '/../../../app/controllers/BlogController.php';
+    require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
+    require_once __DIR__ . '/../../../app/v1/controllers/BlogController.php';
     
     $blogController = new BlogController($pdo);
     $result = $blogController->delete($blog_id);

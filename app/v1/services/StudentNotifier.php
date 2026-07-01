@@ -7,7 +7,7 @@ class StudentNotifier {
     private $pdo;
     private $mailer;
     private $companyName;
-    private $loginUrl = '/Registration-System/public/auth/login.php';
+    private $loginUrl = url('auth/login.php');
 
     public function __construct($pdo, ?Mailer $mailer = null) {
         $this->pdo = $pdo;

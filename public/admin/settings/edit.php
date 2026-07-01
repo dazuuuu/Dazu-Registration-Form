@@ -3,9 +3,9 @@
 // Handles uploads + DB writes for: logo, hero slides, page headers.
 // Sections via ?section=logo|hero|headers . Uses Post-Redirect-Get.
 
-require_once __DIR__ . '/../../../app/helpers/uploads.php';        // BASE_URL + helpers
-require_once __DIR__ . '/../../../app/models/SettingModel.php';
-require_once __DIR__ . '/../../../app/config/db_connect.php';      // provides $pdo
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';        // BASE_URL + helpers
+require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
+require_once __DIR__ . '/../../../app/v1/config/db_connect.php';      // provides $pdo
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

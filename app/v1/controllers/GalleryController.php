@@ -22,7 +22,7 @@ class GalleryController {
         
         // Handle file upload
         if ($media_file && $media_file['error'] === 0) {
-            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Registration-System/public/uploads/gallery/';
+            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . url('uploads/gallery/');
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0777, true);
             }
@@ -32,7 +32,7 @@ class GalleryController {
             $target_file = $upload_dir . $filename;
             
             if (move_uploaded_file($media_file['tmp_name'], $target_file)) {
-                $file_path = '/Registration-System/public/uploads/gallery/' . $filename;
+                $file_path = url('uploads/gallery/') . $filename;
                 
                 // Determine media type
                 if (in_array($ext, ['mp4', 'webm', 'ogg', 'mov'])) {
@@ -44,7 +44,7 @@ class GalleryController {
                 // Create thumbnail for images
                 if ($media_type === 'image') {
                     $this->createThumbnail($target_file, $upload_dir . 'thumb_' . $filename);
-                    $thumbnail_path = '/Registration-System/public/uploads/gallery/thumb_' . $filename;
+                    $thumbnail_path = url('uploads/gallery/thumb_') . $filename;
                 }
             }
         }
@@ -125,13 +125,13 @@ class GalleryController {
         
         // Handle new file upload
         if ($media_file && $media_file['error'] === 0) {
-            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Registration-System/public/uploads/gallery/';
+            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . url('uploads/gallery/');
             $ext = pathinfo($media_file['name'], PATHINFO_EXTENSION);
             $filename = time() . '_' . uniqid() . '.' . $ext;
             $target_file = $upload_dir . $filename;
             
             if (move_uploaded_file($media_file['tmp_name'], $target_file)) {
-                $updateData['file_path'] = '/Registration-System/public/uploads/gallery/' . $filename;
+                $updateData['file_path'] = url('uploads/gallery/') . $filename;
             }
         }
         

@@ -1,11 +1,11 @@
 <?php
 // public/profile/index.php (Using Client Template)
-require_once __DIR__ . '/../../app/config/db_connect.php';
-require_once __DIR__ . '/../../app/helpers/functions.php';
+require_once __DIR__ . '/../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../app/v1/helpers/functions.php';
 
 // Check if logged in
 if (!isLoggedIn()) {
-    redirect('/Registration-System/public/auth/login.php');
+    redirect(url('auth/login.php'));
 }
 
 $user_id = $_SESSION['user_id'];

@@ -5,12 +5,12 @@ $page_description = 'Hands-on Python, PHP, Node.js, Frontend, Full-Stack and AI 
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-require_once __DIR__ . '/../app/config/db_connect.php';
-require_once __DIR__ . '/../app/helpers/uploads.php';
-require_once __DIR__ . '/../app/models/Connection.php';
-require_once __DIR__ . '/../app/models/CourseModel.php';
-require_once __DIR__ . '/../app/models/RegistrationModel.php';
-require_once __DIR__ . '/../app/services/StudentNotifier.php';
+require_once __DIR__ . '/../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../app/v1/models/Connection.php';
+require_once __DIR__ . '/../app/v1/models/CourseModel.php';
+require_once __DIR__ . '/../app/v1/models/RegistrationModel.php';
+require_once __DIR__ . '/../app/v1/services/StudentNotifier.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dh_register'])) {
                 if (!move_uploaded_file($file['tmp_name'], $dest . '/' . $fname)) {
                     $reg_error = 'Could not save the file. Try again.';
                 } else {
-                    $idDocPath = '/Registration-System/public/uploads/registrations/documents/' . $fname;
+                    $idDocPath = url('uploads/registrations/documents/') . $fname;
                 }
             }
         }
@@ -731,14 +731,14 @@ ob_start(); ?>
                 $icon    = $iconMap[$abbr]  ?? ($course['icon'] ?? '📚');
                 $color   = $colorMap[$abbr] ?? ($course['badge_color'] ?? '#2E7D32');
                 // cover_image is stored as a full web path by upload_image(),
-                // e.g. "/Registration-System/public/uploads/courses/covers/file.jpg"
+                // e.g. url('uploads/courses/covers/file.jpg')
                 // Do NOT prepend anything — use it directly.
                 $hasImg  = !empty($course['cover_image']);
                 $imgSrc  = $hasImg ? $course['cover_image'] : null;
                 $tags    = $course['tags'] ?? [];
                 // Link: if real DB course (id > 0), go to detail page; else scroll to form
                 $detailLink = ((int)($course['id'] ?? 0) > 0)
-                    ? '/Registration-System/public/courses/view.php?id=' . (int)$course['id']
+                    ? url('courses/view.php?id=') . (int)$course['id']
                     : '#home';
             ?>
             <div class="hp-course-card dh-reveal dh-delay-<?php echo ($i % 3) + 1; ?>">

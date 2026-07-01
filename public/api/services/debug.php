@@ -7,11 +7,11 @@ echo "Step 1: Script started<br>";
 
 // Check if files exist
 $files = [
-    __DIR__ . '/../../../app/config/db_connect.php',
-    __DIR__ . '/../../../app/models/Session.php',
-    __DIR__ . '/../../../app/helpers/middleware.php',
-    __DIR__ . '/../../../app/controllers/ServiceController.php',
-    __DIR__ . '/../../../app/models/ServiceModel.php'
+    __DIR__ . '/../../../app/v1/config/db_connect.php',
+    __DIR__ . '/../../../app/v1/models/Session.php',
+    __DIR__ . '/../../../app/v1/helpers/middleware.php',
+    __DIR__ . '/../../../app/v1/controllers/ServiceController.php',
+    __DIR__ . '/../../../app/v1/models/ServiceModel.php'
 ];
 
 foreach ($files as $file) {
@@ -24,16 +24,16 @@ foreach ($files as $file) {
 
 echo "Step 2: Attempting to include files...<br>";
 
-require_once __DIR__ . '/../../../app/config/db_connect.php';
+require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
 echo "✓ db_connect.php loaded<br>";
 
-require_once __DIR__ . '/../../../app/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/models/Session.php';
 echo "✓ Session.php loaded<br>";
 
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 echo "✓ middleware.php loaded<br>";
 
-require_once __DIR__ . '/../../../app/controllers/ServiceController.php';
+require_once __DIR__ . '/../../../app/v1/controllers/ServiceController.php';
 echo "✓ ServiceController.php loaded<br>";
 
 echo "Step 3: All files loaded successfully!";

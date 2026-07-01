@@ -41,7 +41,7 @@ function isWebsiteActive($current_dir) {
         </button>
         <h3>
             <i class="fas fa-shield-alt me-2"></i>
-            Ismano Admin
+            Dazu Hub Admin
         </h3>
         <small>Welcome, <?php echo htmlspecialchars($_SESSION['username'] ?? 'Guest'); ?></small>
         <small class="d-block mt-1">
@@ -54,7 +54,7 @@ function isWebsiteActive($current_dir) {
     <div class="sidebar-nav">
         <div class="nav flex-column">
             <!-- Dashboard -->
-            <a href="/Registration-System/public/admin/dashboard.php" 
+            <a href="<?php echo url('admin/dashboard.php'); ?>" 
                class="nav-link <?php echo $current_page == 'dashboard.php' ? 'active' : ''; ?>">
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Dashboard</span>
@@ -70,28 +70,28 @@ function isWebsiteActive($current_dir) {
                 </a>
                 <div class="collapse <?php echo isSystemActive($current_dir) ? 'show' : ''; ?>" id="systemMenu">
                     <div class="ps-4 mt-2">
-                        <a href="/Registration-System/public/admin/registrations/index.php?status=pending"
+                        <a href="<?php echo url('admin/registrations/index.php?status=pending'); ?>"
                            class="nav-link <?php echo $current_dir == 'registrations' ? 'active' : ''; ?>">
                             <i class="fas fa-user-clock"></i>
                             <span>Pending Approvals</span>
                             <span class="registrations-badge" id="registrationsBadge" style="display:none;">0</span>
                         </a>
-                        <a href="/Registration-System/public/admin/students/index.php"
+                        <a href="<?php echo url('admin/students/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'students' ? 'active' : ''; ?>">
                             <i class="fas fa-user-graduate"></i>
                             <span>Students</span>
                         </a>
-                        <a href="/Registration-System/public/admin/courses/index.php"
+                        <a href="<?php echo url('admin/courses/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'courses' ? 'active' : ''; ?>">
                             <i class="fas fa-book"></i>
                             <span>Courses</span>
                         </a>
-                        <a href="/Registration-System/public/admin/tutors/index.php"
+                        <a href="<?php echo url('admin/tutors/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'tutors' ? 'active' : ''; ?>">
                             <i class="fas fa-chalkboard-teacher"></i>
                             <span>Tutors</span>
                         </a>
-                        <a href="/Registration-System/public/admin/payments/index.php"
+                        <a href="<?php echo url('admin/payments/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'payments' ? 'active' : ''; ?>">
                             <i class="fas fa-money-bill-wave"></i>
                             <span>Payments</span>
@@ -110,39 +110,39 @@ function isWebsiteActive($current_dir) {
                 </a>
                 <div class="collapse <?php echo isWebsiteActive($current_dir) ? 'show' : ''; ?>" id="websiteMenu">
                     <div class="ps-4 mt-2">
-                        <a href="/Registration-System/public/admin/orders/index.php" 
+                        <a href="<?php echo url('admin/orders/index.php'); ?>" 
                            class="nav-link <?php echo isActive('orders', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-receipt"></i>
                             <span>Orders</span>
                             <span class="orders-badge" id="ordersBadge" style="display:none;">0</span>
                         </a>
-                        <a href="/Registration-System/public/admin/enquiries/index.php" 
+                        <a href="<?php echo url('admin/enquiries/index.php'); ?>" 
                            class="nav-link <?php echo isActive('enquiries', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-question-circle"></i>
                             <span>Enquiries</span>
                             <span class="enquiries-badge" id="enquiriesBadge" style="display:none;">0</span>
                         </a>
-                        <a href="/Registration-System/public/admin/projects/index.php" 
+                        <a href="<?php echo url('admin/projects/index.php'); ?>" 
                            class="nav-link <?php echo isActive('projects', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-folder-open"></i>
                             <span>Projects</span>
                         </a>
-                        <a href="/Registration-System/public/admin/services/index.php" 
+                        <a href="<?php echo url('admin/services/index.php'); ?>" 
                            class="nav-link <?php echo isActive('services', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-cogs"></i>
                             <span>Services</span>
                         </a>
-                        <a href="/Registration-System/public/admin/blogs/index.php" 
+                        <a href="<?php echo url('admin/blogs/index.php'); ?>" 
                            class="nav-link <?php echo isActive('blogs', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-blog"></i>
                             <span>Blog Posts</span>
                         </a>
-                        <a href="/Registration-System/public/admin/gallery/index.php" 
+                        <a href="<?php echo url('admin/gallery/index.php'); ?>" 
                            class="nav-link <?php echo isActive('gallery', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-images"></i>
                             <span>Gallery</span>
                         </a>
-                        <a href="/Registration-System/public/admin/testimonials/index.php" 
+                        <a href="<?php echo url('admin/testimonials/index.php'); ?>" 
                            class="nav-link <?php echo isActive('testimonials', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-star"></i>
                             <span>Testimonials</span>
@@ -158,12 +158,12 @@ function isWebsiteActive($current_dir) {
                             </a>
                             <div class="collapse <?php echo isStoreActive($current_dir) ? 'show' : ''; ?>" id="storeMenu">
                                 <div class="ps-4 mt-2">
-                                    <a href="/Registration-System/public/admin/store/products/index.php" 
+                                    <a href="<?php echo url('admin/store/products/index.php'); ?>" 
                                        class="nav-link <?php echo $current_dir == 'products' ? 'active' : ''; ?>">
                                         <i class="fas fa-box"></i>
                                         <span>Products</span>
                                     </a>
-                                    <a href="/Registration-System/public/admin/store/categories/index.php" 
+                                    <a href="<?php echo url('admin/store/categories/index.php'); ?>" 
                                        class="nav-link <?php echo $current_dir == 'categories' ? 'active' : ''; ?>">
                                         <i class="fas fa-tags"></i>
                                         <span>Categories</span>
@@ -178,21 +178,21 @@ function isWebsiteActive($current_dir) {
             <hr>
             
             <!-- Profile -->
-            <a href="/Registration-System/public/profile/admin/" 
+            <a href="<?php echo url('profile/admin/'); ?>" 
                class="nav-link <?php echo $current_page == 'profile.php' ? 'active' : ''; ?>">
                 <i class="fas fa-user-circle"></i>
                 <span>My Profile</span>
             </a>
             
             <!-- Settings -->
-            <a href="/Registration-System/public/admin/settings/index.php" 
+            <a href="<?php echo url('admin/settings/index.php'); ?>" 
                class="nav-link <?php echo isActive('settings', $current_dir, $current_page) ? 'active' : ''; ?>">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
             
             <!-- Logout -->
-            <a href="/Registration-System/public/auth/logout.php" class="nav-link text-danger">
+            <a href="<?php echo url('auth/logout.php'); ?>" class="nav-link text-danger">
                 <i class="fas fa-sign-out-alt"></i>
                 <span>Logout</span>
             </a>
@@ -207,7 +207,7 @@ function isWebsiteActive($current_dir) {
         <strong>New order received</strong>
         <div id="orderToastMsg" class="order-toast-msg"></div>
     </div>
-    <a href="/Registration-System/public/admin/orders/index.php" class="order-toast-link">View</a>
+    <a href="<?php echo url('admin/orders/index.php'); ?>" class="order-toast-link">View</a>
     <button type="button" class="order-toast-close" aria-label="Dismiss">&times;</button>
 </div>
 
@@ -722,7 +722,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function poll() {
-        fetch('/Registration-System/public/api/store/admin/new_orders_count.php', { 
+        fetch(url('api/store/admin/new_orders_count.php'), { 
             headers: { 'Accept': 'application/json' } 
         })
         .then(function (r) { return r.json(); })

@@ -29,14 +29,14 @@ try {
         sendJsonResponse(false, 'Section type is required');
     }
     
-    require_once __DIR__ . '/../../../app/config/db_connect.php';
+    require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
     
     // Handle media file upload
     $media_url = $_POST['media_url'] ?? null;
     $media_type = 'image';
     
     if (isset($_FILES['media_file']) && $_FILES['media_file']['error'] === 0) {
-        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Registration-System/public/uploads/services/sections/';
+        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . url('uploads/services/sections/');
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
@@ -46,7 +46,7 @@ try {
         $target_file = $upload_dir . $filename;
         
         if (move_uploaded_file($_FILES['media_file']['tmp_name'], $target_file)) {
-            $media_url = '/Registration-System/public/uploads/services/sections/' . $filename;
+            $media_url = url('uploads/services/sections/') . $filename;
             $media_type = in_array($ext, ['mp4', 'webm', 'ogg']) ? 'video' : 'image';
         }
     }

@@ -56,7 +56,7 @@ class AuthController {
             'success' => true, 
             'message' => 'Login successful!',
             'role' => $user['role_name'],
-            'redirect' => $role_type === 'admin' ? '/Registration-System/public/admin/dashboard.php' : '/Registration-System/public/profile/'
+            'redirect' => $role_type === 'admin' ? url('admin/dashboard.php') : url('profile/')
         ];
     }
     

@@ -1,12 +1,12 @@
 <?php
 // public/admin/payments/index.php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/helpers/uploads.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/PaymentModel.php';
-require_once __DIR__ . '/../../../app/controllers/StudentController.php';
-require_once __DIR__ . '/../../../app/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/PaymentModel.php';
+require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
+require_once __DIR__ . '/../../../app/v1/models/Session.php';
 
 use Models\Connection;
 use Models\PaymentModel;
@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $controller->approvePayment($paymentId, $adminId);
             if ($result['ok']) {
                 SessionModel::setFlash('success', 'Payment approved. Receipt <strong>' . htmlspecialchars($result['receipt_no']) . '</strong> emailed to student.');
-                header('Location: /Registration-System/public/admin/payments/index.php');
+                header('Location: ' . url('admin/payments/index.php'));
                 exit();
             }
             $error = $result['error'];
@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $controller->rejectPayment($paymentId, $adminId, $reason);
             if ($result['ok']) {
                 SessionModel::setFlash('success', 'Payment rejected. Student has been notified.');
-                header('Location: /Registration-System/public/admin/payments/index.php');
+                header('Location: ' . url('admin/payments/index.php'));
                 exit();
             }
             $error = $result['error'];

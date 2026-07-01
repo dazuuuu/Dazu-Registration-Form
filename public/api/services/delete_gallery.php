@@ -23,7 +23,7 @@ try {
         sendJsonResponse(false, 'Gallery ID is required');
     }
     
-    require_once __DIR__ . '/../../../app/config/db_connect.php';
+    require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
     
     // Get image path to delete file
     $stmt = $pdo->prepare("SELECT image_path FROM service_gallery WHERE id = :id");

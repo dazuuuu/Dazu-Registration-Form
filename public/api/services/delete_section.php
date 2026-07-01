@@ -23,7 +23,7 @@ try {
         sendJsonResponse(false, 'Section ID is required');
     }
     
-    require_once __DIR__ . '/../../../app/config/db_connect.php';
+    require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
     
     $stmt = $pdo->prepare("DELETE FROM service_sections WHERE id = :id");
     $result = $stmt->execute([':id' => $id]);

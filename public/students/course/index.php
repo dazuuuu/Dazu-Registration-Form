@@ -1,11 +1,11 @@
 <?php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/StudentModel.php';
-require_once __DIR__ . '/../../../app/models/TutorModel.php';
-require_once __DIR__ . '/../../../app/models/CurriculumModel.php';
-require_once __DIR__ . '/../../../app/models/ProgressModel.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/StudentModel.php';
+require_once __DIR__ . '/../../../app/v1/models/TutorModel.php';
+require_once __DIR__ . '/../../../app/v1/models/CurriculumModel.php';
+require_once __DIR__ . '/../../../app/v1/models/ProgressModel.php';
 
 use Models\Connection;
 use Models\StudentModel;
@@ -22,7 +22,7 @@ $progressModel = new ProgressModel($pdo);
 $userId = (int)$_SESSION['user_id'];
 
 $reg = $studentModel->getByUserId($userId);
-if (!$reg) { header('Location: /Registration-System/public/students/dashboard/index.php'); exit(); }
+if (!$reg) { header('Location: ' . url('students/dashboard/index.php')); exit(); }
 $portal_locked = (bool)$reg['portal_locked'];
 
 $tutors = $tutorModel->getForCourse((int)$reg['course_id']);

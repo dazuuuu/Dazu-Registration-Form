@@ -1,7 +1,7 @@
 <?php
 // public/projects/index.php
-require_once __DIR__ . '/../../app/config/db_connect.php';
-require_once __DIR__ . '/../../app/controllers/ProjectController.php';
+require_once __DIR__ . '/../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../app/v1/controllers/ProjectController.php';
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
@@ -505,7 +505,7 @@ $projects = array_values($projects); // reset keys for indexed loops
         <p class="sidebar-block-title"><i class="fas fa-layer-group"></i> Categories</p>
         <ul class="cat-list" role="list">
           <li>
-            <a href="/Registration-System/public/projects/<?php echo $search ? '?search=' . urlencode($search) : ''; ?>"
+            <a href=url('projects/<?php echo $search ? '?search=' . urlencode($search) : ''; ?>')
                class="cat-link <?php echo !$category_filter ? 'is-active' : ''; ?>">
               <span class="cat-link-left">
                 <i class="fas fa-border-all" aria-hidden="true"></i> All Projects
@@ -574,7 +574,7 @@ $projects = array_values($projects); // reset keys for indexed loops
         <!-- Active filter pills -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <?php if ($category_filter && $activeCat ?? null): ?>
-            <a href="/Registration-System/public/projects/<?php echo $search ? '?search=' . urlencode($search) : ''; ?>"
+            <a href=url('projects/<?php echo $search ? '?search=' . urlencode($search) : ''; ?>')
                class="filter-pill" title="Remove category filter">
               <i class="fas fa-folder" aria-hidden="true"></i>
               <?php echo htmlspecialchars($activeCat['category_name']); ?>
@@ -582,7 +582,7 @@ $projects = array_values($projects); // reset keys for indexed loops
             </a>
           <?php endif; ?>
           <?php if ($search): ?>
-            <a href="/Registration-System/public/projects/<?php echo $category_filter ? '?category=' . urlencode($category_filter) : ''; ?>"
+            <a href=url('projects/<?php echo $category_filter ? '?category=' . urlencode($category_filter) : ''; ?>')
                class="filter-pill" title="Clear search">
               <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
               "<?php echo htmlspecialchars(mb_strimwidth($search, 0, 20, '…')); ?>"
@@ -599,7 +599,7 @@ $projects = array_values($projects); // reset keys for indexed loops
             <div class="empty-icon"><i class="fa-regular fa-folder-open" aria-hidden="true"></i></div>
             <h3>No projects found</h3>
             <p>No projects match your current filters. Try a different category or clear your search.</p>
-            <a href="/Registration-System/public/projects/" class="btn btn--dark">
+            <a href="<?php echo url('projects/'); ?>" class="btn btn--dark">
               View All Projects <i class="fas fa-arrow-right"></i>
             </a>
           </div>

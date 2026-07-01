@@ -6,7 +6,7 @@
 ini_set('display_errors', '0');
 header('Content-Type: application/json; charset=utf-8');
 
-require_once __DIR__ . '/../../../../app/config/db_connect.php';
+require_once __DIR__ . '/../../../../app/v1/config/db_connect.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (empty($_SESSION['user_id'])) {

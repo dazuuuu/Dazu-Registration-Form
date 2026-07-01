@@ -14,7 +14,7 @@ echo "</pre>";
 // Check database connection
 echo "<h3>Database:</h3>";
 try {
-    require_once __DIR__ . '/../../app/config/db_connect.php';
+    require_once __DIR__ . '/../../app/v1/config/db_connect.php';
     echo "<p style='color:green'>✓ Database connected</p>";
     
     // Check tables

@@ -1,10 +1,10 @@
 <?php
 // public/admin/students/index.php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/StudentModel.php';
-require_once __DIR__ . '/../../../app/models/PaymentModel.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/StudentModel.php';
+require_once __DIR__ . '/../../../app/v1/models/PaymentModel.php';
 
 use Models\Connection;
 use Models\StudentModel;
@@ -79,7 +79,7 @@ ob_start();
                             <?php endif; ?>
                         </td>
                         <td>
-                            <a href="/Registration-System/public/admin/students/view.php?id=<?php echo (int) $s['id']; ?>"
+                            <a href="<?php echo url('admin/students/view.php?id=' . (int)$s['id']); ?>"
                                class="btn btn-sm btn-outline-primary">View</a>
                         </td>
                     </tr>

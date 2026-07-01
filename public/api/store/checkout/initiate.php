@@ -20,9 +20,9 @@ function out($d, $code = 200) { while (ob_get_level() > 0) ob_end_clean(); http_
 
 // Confirm the required files exist before requiring them.
 $need = [
-    'db'         => __DIR__ . '/../../../../app/config/db_connect.php',
-    'controller' => __DIR__ . '/../../../../app/controllers/CheckoutController.php',
-    'mpesa_cfg'  => __DIR__ . '/../../../../app/config/mpesa.php',
+    'db'         => __DIR__ . '/../../../../app/v1/config/db_connect.php',
+    'controller' => __DIR__ . '/../../../../app/v1/controllers/CheckoutController.php',
+    'mpesa_cfg'  => __DIR__ . '/../../../../app/v1/config/mpesa.php',
 ];
 foreach ($need as $label => $path) {
     if (!is_file($path)) {

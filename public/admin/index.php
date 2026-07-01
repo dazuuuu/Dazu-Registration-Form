@@ -1,5 +1,5 @@
 <?php
 // public/admin/index.php
-header('Location: /Registration-System/public/admin/portal.php');
+header('Location: ' . url('admin/portal.php'));
 exit();
 ?>

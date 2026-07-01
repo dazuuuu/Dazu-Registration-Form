@@ -1,11 +1,11 @@
 <?php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/TutorModel.php';
-require_once __DIR__ . '/../../../app/models/ProgressModel.php';
-require_once __DIR__ . '/../../../app/models/CurriculumModel.php';
-require_once __DIR__ . '/../../../app/models/SubmissionModel.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/TutorModel.php';
+require_once __DIR__ . '/../../../app/v1/models/ProgressModel.php';
+require_once __DIR__ . '/../../../app/v1/models/CurriculumModel.php';
+require_once __DIR__ . '/../../../app/v1/models/SubmissionModel.php';
 
 use Models\Connection;
 use Models\TutorModel;
@@ -56,7 +56,7 @@ ob_start();
 <span class="badge bg-<?php echo $sub['status']==='graded'?'success':'warning'; ?> ms-2"><?php echo $sub['status']; ?></span>
 <?php if ($sub['marks']!==null): ?> — <?php echo $sub['marks']; ?> marks<?php endif; ?>
 </span>
-<?php if ($sub['status']==='submitted'): ?><a href="/Registration-System/public/tutor/submissions/index.php#sub-<?php echo (int)$sub['id']; ?>" class="btn btn-sm btn-brand">Grade</a><?php endif; ?>
+<?php if ($sub['status']==='submitted'): ?><a href="<?php echo url('tutor/submissions/index.php#sub-' . (int)$sub['id']); ?>" class="btn btn-sm btn-brand">Grade</a><?php endif; ?>
 </div>
 <?php endforeach; ?>
 </div><?php endif; ?>

@@ -1,7 +1,7 @@
 <?php
 // public/components/public/footer.php — Dazu Hub Institute
 $year = date('Y');
-$logoPath = '/Registration-System/public/assets/images/logo/logo.png';
+$logoPath = url('assets/images/logo/logo.png');
 ?>
 <footer class="dh-footer">
     <div class="dh-footer-top">
@@ -9,7 +9,7 @@ $logoPath = '/Registration-System/public/assets/images/logo/logo.png';
 
             <!-- Brand col -->
             <div class="dh-footer-brand">
-                <a href="/Registration-System/public/" class="dh-footer-logo-link">
+                <a href="<?php echo url('/'); ?>" class="dh-footer-logo-link">
                     <img src="<?php echo $logoPath; ?>" alt="Dazu Hub Institute"
                          height="40" class="dh-footer-logo"
                          onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
@@ -42,12 +42,12 @@ $logoPath = '/Registration-System/public/assets/images/logo/logo.png';
             <div class="dh-footer-col">
                 <h6 class="dh-footer-col-title">Courses</h6>
                 <ul class="dh-footer-links">
-                    <li><a href="/Registration-System/public/#courses">Python &amp; Django</a></li>
-                    <li><a href="/Registration-System/public/#courses">PHP Development</a></li>
-                    <li><a href="/Registration-System/public/#courses">Node.js</a></li>
-                    <li><a href="/Registration-System/public/#courses">Frontend Development</a></li>
-                    <li><a href="/Registration-System/public/#courses">Full-Stack</a></li>
-                    <li><a href="/Registration-System/public/#courses">AI Fundamentals</a></li>
+                    <li><a href="<?php echo url('#courses'); ?>">Python &amp; Django</a></li>
+                    <li><a href="<?php echo url('#courses'); ?>">PHP Development</a></li>
+                    <li><a href="<?php echo url('#courses'); ?>">Node.js</a></li>
+                    <li><a href="<?php echo url('#courses'); ?>">Frontend Development</a></li>
+                    <li><a href="<?php echo url('#courses'); ?>">Full-Stack</a></li>
+                    <li><a href="<?php echo url('#courses'); ?>">AI Fundamentals</a></li>
                 </ul>
             </div>
 
@@ -55,10 +55,10 @@ $logoPath = '/Registration-System/public/assets/images/logo/logo.png';
             <div class="dh-footer-col">
                 <h6 class="dh-footer-col-title">Institute</h6>
                 <ul class="dh-footer-links">
-                    <li><a href="/Registration-System/public/#how-it-works">How It Works</a></li>
-                    <li><a href="/Registration-System/public/#register">Apply Now</a></li>
-                    <li><a href="/Registration-System/public/auth/login.php">Student Login</a></li>
-                    <li><a href="/Registration-System/public/auth/login.php">Tutor Login</a></li>
+                    <li><a href="<?php echo url('#how-it-works'); ?>">How It Works</a></li>
+                    <li><a href="<?php echo url('#register'); ?>">Apply Now</a></li>
+                    <li><a href="<?php echo url('auth/login.php'); ?>">Student Login</a></li>
+                    <li><a href="<?php echo url('auth/login.php'); ?>">Tutor Login</a></li>
                 </ul>
             </div>
 
@@ -79,7 +79,7 @@ $logoPath = '/Registration-System/public/assets/images/logo/logo.png';
                         <span>Nairobi, Kenya</span>
                     </div>
                 </div>
-                <a href="/Registration-System/public/#register" class="dh-btn dh-btn-primary" style="margin-top:18px;width:100%;justify-content:center;padding:11px 18px;">
+                <a href="<?php echo url('#register'); ?>" class="dh-btn dh-btn-primary" style="margin-top:18px;width:100%;justify-content:center;padding:11px 18px;">
                     <i class="fas fa-paper-plane"></i> Apply Now
                 </a>
             </div>

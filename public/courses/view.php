@@ -5,11 +5,11 @@ $page_title = 'Course Details — Dazu Hub Institute';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 require_once __DIR__ . '/../../app/init.php';
-require_once __DIR__ . '/../../app/helpers/uploads.php';
-require_once __DIR__ . '/../../app/models/Connection.php';
-require_once __DIR__ . '/../../app/models/CourseModel.php';
-require_once __DIR__ . '/../../app/models/RegistrationModel.php';
-require_once __DIR__ . '/../../app/services/StudentNotifier.php';
+require_once __DIR__ . '/../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../app/v1/models/CourseModel.php';
+require_once __DIR__ . '/../../app/v1/models/RegistrationModel.php';
+require_once __DIR__ . '/../../app/v1/services/StudentNotifier.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dh_register'])) {
                 if (!move_uploaded_file($file['tmp_name'], $dest . '/' . $fname)) {
                     $reg_error = 'Could not save the document. Try again.';
                 } else {
-                    $idDocPath = '/Registration-System/public/uploads/registrations/documents/' . $fname;
+                    $idDocPath = url('uploads/registrations/documents/') . $fname;
                 }
             }
         }
@@ -92,13 +92,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dh_register'])) {
 
 // Breadcrumb
 $breadcrumbs = [
-    ['label' => 'Home',    'url' => '/Registration-System/public/'],
-    ['label' => 'Courses', 'url' => '/Registration-System/public/#courses'],
+    ['label' => 'Home',    'url' => url('/')],
+    ['label' => 'Courses', 'url' => url('#courses')],
     ['label' => $course['title'], 'active' => true],
 ];
 
 // cover_image is stored as a full web path by upload_image():
-// e.g. "/Registration-System/public/uploads/courses/covers/file.jpg"
+// e.g. url('uploads/courses/covers/file.jpg')
 // Prepending anything would double the path and break the URL.
 $coverImg = !empty($course['cover_image']) ? $course['cover_image'] : null;
 
@@ -388,9 +388,9 @@ ob_start();
 
     <!-- Breadcrumb -->
     <nav class="cv-breadcrumb" aria-label="Breadcrumb">
-        <a href="/Registration-System/public/">Home</a>
+        <a href="<?php echo url('/'); ?>">Home</a>
         <span class="sep">/</span>
-        <a href="/Registration-System/public/#courses">Courses</a>
+        <a href="<?php echo url('#courses'); ?>">Courses</a>
         <span class="sep">/</span>
         <span class="current"><?php echo htmlspecialchars($course['title']); ?></span>
     </nav>

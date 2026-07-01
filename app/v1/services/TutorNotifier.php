@@ -30,7 +30,7 @@ class TutorNotifier {
             'email'        => $tutor['email'] ?? '',
             'temp_password'=> $tempPassword,
             'company_name' => $this->companyName,
-            'login_url'    => $this->url('/Registration-System/public/auth/login.php'),
+            'login_url'    => $this->url(url('auth/login.php')),
             'courses'      => $courseTitles,
         ]);
     }
@@ -42,7 +42,7 @@ class TutorNotifier {
             'student_name'     => $studentName,
             'submission_type'  => $submission['submission_type'],
             'item_title'       => $submission['item_title'] ?? '',
-            'portal_url'       => $this->url('/Registration-System/public/tutor/submissions/index.php'),
+            'portal_url'       => $this->url(url('tutor/submissions/index.php')),
         ]);
     }
 
@@ -54,7 +54,7 @@ class TutorNotifier {
             'marks'            => $submission['marks'],
             'max_marks'        => $maxMarks,
             'feedback'         => $submission['feedback'] ?? '',
-            'portal_url'       => $this->url('/Registration-System/public/students/course/index.php'),
+            'portal_url'       => $this->url(url('students/course/index.php')),
         ]);
     }
 }

@@ -11,7 +11,7 @@ ob_start();
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
-    header('Location: /Registration-System/public/auth/login.php');
+    header('Location: ' . url('auth/login.php'));
     exit();
 }
 
@@ -21,8 +21,8 @@ if (!$blog_id) {
     exit();
 }
 
-require_once __DIR__ . '/../../../app/config/db_connect.php';
-require_once __DIR__ . '/../../../app/controllers/BlogController.php';
+require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../../app/v1/controllers/BlogController.php';
 
 $blogController = new BlogController($pdo);
 $blog = $blogController->getBlogDetails($blog_id);
@@ -345,7 +345,7 @@ document.getElementById('updateBlogForm').addEventListener('submit', async (e) =
     submitBtn.disabled = true;
     
     try {
-        const response = await fetch('/Registration-System/public/api/blog/update.php', {
+        const response = await fetch(url('api/blog/update.php'), {
             method: 'POST',
             body: formData
         });

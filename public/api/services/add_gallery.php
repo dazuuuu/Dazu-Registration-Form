@@ -29,9 +29,9 @@ try {
         sendJsonResponse(false, 'Image file is required');
     }
     
-    require_once __DIR__ . '/../../../app/config/db_connect.php';
+    require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
     
-    $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Registration-System/public/uploads/services/gallery/';
+    $upload_dir = $_SERVER['DOCUMENT_ROOT'] . url('uploads/services/gallery/');
     if (!is_dir($upload_dir)) {
         mkdir($upload_dir, 0777, true);
     }
@@ -47,7 +47,7 @@ try {
         $stmt = $pdo->prepare($sql);
         $result = $stmt->execute([
             ':service_id' => $service_id,
-            ':image_path' => '/Registration-System/public/uploads/services/gallery/' . $filename,
+            ':image_path' => url('uploads/services/gallery/') . $filename,
             ':image_title' => $_POST['image_title'] ?? null,
             ':image_description' => $_POST['image_description'] ?? null
         ]);

@@ -4,7 +4,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 // Check authentication
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
-    header('Location: /Registration-System/public/auth/login.php');
+    header('Location: ' . url('auth/login.php'));
     exit();
 }
 ?>
@@ -13,7 +13,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Admin Panel - <?php echo $page_title ?? 'Ismano'; ?></title>
+    <title>Admin — <?php echo $page_title ?? 'Dazu Hub Institute'; ?></title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -556,7 +556,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
                     <?php if (isset($breadcrumbs)): ?>
                         <nav aria-label="breadcrumb">
                             <ol class="breadcrumb mt-2">
-                                <li class="breadcrumb-item"><a href="/Registration-System/public/admin/dashboard.php">Dashboard</a></li>
+                                <li class="breadcrumb-item"><a href="<?php echo url('admin/dashboard.php'); ?>">Dashboard</a></li>
                                 <?php foreach ($breadcrumbs as $crumb): ?>
                                     <li class="breadcrumb-item <?php echo isset($crumb['active']) ? 'active' : ''; ?>">
                                         <?php if (isset($crumb['url']) && !isset($crumb['active'])): ?>
@@ -576,16 +576,16 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
                         <?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin'); ?>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="/Registration-System/public/profile/admin/">
+                        <li><a class="dropdown-item" href="<?php echo url('profile/admin/'); ?>">
                             <i class="fas fa-user"></i> My Profile
                         </a></li>
                         <?php if (isset($_SESSION['role_id']) && $_SESSION['role_id'] <= 2): ?>
-                        <li><a class="dropdown-item" href="/Registration-System/public/admin/settings/index.php">
+                        <li><a class="dropdown-item" href="<?php echo url('admin/settings/index.php'); ?>">
                             <i class="fas fa-cog"></i> Settings
                         </a></li>
                         <?php endif; ?>
                         <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="/Registration-System/public/auth/logout.php">
+                        <li><a class="dropdown-item text-danger" href="<?php echo url('auth/logout.php'); ?>">
                             <i class="fas fa-sign-out-alt"></i> Logout
                         </a></li>
                     </ul>

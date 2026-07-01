@@ -11,7 +11,7 @@ if (!$id) {
     exit();
 }
 
-require_once __DIR__ . '/../../app/config/db_connect.php';
+require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 
 // Get project details directly from database
 $stmt = $pdo->prepare("
@@ -360,7 +360,7 @@ function getVimeoId($url) {
         <div class="tags-section">
             <h2>Tags</h2>
             <?php foreach ($tags as $tag): ?>
-                <a href="/Registration-System/public/projects/?tag=<?php echo $tag['tag_slug']; ?>" class="tag">
+                <a href=url('projects/?tag=<?php echo $tag['tag_slug']; ?>') class="tag">
                     <i class="fas fa-tag"></i> <?php echo htmlspecialchars($tag['tag_name']); ?>
                 </a>
             <?php endforeach; ?>
@@ -375,8 +375,8 @@ function getVimeoId($url) {
     <div class="container">
         <h2>Interested in Similar Projects?</h2>
         <p class="lead mb-4">Let's discuss how we can bring your vision to life</p>
-        <a href="/Registration-System/public/contact.php" class="btn-light">Contact Us</a>
-        <a href="/Registration-System/public/projects/" class="btn-outline-light">View All Projects</a>
+        <a href="<?php echo url('contact.php'); ?>" class="btn-light">Contact Us</a>
+        <a href="<?php echo url('projects/'); ?>" class="btn-outline-light">View All Projects</a>
     </div>
 </div>
 

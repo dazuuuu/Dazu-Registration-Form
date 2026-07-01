@@ -1,10 +1,10 @@
 <?php
 // public/admin/courses/index.php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/helpers/uploads.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/CourseModel.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_id'])) {
         $courseModel->setActive($id, $active);
         SessionModel::setFlash('success', $active ? 'Course activated.' : 'Course deactivated.');
     }
-    header('Location: /Registration-System/public/admin/courses/index.php');
+    header('Location: ' . url('admin/courses/index.php'));
     exit();
 }
 
@@ -38,7 +38,7 @@ ob_start();
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">All Courses</h5>
-        <a href="/Registration-System/public/admin/courses/create.php" class="btn btn-primary btn-sm">
+        <a href="<?php echo url('admin/courses/create.php'); ?>" class="btn btn-primary btn-sm">
             <i class="fas fa-plus me-1"></i> Add Course
         </a>
     </div>
@@ -85,7 +85,7 @@ ob_start();
                             <?php endif; ?>
                         </td>
                         <td class="text-end">
-                            <a href="/Registration-System/public/admin/courses/edit.php?id=<?php echo (int) $c['id']; ?>"
+                            <a href="<?php echo url('admin/courses/edit.php?id=' . (int)$c['id']); ?>"
                                class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
                             <form method="POST" class="d-inline" onsubmit="return confirm('<?php echo $c['is_active'] ? 'Deactivate' : 'Activate'; ?> this course?');">
                                 <?php echo csrf_field(); ?>

@@ -1,14 +1,14 @@
 <?php
 // public/admin/registrations/view.php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/helpers/uploads.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/CourseModel.php';
-require_once __DIR__ . '/../../../app/models/RegistrationModel.php';
-require_once __DIR__ . '/../../../app/controllers/RegistrationController.php';
-require_once __DIR__ . '/../../../app/controllers/StudentController.php';
-require_once __DIR__ . '/../../../app/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
+require_once __DIR__ . '/../../../app/v1/models/RegistrationModel.php';
+require_once __DIR__ . '/../../../app/v1/controllers/RegistrationController.php';
+require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
+require_once __DIR__ . '/../../../app/v1/models/Session.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -25,7 +25,7 @@ $id  = (int) ($_GET['id'] ?? 0);
 $reg = $regModel->getById($id);
 if (!$reg) {
     SessionModel::setFlash('error', 'Registration not found.');
-    header('Location: /Registration-System/public/admin/registrations/index.php');
+    header('Location: ' . url('admin/registrations/index.php'));
     exit();
 }
 
@@ -91,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $page_title  = 'Review Registration';
 $breadcrumbs = [
-    ['label' => 'Registrations', 'url' => '/Registration-System/public/admin/registrations/index.php?status=' . $reg['status']],
+    ['label' => 'Registrations', 'url' => url('admin/registrations/index.php?status=') . $reg['status']],
     ['label' => $reg['full_name'], 'active' => true],
 ];
 
@@ -345,7 +345,7 @@ ob_start();
                             <i class="fas fa-paper-plane me-1"></i> Email Credentials
                         </button>
                     </form>
-                    <a href="/Registration-System/public/admin/students/view.php?id=<?php echo $id; ?>"
+                    <a href="<?php echo url('admin/students/view.php?id=<?php echo $id; ?>'); ?>"
                        class="btn btn-link btn-sm ps-0 mt-2">
                         <i class="fas fa-user-graduate me-1"></i> Open Student Profile
                     </a>
@@ -356,7 +356,7 @@ ob_start();
 
         <!-- Back link -->
         <div class="mt-3">
-            <a href="/Registration-System/public/admin/registrations/index.php?status=<?php echo $reg['status']; ?>"
+            <a href="<?php echo url('admin/registrations/index.php?status=' . $reg['status']); ?>"
                class="btn btn-link btn-sm ps-0">
                 <i class="fas fa-arrow-left me-1"></i> Back to <?php echo ucfirst($reg['status']); ?> list
             </a>

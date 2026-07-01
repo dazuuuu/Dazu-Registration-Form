@@ -1,17 +1,17 @@
 <?php
 // public/admin/projects/index.php (COMPLETE WORKING VERSION)
-require_once __DIR__ . '/../../../app/config/db_connect.php';
-require_once __DIR__ . '/../../../app/helpers/functions.php';
-require_once __DIR__ . '/../../../app/controllers/ProjectController.php';
+require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../../app/v1/helpers/functions.php';
+require_once __DIR__ . '/../../../app/v1/controllers/ProjectController.php';
 
 // Check if logged in and is admin
 if (!isLoggedIn()) {
-    redirect('/Registration-System/public/admin/portal.php');
+    redirect(url('admin/portal.php'));
 }
 
 $role_id = $_SESSION['role_id'] ?? 3;
 if ($role_id > 2) {
-    redirect('/Registration-System/public/auth/login.php');
+    redirect(url('auth/login.php'));
 }
 
 $controller = new ProjectController($pdo);
@@ -92,7 +92,7 @@ $projects = $controller->getProjects();
 // Page variables
 $page_title = 'Projects Management';
 $breadcrumbs = [
-    ['label' => 'Dashboard', 'url' => '/Registration-System/public/admin/dashboard.php'],
+    ['label' => 'Dashboard', 'url' => url('admin/dashboard.php')],
     ['label' => 'Projects', 'active' => true]
 ];
 

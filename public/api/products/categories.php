@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../app/bootstrap.php';
-require_once __DIR__ . '/../../../app/config/db_connect.php';
-require_once __DIR__ . '/../../../app/controllers/ProductController.php';
+require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../../app/v1/controllers/ProductController.php';
 
 $productController = new ProductController($pdo);
 $page_title = 'Product Categories';

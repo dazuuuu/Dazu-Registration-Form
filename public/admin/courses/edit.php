@@ -1,10 +1,10 @@
 <?php
 // public/admin/courses/edit.php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/helpers/uploads.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/CourseModel.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -18,7 +18,7 @@ $id = (int) ($_GET['id'] ?? 0);
 $course = $courseModel->getById($id);
 if (!$course) {
     SessionModel::setFlash('error', 'Course not found.');
-    header('Location: /Registration-System/public/admin/courses/index.php');
+    header('Location: ' . url('admin/courses/index.php'));
     exit();
 }
 
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $upload = upload_image(
                 $_FILES['cover_image'],
                 __DIR__ . '/../../uploads/courses/covers',
-                '/Registration-System/public/uploads/courses/covers'
+                url('uploads/courses/covers')
             );
             if (!$upload['ok']) {
                 $error = $upload['error'];
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($result['ok']) {
                 SessionModel::setFlash('success', 'Course updated successfully.');
-                header('Location: /Registration-System/public/admin/courses/index.php');
+                header('Location: ' . url('admin/courses/index.php'));
                 exit();
             }
             $error = $result['error'];
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $page_title = 'Edit Course';
 $breadcrumbs = [
-    ['label' => 'Courses', 'url' => '/Registration-System/public/admin/courses/index.php'],
+    ['label' => 'Courses', 'url' => url('admin/courses/index.php')],
     ['label' => 'Edit', 'active' => true],
 ];
 
@@ -138,7 +138,7 @@ ob_start();
 
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Update Course</button>
-                <a href="/Registration-System/public/admin/courses/index.php" class="btn btn-link">Cancel</a>
+                <a href="<?php echo url('admin/courses/index.php'); ?>" class="btn btn-link">Cancel</a>
             </div>
         </form>
     </div>

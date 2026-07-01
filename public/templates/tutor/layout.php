@@ -1,7 +1,7 @@
 <?php
 // public/templates/tutor/layout.php
 if (session_status() === PHP_SESSION_NONE) session_start();
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 Middleware::requireTutor();
 ?>
 <!DOCTYPE html>
@@ -26,12 +26,13 @@ Middleware::requireTutor();
 <?php require __DIR__ . '/../../components/tutor/navbar.php'; ?>
 <main class="tutor-main">
 <?php
-require_once __DIR__ . '/../../../app/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/models/Session.php';
 if ($f = SessionModel::getFlash('success')): ?><div class="alert alert-success alert-dismissible fade show"><?php echo $f; ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif;
 if ($f = SessionModel::getFlash('error')): ?><div class="alert alert-danger alert-dismissible fade show"><?php echo $f; ?><button type="button" class="btn-close" data-bs-dismiss="alert"></button></div><?php endif;
 echo $content;
 ?>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>

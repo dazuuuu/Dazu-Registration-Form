@@ -20,14 +20,14 @@ function redirect($url) {
 
 function getRoleBasedProfileUrl() {
     if (isAdmin()) {
-        return '/Registration-System/public/profile/admin/index.php';
+        return url('profile/admin/index.php');
     }
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'student') {
-        return '/Registration-System/public/students/dashboard/index.php';
+        return url('students/dashboard/index.php');
     }
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'tutor') {
-        return '/Registration-System/public/tutor/dashboard/index.php';
+        return url('tutor/dashboard/index.php');
     }
-    return '/Registration-System/public/profile/client/index.php';
+    return url('profile/client/index.php');
 }
 ?>

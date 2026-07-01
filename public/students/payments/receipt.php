@@ -1,11 +1,11 @@
 <?php
 // public/students/payments/receipt.php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/PaymentModel.php';
-require_once __DIR__ . '/../../../app/models/StudentModel.php';
-require_once __DIR__ . '/../../../app/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/PaymentModel.php';
+require_once __DIR__ . '/../../../app/v1/models/StudentModel.php';
+require_once __DIR__ . '/../../../app/v1/models/Session.php';
 
 use Models\Connection;
 use Models\PaymentModel;

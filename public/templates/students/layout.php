@@ -2,7 +2,7 @@
 // public/templates/students/layout.php
 if (session_status() === PHP_SESSION_NONE) session_start();
 
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 
 Middleware::requireStudent();
 
@@ -142,7 +142,7 @@ $portal_locked = $portal_locked ?? false;
 
 <main class="student-main">
     <?php
-    require_once __DIR__ . '/../../../app/models/Session.php';
+    require_once __DIR__ . '/../../../app/v1/models/Session.php';
     if ($flash = SessionModel::getFlash('success')): ?>
         <div class="alert alert-success alert-dismissible fade show">
             <i class="fas fa-check-circle me-2"></i><?php echo $flash; ?>

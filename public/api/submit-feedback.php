@@ -13,8 +13,8 @@ ini_set('display_errors', 0);
 
 try {
     require_once __DIR__ . '/../../app/bootstrap.php';
-    require_once __DIR__ . '/../../app/config/db_connect.php';
-    require_once __DIR__ . '/../../app/controllers/TestimonialController.php';
+    require_once __DIR__ . '/../../app/v1/config/db_connect.php';
+    require_once __DIR__ . '/../../app/v1/controllers/TestimonialController.php';
     
     $testimonialController = new TestimonialController($pdo);
     

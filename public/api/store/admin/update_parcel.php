@@ -5,8 +5,8 @@
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
-require_once __DIR__ . '/../../../../app/config/db_connect.php';
-require_once __DIR__ . '/../../../../app/models/OrderModel.php';
+require_once __DIR__ . '/../../../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../../../app/v1/models/OrderModel.php';
 require_once __DIR__ . '/../../_lib/respond.php';
 
 require_method('POST');
@@ -32,8 +32,8 @@ try {
     $emailed = false;
     if (in_array($status, ['picked_up', 'delivered', 'arrived'], true)) {
         try {
-            require_once __DIR__ . '/../../../../app/services/OrderNotifier.php';
-            $mailCfg = require __DIR__ . '/../../../../app/config/mail.php';
+            require_once __DIR__ . '/../../../../app/v1/services/OrderNotifier.php';
+            $mailCfg = require __DIR__ . '/../../../../app/v1/config/mail.php';
 
             // Find the parcel's order + the specific item.
             $stmt = $pdo->prepare(

@@ -7,21 +7,21 @@ $portalLocked = $portal_locked ?? false;
 ?>
 <nav class="student-navbar">
     <div class="container-fluid d-flex justify-content-between align-items-center">
-        <a href="/Registration-System/public/students/dashboard/index.php" class="student-brand">
+        <a href="<?php echo url('students/dashboard/index.php'); ?>" class="student-brand">
             <i class="fas fa-graduation-cap me-2"></i>Dazu Hub Institute
         </a>
 
         <div class="d-flex align-items-center gap-3">
             <?php if (!$portalLocked): ?>
-                <a href="/Registration-System/public/students/dashboard/index.php"
+                <a href="<?php echo url('students/dashboard/index.php'); ?>"
                    class="nav-link-sm <?php echo $current_dir === 'dashboard' ? 'active' : ''; ?>">
                     <i class="fas fa-home"></i> <span class="d-none d-md-inline">Dashboard</span>
                 </a>
-                <a href="/Registration-System/public/students/course/index.php"
+                <a href="<?php echo url('students/course/index.php'); ?>"
                    class="nav-link-sm <?php echo $current_dir === 'course' ? 'active' : ''; ?>">
                     <i class="fas fa-book-open"></i> <span class="d-none d-md-inline">My Course</span>
                 </a>
-                <a href="/Registration-System/public/students/payments/index.php"
+                <a href="<?php echo url('students/payments/index.php'); ?>"
                    class="nav-link-sm <?php echo $current_dir === 'payments' ? 'active' : ''; ?>">
                     <i class="fas fa-money-bill-wave"></i> <span class="d-none d-md-inline">Payments</span>
                 </a>
@@ -34,15 +34,15 @@ $portalLocked = $portal_locked ?? false;
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <?php if (!$portalLocked): ?>
-                        <li><a class="dropdown-item" href="/Registration-System/public/students/dashboard/index.php">
+                        <li><a class="dropdown-item" href="<?php echo url('students/dashboard/index.php'); ?>">
                             <i class="fas fa-tachometer-alt me-2"></i> Dashboard
                         </a></li>
-                        <li><a class="dropdown-item" href="/Registration-System/public/students/payments/index.php">
+                        <li><a class="dropdown-item" href="<?php echo url('students/payments/index.php'); ?>">
                             <i class="fas fa-receipt me-2"></i> Payment History
                         </a></li>
                         <li><hr class="dropdown-divider"></li>
                     <?php endif; ?>
-                    <li><a class="dropdown-item text-danger" href="/Registration-System/public/auth/logout.php">
+                    <li><a class="dropdown-item text-danger" href="<?php echo url('auth/logout.php'); ?>">
                         <i class="fas fa-sign-out-alt me-2"></i> Logout
                     </a></li>
                 </ul>

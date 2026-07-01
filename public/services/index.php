@@ -1,6 +1,6 @@
 <?php
 // public/services/index.php
-require_once __DIR__ . '/../../app/config/db_connect.php';
+require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
@@ -401,7 +401,7 @@ if ($search) {
         <!-- Active filter pills -->
         <?php if ($search): ?>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-            <a href="/Registration-System/public/services/" class="filter-pill" title="Clear search">
+            <a href="<?php echo url('services/'); ?>" class="filter-pill" title="Clear search">
               <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
               "<?php echo htmlspecialchars(mb_strimwidth($search, 0, 20, '…')); ?>"
               <i class="fas fa-xmark" aria-hidden="true"></i>
@@ -417,7 +417,7 @@ if ($search) {
             <div class="empty-icon"><i class="fa-regular fa-folder-open" aria-hidden="true"></i></div>
             <h3>No services found</h3>
             <p>No services match your search criteria. Try different keywords or clear your search.</p>
-            <a href="/Registration-System/public/services/" class="btn btn--dark">
+            <a href="<?php echo url('services/'); ?>" class="btn btn--dark">
               View All Services <i class="fas fa-arrow-right"></i>
             </a>
           </div>

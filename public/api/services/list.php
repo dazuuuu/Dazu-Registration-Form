@@ -3,8 +3,8 @@
 header('Content-Type: application/json');
 header('Access-Control-Allow-Origin: *');
 
-require_once '../../../app/config/db_connect.php';
-require_once '../../../app/models/ServiceModel.php';
+require_once '../../../app/v1/config/db_connect.php';
+require_once '../../../app/v1/models/ServiceModel.php';
 
 use Models\ServiceModel;
 

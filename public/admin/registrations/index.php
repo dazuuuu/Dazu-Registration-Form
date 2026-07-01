@@ -1,11 +1,11 @@
 <?php
 // public/admin/registrations/index.php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/helpers/uploads.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/RegistrationModel.php';
-require_once __DIR__ . '/../../../app/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/RegistrationModel.php';
+require_once __DIR__ . '/../../../app/v1/models/Session.php';
 
 use Models\Connection;
 use Models\RegistrationModel;
@@ -99,7 +99,7 @@ ob_start();
                             <td><small class="text-danger"><?php echo htmlspecialchars($r['rejection_reason']); ?></small></td>
                         <?php endif; ?>
                         <td>
-                            <a href="/Registration-System/public/admin/registrations/view.php?id=<?php echo (int) $r['id']; ?>"
+                            <a href="<?php echo url('admin/registrations/view.php?id=' . (int)$r['id']); ?>"
                                class="btn btn-sm btn-outline-primary">
                                 <?php echo $status === 'pending' ? 'Review' : 'View'; ?>
                             </a>

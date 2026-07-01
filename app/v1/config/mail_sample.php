@@ -10,13 +10,13 @@ return [
     'host'       => 'smtp.gmail.com',
     'port'       => 587,
     'encryption' => 'tls',           // 'tls' (587) or 'ssl' (465) or '' for none
-    'username'   => 'njugunavickie7@gmail.com',
-    'password'   => 'ayyi uupe phww lval',
+    'username'   => '',
+    'password'   => '',
 
     'from_email' => 'no-reply@dazuhub.co.ke',
     'from_name'  => 'Dazu Hub Institute',
     // Absolute filesystem path to the logo embedded in emails.
-    'logo_path'  => $_SERVER['DOCUMENT_ROOT'] . '/Registration-System/public/assets/images/logo/logo.png',
+    'logo_path'  => $_SERVER['DOCUMENT_ROOT'] . url('assets/images/logo/logo.png'),
     // Used in email footers / links.
 
 ];

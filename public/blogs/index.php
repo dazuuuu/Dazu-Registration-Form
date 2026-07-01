@@ -1,6 +1,6 @@
 <?php
 // public/blogs/index.php
-require_once __DIR__ . '/../../app/config/db_connect.php';
+require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
 
@@ -382,7 +382,7 @@ if ($category_slug) {
                 <p class="sidebar-block-title"><i class="fas fa-folder"></i> Categories</p>
                 <ul class="cat-list">
                     <li>
-                        <a href="/Registration-System/public/blogs/" class="cat-link <?php echo !$category_slug ? 'is-active' : ''; ?>">
+                        <a href="<?php echo url('blogs/'); ?>" class="cat-link <?php echo !$category_slug ? 'is-active' : ''; ?>">
                             <span>All Posts</span>
                             <span class="cat-count"><?php echo count($allBlogs); ?></span>
                         </a>
@@ -425,7 +425,7 @@ if ($category_slug) {
                         <div class="empty-icon"><i class="fa-regular fa-newspaper"></i></div>
                         <h3>No posts found</h3>
                         <p>No blog posts match your current filters. Try a different category or clear your search.</p>
-                        <a href="/Registration-System/public/blogs/" class="btn btn--dark">View All Posts</a>
+                        <a href="<?php echo url('blogs/'); ?>" class="btn btn--dark">View All Posts</a>
                     </div>
                 <?php else: ?>
                     <?php foreach ($allBlogs as $index => $blog): ?>

@@ -1,3 +1,4 @@
 <?php
-header("Location: /Registration-System/public/");
-exit();
+require_once __DIR__ . '/app/v1/config/paths.php';
+header('Location: ' . url('/'));
+exit;

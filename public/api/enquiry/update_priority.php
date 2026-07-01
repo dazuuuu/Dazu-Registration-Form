@@ -1,8 +1,8 @@
 <?php
 header('Content-Type: application/json');
 require_once __DIR__ . '/../../../app/bootstrap.php';
-require_once __DIR__ . '/../../../app/config/db_connect.php';
-require_once __DIR__ . '/../../../app/controllers/EnquiryController.php';
+require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../../app/v1/controllers/EnquiryController.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();

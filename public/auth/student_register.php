@@ -1,11 +1,11 @@
 <?php
 // public/auth/student_register.php
 require_once __DIR__ . '/../../app/init.php';
-require_once __DIR__ . '/../../app/helpers/uploads.php';
-require_once __DIR__ . '/../../app/models/Connection.php';
-require_once __DIR__ . '/../../app/models/CourseModel.php';
-require_once __DIR__ . '/../../app/models/RegistrationModel.php';
-require_once __DIR__ . '/../../app/services/StudentNotifier.php';
+require_once __DIR__ . '/../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../app/v1/models/CourseModel.php';
+require_once __DIR__ . '/../../app/v1/models/RegistrationModel.php';
+require_once __DIR__ . '/../../app/v1/services/StudentNotifier.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     if (!move_uploaded_file($file['tmp_name'], $destDir . '/' . $name)) {
                         $error = 'Could not save the uploaded document.';
                     } else {
-                        $idDocPath = '/Registration-System/public/uploads/registrations/documents/' . $name;
+                        $idDocPath = url('uploads/registrations/documents/') . $name;
                     }
                 }
             }

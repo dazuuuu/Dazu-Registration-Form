@@ -25,13 +25,13 @@ try {
         sendJsonResponse(false, 'Blog ID is required');
     }
     
-    require_once __DIR__ . '/../../../app/config/db_connect.php';
-    require_once __DIR__ . '/../../../app/controllers/BlogController.php';
+    require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
+    require_once __DIR__ . '/../../../app/v1/controllers/BlogController.php';
     
     // Handle featured image upload
     $featured_image = null;
     if (isset($_FILES['featured_image']) && $_FILES['featured_image']['error'] === 0) {
-        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Registration-System/public/uploads/blogs/';
+        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . url('uploads/blogs/');
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
@@ -41,7 +41,7 @@ try {
         $target_file = $upload_dir . $filename;
         
         if (move_uploaded_file($_FILES['featured_image']['tmp_name'], $target_file)) {
-            $featured_image = '/Registration-System/public/uploads/blogs/' . $filename;
+            $featured_image = url('uploads/blogs/') . $filename;
         }
     }
     

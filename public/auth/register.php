@@ -1,8 +1,8 @@
 <?php
 // public/auth/register.php
-require_once __DIR__ . '/../../app/config/db_connect.php';
-require_once __DIR__ . '/../../app/models/UserModel.php';
-require_once __DIR__ . '/../../app/helpers/functions.php';
+require_once __DIR__ . '/../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../app/v1/models/UserModel.php';
+require_once __DIR__ . '/../../app/v1/helpers/functions.php';
 
 $userModel = new UserModel($pdo);
 $error = '';
@@ -10,7 +10,7 @@ $success = '';
 
 // Redirect if already logged in
 if (isLoggedIn()) {
-    redirect('/Registration-System/public/profile/');
+    redirect(url('profile/'));
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -63,7 +63,7 @@ function old(string $key): string {
 }
 
 // Logo (mirrors the navbar's logic — PNG if present, else inline mark)
-$logoPath = '/Registration-System/public/assets/images/logo/logo.png';
+$logoPath = url('assets/images/logo/logo.png');
 $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROOT'] . $logoPath);
 ?>
 <!DOCTYPE html>
@@ -87,7 +87,7 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
         <img class="auth-brand-bgimg"
              src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=1400&q=80" alt="" aria-hidden="true">
         <div class="auth-brand-inner">
-            <a class="auth-logo" href="/Registration-System/public/" aria-label="Registration System — Home">
+            <a class="auth-logo" href="<?php echo url('/'); ?>" aria-label="Registration System — Home">
                 <?php if ($logoExists): ?>
                     <img src="<?php echo $logoPath; ?>" alt="Registration System logo" class="brand-logo">
                 <?php else: ?>
@@ -116,7 +116,7 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
     <!-- Form panel -->
     <main class="auth-form">
         <div class="auth-form-top">
-            <a href="/Registration-System/public/" class="auth-back"><i class="fas fa-arrow-left"></i> Back to home</a>
+            <a href="<?php echo url('/'); ?>" class="auth-back"><i class="fas fa-arrow-left"></i> Back to home</a>
         </div>
 
         <div class="auth-form-body">

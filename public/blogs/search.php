@@ -7,7 +7,7 @@ if (empty($keyword)) {
     exit();
 }
 
-require_once __DIR__ . '/../../app/config/db_connect.php';
+require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 
 // Search blogs
 $stmt = $pdo->prepare("
@@ -104,7 +104,7 @@ $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <i class="fas fa-search fa-4x text-muted mb-4"></i>
             <h3>No results found</h3>
             <p class="text-muted">Try different keywords or browse all posts.</p>
-            <a href="/Registration-System/public/blogs/" class="btn btn-primary">View All Posts</a>
+            <a href="<?php echo url('blogs/'); ?>" class="btn btn-primary">View All Posts</a>
         </div>
     <?php else: ?>
         <?php foreach ($results as $result): ?>

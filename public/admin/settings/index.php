@@ -2,9 +2,9 @@
 // public/admin/settings/index.php
 // Settings overview: branding/logo, hero slides, and page headers.
 
-require_once __DIR__ . '/../../../app/helpers/uploads.php';        // BASE_URL + helpers
-require_once __DIR__ . '/../../../app/models/SettingModel.php';
-require_once __DIR__ . '/../../../app/config/db_connect.php';      // provides $pdo
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';        // BASE_URL + helpers
+require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
+require_once __DIR__ . '/../../../app/v1/config/db_connect.php';      // provides $pdo
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -12,7 +12,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Simple admin check
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
-    header('Location: /Registration-System/public/auth/login.php');
+    header('Location: ' . url('auth/login.php'));
     exit();
 }
 

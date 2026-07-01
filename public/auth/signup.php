@@ -1,15 +1,15 @@
 <?php
 // public/auth/sign.php
-require_once __DIR__ . '/../../app/config/db_connect.php';
-require_once __DIR__ . '/../../app/models/UserModel.php';
-require_once __DIR__ . '/../../app/helpers/functions.php';
+require_once __DIR__ . '/../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../app/v1/models/UserModel.php';
+require_once __DIR__ . '/../../app/v1/helpers/functions.php';
 
 $userModel = new UserModel($pdo);
 $error = '';
 $success = '';
 
 if (isLoggedIn()) {
-    redirect('/Registration-System/public/admin/dashboard.php');
+    redirect(url('admin/dashboard.php'));
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $userModel->updateProfile($user['id'], $first_name, $last_name, $phone);
                     }
                     $success = 'Admin registration successful! Redirecting to login...';
-                    header("refresh:2;url=/Registration-System/public/admin/portal.php");
+                    header("refresh:2;url=" . url("admin/portal.php"));
                 } else {
                     $error = 'Admin registration failed. Please try again.';
                 }
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </form>
                         
                         <div class="text-center mt-4">
-                            <p>Already have an account? <a href="/Registration-System/public/admin/portal.php">Admin Login</a></p>
+                            <p>Already have an account? <a href="<?php echo url('admin/portal.php'); ?>">Admin Login</a></p>
                             <hr>
                             <p class="small text-muted">User registration? <a href="register.php">Click here</a></p>
                         </div>

@@ -8,9 +8,9 @@
  * CSRF: send the token as a `csrf_token` field or an `X-CSRF-Token` header.
  */
 require_once __DIR__ . '/../../../app/bootstrap.php';
-require_once __DIR__ . '/../../../app/config/db_connect.php';
-require_once __DIR__ . '/../../../app/controllers/GalleryController.php';
-require_once __DIR__ . '/../../../app/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../../app/v1/controllers/GalleryController.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../_lib/respond.php';
 
 require_method('POST');

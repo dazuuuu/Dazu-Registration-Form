@@ -40,8 +40,8 @@ function cart_out($data, int $code = 200): void {
 
 // --- locate db_connect.php (layout-tolerant: try the likely depths) ----------
 $dbCandidates = [
-    __DIR__ . '/../../../../app/config/db_connect.php', // /public/api/store/cart -> /app
-    __DIR__ . '/../../../app/config/db_connect.php',
+    __DIR__ . '/../../../../app/v1/config/db_connect.php', // /public/api/store/cart -> /app
+    __DIR__ . '/../../../app/v1/config/db_connect.php',
 ];
 $dbLoaded = false;
 foreach ($dbCandidates as $cand) {

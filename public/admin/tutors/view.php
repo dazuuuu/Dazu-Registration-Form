@@ -1,12 +1,12 @@
 <?php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/helpers/uploads.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/TutorModel.php';
-require_once __DIR__ . '/../../../app/models/CourseModel.php';
-require_once __DIR__ . '/../../../app/controllers/TutorController.php';
-require_once __DIR__ . '/../../../app/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/TutorModel.php';
+require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
+require_once __DIR__ . '/../../../app/v1/controllers/TutorController.php';
+require_once __DIR__ . '/../../../app/v1/models/Session.php';
 
 use Models\Connection;
 use Models\TutorModel;
@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $photoPath = $tutor['photo_path'];
         if (!empty($_FILES['photo']['name'])) {
-            $up = upload_image($_FILES['photo'], __DIR__ . '/../../uploads/tutors', '/Registration-System/public/uploads/tutors');
+            $up = upload_image($_FILES['photo'], __DIR__ . '/../../uploads/tutors', url('uploads/tutors'));
             if ($up['ok']) $photoPath = $up['path']; else $error = $up['error'];
         }
         if (!$error) {

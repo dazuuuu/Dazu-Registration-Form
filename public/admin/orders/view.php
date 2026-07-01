@@ -1,12 +1,12 @@
 <?php
 require_once __DIR__ . '/../../../app/bootstrap.php';
-require_once __DIR__ . '/../../../app/config/db_connect.php';
-require_once __DIR__ . '/../../../app/helpers/currency.php';
-require_once __DIR__ . '/../../../app/models/OrderModel.php';
+require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../../app/v1/helpers/currency.php';
+require_once __DIR__ . '/../../../app/v1/models/OrderModel.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (empty($_SESSION['user_id']) || !isset($_SESSION['role_id']) || (int) $_SESSION['role_id'] > 2) {
-    header('Location: /Registration-System/public/auth/login.php?error=access_denied');
+    header('Location: ' . url('auth/login.php?error=access_denied'));
     exit();
 }
 
@@ -100,7 +100,7 @@ document.querySelectorAll('.save-parcel').forEach(function (btn) {
         this.disabled = true;
         this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-        fetch('/Registration-System/public/api/store/admin/update_parcel.php', {
+        fetch(url('api/store/admin/update_parcel.php'), {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ parcel_id: parcelId, status: status })

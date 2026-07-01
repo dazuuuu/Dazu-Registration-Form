@@ -1,40 +1,17 @@
 <?php
-// app/bootstrap.php
+// app/bootstrap.php — legacy shim for store/CMS pages.
+require_once __DIR__ . '/v1/bootstrap.php';
 
-// Autoloader for classes
+// Extended autoload for non-namespaced legacy classes
 spl_autoload_register(function ($class) {
-    // Convert namespace to file path
-    $prefix = 'Controllers\\';
-    $base_dir = __DIR__ . '/controllers/';
-    
-    if (strpos($class, $prefix) === 0) {
-        $relative_class = substr($class, strlen($prefix));
-        $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
-        if (file_exists($file)) {
-            require $file;
-            return;
-        }
+    $dirs = [
+        APP_V1_ROOT . '/models/',
+        APP_V1_ROOT . '/controllers/',
+        APP_V1_ROOT . '/helpers/',
+    ];
+    foreach ($dirs as $dir) {
+        $file = $dir . $class . '.php';
+        if (is_file($file)) { require_once $file; return true; }
     }
-    
-    $prefix = 'Models\\';
-    $base_dir = __DIR__ . '/models/';
-    
-    if (strpos($class, $prefix) === 0) {
-        $relative_class = substr($class, strlen($prefix));
-        $file = $base_dir . str_replace('\\', '/', $relative_class) . '.php';
-        if (file_exists($file)) {
-            require $file;
-            return;
-        }
-    }
-    
-    // For classes without namespace (like SessionModel)
-    $directories = [__DIR__ . '/models/', __DIR__ . '/controllers/', __DIR__ . '/helpers/'];
-    foreach ($directories as $directory) {
-        $file = $directory . $class . '.php';
-        if (file_exists($file)) {
-            require $file;
-            return;
-        }
-    }
+    return false;
 });

@@ -6,9 +6,9 @@
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
 
-require_once __DIR__ . '/../../../../app/config/db_connect.php';
-require_once __DIR__ . '/../../../../app/models/OrderModel.php';
-require_once __DIR__ . '/../../../../app/services/MpesaService.php';
+require_once __DIR__ . '/../../../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../../../app/v1/models/OrderModel.php';
+require_once __DIR__ . '/../../../../app/v1/services/MpesaService.php';
 
 $raw = file_get_contents('php://input');
 error_log('[mpesa callback] ' . $raw);          // keep a trail while integrating
@@ -37,8 +37,8 @@ try {
             // Send the purchase-confirmation email once (not on duplicate callbacks).
             if (!empty($res['ok']) && empty($res['already'])) {
                 try {
-                    require_once __DIR__ . '/../../../../app/services/OrderNotifier.php';
-                    $mailCfg = require __DIR__ . '/../../../../app/config/mail.php';
+                    require_once __DIR__ . '/../../../../app/v1/services/OrderNotifier.php';
+                    $mailCfg = require __DIR__ . '/../../../../app/v1/config/mail.php';
                     $notifier = new OrderNotifier($pdo, new Mailer($mailCfg));
                     $full = $orders->getOrderWithItems((int) $res['order']['id']);
                     if ($full) $notifier->sendPurchaseConfirmation($full);

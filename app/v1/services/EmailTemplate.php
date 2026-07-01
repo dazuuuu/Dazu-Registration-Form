@@ -62,7 +62,7 @@ class EmailTemplate {
                         '<p>Hi ' . self::e($order['customer_name']) . ',</p>'
                         . '<p>Your parcel <strong>' . self::e($item['parcel_id'] ?? '') . '</strong> '
                         . '(' . self::e($item['product_name'] ?? '') . ') from order <strong>' . self::e($order['order_number']) . '</strong> '
-                        . 'has arrived. We hope you love it — thank you for choosing ISMAN!</p>'
+                        . 'has arrived. We hope you love it — thank you for choosing Dazu Hub Institute!</p>'
                     ),
                 ];
         }
@@ -107,14 +107,14 @@ class EmailTemplate {
     private static function layout(string $heading, string $bodyHtml): string {
         return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">'
             . '<div style="text-align:center;padding:24px 0;border-bottom:1px solid #eee;">'
-            . '<img src="cid:ismanlogo" alt="ISMAN" style="max-height:56px;">'
+            . '<img src="cid:ismanlogo" alt="Dazu Hub" style="max-height:56px;">'
             . '</div>'
             . '<div style="padding:24px;">'
             . '<h2 style="color:#0D9488;margin:0 0 8px;">' . self::e($heading) . '</h2>'
             . $bodyHtml
             . '</div>'
             . '<div style="padding:16px 24px;border-top:1px solid #eee;color:#888;font-size:12px;text-align:center;">'
-            . 'ISMAN Company &middot; Engineering Services<br>Need help? Reply to this email.'
+            . 'Dazu Hub Institute &middot; Need help? Reply to this email.'
             . '</div>'
             . '</div>';
     }

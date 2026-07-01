@@ -1,14 +1,14 @@
 <?php
 // public/students/payments/index.php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/helpers/uploads.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/StudentModel.php';
-require_once __DIR__ . '/../../../app/models/PaymentModel.php';
-require_once __DIR__ . '/../../../app/models/RegistrationModel.php';
-require_once __DIR__ . '/../../../app/controllers/StudentController.php';
-require_once __DIR__ . '/../../../app/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/StudentModel.php';
+require_once __DIR__ . '/../../../app/v1/models/PaymentModel.php';
+require_once __DIR__ . '/../../../app/v1/models/RegistrationModel.php';
+require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
+require_once __DIR__ . '/../../../app/v1/models/Session.php';
 
 use Models\Connection;
 use Models\StudentModel;
@@ -25,7 +25,7 @@ $userId       = (int) SessionModel::get('user_id');
 
 $reg = $studentModel->getByUserId($userId);
 if (!$reg) {
-    header('Location: /Registration-System/public/students/dashboard/index.php');
+    header('Location: ' . url('students/dashboard/index.php'));
     exit();
 }
 
@@ -34,7 +34,7 @@ $reg = $studentModel->getByUserId($userId);
 $portal_locked = (bool) $reg['portal_locked'];
 
 if ($portal_locked) {
-    header('Location: /Registration-System/public/students/dashboard/index.php');
+    header('Location: ' . url('students/dashboard/index.php'));
     exit();
 }
 
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         );
         if ($result['ok']) {
             SessionModel::setFlash('success', 'Payment submitted! A confirmation email has been sent. Your portal will update once admin verifies the payment.');
-            header('Location: /Registration-System/public/students/payments/index.php');
+            header('Location: ' . url('students/payments/index.php'));
             exit();
         }
         $error = $result['error'];
@@ -159,7 +159,7 @@ ob_start();
                         </td>
                         <td>
                             <?php if ($p['status'] === 'approved' && !empty($p['receipt_no'])): ?>
-                                <a href="/Registration-System/public/students/payments/receipt.php?id=<?php echo (int) $p['id']; ?>"
+                                <a href="<?php echo url('students/payments/receipt.php?id=' . (int)$p['id']); ?>"
                                    class="btn btn-sm btn-outline-secondary" target="_blank">
                                     <i class="fas fa-file-invoice"></i> <?php echo htmlspecialchars($p['receipt_no']); ?>
                                 </a>

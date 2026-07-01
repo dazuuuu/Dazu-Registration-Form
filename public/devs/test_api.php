@@ -2,7 +2,7 @@
 // public/devs/test_api.php (API testing endpoint)
 header('Content-Type: application/json');
 
-require_once '../../app/controllers/AuthController.php';
+require_once '../../app/v1/controllers/AuthController.php';
 require_once __DIR__ . '/../../app/init.php';
 
 use Controllers\AuthController;

@@ -29,7 +29,7 @@ try {
         sendJsonResponse(false, 'Benefit title is required');
     }
     
-    require_once __DIR__ . '/../../../app/config/db_connect.php';
+    require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
     
     $sql = "INSERT INTO service_benefits (service_id, benefit_title, benefit_description, icon_class) 
             VALUES (:service_id, :benefit_title, :benefit_description, :icon_class)";

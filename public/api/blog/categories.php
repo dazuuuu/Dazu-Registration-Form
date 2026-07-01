@@ -5,8 +5,8 @@ ini_set('display_errors', 0);
 header('Content-Type: application/json');
 
 try {
-    require_once __DIR__ . '/../../../app/config/db_connect.php';
-    require_once __DIR__ . '/../../../app/models/BlogModel.php';
+    require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
+    require_once __DIR__ . '/../../../app/v1/models/BlogModel.php';
     
     $blogModel = new BlogModel($pdo);
     $categories = $blogModel->getAllCategories();

@@ -14,7 +14,7 @@ if (!function_exists('dhNavActive')) {
     }
 }
 
-$logoPath = '/Registration-System/public/assets/images/logo/logo.png';
+$logoPath = url('assets/images/logo/logo.png');
 $isLoggedIn  = !empty($_SESSION['logged_in']);
 $isAdmin     = $isLoggedIn && isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin','superadmin'], true);
 $isTutor     = $isLoggedIn && isset($_SESSION['role']) && $_SESSION['role'] === 'tutor';
@@ -27,7 +27,7 @@ $initial     = strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1));
     <div class="dh-nav-inner dh-container">
 
         <!-- Logo / Brand -->
-        <a class="dh-brand" href="/Registration-System/public/" aria-label="Dazu Hub Institute — Home">
+        <a class="dh-brand" href="<?php echo url('/'); ?>" aria-label="Dazu Hub Institute — Home">
             <span class="dh-brand-logo-wrap">
                 <img src="<?php echo $logoPath; ?>"
                      alt="Dazu Hub Institute"
@@ -47,10 +47,10 @@ $initial     = strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1));
 
         <!-- Desktop navigation -->
         <nav class="dh-nav-links" aria-label="Primary navigation">
-            <a href="/Registration-System/public/" class="dh-nav-link <?php echo dhNavActive('home'); ?>">Home</a>
-            <a href="/Registration-System/public/#courses" class="dh-nav-link">Courses</a>
-            <a href="/Registration-System/public/#how-it-works" class="dh-nav-link">How It Works</a>
-            <a href="/Registration-System/public/#register" class="dh-nav-link">Apply</a>
+            <a href="<?php echo url('/'); ?>" class="dh-nav-link <?php echo dhNavActive('home'); ?>">Home</a>
+            <a href="<?php echo url('courses/index.php'); ?>" class="dh-nav-link <?php echo dhNavActive('courses'); ?>">Courses</a>
+            <a href="<?php echo url('#how-it-works'); ?>" class="dh-nav-link">How It Works</a>
+            <a href="<?php echo url('#register'); ?>" class="dh-nav-link">Apply</a>
         </nav>
 
         <!-- Right actions -->
@@ -73,35 +73,35 @@ $initial     = strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1));
                     </button>
                     <div class="dh-user-dropdown" id="dhUserDropdown" role="menu">
                         <?php if ($isAdmin): ?>
-                            <a class="dh-dd-item" href="/Registration-System/public/admin/dashboard.php" role="menuitem">
+                            <a class="dh-dd-item" href="<?php echo url('admin/dashboard.php'); ?>" role="menuitem">
                                 <i class="fas fa-gauge-high"></i> Admin Dashboard
                             </a>
-                            <a class="dh-dd-item" href="/Registration-System/public/admin/registrations/index.php?status=pending" role="menuitem">
+                            <a class="dh-dd-item" href="<?php echo url('admin/registrations/index.php?status=pending'); ?>" role="menuitem">
                                 <i class="fas fa-user-clock"></i> Pending Approvals
                             </a>
                         <?php elseif ($isTutor): ?>
-                            <a class="dh-dd-item" href="/Registration-System/public/tutor/dashboard/index.php" role="menuitem">
+                            <a class="dh-dd-item" href="<?php echo url('tutor/dashboard/index.php'); ?>" role="menuitem">
                                 <i class="fas fa-chalkboard-teacher"></i> Tutor Portal
                             </a>
                         <?php else: ?>
-                            <a class="dh-dd-item" href="/Registration-System/public/profile/client/" role="menuitem">
+                            <a class="dh-dd-item" href="<?php echo url('profile/client/'); ?>" role="menuitem">
                                 <i class="fas fa-user-graduate"></i> My Dashboard
                             </a>
                         <?php endif; ?>
-                        <a class="dh-dd-item" href="/Registration-System/public/profile/" role="menuitem">
+                        <a class="dh-dd-item" href="<?php echo url('profile/'); ?>" role="menuitem">
                             <i class="fas fa-user"></i> My Profile
                         </a>
                         <hr class="dh-dd-divider">
-                        <a class="dh-dd-item dh-dd-danger" href="/Registration-System/public/auth/logout.php" role="menuitem">
+                        <a class="dh-dd-item dh-dd-danger" href="<?php echo url('auth/logout.php'); ?>" role="menuitem">
                             <i class="fas fa-arrow-right-from-bracket"></i> Logout
                         </a>
                     </div>
                 </div>
             <?php else: ?>
-                <a href="/Registration-System/public/auth/login.php" class="dh-nav-link dh-nav-login">
+                <a href="<?php echo url('auth/login.php'); ?>" class="dh-nav-link dh-nav-login">
                     <i class="fas fa-sign-in-alt"></i> Login
                 </a>
-                <a href="/Registration-System/public/#register" class="dh-btn dh-btn-primary">
+                <a href="<?php echo url('#register'); ?>" class="dh-btn dh-btn-primary">
                     Apply Now
                 </a>
             <?php endif; ?>
@@ -128,34 +128,34 @@ $initial     = strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1));
         </button>
     </div>
     <nav class="dh-drawer-body" aria-label="Mobile navigation">
-        <a class="dh-drawer-link" href="/Registration-System/public/" style="--di:0">
+        <a class="dh-drawer-link" href="<?php echo url('/'); ?>" style="--di:0">
             <i class="fas fa-house"></i> Home
         </a>
-        <a class="dh-drawer-link" href="/Registration-System/public/#courses" style="--di:1">
+        <a class="dh-drawer-link" href="<?php echo url('#courses'); ?>" style="--di:1">
             <i class="fas fa-layer-group"></i> Courses
         </a>
-        <a class="dh-drawer-link" href="/Registration-System/public/#how-it-works" style="--di:2">
+        <a class="dh-drawer-link" href="<?php echo url('#how-it-works'); ?>" style="--di:2">
             <i class="fas fa-list-ol"></i> How It Works
         </a>
-        <a class="dh-drawer-link" href="/Registration-System/public/#register" style="--di:3">
+        <a class="dh-drawer-link" href="<?php echo url('#register'); ?>" style="--di:3">
             <i class="fas fa-pen-to-square"></i> Apply Now
         </a>
         <hr class="dh-drawer-divider" style="--di:4">
         <?php if ($isLoggedIn): ?>
             <?php if ($isAdmin): ?>
-                <a class="dh-drawer-link" href="/Registration-System/public/admin/dashboard.php" style="--di:5">
+                <a class="dh-drawer-link" href="<?php echo url('admin/dashboard.php'); ?>" style="--di:5">
                     <i class="fas fa-gauge-high"></i> Admin Dashboard
                 </a>
             <?php else: ?>
-                <a class="dh-drawer-link" href="/Registration-System/public/profile/client/" style="--di:5">
+                <a class="dh-drawer-link" href="<?php echo url('profile/client/'); ?>" style="--di:5">
                     <i class="fas fa-user-graduate"></i> My Dashboard
                 </a>
             <?php endif; ?>
-            <a class="dh-drawer-link dh-drawer-link-danger" href="/Registration-System/public/auth/logout.php" style="--di:6">
+            <a class="dh-drawer-link dh-drawer-link-danger" href="<?php echo url('auth/logout.php'); ?>" style="--di:6">
                 <i class="fas fa-arrow-right-from-bracket"></i> Logout
             </a>
         <?php else: ?>
-            <a class="dh-drawer-link" href="/Registration-System/public/auth/login.php" style="--di:5">
+            <a class="dh-drawer-link" href="<?php echo url('auth/login.php'); ?>" style="--di:5">
                 <i class="fas fa-sign-in-alt"></i> Login / Student Portal
             </a>
         <?php endif; ?>
@@ -168,7 +168,7 @@ $initial     = strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1));
             <span class="dh-theme-label">Toggle dark mode</span>
         </button>
         <?php if (!$isLoggedIn): ?>
-            <a href="/Registration-System/public/#register" class="dh-btn dh-btn-primary" style="width:100%;justify-content:center;">
+            <a href="<?php echo url('#register'); ?>" class="dh-btn dh-btn-primary" style="width:100%;justify-content:center;">
                 <i class="fas fa-paper-plane"></i> Apply Now
             </a>
         <?php endif; ?>

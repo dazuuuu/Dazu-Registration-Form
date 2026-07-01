@@ -29,7 +29,7 @@ try {
         sendJsonResponse(false, 'Question and answer are required');
     }
     
-    require_once __DIR__ . '/../../../app/config/db_connect.php';
+    require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
     
     $sql = "INSERT INTO service_faqs (service_id, question, answer, is_active) 
             VALUES (:service_id, :question, :answer, 1)";

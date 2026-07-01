@@ -1,20 +1,22 @@
 <?php
 // public/students/dashboard/index.php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/helpers/uploads.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/StudentModel.php';
-require_once __DIR__ . '/../../../app/models/PaymentModel.php';
-require_once __DIR__ . '/../../../app/models/RegistrationModel.php';
-require_once __DIR__ . '/../../../app/controllers/StudentController.php';
-require_once __DIR__ . '/../../../app/models/Session.php';
-require_once __DIR__ . '/../../../app/services/StudentNotifier.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/StudentModel.php';
+require_once __DIR__ . '/../../../app/v1/models/PaymentModel.php';
+require_once __DIR__ . '/../../../app/v1/models/RegistrationModel.php';
+require_once __DIR__ . '/../../../app/v1/models/DashboardModel.php';
+require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
+require_once __DIR__ . '/../../../app/v1/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/services/StudentNotifier.php';
 
 use Models\Connection;
 use Models\StudentModel;
 use Models\PaymentModel;
 use Models\RegistrationModel;
+use Models\DashboardModel;
 use Controllers\StudentController;
 
 Middleware::requireStudent();
@@ -27,7 +29,7 @@ $userId       = (int) SessionModel::get('user_id');
 $reg = $studentModel->getByUserId($userId);
 if (!$reg) {
     SessionModel::setFlash('error', 'No approved registration found for your account. Please contact admin.');
-    header('Location: /Registration-System/public/auth/logout.php');
+    header('Location: ' . url('auth/logout.php'));
     exit();
 }
 
@@ -50,6 +52,7 @@ $installments  = RegistrationModel::calculateInstallments(
     $reg['payment_plan'],
     (int) $reg['duration_months']
 );
+$learnStats = (new DashboardModel($pdo))->studentStats((int)$reg['id'], (int)$reg['course_id']);
 
 $error = null;
 
@@ -66,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $portal_locked) {
         );
         if ($result['ok']) {
             SessionModel::setFlash('success', 'Payment submitted successfully. You will receive a confirmation email once admin verifies your payment.');
-            header('Location: /Registration-System/public/students/dashboard/index.php');
+            header('Location: ' . url('students/dashboard/index.php'));
             exit();
         }
         $error = $result['error'];
@@ -134,6 +137,15 @@ ob_start();
 <?php else: ?>
 
 <div class="row g-3 mb-4">
+    <div class="col-md-8"><div class="card-student"><div class="card-head">Learning progress</div><div class="card-body"><canvas id="studentProgress" height="120"></canvas></div></div></div>
+    <div class="col-md-4"><div class="card-student"><div class="card-body text-center py-4">
+        <div style="font-size:3rem;font-weight:700;color:var(--brand);"><?php echo $learnStats['progress_pct']; ?>%</div>
+        <div class="text-muted">Units completed (<?php echo $learnStats['units_done']; ?> / <?php echo $learnStats['units_total']; ?>)</div>
+        <a href="<?php echo url('students/course/index.php'); ?>" class="btn btn-brand mt-3 w-100">Continue learning</a>
+    </div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
     <div class="col-md-3 col-6">
         <div class="stat-card">
             <div class="label">Student ID</div>
@@ -195,7 +207,7 @@ ob_start();
             </div>
             <?php endif; ?>
             <div class="col-12 mt-2">
-                <a href="/Registration-System/public/students/course/index.php" class="btn btn-brand">
+                <a href="<?php echo url('students/course/index.php'); ?>" class="btn btn-brand">
                     <i class="fas fa-book-open me-1"></i> Open Course & Learning Materials
                 </a>
             </div>
@@ -208,7 +220,7 @@ ob_start();
     <div class="card-head"><i class="fas fa-credit-card me-2"></i>Make a Payment</div>
     <div class="card-body">
         <p>Next installment: <strong>KSh <?php echo number_format($nextAmount); ?></strong></p>
-        <a href="/Registration-System/public/students/payments/index.php" class="btn btn-brand">
+        <a href="<?php echo url('students/payments/index.php'); ?>" class="btn btn-brand">
             <i class="fas fa-money-bill-wave me-1"></i> Go to Payments
         </a>
     </div>
@@ -224,5 +236,13 @@ ob_start();
 <?php endif; ?>
 
 <?php
+if (!$portal_locked && $learnStats['units_total'] > 0) {
+    $extra_js = ($extra_js ?? '') . '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script>
+    new Chart(document.getElementById("studentProgress"),{type:"doughnut",data:{
+      labels:["Completed","Remaining"],
+      datasets:[{data:[' . (int)$learnStats['units_done'] . ',' . max(0, $learnStats['units_total'] - $learnStats['units_done']) . '],backgroundColor:["#0D9488","#e5e7eb"]}]
+    },options:{plugins:{legend:{position:"bottom"}}}});
+    </script>';
+}
 $content = ob_get_clean();
 require __DIR__ . '/../../templates/students/layout.php';

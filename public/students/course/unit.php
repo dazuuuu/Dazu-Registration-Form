@@ -1,15 +1,15 @@
 <?php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/helpers/uploads.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/StudentModel.php';
-require_once __DIR__ . '/../../../app/models/CurriculumModel.php';
-require_once __DIR__ . '/../../../app/models/ProgressModel.php';
-require_once __DIR__ . '/../../../app/models/SubmissionModel.php';
-require_once __DIR__ . '/../../../app/models/TutorModel.php';
-require_once __DIR__ . '/../../../app/services/TutorNotifier.php';
-require_once __DIR__ . '/../../../app/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/StudentModel.php';
+require_once __DIR__ . '/../../../app/v1/models/CurriculumModel.php';
+require_once __DIR__ . '/../../../app/v1/models/ProgressModel.php';
+require_once __DIR__ . '/../../../app/v1/models/SubmissionModel.php';
+require_once __DIR__ . '/../../../app/v1/models/TutorModel.php';
+require_once __DIR__ . '/../../../app/v1/services/TutorNotifier.php';
+require_once __DIR__ . '/../../../app/v1/models/Session.php';
 
 use Models\Connection;
 use Models\StudentModel;
@@ -49,7 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_verify($_POST['csrf_token'] ??
         $ext = pathinfo($_FILES['file']['name'], PATHINFO_EXTENSION);
         $fname = time().'_'.bin2hex(random_bytes(4)).'.'.$ext;
         if (move_uploaded_file($_FILES['file']['tmp_name'], $dest.'/'.$fname)) {
-            $filePath = '/Registration-System/public/uploads/submissions/'.$fname;
+            $filePath = url('uploads/submissions/').$fname;
         }
     }
     $result = $submissionModel->submit((int)$reg['id'], $type, $targetId, trim($_POST['answer_text']??''), $filePath);

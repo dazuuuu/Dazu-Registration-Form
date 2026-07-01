@@ -1,8 +1,8 @@
 <?php
 // public/auth/login.php
-require_once __DIR__ . '/../../app/config/db_connect.php';
-require_once __DIR__ . '/../../app/models/UserModel.php';
-require_once __DIR__ . '/../../app/helpers/functions.php';
+require_once __DIR__ . '/../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../app/v1/models/UserModel.php';
+require_once __DIR__ . '/../../app/v1/helpers/functions.php';
 
 $userModel = new UserModel($pdo);
 $error = '';
@@ -13,13 +13,13 @@ if (isLoggedIn()) {
     $role_id = $_SESSION['role_id'] ?? 0;
     $role = $_SESSION['role'] ?? '';
     if ($role_id <= 2) {
-        redirect('/Registration-System/public/profile/admin/index.php');
+        redirect(url('profile/admin/index.php'));
     } elseif ($role === 'student') {
-        redirect('/Registration-System/public/students/dashboard/index.php');
+        redirect(url('students/dashboard/index.php'));
     } elseif ($role === 'tutor') {
-        redirect('/Registration-System/public/tutor/dashboard/index.php');
+        redirect(url('tutor/dashboard/index.php'));
     } else {
-        redirect('/Registration-System/public/profile/client/index.php');
+        redirect(url('profile/client/index.php'));
     }
 }
 
@@ -53,20 +53,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Redirect based on role
             if ($user['role_id'] <= 2) {
-                header("refresh:2;url=/Registration-System/public/profile/admin/index.php");
+                header("refresh:2;url=" . url("profile/admin/index.php"));
             } elseif ($user['role_name'] === 'student') {
-                header("refresh:2;url=/Registration-System/public/students/dashboard/index.php");
+                header("refresh:2;url=" . url("students/dashboard/index.php"));
             } elseif ($user['role_name'] === 'tutor') {
-                header("refresh:2;url=/Registration-System/public/tutor/dashboard/index.php");
+                header("refresh:2;url=" . url("tutor/dashboard/index.php"));
             } else {
-                header("refresh:2;url=/Registration-System/public/profile/client/index.php");
+                header("refresh:2;url=" . url("profile/client/index.php"));
             }
         }
     }
 }
 
 // Logo (mirrors the navbar's logic — PNG if present, else inline mark)
-$logoPath = '/Registration-System/public/assets/images/logo/logo.png';
+$logoPath = url('assets/images/logo/logo.png');
 $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROOT'] . $logoPath);
 ?>
 <!DOCTYPE html>
@@ -90,7 +90,7 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
         <img class="auth-brand-bgimg"
              src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1400&q=80" alt="" aria-hidden="true">
         <div class="auth-brand-inner">
-            <a class="auth-logo" href="/Registration-System/public/" aria-label="Registration System — Home">
+            <a class="auth-logo" href="<?php echo url('/'); ?>" aria-label="Registration System — Home">
                 <?php if ($logoExists): ?>
                     <img src="<?php echo $logoPath; ?>" alt="Registration System logo" class="brand-logo">
                 <?php else: ?>
@@ -119,7 +119,7 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
     <!-- Form panel -->
     <main class="auth-form">
         <div class="auth-form-top">
-            <a href="/Registration-System/public/" class="auth-back"><i class="fas fa-arrow-left"></i> Back to home</a>
+            <a href="<?php echo url('/'); ?>" class="auth-back"><i class="fas fa-arrow-left"></i> Back to home</a>
         </div>
 
         <div class="auth-form-body">
@@ -172,7 +172,7 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
             <hr class="auth-divider">
 
             <p class="auth-portal">
-                <a href="/Registration-System/public/admin/portal.php"><i class="fas fa-user-shield me-1"></i> Admin portal</a>
+                <a href="<?php echo url('admin/portal.php'); ?>"><i class="fas fa-user-shield me-1"></i> Admin portal</a>
             </p>
         </div>
     </main>

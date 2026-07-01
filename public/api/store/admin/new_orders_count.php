@@ -21,8 +21,8 @@ register_shutdown_function(function () {
 });
 
 $need = [
-    __DIR__ . '/../../../../app/config/db_connect.php',
-    __DIR__ . '/../../../../app/models/OrderModel.php',
+    __DIR__ . '/../../../../app/v1/config/db_connect.php',
+    __DIR__ . '/../../../../app/v1/models/OrderModel.php',
 ];
 foreach ($need as $f) {
     if (!is_file($f)) {

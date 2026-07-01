@@ -5,9 +5,7 @@
 // for resolving the logo / hero URLs. Safe to include more than once.
 
 if (!defined('BASE_URL')) {
-    // Web path to the /public folder. Centralise here; change once if the
-    // app ever moves. (Matches the hardcoded /Registration-System/public used elsewhere.)
-    define('BASE_URL', '/Registration-System/public');
+    require_once __DIR__ . '/../config/paths.php';
 }
 
 /* ====================================================================

@@ -1,14 +1,14 @@
 <?php
 // public/admin/students/view.php
 require_once __DIR__ . '/../../../app/init.php';
-require_once __DIR__ . '/../../../app/helpers/middleware.php';
-require_once __DIR__ . '/../../../app/helpers/uploads.php';
-require_once __DIR__ . '/../../../app/models/Connection.php';
-require_once __DIR__ . '/../../../app/models/StudentModel.php';
-require_once __DIR__ . '/../../../app/models/PaymentModel.php';
-require_once __DIR__ . '/../../../app/models/RegistrationModel.php';
-require_once __DIR__ . '/../../../app/controllers/StudentController.php';
-require_once __DIR__ . '/../../../app/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/models/StudentModel.php';
+require_once __DIR__ . '/../../../app/v1/models/PaymentModel.php';
+require_once __DIR__ . '/../../../app/v1/models/RegistrationModel.php';
+require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
+require_once __DIR__ . '/../../../app/v1/models/Session.php';
 
 use Models\Connection;
 use Models\StudentModel;
@@ -27,7 +27,7 @@ $reg = $studentModel->getById($id);
 
 if (!$reg || $reg['status'] !== 'approved') {
     SessionModel::setFlash('error', 'Student not found.');
-    header('Location: /Registration-System/public/admin/students/index.php');
+    header('Location: ' . url('admin/students/index.php'));
     exit();
 }
 
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $page_title  = $reg['full_name'];
 $breadcrumbs = [
-    ['label' => 'Students', 'url' => '/Registration-System/public/admin/students/index.php'],
+    ['label' => 'Students', 'url' => url('admin/students/index.php')],
     ['label' => $reg['full_name'], 'active' => true],
 ];
 
@@ -234,7 +234,7 @@ ob_start();
             </div>
         </div>
 
-        <a href="/Registration-System/public/admin/registrations/view.php?id=<?php echo $id; ?>"
+        <a href="<?php echo url('admin/registrations/view.php?id=<?php echo $id; ?>'); ?>"
            class="btn btn-link btn-sm ps-0">
             <i class="fas fa-arrow-left me-1"></i> View Registration
         </a>
