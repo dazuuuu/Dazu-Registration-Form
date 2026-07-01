@@ -16,13 +16,18 @@ use Services\CourseRegistrationHandler;
 $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
 $course = course_resolve_for_page($courseModel);
+$courseId = $course ? (int) $course['id'] : course_share_parse_id();
 
-if (!$course) {
+if (!course_is_shareable($course)) {
     $page_title = 'Course not found';
     $page_description = '';
+    $reason = ($courseId <= 0)
+        ? 'Invalid course link.'
+        : ($course ? 'This course is currently inactive. Ask an admin to activate it in Admin → Courses.' : 'This course could not be found in the database.');
     ob_start();
-    echo '<div class="dh-container dh-share-page"><div class="crf-alert crf-alert--err">This course is not available. <a href="'
-        . htmlspecialchars(url('courses/index.php')) . '">Browse all courses</a></div></div>';
+    echo '<div class="dh-container dh-share-page"><div class="crf-alert crf-alert--err">'
+        . htmlspecialchars($reason)
+        . ' <a href="' . htmlspecialchars(url('courses/index.php')) . '">Browse all courses</a></div></div>';
     $content = ob_get_clean();
     require __DIR__ . '/../templates/public/layout.php';
     exit;

@@ -110,6 +110,9 @@ $staticCourses = [
 $iconMap = ['PY'=>'🐍','PHP'=>'🐘','ND'=>'⬡','FE'=>'⚡','FS'=>'🚀','AI'=>'🤖'];
 $colorMap= ['PY'=>'#3B82F6','PHP'=>'#8B5CF6','ND'=>'#10B981','FE'=>'#F59E0B','FS'=>'#EF4444','AI'=>'#2E7D32'];
 
+$allDbCourses = $courseModel->getAll(false);
+$usingStaticCourses = false;
+
 if (!empty($liveCourses)) {
     $displayCourses = [];
     foreach ($liveCourses as $c) {
@@ -119,8 +122,19 @@ if (!empty($liveCourses)) {
         $c['tags']        = [];
         $displayCourses[] = $c;
     }
+} elseif (!empty($allDbCourses)) {
+    // DB has courses but none are active — show them so View Details links work after activation
+    $displayCourses = [];
+    foreach ($allDbCourses as $c) {
+        $abbr = strtoupper(trim($c['abbreviation']));
+        $c['icon']        = $iconMap[$abbr]  ?? '📚';
+        $c['badge_color'] = $colorMap[$abbr] ?? '#2E7D32';
+        $c['tags']        = [];
+        $displayCourses[] = $c;
+    }
 } else {
     $displayCourses = $staticCourses;
+    $usingStaticCourses = true;
 }
 
 // ── Page-specific CSS ─────────────────────────────────────
@@ -737,8 +751,10 @@ ob_start(); ?>
                 $hasImg  = !empty($course['cover_image']);
                 $imgSrc  = $hasImg ? $course['cover_image'] : null;
                 $tags    = $course['tags'] ?? [];
-                // View Details → full course page (summary left, registration form right)
-                $detailLink = course_view_url($course);
+                // View Details → full course page; static placeholders link to courses list
+                $detailLink = $usingStaticCourses
+                    ? url('courses/index.php')
+                    : course_view_url($course);
             ?>
             <div class="hp-course-card dh-reveal dh-delay-<?php echo ($i % 3) + 1; ?>">
                 <!-- Image -->
