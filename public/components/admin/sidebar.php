@@ -16,6 +16,17 @@ function isActive($path, $current_dir, $current_page) {
 function isStoreActive($current_dir) {
     return $current_dir == 'store' || $current_dir == 'categories' || $current_dir == 'products';
 }
+
+// New System group: registration, students, courses, tutors, payments
+function isSystemActive($current_dir) {
+    return in_array($current_dir, ['registrations', 'students', 'courses', 'tutors', 'payments'], true);
+}
+
+// Existing public-site content pages, now grouped under "Website Content"
+function isWebsiteActive($current_dir) {
+    return in_array($current_dir, ['orders', 'enquiries', 'projects', 'services', 'blogs', 'gallery', 'testimonials'], true)
+        || isStoreActive($current_dir);
+}
 ?>
 <button class="admin-sidebar-toggle" id="adminSidebarToggle" aria-label="Toggle Sidebar">
     <i class="fas fa-bars"></i>
@@ -43,83 +54,123 @@ function isStoreActive($current_dir) {
     <div class="sidebar-nav">
         <div class="nav flex-column">
             <!-- Dashboard -->
-            <a href="/Realestate/public/admin/dashboard.php" 
+            <a href="/Registration-System/public/admin/dashboard.php" 
                class="nav-link <?php echo $current_page == 'dashboard.php' ? 'active' : ''; ?>">
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Dashboard</span>
             </a>
 
-            <!-- Orders / Sales -->
-            <a href="/Realestate/public/admin/orders/index.php" 
-               class="nav-link <?php echo isActive('orders', $current_dir, $current_page) ? 'active' : ''; ?>">
-                <i class="fas fa-receipt"></i>
-                <span>Orders</span>
-                <span class="orders-badge" id="ordersBadge" style="display:none;">0</span>
-            </a>
-            
-            <!-- Enquiries -->
-            <a href="/Realestate/public/admin/enquiries/index.php" 
-               class="nav-link <?php echo isActive('enquiries', $current_dir, $current_page) ? 'active' : ''; ?>">
-                <i class="fas fa-question-circle"></i>
-                <span>Enquiries</span>
-                <span class="enquiries-badge" id="enquiriesBadge" style="display:none;">0</span>
-            </a>
-            
-            <!-- Projects -->
-            <a href="/Realestate/public/admin/projects/index.php" 
-               class="nav-link <?php echo isActive('projects', $current_dir, $current_page) ? 'active' : ''; ?>">
-                <i class="fas fa-folder-open"></i>
-                <span>Projects</span>
-            </a>
-            
-            <!-- Services -->
-            <a href="/Realestate/public/admin/services/index.php" 
-               class="nav-link <?php echo isActive('services', $current_dir, $current_page) ? 'active' : ''; ?>">
-                <i class="fas fa-cogs"></i>
-                <span>Services</span>
-            </a>
-            
-            <!-- Blog Posts -->
-            <a href="/Realestate/public/admin/blogs/index.php" 
-               class="nav-link <?php echo isActive('blogs', $current_dir, $current_page) ? 'active' : ''; ?>">
-                <i class="fas fa-blog"></i>
-                <span>Blog Posts</span>
-            </a>
-
-            <!-- Gallery Posts -->
-            <a href="/Realestate/public/admin/gallery/index.php" 
-               class="nav-link <?php echo isActive('gallery', $current_dir, $current_page) ? 'active' : ''; ?>">
-                <i class="fas fa-images"></i>
-                <span>Gallery</span>
-            </a>
-            
-            <!-- Testimonials -->
-            <a href="/Realestate/public/admin/testimonials/index.php" 
-               class="nav-link <?php echo isActive('testimonials', $current_dir, $current_page) ? 'active' : ''; ?>">
-                <i class="fas fa-star"></i>
-                <span>Testimonials</span>
-            </a>
-            
-            <!-- STORE SECTION with Dropdown -->
+            <!-- SYSTEM SECTION: registration, courses, students, tutors, payments -->
             <div class="nav-item">
-                <a href="#storeMenu" class="nav-link <?php echo isStoreActive($current_dir) ? 'active' : ''; ?>" 
-                   data-bs-toggle="collapse" role="button" aria-expanded="<?php echo isStoreActive($current_dir) ? 'true' : 'false'; ?>">
-                    <i class="fas fa-store"></i>
-                    <span>Store</span>
+                <a href="#systemMenu" class="nav-link <?php echo isSystemActive($current_dir) ? 'active' : ''; ?>"
+                   data-bs-toggle="collapse" role="button" aria-expanded="<?php echo isSystemActive($current_dir) ? 'true' : 'false'; ?>">
+                    <i class="fas fa-graduation-cap"></i>
+                    <span>System</span>
                     <i class="fas fa-chevron-down ms-auto" style="font-size: 12px;"></i>
                 </a>
-                <div class="collapse <?php echo isStoreActive($current_dir) ? 'show' : ''; ?>" id="storeMenu">
+                <div class="collapse <?php echo isSystemActive($current_dir) ? 'show' : ''; ?>" id="systemMenu">
                     <div class="ps-4 mt-2">
-                        <a href="/Realestate/public/admin/store/products/index.php" 
-                           class="nav-link <?php echo $current_dir == 'products' ? 'active' : ''; ?>">
-                            <i class="fas fa-box"></i>
-                            <span>Products</span>
+                        <a href="/Registration-System/public/admin/registrations/index.php?status=pending"
+                           class="nav-link <?php echo $current_dir == 'registrations' ? 'active' : ''; ?>">
+                            <i class="fas fa-user-clock"></i>
+                            <span>Pending Approvals</span>
+                            <span class="registrations-badge" id="registrationsBadge" style="display:none;">0</span>
                         </a>
-                        <a href="/Realestate/public/admin/store/categories/index.php" 
-                           class="nav-link <?php echo $current_dir == 'categories' ? 'active' : ''; ?>">
-                            <i class="fas fa-tags"></i>
-                            <span>Categories</span>
+                        <a href="/Registration-System/public/admin/students/index.php"
+                           class="nav-link <?php echo $current_dir == 'students' ? 'active' : ''; ?>">
+                            <i class="fas fa-user-graduate"></i>
+                            <span>Students</span>
                         </a>
+                        <a href="/Registration-System/public/admin/courses/index.php"
+                           class="nav-link <?php echo $current_dir == 'courses' ? 'active' : ''; ?>">
+                            <i class="fas fa-book"></i>
+                            <span>Courses</span>
+                        </a>
+                        <a href="/Registration-System/public/admin/tutors/index.php"
+                           class="nav-link <?php echo $current_dir == 'tutors' ? 'active' : ''; ?>">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                            <span>Tutors</span>
+                        </a>
+                        <a href="/Registration-System/public/admin/payments/index.php"
+                           class="nav-link <?php echo $current_dir == 'payments' ? 'active' : ''; ?>">
+                            <i class="fas fa-money-bill-wave"></i>
+                            <span>Payments</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WEBSITE CONTENT SECTION: the original public-site management pages -->
+            <div class="nav-item">
+                <a href="#websiteMenu" class="nav-link <?php echo isWebsiteActive($current_dir) ? 'active' : ''; ?>"
+                   data-bs-toggle="collapse" role="button" aria-expanded="<?php echo isWebsiteActive($current_dir) ? 'true' : 'false'; ?>">
+                    <i class="fas fa-globe"></i>
+                    <span>Website Content</span>
+                    <i class="fas fa-chevron-down ms-auto" style="font-size: 12px;"></i>
+                </a>
+                <div class="collapse <?php echo isWebsiteActive($current_dir) ? 'show' : ''; ?>" id="websiteMenu">
+                    <div class="ps-4 mt-2">
+                        <a href="/Registration-System/public/admin/orders/index.php" 
+                           class="nav-link <?php echo isActive('orders', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-receipt"></i>
+                            <span>Orders</span>
+                            <span class="orders-badge" id="ordersBadge" style="display:none;">0</span>
+                        </a>
+                        <a href="/Registration-System/public/admin/enquiries/index.php" 
+                           class="nav-link <?php echo isActive('enquiries', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-question-circle"></i>
+                            <span>Enquiries</span>
+                            <span class="enquiries-badge" id="enquiriesBadge" style="display:none;">0</span>
+                        </a>
+                        <a href="/Registration-System/public/admin/projects/index.php" 
+                           class="nav-link <?php echo isActive('projects', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-folder-open"></i>
+                            <span>Projects</span>
+                        </a>
+                        <a href="/Registration-System/public/admin/services/index.php" 
+                           class="nav-link <?php echo isActive('services', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-cogs"></i>
+                            <span>Services</span>
+                        </a>
+                        <a href="/Registration-System/public/admin/blogs/index.php" 
+                           class="nav-link <?php echo isActive('blogs', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-blog"></i>
+                            <span>Blog Posts</span>
+                        </a>
+                        <a href="/Registration-System/public/admin/gallery/index.php" 
+                           class="nav-link <?php echo isActive('gallery', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-images"></i>
+                            <span>Gallery</span>
+                        </a>
+                        <a href="/Registration-System/public/admin/testimonials/index.php" 
+                           class="nav-link <?php echo isActive('testimonials', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-star"></i>
+                            <span>Testimonials</span>
+                        </a>
+
+                        <!-- STORE SUB-SECTION (nested collapse, unchanged from original) -->
+                        <div class="nav-item">
+                            <a href="#storeMenu" class="nav-link <?php echo isStoreActive($current_dir) ? 'active' : ''; ?>" 
+                               data-bs-toggle="collapse" role="button" aria-expanded="<?php echo isStoreActive($current_dir) ? 'true' : 'false'; ?>">
+                                <i class="fas fa-store"></i>
+                                <span>Store</span>
+                                <i class="fas fa-chevron-down ms-auto" style="font-size: 12px;"></i>
+                            </a>
+                            <div class="collapse <?php echo isStoreActive($current_dir) ? 'show' : ''; ?>" id="storeMenu">
+                                <div class="ps-4 mt-2">
+                                    <a href="/Registration-System/public/admin/store/products/index.php" 
+                                       class="nav-link <?php echo $current_dir == 'products' ? 'active' : ''; ?>">
+                                        <i class="fas fa-box"></i>
+                                        <span>Products</span>
+                                    </a>
+                                    <a href="/Registration-System/public/admin/store/categories/index.php" 
+                                       class="nav-link <?php echo $current_dir == 'categories' ? 'active' : ''; ?>">
+                                        <i class="fas fa-tags"></i>
+                                        <span>Categories</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -127,21 +178,21 @@ function isStoreActive($current_dir) {
             <hr>
             
             <!-- Profile -->
-            <a href="/Realestate/public/profile/admin/" 
+            <a href="/Registration-System/public/profile/admin/" 
                class="nav-link <?php echo $current_page == 'profile.php' ? 'active' : ''; ?>">
                 <i class="fas fa-user-circle"></i>
                 <span>My Profile</span>
             </a>
             
             <!-- Settings -->
-            <a href="/Realestate/public/admin/settings/index.php" 
+            <a href="/Registration-System/public/admin/settings/index.php" 
                class="nav-link <?php echo isActive('settings', $current_dir, $current_page) ? 'active' : ''; ?>">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
             
             <!-- Logout -->
-            <a href="/Realestate/public/auth/logout.php" class="nav-link text-danger">
+            <a href="/Registration-System/public/auth/logout.php" class="nav-link text-danger">
                 <i class="fas fa-sign-out-alt"></i>
                 <span>Logout</span>
             </a>
@@ -156,7 +207,7 @@ function isStoreActive($current_dir) {
         <strong>New order received</strong>
         <div id="orderToastMsg" class="order-toast-msg"></div>
     </div>
-    <a href="/Realestate/public/admin/orders/index.php" class="order-toast-link">View</a>
+    <a href="/Registration-System/public/admin/orders/index.php" class="order-toast-link">View</a>
     <button type="button" class="order-toast-close" aria-label="Dismiss">&times;</button>
 </div>
 
@@ -557,26 +608,30 @@ function isStoreActive($current_dir) {
 </style>
 
 <script>
-// Store dropdown state in localStorage
+// Persist collapse state per menu group in localStorage
 document.addEventListener('DOMContentLoaded', function() {
-    const storeLink = document.querySelector('a[href="#storeMenu"]');
-    const storeMenu = document.getElementById('storeMenu');
-    if (storeLink && storeMenu) {
-        // Load saved state
-        const savedState = localStorage.getItem('storeMenuOpen');
+    var groups = ['systemMenu', 'websiteMenu', 'storeMenu'];
+    groups.forEach(function (id) {
+        var link = document.querySelector('a[href="#' + id + '"]');
+        var menu = document.getElementById(id);
+        if (!link || !menu) return;
+
+        var savedState = localStorage.getItem(id + 'Open');
         if (savedState === 'true') {
-            storeMenu.classList.add('show');
-            storeLink.setAttribute('aria-expanded', 'true');
+            menu.classList.add('show');
+            link.setAttribute('aria-expanded', 'true');
+        } else if (savedState === 'false') {
+            menu.classList.remove('show');
+            link.setAttribute('aria-expanded', 'false');
         }
-        
-        // Save state when toggled
-        storeLink.addEventListener('click', function(e) {
-            setTimeout(() => {
-                const isOpen = storeMenu.classList.contains('show');
-                localStorage.setItem('storeMenuOpen', isOpen);
+        // If savedState is null (first visit), leave whatever the PHP active-state logic set.
+
+        link.addEventListener('click', function() {
+            setTimeout(function () {
+                localStorage.setItem(id + 'Open', menu.classList.contains('show'));
             }, 100);
         });
-    }
+    });
 });
 
 // Mobile sidebar toggle functionality
@@ -667,7 +722,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function poll() {
-        fetch('/Realestate/public/api/store/admin/new_orders_count.php', { 
+        fetch('/Registration-System/public/api/store/admin/new_orders_count.php', { 
             headers: { 'Accept': 'application/json' } 
         })
         .then(function (r) { return r.json(); })

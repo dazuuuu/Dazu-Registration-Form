@@ -468,8 +468,8 @@ echo strip_tags($section['content'], $allowed_tags);
   <div class="container">
     <h2>Ready to Get Started?</h2>
     <p class="lead mb-4">Let's discuss how we can help you achieve your goals</p>
-    <a href="/Realestate/public/contact.php" class="btn-light">Contact Us</a>
-    <a href="/Realestate/public/services/" class="btn-outline-light">View All Services</a>
+    <a href="/Registration-System/public/contact.php" class="btn-light">Contact Us</a>
+    <a href="/Registration-System/public/services/" class="btn-outline-light">View All Services</a>
   </div>
 </section>
 

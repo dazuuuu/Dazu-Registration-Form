@@ -199,7 +199,7 @@ class BlogController {
         
         // Handle file upload
         if (isset($data['media_file']) && $data['media_file']['error'] === 0) {
-            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Realestate/public/uploads/blog/sections/';
+            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Registration-System/public/uploads/blog/sections/';
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0777, true);
             }
@@ -209,7 +209,7 @@ class BlogController {
             $target_file = $upload_dir . $filename;
             
             if (move_uploaded_file($data['media_file']['tmp_name'], $target_file)) {
-                $media_url = '/Realestate/public/uploads/blog/sections/' . $filename;
+                $media_url = '/Registration-System/public/uploads/blog/sections/' . $filename;
                 
                 // Determine media type
                 if (in_array($ext, ['mp4', 'webm', 'ogg'])) {

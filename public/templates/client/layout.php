@@ -4,7 +4,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 // Check if logged in
 if (!isset($_SESSION['user_id'])) {
-    header('Location: /Realestate/public/auth/login.php');
+    header('Location: /Registration-System/public/auth/login.php');
     exit();
 }
 
@@ -12,7 +12,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $current_dir = basename(dirname($_SERVER['PHP_SELF']));
 
 // Cart link target — change this if your cart page lives elsewhere.
-$cartUrl = '/Realestate/public/store/cart.php';
+$cartUrl = '/Registration-System/public/store/cart.php';
 $isCart = strpos($_SERVER['REQUEST_URI'], '/store/cart') !== false;
 ?>
 <!DOCTYPE html>
@@ -335,28 +335,28 @@ $isCart = strpos($_SERVER['REQUEST_URI'], '/store/cart') !== false;
     </div>
     <ul class="sidebar-menu">
         <li>
-            <a href="/Realestate/public/client/dashboard/index.php" class="<?php echo $current_page == 'index.php' && $current_dir == 'dashboard' ? 'active' : ''; ?>">
+            <a href="/Registration-System/public/client/dashboard/index.php" class="<?php echo $current_page == 'index.php' && $current_dir == 'dashboard' ? 'active' : ''; ?>">
                 <i class="fas fa-tachometer-alt"></i> Dashboard
             </a>
         </li>
         <li>
-            <a href="/Realestate/public/client/cart/index.php" class="<?php echo $isCart ? 'active' : ''; ?>">
+            <a href="/Registration-System/public/client/cart/index.php" class="<?php echo $isCart ? 'active' : ''; ?>">
                 <i class="fas fa-shopping-cart"></i> Cart
                 <span class="cart-count" style="display:none;">0</span>
             </a>
         </li>
         <li>
-            <a href="/Realestate/public/profile/client/index.php" class="<?php echo strpos($_SERVER['REQUEST_URI'], '/profile/client/') !== false ? 'active' : ''; ?>">
+            <a href="/Registration-System/public/profile/client/index.php" class="<?php echo strpos($_SERVER['REQUEST_URI'], '/profile/client/') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-user-circle"></i> Profile
             </a>
         </li>
         <li>
-            <a href="/Realestate/public/client/settings/index.php" class="<?php echo strpos($_SERVER['REQUEST_URI'], '/client/settings/') !== false ? 'active' : ''; ?>">
+            <a href="/Registration-System/public/client/settings/index.php" class="<?php echo strpos($_SERVER['REQUEST_URI'], '/client/settings/') !== false ? 'active' : ''; ?>">
                 <i class="fas fa-cog"></i> Settings
             </a>
         </li>
         <li>
-            <a href="/Realestate/public/auth/logout.php">
+            <a href="/Registration-System/public/auth/logout.php">
                 <i class="fas fa-sign-out-alt"></i> Logout
             </a>
         </li>
@@ -366,7 +366,7 @@ $isCart = strpos($_SERVER['REQUEST_URI'], '/store/cart') !== false;
 <!-- Top Navbar -->
 <nav class="top-navbar">
     <div class="d-flex justify-content-between align-items-center">
-        <a href="/Realestate/public/client/dashboard/index.php" class="navbar-brand">
+        <a href="/Registration-System/public/client/dashboard/index.php" class="navbar-brand">
             <i class="fas fa-shield-alt"></i> Ismano
         </a>
         
@@ -383,17 +383,17 @@ $isCart = strpos($_SERVER['REQUEST_URI'], '/store/cart') !== false;
                     </div>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="/Realestate/public/profile/client/index.php">
+                    <li><a class="dropdown-item" href="/Registration-System/public/profile/client/index.php">
                         <i class="fas fa-user me-2"></i> My Profile
                     </a></li>
-                    <li><a class="dropdown-item" href="/Realestate/public/client/cart/index.php">
+                    <li><a class="dropdown-item" href="/Registration-System/public/client/cart/index.php">
                         <i class="fas fa-shopping-cart me-2"></i> My Cart
                     </a></li>
-                    <li><a class="dropdown-item" href="/Realestate/public/client/settings/index.php">
+                    <li><a class="dropdown-item" href="/Registration-System/public/client/settings/index.php">
                         <i class="fas fa-cog me-2"></i> Settings
                     </a></li>
                     <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="/Realestate/public/auth/logout.php">
+                    <li><a class="dropdown-item text-danger" href="/Registration-System/public/auth/logout.php">
                         <i class="fas fa-sign-out-alt me-2"></i> Logout
                     </a></li>
                 </ul>
@@ -426,7 +426,7 @@ $isCart = strpos($_SERVER['REQUEST_URI'], '/store/cart') !== false;
 
 <!-- Bottom Navigation (Mobile Only) -->
 <div class="bottom-nav">
-    <a href="/Realestate/public/client/dashboard/index.php" class="nav-item <?php echo $current_page == 'index.php' && $current_dir == 'dashboard' ? 'active' : ''; ?>">
+    <a href="/Registration-System/public/client/dashboard/index.php" class="nav-item <?php echo $current_page == 'index.php' && $current_dir == 'dashboard' ? 'active' : ''; ?>">
         <i class="fas fa-tachometer-alt"></i>
         <span>Home</span>
     </a>
@@ -437,15 +437,15 @@ $isCart = strpos($_SERVER['REQUEST_URI'], '/store/cart') !== false;
         </span>
         <span>Cart</span>
     </a>
-    <a href="/Realestate/public/profile/client/index.php" class="nav-item <?php echo strpos($_SERVER['REQUEST_URI'], '/profile/client/') !== false ? 'active' : ''; ?>">
+    <a href="/Registration-System/public/profile/client/index.php" class="nav-item <?php echo strpos($_SERVER['REQUEST_URI'], '/profile/client/') !== false ? 'active' : ''; ?>">
         <i class="fas fa-user-circle"></i>
         <span>Profile</span>
     </a>
-    <a href="/Realestate/public/client/settings/index.php" class="nav-item <?php echo strpos($_SERVER['REQUEST_URI'], '/client/settings/') !== false ? 'active' : ''; ?>">
+    <a href="/Registration-System/public/client/settings/index.php" class="nav-item <?php echo strpos($_SERVER['REQUEST_URI'], '/client/settings/') !== false ? 'active' : ''; ?>">
         <i class="fas fa-cog"></i>
         <span>Settings</span>
     </a>
-    <a href="/Realestate/public/auth/logout.php" class="nav-item">
+    <a href="/Registration-System/public/auth/logout.php" class="nav-item">
         <i class="fas fa-sign-out-alt"></i>
         <span>Logout</span>
     </a>
@@ -466,7 +466,7 @@ $isCart = strpos($_SERVER['REQUEST_URI'], '/store/cart') !== false;
         });
     }
     function refreshCart() {
-        fetch('/Realestate/public/api/count.php', { headers: { 'Accept': 'application/json' } })
+        fetch('/Registration-System/public/api/count.php', { headers: { 'Accept': 'application/json' } })
             .then(function (r) { return r.json(); })
             .then(function (data) { if (data && data.success) applyCount(data.count); })
             .catch(function () { /* leave badges hidden on error */ });

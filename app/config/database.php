@@ -3,7 +3,7 @@
 
 return [
     'host' => 'localhost',
-    'dbname' => 'realestate_db',
+    'dbname' => 'registration_system',
     'username' => 'root',
     'password' => 'mysql',
     'charset' => 'utf8mb4'

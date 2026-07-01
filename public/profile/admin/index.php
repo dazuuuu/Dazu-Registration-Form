@@ -12,12 +12,12 @@ require_once __DIR__ . '/../../../app/helpers/functions.php';
 
 // Check if logged in
 if (!isLoggedIn()) {
-    redirect('/Realestate/public/auth/login.php');
+    redirect('/Registration-System/public/auth/login.php');
 }
 
 // Check if user is admin (role_id 1 or 2)
 if (!isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
-    redirect('/Realestate/public/auth/login.php');
+    redirect('/Registration-System/public/auth/login.php');
 }
 
 $user_id = $_SESSION['user_id'];
@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['change_password'])) {
             $success = 'Password changed successfully! Please login again.';
             // Optionally logout and require re-login
             // session_destroy();
-            // redirect('/Realestate/public/auth/login.php');
+            // redirect('/Registration-System/public/auth/login.php');
         } else {
             $error = 'Failed to change password';
         }
@@ -351,17 +351,17 @@ if ($error) {
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-4 mb-2">
-                        <a href="/Realestate/public/admin/services/create.php" class="btn btn-outline-secondary w-100">
+                        <a href="/Registration-System/public/admin/services/create.php" class="btn btn-outline-secondary w-100">
                             <i class="fas fa-plus me-1"></i> New Service
                         </a>
                     </div>
                     <div class="col-md-4 mb-2">
-                        <a href="/Realestate/public/admin/projects/create.php" class="btn btn-outline-secondary w-100">
+                        <a href="/Registration-System/public/admin/projects/create.php" class="btn btn-outline-secondary w-100">
                             <i class="fas fa-plus me-1"></i> New Project
                         </a>
                     </div>
                     <div class="col-md-4 mb-2">
-                        <a href="/Realestate/public/admin/blogs/create.php" class="btn btn-outline-secondary w-100">
+                        <a href="/Registration-System/public/admin/blogs/create.php" class="btn btn-outline-secondary w-100">
                             <i class="fas fa-plus me-1"></i> New Blog Post
                         </a>
                     </div>

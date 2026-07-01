@@ -15,7 +15,7 @@ return [
     'passkey'   => '',
     // 'CustomerPayBillOnline' for Paybill, 'CustomerBuyGoodsOnline' for Till.
     'transaction_type' => 'CustomerPayBillOnline',
-    'callback_url' => 'https://monkhood-outnumber-swept.ngrok-free.dev/Realestate/public/api/store/checkout/mpesa_callback.php',
+    'callback_url' => 'https://monkhood-outnumber-swept.ngrok-free.dev/Registration-System/public/api/store/checkout/mpesa_callback.php',
 
         'cacert_path' => '',
     'verify_ssl'  => false,   // LOCAL TESTING ONLY — set to true once a CA bundle is configured.

@@ -2,11 +2,11 @@
 // app/config/app.php
 
 return [
-    'app_name' => 'Realestate',
-    'app_url' => 'http://localhost/Realestate',
+    'app_name' => 'Registration System',
+    'app_url' => 'http://localhost/Registration-System',
     'debug' => true,
     'timezone' => 'UTC',
-    'session_name' => 'realestate_session',
+    'session_name' => 'registration_system_session',
     
     // Security
     'hash_cost' => 12,

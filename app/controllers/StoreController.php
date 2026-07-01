@@ -22,7 +22,7 @@ class StoreController {
         
         $image_path = null;
         if ($image && $image['error'] === 0) {
-            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Realestate/public/uploads/store/categories/';
+            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Registration-System/public/uploads/store/categories/';
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0777, true);
             }
@@ -32,7 +32,7 @@ class StoreController {
             $target_file = $upload_dir . $filename;
             
             if (move_uploaded_file($image['tmp_name'], $target_file)) {
-                $image_path = '/Realestate/public/uploads/store/categories/' . $filename;
+                $image_path = '/Registration-System/public/uploads/store/categories/' . $filename;
             }
         }
         
@@ -58,13 +58,13 @@ class StoreController {
         if (isset($data['is_active'])) $updateData['is_active'] = $data['is_active'];
         
         if ($image && $image['error'] === 0) {
-            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Realestate/public/uploads/store/categories/';
+            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Registration-System/public/uploads/store/categories/';
             $ext = pathinfo($image['name'], PATHINFO_EXTENSION);
             $filename = time() . '_' . uniqid() . '.' . $ext;
             $target_file = $upload_dir . $filename;
             
             if (move_uploaded_file($image['tmp_name'], $target_file)) {
-                $updateData['image_path'] = '/Realestate/public/uploads/store/categories/' . $filename;
+                $updateData['image_path'] = '/Registration-System/public/uploads/store/categories/' . $filename;
             }
         }
         
@@ -85,7 +85,7 @@ class StoreController {
         
         $featured_image_path = null;
         if ($featured_image && $featured_image['error'] === 0) {
-            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Realestate/public/uploads/store/products/';
+            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Registration-System/public/uploads/store/products/';
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0777, true);
             }
@@ -95,7 +95,7 @@ class StoreController {
             $target_file = $upload_dir . $filename;
             
             if (move_uploaded_file($featured_image['tmp_name'], $target_file)) {
-                $featured_image_path = '/Realestate/public/uploads/store/products/' . $filename;
+                $featured_image_path = '/Registration-System/public/uploads/store/products/' . $filename;
             }
         }
         
@@ -160,13 +160,13 @@ class StoreController {
         if (isset($data['sort_order'])) $updateData['sort_order'] = $data['sort_order'];
         
         if ($featured_image && $featured_image['error'] === 0) {
-            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Realestate/public/uploads/store/products/';
+            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Registration-System/public/uploads/store/products/';
             $ext = pathinfo($featured_image['name'], PATHINFO_EXTENSION);
             $filename = time() . '_' . uniqid() . '.' . $ext;
             $target_file = $upload_dir . $filename;
             
             if (move_uploaded_file($featured_image['tmp_name'], $target_file)) {
-                $updateData['featured_image'] = '/Realestate/public/uploads/store/products/' . $filename;
+                $updateData['featured_image'] = '/Registration-System/public/uploads/store/products/' . $filename;
             }
         }
         

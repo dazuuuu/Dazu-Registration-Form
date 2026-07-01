@@ -1,3 +1,3 @@
 <?php
-header("Location: /Realestate/public/");
+header("Location: /Registration-System/public/");
 exit();

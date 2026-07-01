@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../../app/models/OrderModel.php';
 
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (empty($_SESSION['user_id']) || !isset($_SESSION['role_id']) || (int) $_SESSION['role_id'] > 2) {
-    header('Location: /Realestate/public/auth/login.php?error=access_denied');
+    header('Location: /Registration-System/public/auth/login.php?error=access_denied');
     exit();
 }
 
@@ -100,7 +100,7 @@ document.querySelectorAll('.save-parcel').forEach(function (btn) {
         this.disabled = true;
         this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
-        fetch('/Realestate/public/api/store/admin/update_parcel.php', {
+        fetch('/Registration-System/public/api/store/admin/update_parcel.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ parcel_id: parcelId, status: status })

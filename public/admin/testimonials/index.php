@@ -152,7 +152,7 @@ ob_start();
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">All Testimonials</h5>
-        <a href="/Realestate/public/feedback/" class="btn btn-sm btn-primary" target="_blank">
+        <a href="/Registration-System/public/feedback/" class="btn btn-sm btn-primary" target="_blank">
             <i class="fas fa-external-link-alt"></i> View Feedback Page
         </a>
     </div>

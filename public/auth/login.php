@@ -12,9 +12,9 @@ $success = '';
 if (isLoggedIn()) {
     $role_id = $_SESSION['role_id'] ?? 0;
     if ($role_id <= 2) {
-        redirect('/Realestate/public/profile/admin/index.php');
+        redirect('/Registration-System/public/profile/admin/index.php');
     } else {
-        redirect('/Realestate/public/profile/client/index.php');
+        redirect('/Registration-System/public/profile/client/index.php');
     }
 }
 
@@ -48,16 +48,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Redirect based on role
             if ($user['role_id'] <= 2) {
-                header("refresh:2;url=/Realestate/public/profile/admin/index.php");
+                header("refresh:2;url=/Registration-System/public/profile/admin/index.php");
             } else {
-                header("refresh:2;url=/Realestate/public/profile/client/index.php");
+                header("refresh:2;url=/Registration-System/public/profile/client/index.php");
             }
         }
     }
 }
 
 // Logo (mirrors the navbar's logic — PNG if present, else inline mark)
-$logoPath = '/Realestate/public/assets/images/logo/logo.png';
+$logoPath = '/Registration-System/public/assets/images/logo/logo.png';
 $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROOT'] . $logoPath);
 ?>
 <!DOCTYPE html>
@@ -65,7 +65,7 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Realestate</title>
+    <title>Login — Registration System</title>
 
     <link rel="stylesheet" href="../assets/css/theme.css">
     <link rel="stylesheet" href="../assets/css/auth.css">
@@ -81,9 +81,9 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
         <img class="auth-brand-bgimg"
              src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1400&q=80" alt="" aria-hidden="true">
         <div class="auth-brand-inner">
-            <a class="auth-logo" href="/Realestate/public/" aria-label="Realestate — Home">
+            <a class="auth-logo" href="/Registration-System/public/" aria-label="Registration System — Home">
                 <?php if ($logoExists): ?>
-                    <img src="<?php echo $logoPath; ?>" alt="Realestate logo" class="brand-logo">
+                    <img src="<?php echo $logoPath; ?>" alt="Registration System logo" class="brand-logo">
                 <?php else: ?>
                     <svg class="brand-mark" width="30" height="30" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <rect width="12" height="12" fill="currentColor"/>
@@ -92,10 +92,10 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
                         <rect x="16" y="16" width="12" height="12" fill="currentColor"/>
                     </svg>
                 <?php endif; ?>
-                <span class="brand-name">Realestate</span>
+                <span class="brand-name">Registration System</span>
             </a>
 
-            <h1>Welcome back to <span>Realestate</span>.</h1>
+            <h1>Welcome back to <span>Registration System</span>.</h1>
             <p class="lead">Sign in to manage your projects, track progress, and pick up right where you left off.</p>
 
             <ul class="auth-points">
@@ -104,13 +104,13 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
                 <li><i class="fas fa-check"></i> Transparent progress, no surprises</li>
             </ul>
         </div>
-        <p class="auth-brand-foot">&copy; <?php echo date('Y'); ?> Realestate. All rights reserved.</p>
+        <p class="auth-brand-foot">&copy; <?php echo date('Y'); ?> Registration System. All rights reserved.</p>
     </aside>
 
     <!-- Form panel -->
     <main class="auth-form">
         <div class="auth-form-top">
-            <a href="/Realestate/public/" class="auth-back"><i class="fas fa-arrow-left"></i> Back to home</a>
+            <a href="/Registration-System/public/" class="auth-back"><i class="fas fa-arrow-left"></i> Back to home</a>
         </div>
 
         <div class="auth-form-body">
@@ -163,7 +163,7 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
             <hr class="auth-divider">
 
             <p class="auth-portal">
-                <a href="/Realestate/public/admin/portal.php"><i class="fas fa-user-shield me-1"></i> Admin portal</a>
+                <a href="/Registration-System/public/admin/portal.php"><i class="fas fa-user-shield me-1"></i> Admin portal</a>
             </p>
         </div>
     </main>

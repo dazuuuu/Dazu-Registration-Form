@@ -11,7 +11,7 @@ ob_start();
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
-    header('Location: /Realestate/public/auth/login.php');
+    header('Location: /Registration-System/public/auth/login.php');
     exit();
 }
 
@@ -206,7 +206,7 @@ document.getElementById('createBlogForm').addEventListener('submit', async (e) =
     submitBtn.disabled = true;
     
     try {
-        const response = await fetch('/Realestate/public/api/blog/create.php', {
+        const response = await fetch('/Registration-System/public/api/blog/create.php', {
             method: 'POST',
             body: formData
         });

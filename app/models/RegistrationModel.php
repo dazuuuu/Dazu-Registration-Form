@@ -1,0 +1,142 @@
+<?php
+// app/models/RegistrationModel.php
+namespace Models;
+
+class RegistrationModel {
+    private $db;
+
+    public function __construct($pdo) {
+        $this->db = $pdo;
+    }
+
+    public const REG_FEE_ONLINE   = 1000;
+    public const REG_FEE_PHYSICAL = 1500;
+
+    /**
+     * Pure calculation, no DB access — keep this trustworthy in isolation.
+     * Splits $courseFee into $installmentCount parts; every part is equal except
+     * the last, which absorbs whatever the division didn't divide evenly.
+     *
+     * @return array{count:int, amount:float, last_amount:float}
+     */
+    public static function calculateInstallments(float $courseFee, string $plan, int $durationMonths): array {
+        switch ($plan) {
+            case 'monthly':
+                $count = max(1, $durationMonths);
+                break;
+            case '3months':
+                $count = 3;
+                break;
+            case 'full':
+                $count = 1;
+                break;
+            default:
+                $count = 1;
+        }
+
+        // Work in cents to avoid float rounding drift, then convert back.
+        $totalCents = (int) round($courseFee * 100);
+        $baseCents  = intdiv($totalCents, $count);
+        $remainder  = $totalCents - ($baseCents * $count);
+
+        $amount     = $baseCents / 100;
+        $lastAmount = ($baseCents + $remainder) / 100;
+
+        return ['count' => $count, 'amount' => $amount, 'last_amount' => $lastAmount];
+    }
+
+    public static function registrationFeeFor(string $studyMode): int {
+        return $studyMode === 'physical' ? self::REG_FEE_PHYSICAL : self::REG_FEE_ONLINE;
+    }
+
+    /**
+     * Checks for a prior APPROVED registration with the same email or phone.
+     * This only sets a flag for the admin to review — it never waives a fee on its own.
+     */
+    public function findPossibleReturningStudent(string $email, string $phone): ?array {
+        $stmt = $this->db->prepare(
+            "SELECT id, full_name, registration_no, email, phone FROM registrations
+             WHERE status = 'approved' AND (email = :email OR phone = :phone)
+             ORDER BY created_at DESC LIMIT 1"
+        );
+        $stmt->execute([':email' => $email, ':phone' => $phone]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    /**
+     * @return array{ok:bool, error?:string, id?:int}
+     */
+    public function submit(array $data, CourseModel $courseModel): array {
+        $course = $courseModel->getById((int) $data['course_id']);
+        if (!$course || !$course['is_active']) {
+            return ['ok' => false, 'error' => 'Selected course is not available.'];
+        }
+
+        foreach (['full_name', 'email', 'phone', 'study_mode', 'payment_plan', 'id_document_path', 'payment_reference'] as $f) {
+            if (empty($data[$f])) {
+                return ['ok' => false, 'error' => 'All required fields must be filled in.'];
+            }
+        }
+        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'error' => 'A valid email address is required.'];
+        }
+        if (!in_array($data['study_mode'], ['physical', 'online'], true)) {
+            return ['ok' => false, 'error' => 'Invalid study mode.'];
+        }
+        if (!in_array($data['payment_plan'], ['monthly', '3months', 'full'], true)) {
+            return ['ok' => false, 'error' => 'Invalid payment plan.'];
+        }
+
+        $installments = self::calculateInstallments((float) $course['course_fee'], $data['payment_plan'], (int) $course['duration_months']);
+        $regFee = self::registrationFeeFor($data['study_mode']);
+        $returning = $this->findPossibleReturningStudent($data['email'], $data['phone']);
+
+        $sql = "INSERT INTO registrations
+                (full_name, email, phone, course_id, study_mode, id_document_path,
+                 registration_fee, course_fee, payment_plan, installment_count, installment_amount,
+                 payment_reference, possible_returning_student)
+                VALUES
+                (:full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
+                 :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
+                 :payment_reference, :returning)";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([
+            ':full_name'          => trim($data['full_name']),
+            ':email'              => strtolower(trim($data['email'])),
+            ':phone'              => trim($data['phone']),
+            ':course_id'          => $course['id'],
+            ':study_mode'         => $data['study_mode'],
+            ':id_document_path'   => $data['id_document_path'],
+            ':registration_fee'   => $regFee,
+            ':course_fee'         => $course['course_fee'],
+            ':payment_plan'       => $data['payment_plan'],
+            ':installment_count'  => $installments['count'],
+            ':installment_amount' => $installments['amount'],
+            ':payment_reference'  => trim($data['payment_reference']),
+            ':returning'          => $returning ? 1 : 0,
+        ]);
+
+        return ['ok' => true, 'id' => (int) $this->db->lastInsertId()];
+    }
+
+    public function getById(int $id): ?array {
+        $stmt = $this->db->prepare(
+            "SELECT r.*, c.title AS course_title, c.abbreviation, c.duration_months
+             FROM registrations r JOIN courses c ON r.course_id = c.id WHERE r.id = :id"
+        );
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
+    public function listByStatus(string $status): array {
+        $stmt = $this->db->prepare(
+            "SELECT r.*, c.title AS course_title, c.abbreviation
+             FROM registrations r JOIN courses c ON r.course_id = c.id
+             WHERE r.status = :status ORDER BY r.created_at DESC"
+        );
+        $stmt->execute([':status' => $status]);
+        return $stmt->fetchAll();
+    }
+}

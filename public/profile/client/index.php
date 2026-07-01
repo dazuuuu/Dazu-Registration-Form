@@ -11,13 +11,14 @@ require_once __DIR__ . '/../../../app/helpers/functions.php';
 
 // Check if logged in
 if (!isLoggedIn()) {
-    redirect('/Realestate/public/auth/login.php');
+    redirect('/Registration-System/public/auth/login.php');
 }
 
 // Check if user is client (role_id 3)
 if (!isset($_SESSION['role_id']) || $_SESSION['role_id'] != 3) {
-    redirect('/Realestate/public/auth/login.php');
+    redirect('/Registration-System/public/auth/login.php');
 }
+
 
 
 $user_id = $_SESSION['user_id'];

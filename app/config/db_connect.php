@@ -1,7 +1,7 @@
 <?php
 // app/config/db_connect.php
 $db_host = 'localhost';
-$db_name = 'realestate_db';
+$db_name = 'registration_system';
 $db_user = 'root';
 $db_pass = 'mysql';
 

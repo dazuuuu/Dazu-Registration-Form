@@ -168,7 +168,7 @@ class ServiceController {
         $media_url = $data['media_url'] ?? null;
         
         if ($media_file && $media_file['error'] === 0) {
-            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Realestate/public/uploads/services/sections/';
+            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Registration-System/public/uploads/services/sections/';
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0777, true);
             }
@@ -177,7 +177,7 @@ class ServiceController {
             $target_file = $upload_dir . $filename;
             
             if (move_uploaded_file($media_file['tmp_name'], $target_file)) {
-                $media_url = '/Realestate/public/uploads/services/sections/' . $filename;
+                $media_url = '/Registration-System/public/uploads/services/sections/' . $filename;
             }
         }
         
@@ -208,7 +208,7 @@ class ServiceController {
             return ['success' => false, 'message' => 'Image file is required'];
         }
         
-        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Realestate/public/uploads/services/gallery/';
+        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Registration-System/public/uploads/services/gallery/';
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
@@ -223,7 +223,7 @@ class ServiceController {
             $stmt = $this->db->prepare($sql);
             $result = $stmt->execute([
                 ':service_id' => $service_id,
-                ':image_path' => '/Realestate/public/uploads/services/gallery/' . $filename,
+                ':image_path' => '/Registration-System/public/uploads/services/gallery/' . $filename,
                 ':image_title' => $image_title,
                 ':image_description' => $image_description,
                 ':sort_order' => 0

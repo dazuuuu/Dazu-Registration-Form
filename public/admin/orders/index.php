@@ -7,7 +7,7 @@ require_once __DIR__ . '/../../../app/models/OrderModel.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 // Admin guard (role_id 1=superadmin, 2=admin).
 if (empty($_SESSION['user_id']) || !isset($_SESSION['role_id']) || (int) $_SESSION['role_id'] > 2) {
-    header('Location: /Realestate/public/auth/login.php?error=access_denied');
+    header('Location: /Registration-System/public/auth/login.php?error=access_denied');
     exit();
 }
 

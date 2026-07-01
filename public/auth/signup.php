@@ -9,7 +9,7 @@ $error = '';
 $success = '';
 
 if (isLoggedIn()) {
-    redirect('/Realestate/public/admin/dashboard.php');
+    redirect('/Registration-System/public/admin/dashboard.php');
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $userModel->updateProfile($user['id'], $first_name, $last_name, $phone);
                     }
                     $success = 'Admin registration successful! Redirecting to login...';
-                    header("refresh:2;url=/Realestate/public/admin/portal.php");
+                    header("refresh:2;url=/Registration-System/public/admin/portal.php");
                 } else {
                     $error = 'Admin registration failed. Please try again.';
                 }
@@ -64,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Registration - Ismano</title>
+    <title>Admin Registration - Registration System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); min-height: 100vh; }
@@ -129,7 +129,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </form>
                         
                         <div class="text-center mt-4">
-                            <p>Already have an account? <a href="/Realestate/public/admin/portal.php">Admin Login</a></p>
+                            <p>Already have an account? <a href="/Registration-System/public/admin/portal.php">Admin Login</a></p>
                             <hr>
                             <p class="small text-muted">User registration? <a href="register.php">Click here</a></p>
                         </div>

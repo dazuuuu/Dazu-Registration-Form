@@ -291,7 +291,7 @@ document.getElementById('prioritySelect')?.addEventListener('change', async func
     const priority = this.value;
     const id = <?php echo $enquiry['id']; ?>;
     
-    const response = await fetch('/Realestate/public/api/enquiry/update_priority.php', {
+    const response = await fetch('/Registration-System/public/api/enquiry/update_priority.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: id, priority: priority })

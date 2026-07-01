@@ -11,7 +11,7 @@ ob_start();
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
-    header('Location: /Realestate/public/auth/login.php');
+    header('Location: /Registration-System/public/auth/login.php');
     exit();
 }
 
@@ -234,7 +234,7 @@ document.getElementById('updateBasicForm').addEventListener('submit', async (e) 
     e.preventDefault();
     const formData = new FormData(e.target);
     
-    const response = await fetch('/Realestate/public/api/services/update.php', {
+    const response = await fetch('/Registration-System/public/api/services/update.php', {
         method: 'POST',
         body: formData
     });
@@ -255,7 +255,7 @@ function openSectionModal() {
 
 async function deleteSection(id) {
     if (confirm('Delete this section?')) {
-        const response = await fetch('/Realestate/public/api/services/delete_section.php', {
+        const response = await fetch('/Registration-System/public/api/services/delete_section.php', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({id: id})

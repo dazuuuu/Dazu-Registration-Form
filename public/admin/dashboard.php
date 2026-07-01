@@ -5,12 +5,12 @@ require_once __DIR__ . '/../../app/helpers/functions.php';
 
 // Check authentication
 if (!isLoggedIn()) {
-    redirect('/Realestate/public/admin/portal.php');
+    redirect('/Registration-System/public/admin/portal.php');
 }
 
 $role_id = $_SESSION['role_id'] ?? 3;
 if ($role_id > 2) {
-    redirect('/Realestate/public/auth/login.php');
+    redirect('/Registration-System/public/auth/login.php');
 }
 
 // Get statistics
@@ -139,7 +139,7 @@ ob_start();
             </div>
             <div class="card-body">
                 <div class="d-grid gap-2">
-                    <button class="btn btn-primary-modern" onclick="window.location.href='/Realestate/public/admin/users.php'">
+                    <button class="btn btn-primary-modern" onclick="window.location.href='/Registration-System/public/admin/users.php'">
                         <i class="fas fa-users me-2"></i>Manage Users
                     </button>
                     <button class="btn btn-success-modern">

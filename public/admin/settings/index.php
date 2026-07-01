@@ -12,7 +12,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // Simple admin check
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
-    header('Location: /Realestate/public/auth/login.php');
+    header('Location: /Registration-System/public/auth/login.php');
     exit();
 }
 

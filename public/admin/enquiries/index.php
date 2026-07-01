@@ -175,7 +175,7 @@ document.querySelectorAll('.priority-select').forEach(select => {
         const id = this.dataset.id;
         const priority = this.value;
         
-        const response = await fetch('/Realestate/public/api/enquiry/update_priority.php', {
+        const response = await fetch('/Registration-System/public/api/enquiry/update_priority.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id: id, priority: priority })
