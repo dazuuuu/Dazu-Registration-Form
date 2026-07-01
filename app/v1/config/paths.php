@@ -15,6 +15,20 @@ if (!defined('PUBLIC_ROOT')) {
     define('PUBLIC_ROOT', PROJECT_ROOT . DIRECTORY_SEPARATOR . 'public');
 }
 
+/**
+ * Detect URL prefix when public/ is in the request path (local Ampps/subfolder).
+ * When public/ is the document root (cPanel), returns empty string.
+ */
+if (!function_exists('dazu_detect_web_root')) {
+    function dazu_detect_web_root(): string {
+        $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+        if ($script !== '' && preg_match('#^(.*)/public(?=/|$)#', $script, $m)) {
+            return $m[1] . '/public';
+        }
+        return '';
+    }
+}
+
 if (!defined('WEB_ROOT')) {
     $envFile = PROJECT_ROOT . DIRECTORY_SEPARATOR . '.env';
     $webRoot = null;
@@ -46,20 +60,6 @@ if (!defined('WEB_ROOT')) {
     }
 
     define('WEB_ROOT', rtrim((string) $webRoot, '/') ?: '');
-}
-
-/**
- * Detect URL prefix when public/ is in the request path (local Ampps/subfolder).
- * When public/ is the document root (cPanel), returns empty string.
- */
-if (!function_exists('dazu_detect_web_root')) {
-    function dazu_detect_web_root(): string {
-        $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
-        if ($script !== '' && preg_match('#^(.*)/public(?=/|$)#', $script, $m)) {
-            return $m[1] . '/public';
-        }
-        return '';
-    }
 }
 
 /** Web URL from site root (public). Example: url('auth/login.php') */
