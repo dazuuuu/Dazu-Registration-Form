@@ -1,20 +1,21 @@
 <?php
-// app/config/db_connect.php
-$db_host = 'localhost';
-$db_name = 'registration_system';
-$db_user = 'root';
-$db_pass = 'mysql';
+// app/v1/config/db_connect.php — PDO handle for legacy pages
+
+$config = require __DIR__ . '/database.php';
 
 try {
-    $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);
+    $pdo = new PDO(
+        "mysql:host={$config['host']};dbname={$config['dbname']};charset={$config['charset']}",
+        $config['username'],
+        $config['password']
+    );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
-} catch(PDOException $e) {
-    die("Connection failed: " . $e->getMessage());
+} catch (PDOException $e) {
+    http_response_code(500);
+    die('Database connection failed. Check app/v1/config/database.php or .env DB_* settings.');
 }
 
-// Start session if not started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-?>
