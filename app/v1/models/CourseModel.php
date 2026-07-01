@@ -161,13 +161,7 @@ class CourseModel {
 
     /** Use NULL when session user id is missing or not in users (common after DB reset). */
     private function resolveCreatedBy(?int $createdBy): ?int {
-        if ($createdBy === null || $createdBy <= 0) {
-            return null;
-        }
-        $stmt = $this->db->prepare('SELECT id FROM users WHERE id = :id LIMIT 1');
-        $stmt->execute([':id' => $createdBy]);
-        $id = $stmt->fetchColumn();
-        return $id ? (int) $id : null;
+        return resolve_valid_user_id($this->db, $createdBy, false);
     }
 
     private function findByAbbreviation(string $abbr, ?int $excludeId = null): ?array {

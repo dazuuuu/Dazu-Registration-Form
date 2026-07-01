@@ -42,8 +42,16 @@ class RegistrationController {
         if (!$reg) return ['ok' => false, 'error' => 'Registration not found.'];
         if ($reg['status'] !== 'pending') return ['ok' => false, 'error' => 'This registration has already been reviewed.'];
 
-        // Check email not already a user (race-safe — the UNIQUE constraint on users.email will catch it too)
         $pdo = $this->db;
+        $adminId = resolve_valid_user_id($pdo, $reviewedBy, true);
+        if ($adminId === null) {
+            return ['ok' => false, 'error' => 'No valid admin account found. Log out, log in again, then retry approval.'];
+        }
+        if ($adminId !== $reviewedBy) {
+            error_log("[RegistrationController::approve] Session user_id {$reviewedBy} invalid; using user_id {$adminId}");
+        }
+
+        // Check email not already a user (race-safe — the UNIQUE constraint on users.email will catch it too)
         $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
         $stmt->execute([':email' => $reg['email']]);
         if ($stmt->fetchColumn()) {
@@ -105,7 +113,7 @@ class RegistrationController {
                 ':reg_no' => $regNo,
                 ':uid'    => $userId,
                 ':waived' => $waiveRegFee ? 1 : 0,
-                ':admin'  => $reviewedBy,
+                ':admin'  => $adminId,
                 ':id'     => $registrationId,
             ]);
 
@@ -118,7 +126,7 @@ class RegistrationController {
             $notifier->sendRegistrationApproved($approvedReg, $tempPassword);
 
             $studentCtrl = new StudentController();
-            $paymentResult = $studentCtrl->recordInitialPayment($approvedReg, $reviewedBy);
+            $paymentResult = $studentCtrl->recordInitialPayment($approvedReg, $adminId);
             if (!empty($paymentResult['ok']) && !empty($paymentResult['receipt_html'])) {
                 require_once __DIR__ . '/../models/PaymentModel.php';
                 $paymentModel = new \Models\PaymentModel($pdo);
@@ -153,12 +161,17 @@ class RegistrationController {
         if ($reg['status'] !== 'pending') return ['ok' => false, 'error' => 'This registration has already been reviewed.'];
         if (empty(trim($reason))) return ['ok' => false, 'error' => 'A rejection reason is required.'];
 
+        $adminId = resolve_valid_user_id($this->db, $reviewedBy, true);
+        if ($adminId === null) {
+            return ['ok' => false, 'error' => 'No valid admin account found. Log out, log in again, then retry.'];
+        }
+
         $stmt = $this->db->prepare(
             "UPDATE registrations
              SET status = 'rejected', rejection_reason = :reason, reviewed_by = :admin, reviewed_at = NOW()
              WHERE id = :id"
         );
-        $stmt->execute([':reason' => trim($reason), ':admin' => $reviewedBy, ':id' => $registrationId]);
+        $stmt->execute([':reason' => trim($reason), ':admin' => $adminId, ':id' => $registrationId]);
 
         $notifier = new \StudentNotifier($this->db);
         $notifier->sendRegistrationRejected($reg, trim($reason));

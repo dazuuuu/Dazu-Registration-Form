@@ -84,6 +84,11 @@ class StudentController {
             return ['ok' => false, 'error' => 'Payment not found or already processed.'];
         }
 
+        $resolvedAdmin = resolve_valid_user_id($this->db, $adminId, true);
+        if ($resolvedAdmin === null) {
+            return ['ok' => false, 'error' => 'No valid admin account found. Log out, log in again, then retry.'];
+        }
+
         $reg = $this->studentModel->getById((int) $payment['registration_id']);
         if (!$reg) {
             return ['ok' => false, 'error' => 'Registration not found.'];
@@ -94,7 +99,7 @@ class StudentController {
 
         $receiptHtml = \ReceiptGenerator::generate($reg, array_merge($payment, ['receipt_no' => $receiptNo]), $totalPaid);
 
-        if (!$this->paymentModel->approve($paymentId, $adminId, $receiptNo, $receiptHtml)) {
+        if (!$this->paymentModel->approve($paymentId, $resolvedAdmin, $receiptNo, $receiptHtml)) {
             return ['ok' => false, 'error' => 'Failed to approve payment.'];
         }
 
@@ -121,7 +126,12 @@ class StudentController {
             return ['ok' => false, 'error' => 'A rejection reason is required.'];
         }
 
-        if (!$this->paymentModel->reject($paymentId, $adminId, $reason)) {
+        $resolvedAdmin = resolve_valid_user_id($this->db, $adminId, true);
+        if ($resolvedAdmin === null) {
+            return ['ok' => false, 'error' => 'No valid admin account found. Log out, log in again, then retry.'];
+        }
+
+        if (!$this->paymentModel->reject($paymentId, $resolvedAdmin, $reason)) {
             return ['ok' => false, 'error' => 'Failed to reject payment.'];
         }
 
@@ -135,6 +145,11 @@ class StudentController {
      * Record initial payment and send receipt on registration approval.
      */
     public function recordInitialPayment(array $reg, int $adminId): array {
+        $resolvedAdmin = resolve_valid_user_id($this->db, $adminId, true);
+        if ($resolvedAdmin === null) {
+            return ['ok' => false, 'error' => 'No valid admin account for payment record.'];
+        }
+
         $installments = RegistrationModel::calculateInstallments(
             (float) $reg['course_fee'],
             $reg['payment_plan'],
@@ -151,7 +166,7 @@ class StudentController {
             ':rid'    => $reg['id'],
             ':amount' => $initialAmount,
             ':ref'    => $reg['payment_reference'],
-            ':admin'  => $adminId,
+            ':admin'  => $resolvedAdmin,
         ]);
         $paymentId = (int) $this->db->lastInsertId();
 

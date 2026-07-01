@@ -72,6 +72,46 @@ class Middleware {
             header('Location: ' . url('auth/login.php?error=access_denied'));
             exit();
         }
+
+        self::refreshSessionFromDatabase();
+    }
+
+    /**
+     * Ensure session user still exists (common break after DB re-import on cPanel).
+     */
+    private static function refreshSessionFromDatabase(): void {
+        $userId = (int) SessionModel::get('user_id', 0);
+        if ($userId <= 0) {
+            self::logoutRedirect('session_expired');
+        }
+
+        require_once __DIR__ . '/../models/Connection.php';
+        $pdo = \Models\Connection::getInstance()->getConnection();
+        $stmt = $pdo->prepare(
+            "SELECT u.id, u.username, u.email, u.role_id, u.is_active, r.role_name
+             FROM users u
+             INNER JOIN roles r ON r.id = u.role_id
+             WHERE u.id = :id
+             LIMIT 1"
+        );
+        $stmt->execute([':id' => $userId]);
+        $user = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        if (!$user || !(int) $user['is_active'] || (int) $user['role_id'] > 2) {
+            self::logoutRedirect('session_expired');
+        }
+
+        SessionModel::set('user_id', (int) $user['id']);
+        SessionModel::set('role_id', (int) $user['role_id']);
+        SessionModel::set('role', $user['role_name']);
+        SessionModel::set('username', $user['username']);
+        SessionModel::set('email', $user['email']);
+    }
+
+    private static function logoutRedirect(string $error): void {
+        SessionModel::destroy();
+        header('Location: ' . url('auth/login.php?error=' . rawurlencode($error)));
+        exit();
     }
     
     /**

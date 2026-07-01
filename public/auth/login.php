@@ -7,6 +7,10 @@ $userModel = new UserModel($pdo);
 $error = '';
 $success = '';
 
+if (!empty($_GET['error']) && $_GET['error'] === 'session_expired') {
+    $error = '[err] your session expired after a database reset — please log in again';
+}
+
 if (isLoggedIn()) {
     $role_id = $_SESSION['role_id'] ?? 0;
     $role = $_SESSION['role'] ?? '';

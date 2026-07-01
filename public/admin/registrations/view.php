@@ -57,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'Registration approved. Student ID: <strong>' . htmlspecialchars($result['reg_no']) . '</strong>. ' .
                     'Login credentials and receipt have been emailed to the student.'
                 );
-                header('Location: /Registration-System/public/admin/registrations/view.php?id=' . $id);
+                header('Location: ' . url('admin/registrations/view.php?id=' . $id));
                 exit();
             }
             $error = $result['error'];
@@ -68,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($result['ok']) {
                 SessionModel::setFlash('success', 'Registration rejected. The student has been notified by email.');
-                header('Location: /Registration-System/public/admin/registrations/view.php?id=' . $id);
+                header('Location: ' . url('admin/registrations/view.php?id=' . $id));
                 exit();
             }
             $error = $result['error'];
@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $studentCtrl->sendCredentials($id);
             if ($result['ok']) {
                 SessionModel::setFlash('success', 'Login credentials emailed to the student.');
-                header('Location: /Registration-System/public/admin/registrations/view.php?id=' . $id);
+                header('Location: ' . url('admin/registrations/view.php?id=' . $id));
                 exit();
             }
             $error = $result['error'];
