@@ -1,8 +1,7 @@
 <?php
-// public/auth/sign.php
-require_once __DIR__ . '/../../app/v1/config/db_connect.php';
+// public/auth/signup.php
+require_once __DIR__ . '/../../app/init.php';
 require_once __DIR__ . '/../../app/v1/models/UserModel.php';
-require_once __DIR__ . '/../../app/v1/helpers/functions.php';
 
 $userModel = new UserModel($pdo);
 $error = '';

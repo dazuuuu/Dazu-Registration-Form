@@ -1,5 +1,9 @@
 <?php
-// app/helpers/functions.php
+// app/v1/helpers/functions.php
+
+if (!function_exists('url')) {
+    require_once __DIR__ . '/../config/paths.php';
+}
 
 function isLoggedIn() {
     return isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
