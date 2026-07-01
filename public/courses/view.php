@@ -16,10 +16,10 @@ use Services\CourseRegistrationHandler;
 $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
 
-$id = (int) ($_GET['id'] ?? 0);
+$id = course_share_parse_id();
 $course = $id > 0 ? $courseModel->getById($id) : null;
 
-if (!$course || !$course['is_active']) {
+if (!course_is_shareable($course)) {
     header('Location: ' . url('courses/index.php'));
     exit();
 }

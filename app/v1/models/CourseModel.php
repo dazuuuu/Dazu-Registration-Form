@@ -16,8 +16,8 @@ class CourseModel {
         $err = $this->validate($data);
         if ($err) return ['ok' => false, 'error' => $err];
 
-        $sql = "INSERT INTO courses (title, abbreviation, cover_image, description, overview, duration_months, course_fee, created_by)
-                VALUES (:title, :abbreviation, :cover_image, :description, :overview, :duration_months, :course_fee, :created_by)";
+        $sql = "INSERT INTO courses (title, abbreviation, cover_image, description, overview, duration_months, course_fee, is_active, created_by)
+                VALUES (:title, :abbreviation, :cover_image, :description, :overview, :duration_months, :course_fee, 1, :created_by)";
         $stmt = $this->db->prepare($sql);
         try {
             $stmt->execute([
@@ -83,6 +83,17 @@ class CourseModel {
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch();
         return $row ?: null;
+    }
+
+    /** Whether the course can be shown on public pages / registration. */
+    public static function isShareable(?array $course): bool {
+        if (!$course || empty($course['id'])) {
+            return false;
+        }
+        if (!array_key_exists('is_active', $course)) {
+            return true;
+        }
+        return (int) $course['is_active'] === 1;
     }
 
     public function getAll(bool $activeOnly = false): array {

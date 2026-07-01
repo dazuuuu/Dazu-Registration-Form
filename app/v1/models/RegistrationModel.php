@@ -69,7 +69,7 @@ class RegistrationModel {
      */
     public function submit(array $data, CourseModel $courseModel): array {
         $course = $courseModel->getById((int) $data['course_id']);
-        if (!$course || !$course['is_active']) {
+        if (!CourseModel::isShareable($course)) {
             return ['ok' => false, 'error' => 'Selected course is not available.'];
         }
 

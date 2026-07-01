@@ -16,20 +16,25 @@ use Services\CourseRegistrationHandler;
 $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
 
-$courseId = (int) ($_GET['id'] ?? 0);
-$refParam = trim($_GET['ref'] ?? '');
+$courseId = course_share_parse_id();
 $course   = $courseId > 0 ? $courseModel->getById($courseId) : null;
 
-if (!$course || !$course['is_active']) {
+if (!course_is_shareable($course)) {
     http_response_code(404);
     $page_title = 'Course not found';
+    $reason = ($courseId <= 0)
+        ? 'Invalid course link.'
+        : ($course ? 'This course is currently inactive.' : 'This course could not be found.');
     ob_start();
-    echo '<div class="dh-container dh-share-page"><div class="crf-alert crf-alert--err">This course is not available. <a href="' . htmlspecialchars(url('courses/index.php')) . '">Browse courses</a></div></div>';
+    echo '<div class="dh-container dh-share-page"><div class="crf-alert crf-alert--err">'
+        . htmlspecialchars($reason)
+        . ' <a href="' . htmlspecialchars(url('courses/index.php')) . '">Browse courses</a></div></div>';
     $content = ob_get_clean();
     require __DIR__ . '/../templates/public/standalone.php';
     exit;
 }
 
+$refParam = trim($_GET['ref'] ?? '');
 $referrer = course_share_resolve_referral($pdo, $refParam);
 $referralNo = $referrer ? $referrer['registration_no'] : null;
 
