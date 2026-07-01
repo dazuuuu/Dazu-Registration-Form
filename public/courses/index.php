@@ -16,9 +16,9 @@ $courses = (new CourseModel($pdo))->getAll(true);
 
 ob_start();
 ?>
-<section class="dh-section" style="padding-top:48px;">
+<section class="dh-section dh-section--alt">
     <div class="dh-container">
-        <div class="dh-section-head" style="text-align:center;max-width:640px;margin:0 auto 40px;">
+        <div class="dh-section-head dh-reveal">
             <span class="dh-eyebrow">Programs</span>
             <h1 class="dh-h2">Courses at Dazu Hub Institute</h1>
             <p class="dh-lead">Hands-on tech training with flexible payment plans. Choose online or physical study mode.</p>
@@ -40,7 +40,7 @@ ob_start();
                     <p class="dh-course-meta"><?php echo (int)$c['duration_months']; ?> months · KSh <?php echo number_format($c['course_fee']); ?></p>
                     <p class="dh-course-desc"><?php echo htmlspecialchars(mb_substr(strip_tags($c['overview'] ?: $c['description'] ?: ''), 0, 140)); ?>…</p>
                     <div class="dh-course-actions">
-                        <a href="<?php echo url('courses/view.php?id=' . (int)$c['id']); ?>" class="dh-btn dh-btn--primary dh-btn--sm">View & Apply</a>
+                        <a href="<?php echo url('courses/view.php?id=' . (int)$c['id']); ?>" class="dh-btn dh-btn-primary dh-btn--sm">View & Apply</a>
                     </div>
                 </div>
             </article>

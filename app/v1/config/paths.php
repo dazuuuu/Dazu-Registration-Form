@@ -2,7 +2,8 @@
 // app/v1/config/paths.php
 // Single source of truth for filesystem and web URLs.
 //
-// Hosting: set APP_WEB_ROOT=/ (or empty) when public/ is the document root.
+// Deploy: copy this v1 folder to your server's app/v1/ and load via app/v1/init.php
+// Hosting: set APP_WEB_ROOT= (empty) when public/ is the document root.
 // Local Ampps: leave unset or use /Registration-System/public
 
 if (!defined('PROJECT_ROOT')) {
