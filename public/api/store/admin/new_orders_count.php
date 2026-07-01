@@ -44,6 +44,20 @@ if (empty($_SESSION['user_id']) || !isset($_SESSION['role_id']) || (int) $_SESSI
 }
 
 try {
+    // Store module is optional — registration-only installs may not have these tables.
+    try {
+        $pdo->query('SELECT 1 FROM store_orders LIMIT 1');
+    } catch (Throwable $tableMissing) {
+        while (ob_get_level() > 0) ob_end_clean();
+        echo json_encode([
+            'success'       => true,
+            'count'         => 0,
+            'latest_id'     => 0,
+            'store_enabled' => false,
+        ]);
+        exit;
+    }
+
     $orders = new OrderModel($pdo);
 
     // Guard against an older OrderModel that lacks the new methods.
@@ -66,6 +80,16 @@ try {
 } catch (Throwable $e) {
     error_log('[new_orders_count] ' . $e->getMessage());
     while (ob_get_level() > 0) ob_end_clean();
+    // Missing store tables — quiet success so admin registration pages still work.
+    if ($e instanceof PDOException && ($e->getCode() === '42S02' || stripos($e->getMessage(), 'store_orders') !== false)) {
+        echo json_encode([
+            'success'       => true,
+            'count'         => 0,
+            'latest_id'     => 0,
+            'store_enabled' => false,
+        ]);
+        exit;
+    }
     http_response_code(500);
     echo json_encode(['success' => false, 'count' => 0, 'error' => $e->getMessage()]);
 }

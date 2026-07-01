@@ -728,7 +728,9 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(function (r) { return r.json(); })
         .then(function (d) {
             if (!d || !d.success) {
-                if (d && d.error) console.error('[orders badge] ' + d.error + (d.where ? ' @ ' + d.where : ''));
+                if (d && d.error && d.store_enabled !== false) {
+                    console.error('[orders badge] ' + d.error + (d.where ? ' @ ' + d.where : ''));
+                }
                 return;
             }
             setBadge(d.count);
