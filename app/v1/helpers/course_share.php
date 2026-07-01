@@ -85,6 +85,8 @@ if (!function_exists('course_view_url')) {
         return course_share_absolute_url(url('courses/index.php'));
     }
 }
+
+if (!function_exists('course_share_url')) {
     /**
      * Public URL for sharing a course registration page.
      *
