@@ -17,18 +17,49 @@ if (!defined('PUBLIC_ROOT')) {
 
 if (!defined('WEB_ROOT')) {
     $envFile = PROJECT_ROOT . DIRECTORY_SEPARATOR . '.env';
+    $webRoot = null;
+
     if (is_file($envFile)) {
         foreach (file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
             if ($line[0] === '#' || strpos($line, '=') === false) continue;
             [$k, $v] = array_map('trim', explode('=', $line, 2));
             if ($k !== '' && getenv($k) === false) putenv("$k=$v");
+            if ($k === 'APP_WEB_ROOT') {
+                $webRoot = $v;
+            }
         }
     }
-    $env = getenv('APP_WEB_ROOT');
-    if ($env === false || $env === null) {
-        $env = '/Registration-System/public';
+
+    if ($webRoot === null && array_key_exists('APP_WEB_ROOT', $_SERVER)) {
+        $webRoot = $_SERVER['APP_WEB_ROOT'];
     }
-    define('WEB_ROOT', rtrim((string) $env, '/') ?: '');
+
+    if ($webRoot === null) {
+        $fromEnv = getenv('APP_WEB_ROOT');
+        if ($fromEnv !== false) {
+            $webRoot = $fromEnv;
+        }
+    }
+
+    if ($webRoot === null) {
+        $webRoot = dazu_detect_web_root();
+    }
+
+    define('WEB_ROOT', rtrim((string) $webRoot, '/') ?: '');
+}
+
+/**
+ * Detect URL prefix when public/ is in the request path (local Ampps/subfolder).
+ * When public/ is the document root (cPanel), returns empty string.
+ */
+if (!function_exists('dazu_detect_web_root')) {
+    function dazu_detect_web_root(): string {
+        $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+        if ($script !== '' && preg_match('#^(.*)/public(?=/|$)#', $script, $m)) {
+            return $m[1] . '/public';
+        }
+        return '';
+    }
 }
 
 /** Web URL from site root (public). Example: url('auth/login.php') */
