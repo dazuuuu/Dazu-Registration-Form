@@ -9,6 +9,8 @@ use Models\UserModel;
 use Models\SessionModel;
 
 require_once __DIR__ . '/../services/StudentNotifier.php';
+require_once __DIR__ . '/../models/StudentModel.php';
+require_once __DIR__ . '/../models/ProgressModel.php';
 require_once __DIR__ . '/StudentController.php';
 
 class RegistrationController {
@@ -123,6 +125,9 @@ class RegistrationController {
                 $payment = $paymentModel->getById($paymentResult['payment_id']);
                 $notifier->sendPaymentApproved($approvedReg, $payment, $paymentResult['receipt_html']);
             }
+
+            $progressModel = new \Models\ProgressModel($pdo);
+            $progressModel->initializeForRegistration($registrationId, (int) $approvedReg['course_id']);
 
             return [
                 'ok'           => true,

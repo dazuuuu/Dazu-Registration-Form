@@ -16,9 +16,9 @@ if (!function_exists('dhNavActive')) {
 
 $logoPath = '/Registration-System/public/assets/images/logo/logo.png';
 $isLoggedIn  = !empty($_SESSION['logged_in']);
-$isAdmin     = $isLoggedIn && isset($_SESSION['role_id']) && $_SESSION['role_id'] <= 2;
-$isTutor     = $isLoggedIn && isset($_SESSION['role_id']) && $_SESSION['role_id'] == 3;
-$isStudent   = $isLoggedIn && isset($_SESSION['role_id']) && $_SESSION['role_id'] >= 4;
+$isAdmin     = $isLoggedIn && isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin','superadmin'], true);
+$isTutor     = $isLoggedIn && isset($_SESSION['role']) && $_SESSION['role'] === 'tutor';
+$isStudent   = $isLoggedIn && isset($_SESSION['role']) && $_SESSION['role'] === 'student';
 $username    = htmlspecialchars($_SESSION['username'] ?? '');
 $initial     = strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1));
 ?>
@@ -80,7 +80,7 @@ $initial     = strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1));
                                 <i class="fas fa-user-clock"></i> Pending Approvals
                             </a>
                         <?php elseif ($isTutor): ?>
-                            <a class="dh-dd-item" href="/Registration-System/public/tutor/" role="menuitem">
+                            <a class="dh-dd-item" href="/Registration-System/public/tutor/dashboard/index.php" role="menuitem">
                                 <i class="fas fa-chalkboard-teacher"></i> Tutor Portal
                             </a>
                         <?php else: ?>

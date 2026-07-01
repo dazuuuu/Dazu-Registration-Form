@@ -36,6 +36,17 @@ class Middleware {
     }
     
     /**
+     * Require tutor role access
+     */
+    public static function requireTutor() {
+        self::requireAuth();
+        if (SessionModel::get('role') !== 'tutor') {
+            header('Location: /Registration-System/public/auth/login.php?error=access_denied');
+            exit();
+        }
+    }
+
+    /**
      * Require student role access
      */
     public static function requireStudent() {

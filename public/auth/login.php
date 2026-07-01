@@ -16,6 +16,8 @@ if (isLoggedIn()) {
         redirect('/Registration-System/public/profile/admin/index.php');
     } elseif ($role === 'student') {
         redirect('/Registration-System/public/students/dashboard/index.php');
+    } elseif ($role === 'tutor') {
+        redirect('/Registration-System/public/tutor/dashboard/index.php');
     } else {
         redirect('/Registration-System/public/profile/client/index.php');
     }
@@ -54,6 +56,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header("refresh:2;url=/Registration-System/public/profile/admin/index.php");
             } elseif ($user['role_name'] === 'student') {
                 header("refresh:2;url=/Registration-System/public/students/dashboard/index.php");
+            } elseif ($user['role_name'] === 'tutor') {
+                header("refresh:2;url=/Registration-System/public/tutor/dashboard/index.php");
             } else {
                 header("refresh:2;url=/Registration-System/public/profile/client/index.php");
             }

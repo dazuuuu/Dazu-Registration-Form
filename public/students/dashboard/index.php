@@ -194,6 +194,11 @@ ob_start();
                 </strong>
             </div>
             <?php endif; ?>
+            <div class="col-12 mt-2">
+                <a href="/Registration-System/public/students/course/index.php" class="btn btn-brand">
+                    <i class="fas fa-book-open me-1"></i> Open Course & Learning Materials
+                </a>
+            </div>
         </div>
     </div>
 </div>
