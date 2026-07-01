@@ -11,22 +11,24 @@ $portalLocked = $portal_locked ?? false;
             <i class="fas fa-graduation-cap me-2"></i>Dazu Hub Institute
         </a>
 
-        <div class="d-flex align-items-center gap-3">
+        <div class="d-flex align-items-center gap-3 d-none d-lg-flex student-nav-desktop">
             <?php if (!$portalLocked): ?>
                 <a href="<?php echo url('students/dashboard/index.php'); ?>"
                    class="nav-link-sm <?php echo $current_dir === 'dashboard' ? 'active' : ''; ?>">
-                    <i class="fas fa-home"></i> <span class="d-none d-md-inline">Dashboard</span>
+                    <i class="fas fa-home"></i> <span>Dashboard</span>
                 </a>
                 <a href="<?php echo url('students/course/index.php'); ?>"
                    class="nav-link-sm <?php echo $current_dir === 'course' ? 'active' : ''; ?>">
-                    <i class="fas fa-book-open"></i> <span class="d-none d-md-inline">My Course</span>
+                    <i class="fas fa-book-open"></i> <span>My Course</span>
                 </a>
                 <a href="<?php echo url('students/payments/index.php'); ?>"
                    class="nav-link-sm <?php echo $current_dir === 'payments' ? 'active' : ''; ?>">
-                    <i class="fas fa-money-bill-wave"></i> <span class="d-none d-md-inline">Payments</span>
+                    <i class="fas fa-money-bill-wave"></i> <span>Payments</span>
                 </a>
             <?php endif; ?>
+        </div>
 
+        <div class="d-flex align-items-center gap-2">
             <div class="dropdown">
                 <button class="btn student-user-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
                     <span class="student-avatar"><i class="fas fa-user"></i></span>

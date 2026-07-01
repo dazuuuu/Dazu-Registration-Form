@@ -26,6 +26,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="<?php echo asset('css/admin-terminal.css'); ?>">
     <script>
     (function () {
         var base = <?php echo json_encode(WEB_ROOT === '' ? '' : rtrim(WEB_ROOT, '/')); ?>;
@@ -546,7 +547,13 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
         <?php echo $extra_css; ?>
     <?php endif; ?>
 </head>
-<body>
+<body class="admin-mode-simple">
+<script>
+(function () {
+    var mode = localStorage.getItem('dazu_admin_ui_mode');
+    document.body.className = 'admin-mode-' + (mode === 'dev' ? 'dev' : 'simple');
+})();
+</script>
     <div class="admin-wrapper">
         <!-- Sidebar Overlay (Mobile) -->
         <div class="sidebar-overlay" id="sidebarOverlay"></div>
@@ -582,7 +589,12 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
                         </nav>
                     <?php endif; ?>
                 </div>
-                <div class="user-dropdown dropdown">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="admin-mode-toggle" role="group" aria-label="Admin UI mode">
+                        <button type="button" data-admin-mode="simple" title="Standard admin panel">Simple</button>
+                        <button type="button" data-admin-mode="dev" title="Terminal command mode">Dev</button>
+                    </div>
+                    <div class="user-dropdown dropdown">
                     <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="fas fa-user-circle me-2"></i>
                         <?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin'); ?>
@@ -601,6 +613,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
                             <i class="fas fa-sign-out-alt"></i> Logout
                         </a></li>
                     </ul>
+                    </div>
                 </div>
             </div>
             
@@ -631,6 +644,25 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
             
             <!-- Page Content -->
             <?php echo $content; ?>
+        </div>
+    </div>
+
+    <div id="adminTerminalShell" class="admin-terminal-shell" aria-label="Admin terminal">
+        <div class="admin-terminal-header">
+            <div class="dots" aria-hidden="true">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+            </div>
+            <span class="admin-terminal-title">dazu@hub — admin shell</span>
+            <button type="button" id="adminTerminalToSimple" class="admin-terminal-mode-btn">← Simple UI</button>
+        </div>
+        <div id="adminTerminalOutput" class="admin-terminal-output" role="log" aria-live="polite"></div>
+        <div class="admin-terminal-input-wrap">
+            <span class="admin-terminal-prompt-label">dazu@hub:~$</span>
+            <input type="text" id="adminTerminalInput" class="admin-terminal-input"
+                   autocomplete="off" spellcheck="false" aria-label="Terminal command"
+                   placeholder="try: menu, open students, edit courses, save">
         </div>
     </div>
     
@@ -729,6 +761,32 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
         })();
     </script>
     
+    <script>
+    window.ADMIN_TERMINAL_USER = <?php echo json_encode($_SESSION['username'] ?? 'admin'); ?>;
+    window.ADMIN_TERMINAL_ROUTES = <?php echo json_encode([
+        'dashboard' => url('admin/dashboard.php'),
+        'registrations' => url('admin/registrations/index.php?status=pending'),
+        'students' => url('admin/students/index.php'),
+        'courses' => url('admin/courses/index.php'),
+        'tutors' => url('admin/tutors/index.php'),
+        'payments' => url('admin/payments/index.php'),
+        'orders' => url('admin/orders/index.php'),
+        'enquiries' => url('admin/enquiries/index.php'),
+        'projects' => url('admin/projects/index.php'),
+        'services' => url('admin/services/index.php'),
+        'blogs' => url('admin/blogs/index.php'),
+        'gallery' => url('admin/gallery/index.php'),
+        'testimonials' => url('admin/testimonials/index.php'),
+        'store-products' => url('admin/store/products/index.php'),
+        'store-categories' => url('admin/store/categories/index.php'),
+        'store' => url('admin/store/products/index.php'),
+        'settings' => url('admin/settings/index.php'),
+        'profile' => url('profile/admin/'),
+        'logout' => url('auth/logout.php'),
+    ], JSON_UNESCAPED_SLASHES); ?>;
+    </script>
+    <script src="<?php echo asset('js/admin-terminal.js'); ?>"></script>
+
     <?php if (isset($extra_js)): ?>
         <?php echo $extra_js; ?>
     <?php endif; ?>

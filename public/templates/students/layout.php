@@ -2,6 +2,10 @@
 // public/templates/students/layout.php
 if (session_status() === PHP_SESSION_NONE) session_start();
 
+if (!function_exists('url')) {
+    require_once __DIR__ . '/../../../app/v1/config/paths.php';
+}
+
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 
 Middleware::requireStudent();
@@ -130,6 +134,47 @@ $portal_locked = $portal_locked ?? false;
             color: var(--brand);
             font-weight: 600;
         }
+        @media (max-width: 991.98px) {
+            .student-main {
+                padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+            }
+        }
+        /* Mobile bottom navigation */
+        .student-bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 200;
+            display: flex;
+            justify-content: space-around;
+            align-items: stretch;
+            background: #fff;
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.06);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            min-height: 62px;
+        }
+        .student-bottom-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 8px 4px;
+            text-decoration: none;
+            color: var(--muted);
+            font-size: 0.68rem;
+            font-weight: 600;
+            transition: color 0.2s, background 0.2s;
+        }
+        .student-bottom-nav-item i { font-size: 1.15rem; }
+        .student-bottom-nav-item.is-active {
+            color: var(--brand);
+            background: var(--brand-light);
+        }
+        .student-bottom-nav-item:active { opacity: 0.85; }
         @media (max-width: 576px) {
             .student-main { padding: 16px 12px 32px; }
         }
@@ -158,6 +203,8 @@ $portal_locked = $portal_locked ?? false;
 
     <?php echo $content; ?>
 </main>
+
+<?php require __DIR__ . '/../../components/students/bottom_nav.php'; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <?php if (isset($extra_js)): echo $extra_js; endif; ?>
