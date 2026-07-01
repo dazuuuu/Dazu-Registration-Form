@@ -7,7 +7,7 @@
  * sort_order, is_featured, status, video_url, video_embed_code, media_file (file).
  * CSRF: send the token as a `csrf_token` field or an `X-CSRF-Token` header.
  */
-require_once __DIR__ . '/../../../app/bootstrap.php';
+require_once __DIR__ . '/../../../app/v1/bootstrap.php';
 require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../../../app/v1/controllers/GalleryController.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';

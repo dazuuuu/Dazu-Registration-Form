@@ -3,7 +3,7 @@
 $page_title = 'About Us — Dazu Hub Institute';
 $page_description = 'Dazu Hub Institute trains the next generation of developers in Nairobi with hands-on courses in Python, PHP, Full-Stack, and AI.';
 
-require_once __DIR__ . '/../../app/init.php';
+require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/uploads.php';
 
 ob_start();

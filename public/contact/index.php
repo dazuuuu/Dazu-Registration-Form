@@ -3,7 +3,7 @@
 $page_title = 'Contact Us — Dazu Hub Institute';
 $page_description = 'Get in touch with Dazu Hub Institute — call, email, WhatsApp, or send us a message about courses and enrollment.';
 
-require_once __DIR__ . '/../../app/init.php';
+require_once __DIR__ . '/../../app/v1/init.php';
 
 $contact_phone      = '+254 700 000 000';
 $contact_phone_e164 = '+254700000000';

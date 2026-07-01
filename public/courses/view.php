@@ -2,7 +2,7 @@
 // public/courses/view.php — Course detail + registration (full site layout)
 // Canonical share URL: courses/share.php?id=X
 
-require_once __DIR__ . '/../../app/init.php';
+require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../app/v1/helpers/course_share.php';
 require_once __DIR__ . '/../../app/v1/models/Connection.php';

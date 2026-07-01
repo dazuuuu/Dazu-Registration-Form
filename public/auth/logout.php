@@ -1,6 +1,6 @@
 <?php
 // public/auth/logout.php
-require_once __DIR__ . '/../../app/init.php';
+require_once __DIR__ . '/../../app/v1/init.php';
 
 // Clear all session variables
 $_SESSION = array();

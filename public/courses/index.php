@@ -3,7 +3,7 @@
 $page_title = 'Our Courses — Dazu Hub Institute';
 $page_description = 'Browse Python, PHP, Full-Stack, AI and more tech courses at Dazu Hub Institute, Nairobi.';
 
-require_once __DIR__ . '/../../app/init.php';
+require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../app/v1/helpers/course_share.php';
 require_once __DIR__ . '/../../app/v1/models/Connection.php';

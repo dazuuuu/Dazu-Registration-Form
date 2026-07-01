@@ -9,7 +9,7 @@
  * <meta name="csrf-token"> tag and send it as an X-CSRF-Token header (see the
  * notes I left in chat), then uncomment the CSRF block below.
  */
-require_once __DIR__ . '/../../../app/bootstrap.php';
+require_once __DIR__ . '/../../../app/v1/bootstrap.php';
 require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../../../app/v1/controllers/GalleryController.php';
 require_once __DIR__ . '/../_lib/respond.php';
