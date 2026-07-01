@@ -41,8 +41,12 @@ ob_start();
                     <p class="dh-course-meta"><?php echo (int)$c['duration_months']; ?> months · KSh <?php echo number_format($c['course_fee']); ?></p>
                     <p class="dh-course-desc"><?php echo htmlspecialchars(mb_substr(strip_tags($c['overview'] ?: $c['description'] ?: ''), 0, 140)); ?>…</p>
                     <div class="dh-course-actions">
-                        <a href="<?php echo url('courses/share.php?id=' . (int)$c['id']); ?>" class="dh-btn dh-btn-primary dh-btn--sm">View & Apply</a>
-                        <a href="<?php echo course_share_url((int)$c['id']); ?>" class="dh-btn dh-btn-outline dh-btn--sm" title="Copy share link"><i class="fas fa-share-nodes"></i></a>
+                        <a href="<?php echo htmlspecialchars(course_view_url($c)); ?>" class="dh-btn dh-btn-primary dh-btn--sm">View Details</a>
+                        <button type="button" class="dh-btn dh-btn-outline dh-btn--sm course-share-copy"
+                                data-url="<?php echo htmlspecialchars(course_share_url((int) $c['id'])); ?>"
+                                title="Copy share link">
+                            <i class="fas fa-share-nodes"></i>
+                        </button>
                     </div>
                 </div>
             </article>
@@ -51,6 +55,32 @@ ob_start();
         <?php endif; ?>
     </div>
 </section>
+<script>
+(function () {
+    document.querySelectorAll('.course-share-copy').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var url = btn.getAttribute('data-url');
+            if (!url) return;
+            var done = function () {
+                var icon = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                setTimeout(function () { btn.innerHTML = icon; }, 2000);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(url).then(done);
+            } else {
+                var t = document.createElement('textarea');
+                t.value = url;
+                document.body.appendChild(t);
+                t.select();
+                document.execCommand('copy');
+                document.body.removeChild(t);
+                done();
+            }
+        });
+    });
+})();
+</script>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/../templates/public/layout.php';

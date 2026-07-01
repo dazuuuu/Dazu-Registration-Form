@@ -1,6 +1,6 @@
 <?php
 // public/courses/view.php — Course detail + registration (full site layout)
-// Canonical share URL: courses/share.php?id=X
+// URL: courses/view.php?id=3  or  courses/view.php?abbr=PY
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/uploads.php';
@@ -15,13 +15,17 @@ use Services\CourseRegistrationHandler;
 
 $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
+$course = course_resolve_for_page($courseModel);
 
-$id = course_share_parse_id();
-$course = $id > 0 ? $courseModel->getById($id) : null;
-
-if (!course_is_shareable($course)) {
-    header('Location: ' . url('courses/index.php'));
-    exit();
+if (!$course) {
+    $page_title = 'Course not found';
+    $page_description = '';
+    ob_start();
+    echo '<div class="dh-container dh-share-page"><div class="crf-alert crf-alert--err">This course is not available. <a href="'
+        . htmlspecialchars(url('courses/index.php')) . '">Browse all courses</a></div></div>';
+    $content = ob_get_clean();
+    require __DIR__ . '/../templates/public/layout.php';
+    exit;
 }
 
 $page_title = htmlspecialchars($course['title']) . ' — Dazu Hub Institute';
@@ -56,7 +60,7 @@ ob_start();
             <div class="crf-card">
                 <div class="crf-card-head">
                     <h2>Apply for This Course</h2>
-                    <p>Fill in your details below. Approval within 24 hours.</p>
+                    <p>Your selected course is pre-filled below. Complete the form to apply.</p>
                 </div>
                 <div class="crf-card-body">
                     <?php $pfx = 'view'; include __DIR__ . '/../components/public/course_registration_form.php'; ?>

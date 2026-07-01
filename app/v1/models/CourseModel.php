@@ -85,6 +85,17 @@ class CourseModel {
         return $row ?: null;
     }
 
+    public function getByAbbreviation(string $abbr): ?array {
+        $abbr = strtoupper(trim($abbr));
+        if ($abbr === '') {
+            return null;
+        }
+        $stmt = $this->db->prepare("SELECT * FROM courses WHERE UPPER(abbreviation) = :abbr LIMIT 1");
+        $stmt->execute([':abbr' => $abbr]);
+        $row = $stmt->fetch();
+        return $row ?: null;
+    }
+
     /** Whether the course can be shown on public pages / registration. */
     public static function isShareable(?array $course): bool {
         if (!$course || empty($course['id'])) {

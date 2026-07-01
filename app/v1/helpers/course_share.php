@@ -48,7 +48,43 @@ if (!function_exists('course_is_shareable')) {
     }
 }
 
-if (!function_exists('course_share_url')) {
+if (!function_exists('course_resolve_for_page')) {
+    /**
+     * Load a shareable course from ?id= or ?abbr= query params.
+     */
+    function course_resolve_for_page(\Models\CourseModel $model): ?array
+    {
+        $id = course_share_parse_id();
+        if ($id > 0) {
+            $course = $model->getById($id);
+            return \Models\CourseModel::isShareable($course) ? $course : null;
+        }
+
+        $abbr = isset($_GET['abbr']) ? strtoupper(trim((string) $_GET['abbr'])) : '';
+        if ($abbr !== '') {
+            $course = $model->getByAbbreviation($abbr);
+            return \Models\CourseModel::isShareable($course) ? $course : null;
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('course_view_url')) {
+    /** Canonical course detail + apply page (details left, form right). */
+    function course_view_url(array $course): string
+    {
+        $id = (int) ($course['id'] ?? 0);
+        if ($id > 0) {
+            return course_share_absolute_url(url('courses/view.php?id=' . $id));
+        }
+        $abbr = strtoupper(trim((string) ($course['abbreviation'] ?? '')));
+        if ($abbr !== '') {
+            return course_share_absolute_url(url('courses/view.php?abbr=' . rawurlencode($abbr)));
+        }
+        return course_share_absolute_url(url('courses/index.php'));
+    }
+}
     /**
      * Public URL for sharing a course registration page.
      *

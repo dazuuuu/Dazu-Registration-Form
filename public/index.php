@@ -7,6 +7,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 require_once __DIR__ . '/../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../app/v1/helpers/course_share.php';
 require_once __DIR__ . '/../app/v1/models/Connection.php';
 require_once __DIR__ . '/../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../app/v1/models/RegistrationModel.php';
@@ -736,10 +737,8 @@ ob_start(); ?>
                 $hasImg  = !empty($course['cover_image']);
                 $imgSrc  = $hasImg ? $course['cover_image'] : null;
                 $tags    = $course['tags'] ?? [];
-                // Link: if real DB course (id > 0), go to detail page; else scroll to form
-                $detailLink = ((int)($course['id'] ?? 0) > 0)
-                    ? url('courses/view.php?id=') . (int)$course['id']
-                    : '#home';
+                // View Details → full course page (summary left, registration form right)
+                $detailLink = course_view_url($course);
             ?>
             <div class="hp-course-card dh-reveal dh-delay-<?php echo ($i % 3) + 1; ?>">
                 <!-- Image -->

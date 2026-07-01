@@ -15,9 +15,8 @@ use Services\CourseRegistrationHandler;
 
 $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
-
-$courseId = course_share_parse_id();
-$course   = $courseId > 0 ? $courseModel->getById($courseId) : null;
+$course = course_resolve_for_page($courseModel);
+$courseId = $course ? (int) $course['id'] : course_share_parse_id();
 
 if (!course_is_shareable($course)) {
     http_response_code(404);
