@@ -1,5 +1,5 @@
 <?php
-// app/v1/bootstrap.php — load from app/v1/init.php or via app/init.php shim.
+// app/v1/bootstrap.php — application bootstrap (autoload, session, helpers).
 
 require_once __DIR__ . '/config/paths.php';
 

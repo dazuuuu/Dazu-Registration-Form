@@ -1,6 +1,6 @@
 <?php
 // public/auth/login.php
-require_once __DIR__ . '/../../app/init.php';
+require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/models/UserModel.php';
 
 $userModel = new UserModel($pdo);
