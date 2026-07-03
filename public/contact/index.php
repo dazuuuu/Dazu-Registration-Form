@@ -1,14 +1,15 @@
 <?php
 // public/contact/index.php
 if (session_status() === PHP_SESSION_NONE) { session_start(); }
+require_once __DIR__ . '/../../app/helpers/contact.php';
 
 /* ============================================================
    EDIT YOUR CONTACT DETAILS HERE — nothing else needs changing.
    ============================================================ */
-$contact_phone    = '+254 700 000 000';        // shown to visitors
-$contact_phone_e164 = '+254700000000';          // used for the tel: link (no spaces)
+$contact_phone    = site_phone_display();
+$contact_phone_e164 = site_phone_tel();
 $contact_email    = 'hello@ismano.com';
-$contact_whatsapp = '254700000000';              // digits only, no + or spaces (for wa.me)
+$contact_whatsapp = site_whatsapp_e164();
 $contact_address  = 'Nairobi, Kenya';
 $contact_hours    = 'Mon – Fri, 9:00 AM – 5:00 PM';
 $contact_socials  = [                            // set to '' to hide any of them

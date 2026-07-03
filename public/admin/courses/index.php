@@ -84,7 +84,14 @@ ob_start();
                                 <span class="badge bg-secondary">Inactive</span>
                             <?php endif; ?>
                         </td>
-                        <td class="text-end">
+                        <td class="text-end text-nowrap">
+                            <?php if ($c['is_active']): ?>
+                            <a href="<?php echo htmlspecialchars(course_whatsapp_share_url($c)); ?>"
+                               target="_blank" rel="noopener"
+                               class="btn btn-sm btn-success" title="Share on WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                            <?php endif; ?>
                             <a href="/Registration-System/public/admin/courses/edit.php?id=<?php echo (int) $c['id']; ?>"
                                class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
                             <form method="POST" class="d-inline" onsubmit="return confirm('<?php echo $c['is_active'] ? 'Deactivate' : 'Activate'; ?> this course?');">

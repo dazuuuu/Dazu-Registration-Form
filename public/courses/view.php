@@ -173,6 +173,15 @@ $extra_css = <<<'CSS'
     font-weight: 800; color: var(--text);
     line-height: 1.15; margin-bottom: 16px;
 }
+.cv-share-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+.cv-wa-share {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: 8px;
+    background: #25d366; color: #fff; text-decoration: none;
+    font-size: 0.85rem; font-weight: 600;
+    transition: opacity .2s, transform .15s;
+}
+.cv-wa-share:hover { opacity: .92; transform: translateY(-1px); color: #fff; }
 
 .cv-fee-highlight {
     display: flex; align-items: baseline; gap: 12px;
@@ -435,6 +444,13 @@ ob_start();
 
             <!-- Title -->
             <h1 class="cv-title"><?php echo htmlspecialchars($course['title']); ?></h1>
+
+            <div class="cv-share-row">
+                <a href="<?php echo htmlspecialchars(course_whatsapp_share_url($course)); ?>"
+                   class="cv-wa-share" target="_blank" rel="noopener">
+                    <i class="fab fa-whatsapp"></i> Share / enquire on WhatsApp
+                </a>
+            </div>
 
             <!-- Fee highlight -->
             <div class="cv-fee-highlight">

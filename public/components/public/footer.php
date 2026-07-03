@@ -1,5 +1,6 @@
 <?php
 // public/components/public/footer.php — Dazu Hub Institute
+require_once __DIR__ . '/../../../app/helpers/contact.php';
 $year = date('Y');
 $logoPath = '/Registration-System/public/assets/images/logo/logo.png';
 ?>
@@ -23,6 +24,9 @@ $logoPath = '/Registration-System/public/assets/images/logo/logo.png';
                     Based in Nairobi, Kenya.
                 </p>
                 <div class="dh-footer-social">
+                    <a href="<?php echo htmlspecialchars(whatsapp_chat_url()); ?>" class="dh-social-link" target="_blank" rel="noopener" aria-label="WhatsApp" title="Chat on WhatsApp">
+                        <i class="fab fa-whatsapp"></i>
+                    </a>
                     <a href="#" class="dh-social-link" aria-label="Twitter / X">
                         <i class="fab fa-x-twitter"></i>
                     </a>
@@ -70,9 +74,13 @@ $logoPath = '/Registration-System/public/assets/images/logo/logo.png';
                         <i class="fas fa-envelope"></i>
                         <span>info@dazuhub.ac.ke</span>
                     </a>
-                    <a href="tel:+254700000000" class="dh-footer-contact-item">
+                    <a href="tel:<?php echo htmlspecialchars(site_phone_tel()); ?>" class="dh-footer-contact-item">
                         <i class="fas fa-phone"></i>
-                        <span>+254 700 000 000</span>
+                        <span><?php echo htmlspecialchars(site_phone_display()); ?></span>
+                    </a>
+                    <a href="<?php echo htmlspecialchars(whatsapp_chat_url()); ?>" class="dh-footer-contact-item" target="_blank" rel="noopener">
+                        <i class="fab fa-whatsapp"></i>
+                        <span>WhatsApp <?php echo htmlspecialchars(site_whatsapp_display()); ?></span>
                     </a>
                     <div class="dh-footer-contact-item">
                         <i class="fas fa-location-dot"></i>
