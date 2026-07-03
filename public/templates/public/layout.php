@@ -4,6 +4,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 if (!function_exists('url')) {
     require_once __DIR__ . '/../../../app/v1/config/paths.php';
 }
+require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="light">
@@ -38,6 +39,24 @@ if (!function_exists('url')) {
 </main>
 
 <?php include __DIR__ . '/../../components/public/footer.php'; ?>
+
+<a href="<?php echo htmlspecialchars(whatsapp_chat_url('Hi Dazu Hub Institute, I have a question.')); ?>"
+   class="dh-wa-float" target="_blank" rel="noopener" aria-label="Chat on WhatsApp"
+   title="WhatsApp <?php echo htmlspecialchars(site_whatsapp_display()); ?>">
+    <i class="fab fa-whatsapp"></i>
+</a>
+<style>
+.dh-wa-float {
+    position: fixed; right: 20px; bottom: 20px; z-index: 999;
+    width: 52px; height: 52px; border-radius: 50%;
+    background: #25d366; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; text-decoration: none;
+    box-shadow: 0 4px 16px rgba(37,211,102,.45);
+    transition: transform .2s, box-shadow .2s;
+}
+.dh-wa-float:hover { transform: scale(1.06); color: #fff; box-shadow: 0 6px 22px rgba(37,211,102,.55); }
+</style>
 
 <script>
 (function(){

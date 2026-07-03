@@ -87,6 +87,8 @@ ob_start();
                         </td>
                         <td class="text-end text-nowrap">
                             <?php if ($c['is_active']): ?>
+                            <a href="<?php echo htmlspecialchars(course_whatsapp_share_url($c)); ?>" target="_blank" rel="noopener"
+                               class="btn btn-sm btn-success" title="WhatsApp share"><i class="fab fa-whatsapp"></i></a>
                             <a href="<?php echo course_share_url((int)$c['id']); ?>" target="_blank" rel="noopener"
                                class="btn btn-sm btn-outline-success" title="Share registration link"><i class="fas fa-share-nodes"></i></a>
                             <?php endif; ?>

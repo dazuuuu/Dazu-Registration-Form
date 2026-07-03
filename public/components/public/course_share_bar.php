@@ -16,8 +16,8 @@ $input_id = $input_id ?? 'courseShareUrl';
             <button type="button" class="dh-btn dh-btn-primary dh-share-copy" data-target="<?php echo htmlspecialchars($input_id); ?>">
                 <i class="fas fa-copy"></i> Copy
             </button>
-            <a href="https://wa.me/?text=<?php echo rawurlencode($share_title . ' ' . $share_url); ?>"
-               class="dh-btn dh-btn-outline dh-share-wa" target="_blank" rel="noopener" title="Share on WhatsApp">
+            <a href="<?php echo htmlspecialchars(whatsapp_chat_url($share_title . ' ' . $share_url)); ?>"
+               class="dh-btn dh-btn-outline dh-share-wa" target="_blank" rel="noopener" title="WhatsApp <?php echo htmlspecialchars(site_whatsapp_display()); ?>">
                 <i class="fab fa-whatsapp"></i>
             </a>
         </div>

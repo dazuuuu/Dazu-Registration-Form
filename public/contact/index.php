@@ -5,10 +5,10 @@ $page_description = 'Get in touch with Dazu Hub Institute — call, email, Whats
 
 require_once __DIR__ . '/../../app/v1/init.php';
 
-$contact_phone      = '+254 700 000 000';
-$contact_phone_e164 = '+254700000000';
+$contact_phone      = site_phone_display();
+$contact_phone_e164 = site_phone_tel();
 $contact_email      = 'info@dazuhubinstitute.com';
-$contact_whatsapp   = '254700000000';
+$contact_whatsapp   = site_whatsapp_e164();
 $contact_address    = 'Nairobi, Kenya';
 $contact_hours      = 'Mon – Fri, 9:00 AM – 5:00 PM';
 $contact_socials    = [

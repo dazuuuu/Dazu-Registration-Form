@@ -8,6 +8,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 require_once __DIR__ . '/../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../app/v1/helpers/course_share.php';
+require_once __DIR__ . '/../app/v1/helpers/contact.php';
 require_once __DIR__ . '/../app/v1/models/Connection.php';
 require_once __DIR__ . '/../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../app/v1/models/RegistrationModel.php';
@@ -440,8 +441,10 @@ $extra_css = <<<'CSS'
 }
 .hp-course-footer {
     display: flex; align-items: center; justify-content: space-between;
+    gap: 8px;
     padding-top: 12px; border-top: 1px solid var(--border);
 }
+.hp-course-footer-actions { display: flex; align-items: center; gap: 8px; }
 .hp-course-price {
     font-family: var(--font-display); font-size: 1rem; font-weight: 800; color: var(--text);
 }
@@ -455,6 +458,14 @@ $extra_css = <<<'CSS'
     transition: opacity .2s, transform .15s;
 }
 .hp-view-btn:hover { opacity: .87; transform: translateY(-1px); color: #fff; }
+.hp-wa-share {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px; border-radius: 7px;
+    background: #25d366; color: #fff; text-decoration: none;
+    font-size: 1rem; flex-shrink: 0;
+    transition: opacity .2s, transform .15s;
+}
+.hp-wa-share:hover { opacity: .9; transform: translateY(-1px); color: #fff; }
 
 /* ── HOW IT WORKS ─────────────────────────────────────────── */
 .hp-how {
@@ -795,11 +806,19 @@ ob_start(); ?>
                             KSh <?php echo number_format($course['course_fee']); ?>
                             <small>From KSh <?php echo number_format($course['course_fee'] / max(1,(int)$course['duration_months'])); ?>/mo</small>
                         </div>
-                        <a href="<?php echo $detailLink; ?>"
+                        <div class="hp-course-footer-actions">
+                        <a href="<?php echo htmlspecialchars($detailLink); ?>"
                            class="hp-view-btn"
                            style="background:<?php echo htmlspecialchars($color); ?>;">
                             View Details <i class="fas fa-arrow-right" style="font-size:.68rem;"></i>
                         </a>
+                        <?php if ((int)($course['id'] ?? 0) > 0): ?>
+                        <a href="<?php echo htmlspecialchars(course_whatsapp_share_url($course)); ?>"
+                           class="hp-wa-share" target="_blank" rel="noopener" title="WhatsApp <?php echo htmlspecialchars(site_whatsapp_display()); ?>">
+                            <i class="fab fa-whatsapp"></i>
+                        </a>
+                        <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
