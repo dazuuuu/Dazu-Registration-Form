@@ -46,6 +46,10 @@ class StudentNotifier {
     }
 
     private function send(string $email, string $name, string $event, array $data): array {
+        $cfg = require __DIR__ . '/../config/mail.php';
+        if (empty($cfg['enabled'])) {
+            return ['ok' => true, 'message' => 'skipped', 'skipped' => true];
+        }
         [$subject, $html] = StudentEmailTemplate::render($event, $data);
         $result = $this->mailer->send($email, $name, $subject, $html);
         if (!$result['ok']) {

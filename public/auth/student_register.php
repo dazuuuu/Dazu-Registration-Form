@@ -5,7 +5,6 @@ require_once __DIR__ . '/../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../app/v1/models/RegistrationModel.php';
-require_once __DIR__ . '/../../app/v1/services/StudentNotifier.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -68,12 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ], $courseModel);
 
             if ($result['ok']) {
-                $reg = $registrationModel->getById($result['id']);
-                if ($reg) {
-                    $notifier = new StudentNotifier($pdo);
-                    $notifier->sendRegistrationReceived($reg);
-                }
-                $success = "Thank you — your registration has been received. We've sent a confirmation to your email, and your Instructor will be in touch once it's approved.";
+                $success = 'Thank you — your registration has been received. Our team will verify your payment and contact you once it is approved.';
             } else {
                 $error = $result['error'];
             }

@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $portal_locked) {
             $_POST['payer_reference'] ?? ''
         );
         if ($result['ok']) {
-            SessionModel::setFlash('success', 'Payment submitted successfully. You will receive a confirmation email once admin verifies your payment.');
+            SessionModel::setFlash('success', 'Payment submitted. Your portal will update once admin verifies the payment.');
             header('Location: ' . url('students/dashboard/index.php'));
             exit();
         }

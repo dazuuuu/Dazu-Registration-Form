@@ -151,6 +151,37 @@ class RegistrationModel {
         return $row ?: null;
     }
 
+    /**
+     * Permanently remove a registration. Deletes linked student user account if approved.
+     */
+    public function delete(int $id): array {
+        $reg = $this->getById($id);
+        if (!$reg) {
+            return ['ok' => false, 'error' => 'Registration not found.'];
+        }
+
+        $userId = !empty($reg['user_id']) ? (int) $reg['user_id'] : null;
+
+        try {
+            $this->db->beginTransaction();
+
+            $this->db->prepare('DELETE FROM registrations WHERE id = :id')->execute([':id' => $id]);
+
+            if ($userId) {
+                $this->db->prepare('DELETE FROM users WHERE id = :uid')->execute([':uid' => $userId]);
+            }
+
+            $this->db->commit();
+            return ['ok' => true];
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('[RegistrationModel::delete] ' . $e->getMessage());
+            return ['ok' => false, 'error' => 'Could not delete registration: ' . $e->getMessage()];
+        }
+    }
+
     public function listByStatus(string $status): array {
         $stmt = $this->db->prepare(
             "SELECT r.*, c.title AS course_title, c.abbreviation

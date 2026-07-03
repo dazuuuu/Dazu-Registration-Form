@@ -25,8 +25,8 @@ class StudentController {
     }
 
     /**
-     * Generate a new temp password and email credentials to the student.
-     * @return array{ok:bool, error?:string, temp_password?:string}
+     * Reset password and return credentials for admin to share manually (no email).
+     * @return array{ok:bool, error?:string, temp_password?:string, username?:string, login_email?:string}
      */
     public function sendCredentials(int $registrationId): array {
         $reg = $this->studentModel->getById($registrationId);
@@ -37,17 +37,17 @@ class StudentController {
         $tempPassword = bin2hex(random_bytes(8));
         $hash = password_hash($tempPassword, PASSWORD_DEFAULT);
 
-        $stmt = $this->db->prepare("UPDATE users SET password_hash = :hash WHERE id = :uid");
+        $stmt = $this->db->prepare("UPDATE users SET password_hash = :hash, is_active = 1, account_status = 'active' WHERE id = :uid");
         $stmt->execute([':hash' => $hash, ':uid' => $reg['user_id']]);
 
-        $mailResult = $this->notifier->sendCredentials($reg, $tempPassword);
         $this->studentModel->markCredentialsSent($registrationId);
 
-        if (!$mailResult['ok']) {
-            return ['ok' => false, 'error' => 'Password reset but email failed: ' . $mailResult['message'], 'temp_password' => $tempPassword];
-        }
-
-        return ['ok' => true, 'temp_password' => $tempPassword];
+        return [
+            'ok'            => true,
+            'temp_password' => $tempPassword,
+            'username'      => $reg['registration_no'] ?? '',
+            'login_email'   => $reg['email'],
+        ];
     }
 
     /**
@@ -70,7 +70,7 @@ class StudentController {
         }
 
         $payment = $this->paymentModel->getById($result['id']);
-        $this->notifier->sendPaymentSubmitted($reg, $payment);
+        // Email notifications disabled — admin verifies in dashboard.
 
         return $result;
     }
@@ -109,9 +109,8 @@ class StudentController {
 
         $updatedPayment = $this->paymentModel->getById($paymentId);
         $updatedReg = $this->studentModel->getById((int) $payment['registration_id']);
-        $this->notifier->sendPaymentApproved($updatedReg, $updatedPayment, $receiptHtml);
 
-        return ['ok' => true, 'receipt_no' => $receiptNo];
+        return ['ok' => true, 'receipt_no' => $receiptNo, 'registration_id' => (int) $payment['registration_id']];
     }
 
     /**
@@ -136,7 +135,6 @@ class StudentController {
         }
 
         $reg = $this->studentModel->getById((int) $payment['registration_id']);
-        $this->notifier->sendPaymentRejected($reg, $payment, $reason);
 
         return ['ok' => true];
     }

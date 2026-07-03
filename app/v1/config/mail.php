@@ -3,6 +3,8 @@ require_once __DIR__ . '/paths.php';
 
 return [
     'transport'  => 'smtp',
+    /** Set false to skip all outbound student/registration emails (credentials shown in admin instead). */
+    'enabled'    => false,
 
     'host'       => 'smtp.gmail.com',
     'port'       => 587,

@@ -42,6 +42,7 @@ $installments = RegistrationModel::calculateInstallments(
 );
 
 $error = null;
+$credentials = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
@@ -53,20 +54,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'send_credentials') {
             $result = $controller->sendCredentials($id);
             if ($result['ok']) {
-                SessionModel::setFlash('success', 'Login credentials have been emailed to the student.');
-                header('Location: /Registration-System/public/admin/students/view.php?id=' . $id);
-                exit();
+                $credentials = [
+                    'reg_no'        => $result['username'],
+                    'login_email'   => $result['login_email'],
+                    'username'      => $result['username'],
+                    'temp_password' => $result['temp_password'],
+                    'login_url'     => url('auth/login.php'),
+                ];
+                SessionModel::setFlash('success', 'New password generated. Share the login details below with the student.');
+            } else {
+                $error = $result['error'];
             }
-            $error = $result['error'];
         } elseif ($action === 'unlock_portal') {
             $studentModel->unlockPortal($id);
             SessionModel::setFlash('success', 'Student portal unlocked.');
-            header('Location: /Registration-System/public/admin/students/view.php?id=' . $id);
+            header('Location: ' . url('admin/students/view.php?id=' . $id));
             exit();
         } elseif ($action === 'lock_portal') {
             $studentModel->lockPortal($id);
             SessionModel::setFlash('success', 'Student portal locked.');
-            header('Location: /Registration-System/public/admin/students/view.php?id=' . $id);
+            header('Location: ' . url('admin/students/view.php?id=' . $id));
             exit();
         }
     }
@@ -192,20 +199,27 @@ ob_start();
     <div class="col-lg-4">
         <div class="card mb-4 border-primary">
             <div class="card-header bg-primary text-white fw-semibold">
-                <i class="fas fa-envelope me-1"></i> Send Credentials
+                <i class="fas fa-key me-1"></i> Login credentials
             </div>
             <div class="card-body">
-                <p class="text-muted small">Generate a new temporary password and email login credentials to the student.</p>
+                <p class="text-muted small">Generate a new password and share login details manually (WhatsApp, in person). Emails are off.</p>
+                <?php if ($credentials): ?>
+                <div class="alert alert-success small font-monospace">
+                    <div><strong>Email:</strong> <?php echo htmlspecialchars($credentials['login_email']); ?></div>
+                    <div><strong>Username:</strong> <?php echo htmlspecialchars($credentials['username']); ?></div>
+                    <div><strong>Password:</strong> <?php echo htmlspecialchars($credentials['temp_password']); ?></div>
+                </div>
+                <?php endif; ?>
                 <?php if ($reg['credentials_sent_at']): ?>
-                    <p class="small text-success mb-3">
-                        <i class="fas fa-check"></i> Last sent: <?php echo date('d M Y H:i', strtotime($reg['credentials_sent_at'])); ?>
+                    <p class="small text-muted mb-3">
+                        Last reset: <?php echo date('d M Y H:i', strtotime($reg['credentials_sent_at'])); ?>
                     </p>
                 <?php endif; ?>
-                <form method="POST" onsubmit="return confirm('Send new login credentials to this student?');">
+                <form method="POST" onsubmit="return confirm('Generate new login credentials for this student?');">
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="action" value="send_credentials">
                     <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-paper-plane me-1"></i> Email Credentials
+                        <i class="fas fa-sync me-1"></i> Reset password &amp; show details
                     </button>
                 </form>
             </div>

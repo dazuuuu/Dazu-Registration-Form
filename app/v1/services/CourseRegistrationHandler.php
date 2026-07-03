@@ -5,8 +5,6 @@ namespace Services;
 use Models\CourseModel;
 use Models\RegistrationModel;
 
-require_once __DIR__ . '/StudentNotifier.php';
-
 class CourseRegistrationHandler
 {
     private $pdo;
@@ -58,9 +56,7 @@ class CourseRegistrationHandler
         }
 
         $reg = $this->regModel->getById($result['id']);
-        if ($reg) {
-            (new \StudentNotifier($this->pdo))->sendRegistrationReceived($reg);
-        }
+        // Confirmation emails disabled — admin follows up manually.
 
         return $result;
     }

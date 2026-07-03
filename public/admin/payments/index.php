@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'approve') {
             $result = $controller->approvePayment($paymentId, $adminId);
             if ($result['ok']) {
-                SessionModel::setFlash('success', 'Payment approved. Receipt <strong>' . htmlspecialchars($result['receipt_no']) . '</strong> emailed to student.');
+                SessionModel::setFlash('success', 'Payment approved. Receipt <strong>' . htmlspecialchars($result['receipt_no']) . '</strong>. Student portal unlocked.');
                 header('Location: ' . url('admin/payments/index.php'));
                 exit();
             }
@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $reason = trim($_POST['rejection_reason'] ?? '');
             $result = $controller->rejectPayment($paymentId, $adminId, $reason);
             if ($result['ok']) {
-                SessionModel::setFlash('success', 'Payment rejected. Student has been notified.');
+                SessionModel::setFlash('success', 'Payment rejected.');
                 header('Location: ' . url('admin/payments/index.php'));
                 exit();
             }
@@ -98,7 +98,7 @@ ob_start();
                         <td><?php echo htmlspecialchars($p['payer_reference']); ?></td>
                         <td>
                             <div class="d-flex gap-1 flex-wrap">
-                                <form method="POST" class="d-inline" onsubmit="return confirm('Approve this payment? A receipt will be emailed to the student.');">
+                                <form method="POST" class="d-inline" onsubmit="return confirm('Approve this payment? The student portal will be unlocked.');">
                                     <?php echo csrf_field(); ?>
                                     <input type="hidden" name="action" value="approve">
                                     <input type="hidden" name="payment_id" value="<?php echo (int) $p['id']; ?>">

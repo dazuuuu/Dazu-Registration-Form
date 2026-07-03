@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST['payer_reference'] ?? ''
         );
         if ($result['ok']) {
-            SessionModel::setFlash('success', 'Payment submitted! A confirmation email has been sent. Your portal will update once admin verifies the payment.');
+            SessionModel::setFlash('success', 'Payment submitted. Your portal will update once admin verifies the payment.');
             header('Location: ' . url('students/payments/index.php'));
             exit();
         }

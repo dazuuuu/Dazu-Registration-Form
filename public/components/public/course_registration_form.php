@@ -19,7 +19,7 @@ $referrer    = $referrer ?? null;
     <i class="fas fa-check-circle"></i>
     <div>
         <strong>Application received!</strong>
-        We've sent a confirmation to your email. Our team will verify your payment and contact you within 24 hours.
+        Our team will verify your payment and contact you within 24 hours. You can also reach us on WhatsApp.
     </div>
 </div>
 <?php else: ?>

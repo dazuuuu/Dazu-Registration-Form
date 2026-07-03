@@ -8,7 +8,6 @@ use Models\RegistrationModel;
 use Models\UserModel;
 use Models\SessionModel;
 
-require_once __DIR__ . '/../services/StudentNotifier.php';
 require_once __DIR__ . '/../models/StudentModel.php';
 require_once __DIR__ . '/../models/ProgressModel.php';
 require_once __DIR__ . '/StudentController.php';
@@ -122,26 +121,21 @@ class RegistrationController {
             $approvedReg = $this->regModel->getById($registrationId);
             $approvedReg['registration_no'] = $regNo;
 
-            $notifier = new \StudentNotifier($pdo);
-            $notifier->sendRegistrationApproved($approvedReg, $tempPassword);
-
             $studentCtrl = new StudentController();
             $paymentResult = $studentCtrl->recordInitialPayment($approvedReg, $adminId);
-            if (!empty($paymentResult['ok']) && !empty($paymentResult['receipt_html'])) {
-                require_once __DIR__ . '/../models/PaymentModel.php';
-                $paymentModel = new \Models\PaymentModel($pdo);
-                $payment = $paymentModel->getById($paymentResult['payment_id']);
-                $notifier->sendPaymentApproved($approvedReg, $payment, $paymentResult['receipt_html']);
+            if (!empty($paymentResult['ok'])) {
+                $this->studentModel()->unlockPortal($registrationId);
             }
 
             $progressModel = new \Models\ProgressModel($pdo);
             $progressModel->initializeForRegistration($registrationId, (int) $approvedReg['course_id']);
 
             return [
-                'ok'           => true,
-                'reg_no'       => $regNo,
-                'user_id'      => $userId,
-                'temp_password'=> $tempPassword,
+                'ok'            => true,
+                'reg_no'        => $regNo,
+                'user_id'       => $userId,
+                'temp_password' => $tempPassword,
+                'login_email'   => $reg['email'],
             ];
 
         } catch (\Throwable $e) {
@@ -173,9 +167,18 @@ class RegistrationController {
         );
         $stmt->execute([':reason' => trim($reason), ':admin' => $adminId, ':id' => $registrationId]);
 
-        $notifier = new \StudentNotifier($this->db);
-        $notifier->sendRegistrationRejected($reg, trim($reason));
-
         return ['ok' => true];
+    }
+
+    /**
+     * Delete a registration (any status). Removes the student login account if one was created.
+     */
+    public function delete(int $registrationId): array {
+        return $this->regModel->delete($registrationId);
+    }
+
+    private function studentModel(): \Models\StudentModel {
+        require_once __DIR__ . '/../models/StudentModel.php';
+        return new \Models\StudentModel($this->db);
     }
 }
