@@ -66,7 +66,7 @@ class RegistrationController {
             $regNo = sprintf('DH-%s%02d/%s', $reg['abbreviation'], $seq, $year);
 
             // Step 2: create the user account — temporary password, student will be prompted to reset
-            $tempPassword = bin2hex(random_bytes(8)); // 16-char hex; sent via email
+            $tempPassword = bin2hex(random_bytes(8)); // 16-char hex; admin shares manually
             $hash = password_hash($tempPassword, PASSWORD_DEFAULT);
 
             // role_id for 'student' — inserted in migration 015

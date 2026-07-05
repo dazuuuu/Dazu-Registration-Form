@@ -6,6 +6,8 @@ require_once __DIR__ . '/StudentEmailTemplate.php';
 class StudentNotifier {
     private $pdo;
     private $mailer;
+    private $mailCfg;
+    private $enabled;
     private $companyName;
     private $loginUrl;
 
@@ -15,9 +17,10 @@ class StudentNotifier {
         }
         $this->loginUrl = url('auth/login.php');
         $this->pdo = $pdo;
-        $cfg = require __DIR__ . '/../config/mail.php';
-        $this->mailer = $mailer ?? new Mailer($cfg);
-        $this->companyName = $cfg['from_name'] ?? 'Dazu Hub Institute';
+        $this->mailCfg = require __DIR__ . '/../config/mail.php';
+        $this->enabled = !empty($this->mailCfg['enabled']);
+        $this->mailer = $this->enabled ? ($mailer ?? null) : null;
+        $this->companyName = $this->mailCfg['from_name'] ?? 'Dazu Hub Institute';
 
         try {
             require_once __DIR__ . '/../models/SettingModel.php';
@@ -45,13 +48,19 @@ class StudentNotifier {
         return $scheme . '://' . $host . $path;
     }
 
+    private function mailer(): Mailer {
+        if ($this->mailer === null) {
+            $this->mailer = new Mailer($this->mailCfg);
+        }
+        return $this->mailer;
+    }
+
     private function send(string $email, string $name, string $event, array $data): array {
-        $cfg = require __DIR__ . '/../config/mail.php';
-        if (empty($cfg['enabled'])) {
+        if (!$this->enabled) {
             return ['ok' => true, 'message' => 'skipped', 'skipped' => true];
         }
         [$subject, $html] = StudentEmailTemplate::render($event, $data);
-        $result = $this->mailer->send($email, $name, $subject, $html);
+        $result = $this->mailer()->send($email, $name, $subject, $html);
         if (!$result['ok']) {
             error_log('[StudentNotifier] ' . $event . ' to ' . $email . ': ' . $result['message']);
         }

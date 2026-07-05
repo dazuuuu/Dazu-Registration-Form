@@ -11,8 +11,6 @@ require_once __DIR__ . '/../../../app/v1/models/RegistrationModel.php';
 require_once __DIR__ . '/../../../app/v1/models/DashboardModel.php';
 require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
-require_once __DIR__ . '/../../../app/v1/services/StudentNotifier.php';
-
 use Models\Connection;
 use Models\StudentModel;
 use Models\PaymentModel;
@@ -37,9 +35,6 @@ if (!$reg) {
 $justLocked = $studentModel->ensurePortalStatus($reg);
 if ($justLocked) {
     $reg = $studentModel->getByUserId($userId);
-    $notifier = new StudentNotifier($pdo);
-    $amountDue = $studentModel->nextInstallmentAmount($reg);
-    $notifier->sendPortalLocked($reg, $amountDue);
 }
 
 $portal_locked = (bool) $reg['portal_locked'];

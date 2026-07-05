@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../../app/v1/models/RegistrationModel.php';
@@ -149,9 +150,12 @@ ob_start();
 <?php endif; ?>
 
 <?php if ($credentials): ?>
+<?php
+$waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? '', $credentials);
+?>
 <div class="alert alert-success border-success mb-4">
     <h5 class="alert-heading"><i class="fas fa-user-check me-2"></i>Student login details — share manually</h5>
-    <p class="mb-2 small text-muted">Emails are turned off. Copy these details and send via WhatsApp or give them in person. The account is active now.</p>
+    <p class="mb-2 small text-muted">No email is sent. Copy these details or open WhatsApp to send them to the student. The account is active now.</p>
     <div class="bg-white text-dark rounded p-3 font-monospace small" id="studentCredBox">
         <div><strong>Student ID:</strong> <?php echo htmlspecialchars($credentials['reg_no'] ?? ''); ?></div>
         <div><strong>Login email:</strong> <?php echo htmlspecialchars($credentials['login_email'] ?? ''); ?></div>
@@ -159,9 +163,16 @@ ob_start();
         <div><strong>Password:</strong> <span id="credPassword"><?php echo htmlspecialchars($credentials['temp_password'] ?? ''); ?></span></div>
         <div><strong>Login page:</strong> <?php echo htmlspecialchars($credentials['login_url'] ?? url('auth/login.php')); ?></div>
     </div>
-    <button type="button" class="btn btn-sm btn-outline-success mt-3" id="copyStudentCreds">
-        <i class="fas fa-copy me-1"></i> Copy all details
-    </button>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+        <button type="button" class="btn btn-sm btn-outline-success" id="copyStudentCreds">
+            <i class="fas fa-copy me-1"></i> Copy all details
+        </button>
+        <?php if ($waUrl): ?>
+        <a href="<?php echo htmlspecialchars($waUrl); ?>" class="btn btn-sm btn-success" target="_blank" rel="noopener">
+            <i class="fab fa-whatsapp me-1"></i> Send via WhatsApp
+        </a>
+        <?php endif; ?>
+    </div>
 </div>
 <script>
 (function(){
@@ -367,6 +378,7 @@ ob_start();
                     <p class="text-muted small mb-3">
                         On approval, a student account is created and a registration number is issued
                         (<strong>DH-<?php echo htmlspecialchars($reg['abbreviation']); ?>XX/<?php echo date('Y'); ?></strong>).
+                        You will get the temporary password to copy or send via WhatsApp — no email is sent.
                     </p>
 
                     <button type="submit" class="btn btn-success w-100"

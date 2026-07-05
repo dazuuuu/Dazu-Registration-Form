@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/StudentModel.php';
 require_once __DIR__ . '/../../../app/v1/models/PaymentModel.php';
@@ -204,11 +205,34 @@ ob_start();
             <div class="card-body">
                 <p class="text-muted small">Generate a new password and share login details manually (WhatsApp, in person). Emails are off.</p>
                 <?php if ($credentials): ?>
-                <div class="alert alert-success small font-monospace">
+                <?php $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? '', $credentials); ?>
+                <div class="alert alert-success small font-monospace" id="studentCredBox">
                     <div><strong>Email:</strong> <?php echo htmlspecialchars($credentials['login_email']); ?></div>
                     <div><strong>Username:</strong> <?php echo htmlspecialchars($credentials['username']); ?></div>
                     <div><strong>Password:</strong> <?php echo htmlspecialchars($credentials['temp_password']); ?></div>
                 </div>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-success" id="copyStudentCreds">
+                        <i class="fas fa-copy me-1"></i> Copy details
+                    </button>
+                    <?php if ($waUrl): ?>
+                    <a href="<?php echo htmlspecialchars($waUrl); ?>" class="btn btn-sm btn-success" target="_blank" rel="noopener">
+                        <i class="fab fa-whatsapp me-1"></i> WhatsApp
+                    </a>
+                    <?php endif; ?>
+                </div>
+                <script>
+                (function(){
+                    var btn = document.getElementById('copyStudentCreds');
+                    var box = document.getElementById('studentCredBox');
+                    if (!btn || !box) return;
+                    btn.addEventListener('click', function(){
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(box.innerText).then(function(){ btn.innerHTML = '<i class="fas fa-check me-1"></i> Copied'; });
+                        }
+                    });
+                })();
+                </script>
                 <?php endif; ?>
                 <?php if ($reg['credentials_sent_at']): ?>
                     <p class="small text-muted mb-3">

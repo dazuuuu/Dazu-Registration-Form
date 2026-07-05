@@ -7,7 +7,6 @@ use Models\StudentModel;
 use Models\PaymentModel;
 use Models\RegistrationModel;
 
-require_once __DIR__ . '/../services/StudentNotifier.php';
 require_once __DIR__ . '/../services/ReceiptGenerator.php';
 
 class StudentController {
@@ -15,13 +14,11 @@ class StudentController {
     private $db;
     private $studentModel;
     private $paymentModel;
-    private $notifier;
 
     public function __construct() {
         $this->db = Connection::getInstance()->getConnection();
         $this->studentModel = new StudentModel($this->db);
         $this->paymentModel = new PaymentModel($this->db);
-        $this->notifier = new \StudentNotifier($this->db);
     }
 
     /**

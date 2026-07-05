@@ -9,7 +9,6 @@ class Mailer {
 
     public function __construct(array $cfg) {
         $this->cfg = $cfg;
-        self::loadPhpMailer();
     }
 
     /** Locate PHPMailer from Composer vendor dir or a manual lib folder. */
@@ -55,6 +54,12 @@ class Mailer {
      * @return array ['ok'=>bool, 'message'=>string]
      */
     public function send(string $toEmail, string $toName, string $subject, string $htmlBody): array {
+        if (array_key_exists('enabled', $this->cfg) && empty($this->cfg['enabled'])) {
+            return ['ok' => true, 'message' => 'skipped', 'skipped' => true];
+        }
+
+        self::loadPhpMailer();
+
         if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
             return ['ok' => false, 'message' => 'PHPMailer is not installed. Upload app/v1/lib/PHPMailer/ or run composer install in the project root.'];
         }
