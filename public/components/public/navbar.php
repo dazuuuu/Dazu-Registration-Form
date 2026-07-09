@@ -1,5 +1,5 @@
 <?php
-// public/components/public/navbar.php — Dazu Hub Institute
+// public/components/public/navbar.php — Dazu Hub Tech Skills Institute (mockup)
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (!function_exists('url')) {
     require_once __DIR__ . '/../../../app/v1/config/paths.php';
@@ -18,7 +18,6 @@ if (!function_exists('dhNavActive')) {
         $map = [
             'courses'  => '/courses',
             'about'    => '/about',
-            'services' => '/services',
             'projects' => '/projects',
             'blogs'    => '/blogs',
             'contact'  => '/contact',
@@ -32,7 +31,6 @@ if (!function_exists('dhNavActive')) {
     }
 }
 
-$logoPath = url('assets/images/logo/logo.png');
 $isLoggedIn  = !empty($_SESSION['logged_in']);
 $isAdmin     = $isLoggedIn && isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin','superadmin'], true);
 $isTutor     = $isLoggedIn && isset($_SESSION['role']) && $_SESSION['role'] === 'tutor';
@@ -41,29 +39,27 @@ $username    = htmlspecialchars($_SESSION['username'] ?? '');
 $initial     = strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1));
 
 $navLinks = [
-    ['label' => 'Home',     'href' => url('/'),                    'active' => dhNavActive('home')],
-    ['label' => 'Courses',  'href' => url('courses/index.php'),     'active' => dhNavActive('courses')],
-    ['label' => 'About',    'href' => url('about/index.php'),       'active' => dhNavActive('about')],
-    ['label' => 'Services', 'href' => url('services/index.php'),     'active' => dhNavActive('services')],
-    ['label' => 'Projects', 'href' => url('projects/index.php'),     'active' => dhNavActive('projects')],
-    ['label' => 'Blog',     'href' => url('blogs/index.php'),       'active' => dhNavActive('blogs')],
-    ['label' => 'Contact',  'href' => url('contact/index.php'),     'active' => dhNavActive('contact')],
+    ['label' => 'Home',     'href' => url('/'),                 'active' => dhNavActive('home')],
+    ['label' => 'Courses',  'href' => url('/#courses'),         'active' => ''],
+    ['label' => 'About',    'href' => url('about/index.php'),   'active' => dhNavActive('about')],
+    ['label' => 'Projects', 'href' => url('projects/index.php'),'active' => dhNavActive('projects')],
+    ['label' => 'Blogs',    'href' => url('blogs/index.php'),   'active' => dhNavActive('blogs')],
+    ['label' => 'Contacts', 'href' => url('contact/index.php'), 'active' => dhNavActive('contact')],
 ];
 ?>
 
 <header class="dh-nav" id="dhNav" role="banner">
     <div class="dh-nav-inner dh-container">
-        <a class="dh-brand" href="<?php echo url('/'); ?>" aria-label="Dazu Hub Institute — Home">
-            <span class="dh-brand-logo-wrap">
-                <img src="<?php echo $logoPath; ?>" alt="Dazu Hub Institute" class="dh-brand-logo" width="120" height="48"
-                     onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-                <span class="dh-brand-fallback" style="display:none;">
-                    <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <rect width="38" height="38" rx="8" fill="#2E7D32"/>
-                        <text x="19" y="26" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="17" font-weight="800" fill="#fff">D</text>
-                    </svg>
-                    <span class="dh-brand-name">Dazu <strong>Hub</strong></span>
-                </span>
+        <a class="dh-brand" href="<?php echo url('/'); ?>" aria-label="Dazu Hub Tech Skills Institute — Home">
+            <span class="dh-brand-icon" aria-hidden="true">
+                <svg width="42" height="42" viewBox="0 0 42 42" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="42" height="42" rx="10" fill="#00A859"/>
+                    <text x="21" y="28" text-anchor="middle" font-family="Inter, sans-serif" font-size="16" font-weight="800" fill="#fff">&lt;/&gt;</text>
+                </svg>
+            </span>
+            <span class="dh-brand-text">
+                <span class="dh-brand-title">Dazu <span class="dh-brand-hub">hub</span></span>
+                <span class="dh-brand-sub">Tech Skills Institute</span>
             </span>
         </a>
 
@@ -76,11 +72,6 @@ $navLinks = [
         </nav>
 
         <div class="dh-nav-actions">
-            <button class="dh-theme-btn" id="dhThemeToggle" aria-label="Toggle dark mode" title="Toggle dark / light mode">
-                <i class="fas fa-moon dh-icon-moon" aria-hidden="true"></i>
-                <i class="fas fa-sun  dh-icon-sun"  aria-hidden="true"></i>
-            </button>
-
             <?php if ($isLoggedIn): ?>
                 <div class="dh-user-menu" id="dhUserMenu">
                     <button class="dh-user-trigger" id="dhUserTrigger" aria-expanded="false" aria-haspopup="true" aria-controls="dhUserDropdown">
@@ -105,8 +96,10 @@ $navLinks = [
                     </div>
                 </div>
             <?php else: ?>
-                <a href="<?php echo url('auth/login.php'); ?>" class="dh-nav-link dh-nav-login"><i class="fas fa-sign-in-alt"></i> Login</a>
-                <a href="<?php echo url('auth/student_register.php'); ?>" class="dh-btn dh-btn-primary dh-nav-cta">Apply Now</a>
+                <a href="<?php echo url('/#register'); ?>" class="dh-btn-apply">Apply</a>
+                <a href="<?php echo url('auth/login.php'); ?>" class="dh-btn-login">
+                    <i class="far fa-user" aria-hidden="true"></i> Login
+                </a>
             <?php endif; ?>
 
             <button class="dh-hamburger" id="dhHamburger" aria-label="Open menu" aria-expanded="false" aria-controls="dhDrawer">
@@ -120,7 +113,7 @@ $navLinks = [
 
 <aside class="dh-drawer" id="dhDrawer" aria-hidden="true" aria-label="Mobile navigation">
     <div class="dh-drawer-head">
-        <img src="<?php echo $logoPath; ?>" alt="Dazu Hub" height="36" onerror="this.style.display='none'">
+        <span class="dh-drawer-brand">Dazu <strong>hub</strong></span>
         <button class="dh-drawer-close" id="dhDrawerClose" aria-label="Close menu"><i class="fas fa-times"></i></button>
     </div>
     <nav class="dh-drawer-body" aria-label="Mobile navigation">
@@ -129,21 +122,25 @@ $navLinks = [
                 <?php echo htmlspecialchars($link['label']); ?>
             </a>
         <?php endforeach; ?>
-        <a class="dh-drawer-link" href="<?php echo url('auth/student_register.php'); ?>" style="--di:7"><i class="fas fa-pen-to-square"></i> Apply Now</a>
-        <hr class="dh-drawer-divider" style="--di:8">
         <?php if ($isLoggedIn): ?>
+            <hr class="dh-drawer-divider">
             <?php if ($isAdmin): ?>
-                <a class="dh-drawer-link" href="<?php echo url('admin/dashboard.php'); ?>" style="--di:9"><i class="fas fa-gauge-high"></i> Admin</a>
+                <a class="dh-drawer-link" href="<?php echo url('admin/dashboard.php'); ?>">Admin Dashboard</a>
             <?php elseif ($isTutor): ?>
-                <a class="dh-drawer-link" href="<?php echo url('tutor/dashboard/index.php'); ?>" style="--di:9"><i class="fas fa-chalkboard-teacher"></i> Tutor Portal</a>
+                <a class="dh-drawer-link" href="<?php echo url('tutor/dashboard/index.php'); ?>">Tutor Portal</a>
             <?php elseif ($isStudent): ?>
-                <a class="dh-drawer-link" href="<?php echo url('students/dashboard/index.php'); ?>" style="--di:9"><i class="fas fa-user-graduate"></i> Student Portal</a>
+                <a class="dh-drawer-link" href="<?php echo url('students/dashboard/index.php'); ?>">Student Portal</a>
             <?php endif; ?>
-            <a class="dh-drawer-link dh-drawer-link-danger" href="<?php echo url('auth/logout.php'); ?>" style="--di:10"><i class="fas fa-arrow-right-from-bracket"></i> Logout</a>
+            <a class="dh-drawer-link dh-drawer-link-danger" href="<?php echo url('auth/logout.php'); ?>">Logout</a>
         <?php else: ?>
-            <a class="dh-drawer-link" href="<?php echo url('auth/login.php'); ?>" style="--di:9"><i class="fas fa-sign-in-alt"></i> Login</a>
+            <a class="dh-drawer-link" href="<?php echo url('auth/login.php'); ?>">Login</a>
         <?php endif; ?>
     </nav>
+    <?php if (!$isLoggedIn): ?>
+    <div class="dh-drawer-foot">
+        <a href="<?php echo url('/#register'); ?>" class="dh-btn-apply dh-btn-apply--block">Apply</a>
+    </div>
+    <?php endif; ?>
 </aside>
 
 <script>
@@ -151,18 +148,8 @@ $navLinks = [
     'use strict';
     var nav = document.getElementById('dhNav');
     window.addEventListener('scroll', function(){
-        if (nav) nav.classList.toggle('scrolled', window.scrollY > 40);
+        if (nav) nav.classList.toggle('scrolled', window.scrollY > 20);
     }, { passive: true });
-
-    function applyTheme(isDark){
-        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-        try { localStorage.setItem('dh-theme', isDark ? 'dark' : 'light'); } catch(e){}
-    }
-    function isCurrentlyDark(){ return document.documentElement.getAttribute('data-theme') === 'dark'; }
-
-    document.querySelectorAll('#dhThemeToggle, [data-drawer-theme]').forEach(function(btn){
-        btn.addEventListener('click', function(){ applyTheme(!isCurrentlyDark()); });
-    });
 
     var hamburger = document.getElementById('dhHamburger');
     var drawer    = document.getElementById('dhDrawer');
