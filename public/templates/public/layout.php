@@ -28,6 +28,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 
 <link rel="stylesheet" href="<?php echo asset('css/theme.css'); ?>">
 <link rel="stylesheet" href="<?php echo asset('css/mockup-nav-footer.css'); ?>">
+<link rel="stylesheet" href="<?php echo asset('css/public-pages.css'); ?>">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <?php if (isset($extra_css)) echo $extra_css; ?>

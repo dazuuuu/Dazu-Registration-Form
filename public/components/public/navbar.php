@@ -40,7 +40,7 @@ $initial     = strtoupper(substr($_SESSION['username'] ?? 'U', 0, 1));
 
 $navLinks = [
     ['label' => 'Home',     'href' => url('/'),                 'active' => dhNavActive('home')],
-    ['label' => 'Courses',  'href' => url('/#courses'),         'active' => ''],
+    ['label' => 'Courses',  'href' => url('courses/index.php'),     'active' => dhNavActive('courses')],
     ['label' => 'About',    'href' => url('about/index.php'),   'active' => dhNavActive('about')],
     ['label' => 'Projects', 'href' => url('projects/index.php'),'active' => dhNavActive('projects')],
     ['label' => 'Blogs',    'href' => url('blogs/index.php'),   'active' => dhNavActive('blogs')],

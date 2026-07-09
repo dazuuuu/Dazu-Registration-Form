@@ -1,6 +1,6 @@
 <?php
 // public/contact/index.php — Dazu Hub Institute
-$page_title = 'Contact Us — Dazu Hub Institute';
+$page_title = 'Contact Us — Dazu Hub Tech Skills Institute';
 $page_description = 'Get in touch with Dazu Hub Institute — call, email, WhatsApp, or send us a message about courses and enrollment.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
@@ -43,13 +43,12 @@ $mapSrc = 'https://www.google.com/maps?q=' . urlencode($contact_address) . '&out
 
 ob_start();
 ?>
-<section class="dh-section" style="padding-top:56px;background:linear-gradient(135deg,#1B5E20,#2E7D32);color:#fff;">
-    <div class="dh-container dh-reveal">
-        <span class="dh-eyebrow" style="color:rgba(255,255,255,.8);">Contact</span>
-        <h1 class="dh-h1" style="color:#fff;">Get in touch</h1>
-        <p class="dh-lead" style="color:rgba(255,255,255,.9);max-width:560px;">Questions about courses, fees, or enrollment? We're here to help.</p>
-    </div>
-</section>
+<?php
+$banner_eyebrow = 'Contact';
+$banner_title   = 'Get in touch';
+$banner_lead    = "Questions about courses, fees, or enrollment? We're here to help.";
+include __DIR__ . '/../components/public/page_banner.php';
+?>
 
 <section class="dh-section">
     <div class="dh-container">
