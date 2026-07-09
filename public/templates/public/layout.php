@@ -7,7 +7,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title><?php echo htmlspecialchars($page_title ?? 'Dazu Hub Institute'); ?></title>
+<title><?php echo htmlspecialchars($page_title ?? 'Dazu Hub Tech Skills Institute'); ?></title>
 <meta name="description" content="<?php echo htmlspecialchars($page_description ?? 'Tech training institute offering Python, PHP, Node.js, Frontend and AI courses in Nairobi, Kenya.'); ?>">
 
 <!-- Anti-flash: apply saved theme before any CSS renders -->
@@ -37,12 +37,12 @@ if (session_status() === PHP_SESSION_NONE) session_start();
 
 /* ── CSS Custom Properties ──────────────────────────────── */
 :root {
-    /* Brand greens (logo-derived) */
-    --dh-green:        #2E7D32;
-    --dh-green-mid:    #388E3C;
-    --dh-green-light:  #4CAF50;
-    --dh-green-pale:   #E8F5E9;
-    --dh-green-dark:   #1B5E20;
+    /* Brand greens (mockup) */
+    --dh-green:        #00A859;
+    --dh-green-mid:    #00C968;
+    --dh-green-light:  #34D399;
+    --dh-green-pale:   #ECFDF3;
+    --dh-green-dark:   #008F4C;
 
     /* Light mode surfaces */
     --bg:          #FFFFFF;
@@ -66,7 +66,7 @@ if (session_status() === PHP_SESSION_NONE) session_start();
     --nav-shadow:  0 2px 20px rgba(0,0,0,0.07);
 
     /* Light mode footer */
-    --footer-bg:   #1A2B1A;
+    --footer-bg:   #0b1120;
     --footer-text: rgba(255,255,255,0.65);
 
     /* Interactive states */
@@ -159,7 +159,7 @@ body {
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
-    padding-top: 80px; /* nav height */
+    padding-top: 78px; /* nav height */
 }
 
 @media (max-width: 768px) {
