@@ -29,6 +29,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 <link rel="stylesheet" href="<?php echo asset('css/theme.css'); ?>">
 <link rel="stylesheet" href="<?php echo asset('css/mockup-nav-footer.css'); ?>">
 <link rel="stylesheet" href="<?php echo asset('css/public-pages.css'); ?>">
+<link rel="stylesheet" href="<?php echo asset('css/apply-modal.css'); ?>">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <?php if (isset($extra_css)) echo $extra_css; ?>
@@ -41,6 +42,13 @@ require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 </main>
 
 <?php include __DIR__ . '/../../components/public/footer.php'; ?>
+
+<?php if (empty($skip_apply_modal)): ?>
+    <?php include __DIR__ . '/../../components/public/apply_modal_bootstrap.php'; ?>
+<?php endif; ?>
+
+<script>window.DH_APPLY_URL = <?php echo json_encode(url('apply/index.php')); ?>;</script>
+<script src="<?php echo asset('js/apply-form.js'); ?>"></script>
 
 <a href="<?php echo htmlspecialchars(whatsapp_chat_url('Hi Dazu Hub Institute, I have a question.')); ?>"
    class="dh-wa-float" target="_blank" rel="noopener" aria-label="Chat on WhatsApp"

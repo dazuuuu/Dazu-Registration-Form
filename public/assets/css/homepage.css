@@ -304,6 +304,59 @@
 }
 .hp-apply-list i { color: #00A859; }
 
+.hp-apply-cta-col {
+    display: flex;
+    flex-direction: column;
+}
+.hp-apply-share {
+    margin-top: 14px;
+    font-size: 0.78rem;
+    color: #64748b;
+    line-height: 1.5;
+    word-break: break-all;
+}
+.hp-apply-share a {
+    color: #00A859;
+    font-weight: 600;
+}
+.hp-course-apply-btn {
+    margin: 14px 20px 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: calc(100% - 40px);
+    padding: 10px 14px;
+    border: 1px solid #00A859;
+    border-radius: 8px;
+    background: #fff;
+    color: #00A859;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+.hp-course-apply-btn:hover {
+    background: #00A859;
+    color: #fff;
+}
+.hp-course-card {
+    display: flex;
+    flex-direction: column;
+}
+.hp-course-card-link {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    text-decoration: none;
+    color: inherit;
+}
+.hp-btn-watch {
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+}
+
 .hp-form-card {
     background: #fff;
     border: 1px solid #e2e8f0;

@@ -1,0 +1,238 @@
+/* Apply modal + payment credentials + standalone apply page */
+
+.dh-pay-box {
+    background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+    border: 2px solid #00A859;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 4px;
+}
+
+.dh-pay-box-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed rgba(0, 168, 89, 0.35);
+}
+
+.dh-pay-bank {
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: #0f172a;
+    letter-spacing: 0.04em;
+}
+
+.dh-pay-service {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #fff;
+    background: #00A859;
+    padding: 4px 10px;
+    border-radius: 999px;
+}
+
+.dh-pay-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.dh-pay-item--full {
+    grid-column: 1 / -1;
+}
+
+.dh-pay-label {
+    display: block;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #64748b;
+    margin-bottom: 2px;
+}
+
+.dh-pay-value {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: 0.03em;
+}
+
+.dh-pay-steps {
+    margin: 12px 0 0;
+    font-size: 0.75rem;
+    color: #475569;
+    line-height: 1.5;
+}
+
+.hf-field-label-block {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #64748b;
+    margin-bottom: 8px;
+}
+
+.hf-help {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+/* Modal */
+.dh-apply-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 10050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.dh-apply-modal.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.dh-apply-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
+}
+
+.dh-apply-modal-panel {
+    position: relative;
+    width: min(100%, 560px);
+    max-height: min(92vh, 820px);
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.22);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transform: translateY(16px) scale(0.98);
+    transition: transform 0.25s ease;
+}
+
+.dh-apply-modal.is-open .dh-apply-modal-panel {
+    transform: translateY(0) scale(1);
+}
+
+.dh-apply-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 18px 20px;
+    background: linear-gradient(135deg, #00A859, #008f4c);
+    color: #fff;
+}
+
+.dh-apply-modal-header h2 {
+    margin: 0 0 4px;
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.dh-apply-modal-header p {
+    margin: 0;
+    font-size: 0.8rem;
+    opacity: 0.92;
+}
+
+.dh-apply-modal-close {
+    border: none;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.dh-apply-modal-close:hover {
+    background: rgba(255, 255, 255, 0.32);
+}
+
+.dh-apply-modal-body {
+    padding: 18px 20px 22px;
+    overflow-y: auto;
+}
+
+.dh-apply-modal-body .hf-field input,
+.dh-apply-modal-body .hf-field select {
+    width: 100%;
+}
+
+/* Standalone apply page */
+.dh-apply-standalone {
+    padding: 48px 0 72px;
+    background: #f8fafc;
+    min-height: 60vh;
+}
+
+.dh-apply-standalone-head {
+    text-align: center;
+    margin-bottom: 28px;
+}
+
+.dh-apply-standalone-head h1 {
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 4vw, 2rem);
+    font-weight: 800;
+    color: #0f172a;
+    margin: 12px 0 8px;
+}
+
+.dh-apply-standalone-head p {
+    color: #64748b;
+    max-width: 480px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+.dh-apply-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: #64748b;
+    text-decoration: none;
+}
+
+.dh-apply-back:hover {
+    color: #00A859;
+}
+
+.dh-apply-success {
+    margin: 0;
+}
+
+@media (max-width: 520px) {
+    .dh-pay-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dh-apply-modal {
+        padding: 0;
+        align-items: flex-end;
+    }
+
+    .dh-apply-modal-panel {
+        max-height: 94vh;
+        border-radius: 16px 16px 0 0;
+        width: 100%;
+    }
+}
