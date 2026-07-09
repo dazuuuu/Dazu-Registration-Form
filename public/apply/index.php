@@ -44,7 +44,7 @@ ob_start();
 ?>
 
 <section class="dh-apply-standalone">
-    <div class="dh-container" style="max-width:640px;">
+    <div class="dh-container dh-apply-standalone-wrap">
         <div class="dh-apply-standalone-head dh-reveal">
             <a href="<?php echo url('/'); ?>" class="dh-apply-back"><i class="fas fa-arrow-left"></i> Back to home</a>
             <h1>Course Application</h1>
@@ -72,5 +72,4 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
-$extra_js = '<script src="' . asset('js/apply-form.js') . '"></script>';
 require __DIR__ . '/../templates/public/layout.php';

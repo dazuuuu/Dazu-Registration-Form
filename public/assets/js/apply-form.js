@@ -143,6 +143,124 @@
         document.body.style.overflow = '';
     }
 
+    function resolveShareUrl(raw) {
+        var url = (raw || '').trim();
+        if (!url) {
+            url = window.location.href.split('#')[0];
+        }
+        if (/^https?:\/\//i.test(url)) {
+            return url;
+        }
+        var origin = window.location.origin || (window.location.protocol + '//' + window.location.host);
+        return origin + (url.charAt(0) === '/' ? url : '/' + url);
+    }
+
+    function copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text);
+        }
+
+        return new Promise(function (resolve, reject) {
+            var input = document.getElementById('dhApplyShareUrl') || document.querySelector('.hp-apply-share-url');
+            if (input) {
+                input.removeAttribute('aria-hidden');
+                input.style.position = 'fixed';
+                input.style.left = '0';
+                input.style.top = '0';
+                input.style.width = '1px';
+                input.style.height = '1px';
+                input.style.opacity = '0';
+                input.focus();
+                input.select();
+                input.setSelectionRange(0, text.length);
+            } else {
+                input = document.createElement('textarea');
+                input.value = text;
+                input.setAttribute('readonly', '');
+                input.style.position = 'fixed';
+                input.style.left = '-9999px';
+                document.body.appendChild(input);
+                input.select();
+            }
+
+            try {
+                var ok = document.execCommand('copy');
+                if (input.classList && input.classList.contains('hp-apply-share-url')) {
+                    input.setAttribute('aria-hidden', 'true');
+                } else if (input.parentNode) {
+                    input.parentNode.removeChild(input);
+                }
+                ok ? resolve() : reject(new Error('copy failed'));
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    function showShareToast(btn, message) {
+        var toast = btn.parentNode && btn.parentNode.querySelector('[data-dh-apply-share-toast]');
+        if (!toast) {
+            toast = document.querySelector('[data-dh-apply-share-toast]');
+        }
+        if (toast) {
+            toast.hidden = false;
+            toast.textContent = message;
+            clearTimeout(toast._dhTimer);
+            toast._dhTimer = setTimeout(function () {
+                toast.hidden = true;
+                toast.textContent = '';
+            }, 2200);
+            return;
+        }
+        alert(message);
+    }
+
+    function markShareCopied(btn) {
+        var icon = btn.querySelector('i');
+        btn.classList.add('is-copied');
+        if (icon) icon.className = 'fas fa-check';
+        setTimeout(function () {
+            btn.classList.remove('is-copied');
+            if (icon) icon.className = 'fas fa-share-nodes';
+        }, 1800);
+    }
+
+    function shareApplyLink(btn) {
+        var url = resolveShareUrl(btn.getAttribute('data-url'));
+        var title = btn.getAttribute('data-title') || 'Apply at Dazu Hub';
+
+        function onCopied() {
+            markShareCopied(btn);
+            showShareToast(btn, 'Link copied');
+        }
+
+        function onCopyFallback() {
+            markShareCopied(btn);
+            showShareToast(btn, 'Tap and hold to copy: ' + url);
+        }
+
+        if (navigator.share) {
+            navigator.share({ title: title, text: title, url: url })
+                .then(function () {
+                    showShareToast(btn, 'Shared');
+                })
+                .catch(function (err) {
+                    if (err && err.name === 'AbortError') return;
+                    copyToClipboard(url).then(onCopied).catch(onCopyFallback);
+                });
+            return;
+        }
+
+        copyToClipboard(url).then(onCopied).catch(onCopyFallback);
+    }
+
+    document.addEventListener('click', function (e) {
+        var shareBtn = e.target.closest('[data-dh-apply-share]');
+        if (!shareBtn) return;
+        e.preventDefault();
+        shareApplyLink(shareBtn);
+    });
+
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('[data-dh-apply-form]').forEach(wireForm);
 
@@ -164,37 +282,6 @@
         if (window.location.hash === '#register' || window.location.hash === '#apply') {
             openApplyModal();
         }
-
-        document.querySelectorAll('[data-dh-apply-share]').forEach(function (btn) {
-            btn.addEventListener('click', function () {
-                var url = btn.getAttribute('data-url') || '';
-                var title = btn.getAttribute('data-title') || 'Apply at Dazu Hub';
-                var icon = btn.querySelector('i');
-
-                function showCopied() {
-                    btn.classList.add('is-copied');
-                    if (icon) icon.className = 'fas fa-check';
-                    setTimeout(function () {
-                        btn.classList.remove('is-copied');
-                        if (icon) icon.className = 'fas fa-share-nodes';
-                    }, 1800);
-                }
-
-                if (navigator.share) {
-                    navigator.share({ title: title, text: title, url: url }).catch(function () {});
-                    return;
-                }
-
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    navigator.clipboard.writeText(url).then(showCopied).catch(function () {
-                        window.prompt('Copy this link:', url);
-                    });
-                    return;
-                }
-
-                window.prompt('Copy this link:', url);
-            });
-        });
     });
 
     window.DhApply = { open: openApplyModal, close: closeApplyModal };

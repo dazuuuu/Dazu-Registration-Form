@@ -90,6 +90,23 @@ if (!function_exists('url')) {
     }
 }
 
+/** Full URL including scheme and host (for sharing, emails, etc.). */
+if (!function_exists('absolute_url')) {
+    function absolute_url(string $path = ''): string {
+        if (preg_match('#^https?://#i', $path)) {
+            return $path;
+        }
+
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (($_SERVER['SERVER_PORT'] ?? '') === '443')
+            || (strtolower($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+        $scheme = $isHttps ? 'https' : 'http';
+        $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+
+        return $scheme . '://' . $host . url($path);
+    }
+}
+
 /** Static asset under /public/assets */
 if (!function_exists('asset')) {
     function asset(string $path): string {
