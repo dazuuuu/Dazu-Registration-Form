@@ -23,7 +23,7 @@
                         <input type="password" name="password" class="form-control" required>
                     </div>
                     <button type="submit" class="btn btn-primary">Login</button>
-                    <a href="/Ismano/public/auth/forgot_password.php" class="btn btn-link">Forgot Password?</a>
+                    <a href="<?php echo function_exists('url') ? url('auth/forgot_password.php') : 'forgot_password.php'; ?>" class="btn btn-link">Forgot Password?</a>
                 </form>
             </div>
         </div>

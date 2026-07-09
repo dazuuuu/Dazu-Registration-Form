@@ -5,7 +5,9 @@
 // For testing without sending real mail, use Mailtrap (https://mailtrap.io).
 
 return [
-    'transport'  => 'smtp',          // 'smtp' or 'mail' (PHP mail() — not recommended)
+    'transport'  => 'smtp',
+    'enabled'    => false,
+    'password_reset_enabled' => true,
 
     'host'       => 'smtp.gmail.com',
     'port'       => 587,
