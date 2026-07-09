@@ -6,6 +6,7 @@
 
 return [
     'transport'  => 'smtp',          // 'smtp' or 'mail' (PHP mail() — not recommended)
+    'enabled'    => true,            // Set false to skip all outbound mail (password reset OTP requires true)
 
     'host'       => 'smtp.gmail.com',
     'port'       => 587,

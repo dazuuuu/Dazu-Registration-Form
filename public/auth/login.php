@@ -108,6 +108,11 @@ require __DIR__ . '/../components/auth/terminal_layout_start.php';
 <div class="auth-terminal-links">
     <div class="row">
         <span class="guest">guest@hub:~$</span>
+        <span>forgot pass?</span>
+        <a href="forgot_password.php">./recover.sh</a>
+    </div>
+    <div class="row">
+        <span class="guest">guest@hub:~$</span>
         <span>new user?</span>
         <a href="register.php">./register.sh</a>
     </div>

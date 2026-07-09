@@ -139,6 +139,12 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
                 </button>
             </form>
 
+            <p class="text-center mt-3 mb-0">
+                <a href="<?php echo url('auth/forgot_password.php'); ?>" class="text-muted small">
+                    <i class="fas fa-key me-1"></i> Forgot password?
+                </a>
+            </p>
+
             <hr class="auth-divider">
 
             <p class="auth-portal">
