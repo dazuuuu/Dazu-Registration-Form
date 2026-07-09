@@ -306,6 +306,18 @@ function getVimeoId($url) {
         <!-- Project Info -->
         <div class="project-info">
             <div class="info-row"><span class="info-label">Project Category</span><span class="info-value"><?php echo htmlspecialchars($project['category_name'] ?? 'Uncategorized'); ?></span></div>
+            <?php if (!empty($project['student_name'])): ?>
+            <div class="info-row"><span class="info-label">Student</span><span class="info-value"><?php echo htmlspecialchars($project['student_name']); ?></span></div>
+            <?php endif; ?>
+            <?php if (!empty($project['year_of_study'])): ?>
+            <div class="info-row"><span class="info-label">Year of Study</span><span class="info-value"><?php echo htmlspecialchars($project['year_of_study']); ?></span></div>
+            <?php endif; ?>
+            <?php if (!empty($project['skillset'])): ?>
+            <div class="info-row"><span class="info-label">Skillset</span><span class="info-value"><?php echo htmlspecialchars($project['skillset']); ?></span></div>
+            <?php endif; ?>
+            <?php if (!empty($project['project_link'])): ?>
+            <div class="info-row"><span class="info-label">Project Link</span><span class="info-value"><a href="<?php echo htmlspecialchars($project['project_link']); ?>" target="_blank" rel="noopener">Open project</a></span></div>
+            <?php endif; ?>
             <div class="info-row"><span class="info-label">Completion Date</span><span class="info-value"><?php echo date('F d, Y', strtotime($project['created_at'])); ?></span></div>
             <div class="info-row"><span class="info-label">Views</span><span class="info-value"><?php echo number_format($project['view_count']); ?> views</span></div>
         </div>

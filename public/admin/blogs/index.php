@@ -235,9 +235,14 @@ $categories = $blogModel->getAllCategories();
 
 <div class="page-header">
     <h2>Manage Blog Posts</h2>
-    <a href="create.php" class="create-btn">
-        <i class="fas fa-plus"></i> Create New Post
-    </a>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="categories.php" class="create-btn" style="background:#fff;color:#1a1a1a;border-color:#ccc;">
+            <i class="fas fa-folder"></i> Categories
+        </a>
+        <a href="create.php" class="create-btn">
+            <i class="fas fa-plus"></i> Create New Post
+        </a>
+    </div>
 </div>
 
 <div class="card-table">

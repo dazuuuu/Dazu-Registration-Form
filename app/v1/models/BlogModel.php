@@ -279,6 +279,14 @@ class BlogModel {
         ]);
     }
     
+    // Count blogs in category
+    public function countBlogsInCategory($id) {
+        $sql = "SELECT COUNT(*) FROM blogs WHERE category_id = :id";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':id' => $id]);
+        return (int) $stmt->fetchColumn();
+    }
+
     // Delete category
     public function deleteCategory($id) {
         $sql = "DELETE FROM blog_categories WHERE id = :id";

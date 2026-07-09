@@ -159,7 +159,16 @@ include __DIR__ . '/../components/public/page_banner.php';
                                 </div>
                                 <div class="dh-media-card-body">
                                     <?php if (!empty($project['major_title'])): ?>
-                                        <div class="dh-media-card-meta"><?php echo htmlspecialchars($project['major_title']); ?></div>
+                                        <div class="dh-media-card-meta">
+                                            <?php if (!empty($project['student_name'])): ?>
+                                                <?php echo htmlspecialchars($project['student_name']); ?>
+                                                <?php if (!empty($project['year_of_study'])): ?>
+                                                    · Year <?php echo htmlspecialchars($project['year_of_study']); ?>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <?php echo htmlspecialchars($project['major_title']); ?>
+                                            <?php endif; ?>
+                                        </div>
                                     <?php endif; ?>
                                     <h3 class="dh-media-card-title"><?php echo htmlspecialchars($project['small_title']); ?></h3>
                                     <p class="dh-media-card-excerpt">
