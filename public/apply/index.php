@@ -48,7 +48,8 @@ ob_start();
         <div class="dh-apply-standalone-head dh-reveal">
             <a href="<?php echo url('/'); ?>" class="dh-apply-back"><i class="fas fa-arrow-left"></i> Back to home</a>
             <h1>Course Application</h1>
-            <p>Complete the form below after paying via M-Pesa. You can share this page link directly with applicants.</p>
+            <p>Complete the form below after paying via M-Pesa.</p>
+            <?php include __DIR__ . '/../components/public/apply_share_actions.php'; ?>
         </div>
 
         <div class="hp-form-card dh-reveal dh-delay-1">

@@ -164,6 +164,37 @@
         if (window.location.hash === '#register' || window.location.hash === '#apply') {
             openApplyModal();
         }
+
+        document.querySelectorAll('[data-dh-apply-share]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var url = btn.getAttribute('data-url') || '';
+                var title = btn.getAttribute('data-title') || 'Apply at Dazu Hub';
+                var icon = btn.querySelector('i');
+
+                function showCopied() {
+                    btn.classList.add('is-copied');
+                    if (icon) icon.className = 'fas fa-check';
+                    setTimeout(function () {
+                        btn.classList.remove('is-copied');
+                        if (icon) icon.className = 'fas fa-share-nodes';
+                    }, 1800);
+                }
+
+                if (navigator.share) {
+                    navigator.share({ title: title, text: title, url: url }).catch(function () {});
+                    return;
+                }
+
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(url).then(showCopied).catch(function () {
+                        window.prompt('Copy this link:', url);
+                    });
+                    return;
+                }
+
+                window.prompt('Copy this link:', url);
+            });
+        });
     });
 
     window.DhApply = { open: openApplyModal, close: closeApplyModal };

@@ -124,10 +124,7 @@ $heroImg = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q
             <button type="button" class="hf-submit hp-apply-cta-btn" data-dh-apply-open style="margin-top:16px;">
                 <i class="fas fa-graduation-cap"></i> Open Application Form
             </button>
-            <p class="hp-apply-share">
-                Share the standalone form:
-                <a href="<?php echo url('apply/index.php'); ?>"><?php echo htmlspecialchars(url('apply/index.php')); ?></a>
-            </p>
+            <?php include __DIR__ . '/apply_share_actions.php'; ?>
         </div>
     </div>
 </section>
