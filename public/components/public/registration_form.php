@@ -11,6 +11,8 @@
  * - $reg_success_message (?string)
  * - $reg_show_head (bool) optional header inside card
  */
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+
 $reg_form_id = $reg_form_id ?? 'dhApplyForm';
 $reg_form_action = $reg_form_action ?? url('apply/index.php');
 $reg_success = $reg_success ?? false;

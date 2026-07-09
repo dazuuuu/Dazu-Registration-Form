@@ -18,6 +18,7 @@ if (empty($dh_apply_modal_courses)) {
         </header>
         <div class="dh-apply-modal-body" id="dhApplyModalBody">
             <?php
+            $displayCourses = $dh_apply_modal_courses ?? ($displayCourses ?? []);
             $reg_form_id = 'dhApplyModalForm';
             $reg_form_action = url('apply/index.php');
             $reg_success = false;

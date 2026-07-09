@@ -32,6 +32,8 @@ require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 <link rel="stylesheet" href="<?php echo asset('css/apply-modal.css'); ?>">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
+<noscript><style>.dh-reveal,.dh-reveal-left,.dh-reveal-right,.reveal{opacity:1!important;transform:none!important}</style></noscript>
+
 <?php if (isset($extra_css)) echo $extra_css; ?>
 </head>
 <body>
@@ -40,6 +42,25 @@ require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 <main id="main-content">
     <?php echo $content ?? ''; ?>
 </main>
+
+<script>
+(function(){
+    var els = document.querySelectorAll('.dh-reveal, .dh-reveal-left, .dh-reveal-right, .reveal');
+    if (!('IntersectionObserver' in window)) {
+        els.forEach(function(el){ el.classList.add('visible'); });
+        return;
+    }
+    var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+            if(e.isIntersecting){
+                e.target.classList.add('visible');
+                io.unobserve(e.target);
+            }
+        });
+    }, { threshold: 0.12 });
+    els.forEach(function(el){ io.observe(el); });
+})();
+</script>
 
 <?php include __DIR__ . '/../../components/public/footer.php'; ?>
 
@@ -67,21 +88,6 @@ require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 }
 .dh-wa-float:hover { transform: scale(1.06); color: #fff; box-shadow: 0 6px 22px rgba(37,211,102,.55); }
 </style>
-
-<script>
-(function(){
-    var io = new IntersectionObserver(function(entries){
-        entries.forEach(function(e){
-            if(e.isIntersecting){
-                e.target.classList.add('visible');
-                io.unobserve(e.target);
-            }
-        });
-    }, { threshold: 0.12 });
-    document.querySelectorAll('.dh-reveal, .dh-reveal-left, .dh-reveal-right, .reveal')
-            .forEach(function(el){ io.observe(el); });
-})();
-</script>
 
 <?php if (isset($extra_js)) echo $extra_js; ?>
 <script>
