@@ -79,8 +79,8 @@ require __DIR__ . '/../components/auth/terminal_layout_start.php';
     </div>
 <?php endif; ?>
 
-<p class="auth-terminal-hint" style="color:var(--term-green-dim);font-size:0.85rem;margin-bottom:1rem;">
-    Enter the 6-digit code sent to <strong><?php echo htmlspecialchars($resetEmail); ?></strong>, then choose a new password.
+<p class="auth-terminal-hint">
+    Enter the 6-digit code sent to <strong><?php echo htmlspecialchars($resetEmail); ?></strong>, then set a new password.
 </p>
 
 <form method="POST" class="auth-terminal-form" novalidate>
@@ -112,19 +112,21 @@ require __DIR__ . '/../components/auth/terminal_layout_start.php';
     </button>
 </form>
 
-<form method="POST" class="mt-3">
+<form method="POST" class="auth-terminal-form auth-terminal-form--compact">
     <?php echo csrf_field(); ?>
     <input type="hidden" name="resend" value="1">
-    <button type="submit" class="auth-cmd-submit" style="background:transparent;border:1px solid var(--term-green-dim);color:var(--term-green);">
+    <button type="submit" class="auth-cmd-submit auth-cmd-submit--ghost">
         <i class="fas fa-redo"></i> ./resend-otp.sh
     </button>
 </form>
 
 <div class="auth-terminal-links">
     <div class="row">
+        <span class="guest">user@hub:~$</span>
+        <a href="forgot_password.php">./recovery.sh --new-email</a>
+    </div>
+    <div class="row">
         <span class="guest">guest@hub:~$</span>
-        <a href="forgot_password.php">use different email</a>
-        <span>·</span>
         <a href="login.php">cd ../login</a>
     </div>
 </div>

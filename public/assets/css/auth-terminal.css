@@ -251,6 +251,18 @@
   background: rgba(51, 255, 102, 0.08);
 }
 
+.auth-terminal-hint {
+  color: var(--term-green-dim);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  margin: 0 0 1rem;
+}
+
+.auth-terminal-hint strong {
+  color: var(--term-cyan);
+  font-weight: 600;
+}
+
 .auth-terminal-form {
   display: flex;
   flex-direction: column;
@@ -329,6 +341,21 @@
 
 .auth-cmd-submit:active {
   transform: translateY(0);
+}
+
+.auth-cmd-submit--ghost {
+  background: transparent;
+  border-color: var(--term-green-dim);
+  color: var(--term-green);
+}
+
+.auth-cmd-submit--ghost:hover {
+  background: rgba(51, 255, 102, 0.1);
+  border-color: var(--term-green);
+}
+
+.auth-terminal-form--compact {
+  margin-top: 4px;
 }
 
 .auth-terminal-links {
@@ -414,4 +441,13 @@ body[data-auth-page="register"] .auth-terminal-screen {
 
 body[data-auth-page="register"] .auth-terminal-form {
   gap: 10px;
+}
+
+body[data-auth-page="recover"] .auth-terminal-boot,
+body[data-auth-page="admin"] .auth-terminal-boot {
+  min-height: 96px;
+}
+
+body[data-auth-page="recover"] .auth-terminal-screen {
+  min-height: auto;
 }

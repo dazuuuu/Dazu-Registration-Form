@@ -59,8 +59,8 @@ require __DIR__ . '/../components/auth/terminal_layout_start.php';
     </div>
 <?php endif; ?>
 
-<p class="auth-terminal-hint" style="color:var(--term-green-dim);font-size:0.85rem;margin-bottom:1rem;">
-    Enter your account email. We will send a 6-digit OTP code valid for 15 minutes.
+<p class="auth-terminal-hint">
+    Enter your account email. A 6-digit OTP will be emailed — valid for 15 minutes.
     Works for admin, tutor, student, and user accounts.
 </p>
 
@@ -81,8 +81,13 @@ require __DIR__ . '/../components/auth/terminal_layout_start.php';
 
 <div class="auth-terminal-links">
     <div class="row">
-        <span class="guest">guest@hub:~$</span>
-        <a href="login.php">cd ../login</a>
+        <span class="guest">user@hub:~$</span>
+        <span>remembered password?</span>
+        <a href="login.php">./signin.sh</a>
+    </div>
+    <div class="row">
+        <span class="guest">admin@hub:~$</span>
+        <a href="<?php echo url('admin/portal.php'); ?>">sudo portal</a>
     </div>
 </div>
 
