@@ -51,6 +51,16 @@ class StudentModel {
         return $row ?: null;
     }
 
+    public function setCanPostProject(int $registrationId, bool $allowed): bool {
+        $stmt = $this->db->prepare(
+            "UPDATE registrations SET can_post_project = :allowed WHERE id = :id"
+        );
+        return $stmt->execute([
+            ':allowed' => $allowed ? 1 : 0,
+            ':id' => $registrationId,
+        ]);
+    }
+
     /**
      * Compute total amount owed (registration fee + course fee).
      */

@@ -6,12 +6,14 @@ require_once __DIR__ . '/../../../app/v1/models/TutorModel.php';
 require_once __DIR__ . '/../../../app/v1/models/ProgressModel.php';
 require_once __DIR__ . '/../../../app/v1/models/CurriculumModel.php';
 require_once __DIR__ . '/../../../app/v1/models/SubmissionModel.php';
+require_once __DIR__ . '/../../../app/v1/models/ProjectModel.php';
 
 use Models\Connection;
 use Models\TutorModel;
 use Models\ProgressModel;
 use Models\CurriculumModel;
 use Models\SubmissionModel;
+use Models\ProjectModel;
 
 Middleware::requireTutor();
 $pdo = Connection::getInstance()->getConnection();
@@ -28,6 +30,13 @@ if (!$student || !$tutorModel->tutorTeachesCourse((int)$tutor['id'], (int)$stude
 
 $progress = (new ProgressModel($pdo))->getProgress($regId, (int)$student['course_id']);
 $submissions = (new SubmissionModel($pdo))->getForRegistration($regId);
+$studentProjects = [];
+try {
+    $studentProjects = (new ProjectModel($pdo))->getStudentProjectsByRegistration($regId);
+} catch (Throwable $e) {
+    $studentProjects = [];
+}
+$canPostProject = !empty($student['can_post_project']);
 $page_title = $student['full_name'];
 ob_start();
 ?>
@@ -47,6 +56,41 @@ ob_start();
 </tr>
 <?php endforeach; ?>
 </tbody></table></div></div>
+<div class="card-tutor mb-3">
+    <div class="head d-flex justify-content-between align-items-center">
+        <span>Portfolio Projects</span>
+        <div class="form-check form-switch m-0">
+            <input class="form-check-input" type="checkbox" id="canPostProject" <?php echo $canPostProject ? 'checked' : ''; ?>>
+            <label class="form-check-label small" for="canPostProject">Allow student to post projects</label>
+        </div>
+    </div>
+    <div class="p-3">
+        <p class="text-muted small mb-3">When enabled, this student can submit projects from their portal. You approve submissions before they appear publicly under Student Projects.</p>
+        <?php if (empty($studentProjects)): ?>
+            <p class="text-muted mb-0">No student project submissions yet.</p>
+        <?php else: ?>
+            <div class="list-group list-group-flush border rounded">
+                <?php foreach ($studentProjects as $project): ?>
+                <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap gap-2" id="student-project-<?php echo (int) $project['id']; ?>">
+                    <div>
+                        <strong><?php echo htmlspecialchars($project['small_title']); ?></strong>
+                        <div class="small text-muted">
+                            Year <?php echo htmlspecialchars($project['year_of_study'] ?? '—'); ?>
+                            · <?php echo $project['status'] === 'published' ? 'Published' : 'Pending review'; ?>
+                        </div>
+                    </div>
+                    <?php if ($project['status'] === 'draft'): ?>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-success" onclick="reviewStudentProject(<?php echo (int) $project['id']; ?>, 'approve')">Approve</button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="reviewStudentProject(<?php echo (int) $project['id']; ?>, 'reject')">Reject</button>
+                    </div>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
 <div class="card-tutor"><div class="head">Submissions</div>
 <?php if (empty($submissions)): ?><p class="p-3 text-muted mb-0">No submissions yet.</p>
 <?php else: ?><div class="list-group list-group-flush">
@@ -61,4 +105,52 @@ ob_start();
 <?php endforeach; ?>
 </div><?php endif; ?>
 </div>
+
+<script>
+document.getElementById('canPostProject')?.addEventListener('change', async (e) => {
+    try {
+        const response = await fetch(url('api/tutor/toggle_project_permission.php'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                registration_id: <?php echo (int) $regId; ?>,
+                allowed: e.target.checked ? 1 : 0
+            })
+        });
+        const result = await response.json();
+        if (!result.success) {
+            alert(result.message || 'Could not update permission');
+            e.target.checked = !e.target.checked;
+        }
+    } catch (error) {
+        console.error(error);
+        alert('An error occurred.');
+        e.target.checked = !e.target.checked;
+    }
+});
+
+async function reviewStudentProject(projectId, action) {
+    const label = action === 'approve' ? 'approve and publish' : 'reject and remove';
+    if (!confirm(`Are you sure you want to ${label} this project?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(url('api/tutor/student_project_action.php'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ project_id: projectId, action })
+        });
+        const result = await response.json();
+        if (result.success) {
+            location.reload();
+        } else {
+            alert(result.message || 'Action failed');
+        }
+    } catch (error) {
+        console.error(error);
+        alert('An error occurred.');
+    }
+}
+</script>
 <?php $content = ob_get_clean(); require __DIR__ . '/../../templates/tutor/layout.php';

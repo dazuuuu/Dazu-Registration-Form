@@ -21,6 +21,10 @@ $portalLocked = $portal_locked ?? false;
                    class="nav-link-sm <?php echo $current_dir === 'course' ? 'active' : ''; ?>">
                     <i class="fas fa-book-open"></i> <span>My Course</span>
                 </a>
+                <a href="<?php echo url('students/projects/index.php'); ?>"
+                   class="nav-link-sm <?php echo $current_dir === 'projects' ? 'active' : ''; ?>">
+                    <i class="fas fa-folder-open"></i> <span>My Projects</span>
+                </a>
                 <a href="<?php echo url('students/payments/index.php'); ?>"
                    class="nav-link-sm <?php echo $current_dir === 'payments' ? 'active' : ''; ?>">
                     <i class="fas fa-money-bill-wave"></i> <span>Payments</span>

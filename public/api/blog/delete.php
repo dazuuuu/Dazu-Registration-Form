@@ -1,37 +1,23 @@
 <?php
-// public/api/blog/delete.php
-error_reporting(0);
-ini_set('display_errors', 0);
-header('Content-Type: application/json');
-
-function sendJsonResponse($success, $message) {
-    echo json_encode(['success' => $success, 'message' => $message]);
-    exit();
-}
+require_once __DIR__ . '/_init.php';
 
 try {
-    if (session_status() === PHP_SESSION_NONE) session_start();
-    
-    if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
-        sendJsonResponse(false, 'Unauthorized access');
-    }
-    
-    $input = json_decode(file_get_contents('php://input'), true);
+    blog_api_require_admin();
+
+    $input = json_decode(file_get_contents('php://input'), true) ?: $_POST;
     $blog_id = $input['id'] ?? null;
-    
+
     if (!$blog_id) {
-        sendJsonResponse(false, 'Blog ID is required');
+        blog_api_response(false, 'Blog ID is required');
     }
-    
+
     require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
     require_once __DIR__ . '/../../../app/v1/controllers/BlogController.php';
-    
+
     $blogController = new BlogController($pdo);
     $result = $blogController->delete($blog_id);
-    
-    sendJsonResponse($result['success'], $result['message']);
-    
-} catch (Exception $e) {
-    sendJsonResponse(false, 'Server error: ' . $e->getMessage());
+
+    blog_api_response((bool) $result['success'], $result['message']);
+} catch (Throwable $e) {
+    blog_api_response(false, 'Server error: ' . $e->getMessage());
 }
-?>

@@ -350,7 +350,13 @@ document.getElementById('updateBlogForm').addEventListener('submit', async (e) =
             body: formData
         });
         
-        const result = await response.json();
+        const raw = await response.text();
+        let result;
+        try {
+            result = JSON.parse(raw);
+        } catch (parseError) {
+            throw new Error(raw.trim() || 'Server returned an invalid response (HTTP ' + response.status + ').');
+        }
         
         if (result.success) {
             alert('Blog post updated successfully!');
@@ -360,7 +366,7 @@ document.getElementById('updateBlogForm').addEventListener('submit', async (e) =
         }
     } catch (error) {
         console.error('Error:', error);
-        alert('An error occurred. Please try again.');
+        alert(error.message || 'An error occurred. Please try again.');
     } finally {
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;

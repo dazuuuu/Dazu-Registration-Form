@@ -199,17 +199,22 @@ class BlogController {
         
         // Handle file upload
         if (isset($data['media_file']) && $data['media_file']['error'] === 0) {
-            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . url('uploads/blog/sections/');
-            if (!is_dir($upload_dir)) {
-                mkdir($upload_dir, 0777, true);
+            if (!function_exists('public_path')) {
+                require_once __DIR__ . '/../config/paths.php';
             }
-            
-            $ext = pathinfo($data['media_file']['name'], PATHINFO_EXTENSION);
-            $filename = time() . '_' . uniqid() . '.' . $ext;
-            $target_file = $upload_dir . $filename;
-            
-            if (move_uploaded_file($data['media_file']['tmp_name'], $target_file)) {
-                $media_url = url('uploads/blog/sections/') . $filename;
+            if (!function_exists('upload_image')) {
+                require_once __DIR__ . '/../helpers/uploads.php';
+            }
+
+            $upload = upload_image(
+                $data['media_file'],
+                public_path('uploads/blog/sections'),
+                'uploads/blog/sections'
+            );
+
+            if ($upload['ok']) {
+                $media_url = url($upload['path']);
+                $ext = strtolower(pathinfo($upload['path'], PATHINFO_EXTENSION));
                 
                 // Determine media type
                 if (in_array($ext, ['mp4', 'webm', 'ogg'])) {
@@ -277,9 +282,16 @@ class BlogController {
     public function delete($id) {
         $blog = $this->blogModel->getById($id);
         if ($blog && $blog['featured_image']) {
-            $file_path = $_SERVER['DOCUMENT_ROOT'] . $blog['featured_image'];
-            if (file_exists($file_path)) {
-                unlink($file_path);
+            if (!function_exists('public_path')) {
+                require_once __DIR__ . '/../config/paths.php';
+            }
+            $relative = ltrim(parse_url($blog['featured_image'], PHP_URL_PATH) ?: $blog['featured_image'], '/');
+            if (defined('WEB_ROOT') && WEB_ROOT !== '' && strpos($relative, ltrim(WEB_ROOT, '/')) === 0) {
+                $relative = ltrim(substr($relative, strlen(ltrim(WEB_ROOT, '/'))), '/');
+            }
+            $file_path = public_path($relative);
+            if (is_file($file_path)) {
+                @unlink($file_path);
             }
         }
         
@@ -346,6 +358,10 @@ public function createCategory($name, $description = null, $color = '#667eea') {
     
     // Delete category
     public function deleteCategory($id) {
+        if ($this->blogModel->countBlogsInCategory($id) > 0) {
+            return ['success' => false, 'message' => 'Cannot delete category with existing blog posts. Reassign or delete those posts first.'];
+        }
+
         if ($this->blogModel->deleteCategory($id)) {
             return ['success' => true, 'message' => 'Category deleted successfully'];
         }

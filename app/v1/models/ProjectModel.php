@@ -343,6 +343,83 @@ private function getVideoEmbedCode($url, $type) {
         $stmt->execute([':project_id' => $project_id]);
         return $stmt->fetchAll();
     }
+
+    public function getCategoryBySlug(string $slug): ?array {
+        $stmt = $this->db->prepare("SELECT * FROM project_categories WHERE category_slug = :slug LIMIT 1");
+        $stmt->execute([':slug' => $slug]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ?: null;
+    }
+
+    public function createStudentProject(array $data) {
+        $slug = $this->createSlug($data['small_title'] . '-' . ($data['student_name'] ?? 'student') . '-' . time());
+        $sql = "INSERT INTO projects (
+                    category_id, small_title, major_title, project_slug, description, cover_image,
+                    status, created_by, student_name, project_link, skillset, year_of_study,
+                    registration_id, is_student_submission
+                ) VALUES (
+                    :category_id, :small_title, :major_title, :slug, :description, :cover_image,
+                    :status, :created_by, :student_name, :project_link, :skillset, :year_of_study,
+                    :registration_id, 1
+                )";
+        $stmt = $this->db->prepare($sql);
+        $ok = $stmt->execute([
+            ':category_id' => $data['category_id'],
+            ':small_title' => $data['small_title'],
+            ':major_title' => $data['major_title'],
+            ':slug' => $slug,
+            ':description' => $data['description'],
+            ':cover_image' => $data['cover_image'] ?? null,
+            ':status' => $data['status'] ?? 'draft',
+            ':created_by' => $data['created_by'],
+            ':student_name' => $data['student_name'],
+            ':project_link' => $data['project_link'] ?? null,
+            ':skillset' => $data['skillset'] ?? null,
+            ':year_of_study' => $data['year_of_study'] ?? null,
+            ':registration_id' => $data['registration_id'],
+        ]);
+
+        return $ok ? (int) $this->db->lastInsertId() : false;
+    }
+
+    public function getStudentProjectsByRegistration(int $registrationId): array {
+        $sql = "SELECT p.*, c.category_name, c.category_slug
+                FROM projects p
+                JOIN project_categories c ON p.category_id = c.id
+                WHERE p.registration_id = :registration_id AND p.is_student_submission = 1
+                ORDER BY p.created_at DESC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':registration_id' => $registrationId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getPendingStudentProjectsForTutor(int $tutorId): array {
+        $sql = "SELECT p.*, r.full_name, r.registration_no, co.title AS course_title, pc.category_name
+                FROM projects p
+                JOIN registrations r ON p.registration_id = r.id
+                JOIN courses co ON r.course_id = co.id
+                JOIN course_tutors ct ON ct.course_id = co.id
+                JOIN project_categories pc ON p.category_id = pc.id
+                WHERE p.is_student_submission = 1
+                  AND p.status = 'draft'
+                  AND ct.tutor_id = :tutor_id
+                ORDER BY p.created_at ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':tutor_id' => $tutorId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function tutorCanManageStudentProject(int $projectId, int $tutorId): bool {
+        $sql = "SELECT p.id
+                FROM projects p
+                JOIN registrations r ON p.registration_id = r.id
+                JOIN course_tutors ct ON ct.course_id = r.course_id
+                WHERE p.id = :project_id AND ct.tutor_id = :tutor_id
+                LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':project_id' => $projectId, ':tutor_id' => $tutorId]);
+        return (bool) $stmt->fetchColumn();
+    }
     
     // Helper Methods
     private function createSlug($string) {
