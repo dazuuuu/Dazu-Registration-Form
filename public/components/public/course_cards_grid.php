@@ -22,7 +22,8 @@ $usingStatic = !empty($usingStaticCourses);
             $detailLink = course_view_url($course);
         }
     ?>
-    <a href="<?php echo htmlspecialchars($detailLink); ?>" class="hp-course-card dh-reveal dh-delay-<?php echo ($i % 4) + 1; ?>" style="text-decoration:none;color:inherit;">
+    <article class="hp-course-card dh-reveal dh-delay-<?php echo ($i % 4) + 1; ?>">
+        <a href="<?php echo htmlspecialchars($detailLink); ?>" class="hp-course-card-link" style="text-decoration:none;color:inherit;">
         <div class="hp-course-img-wrap">
             <img src="<?php echo htmlspecialchars($imgSrc); ?>"
                  alt="<?php echo htmlspecialchars($course['title']); ?>"
@@ -43,6 +44,10 @@ $usingStatic = !empty($usingStaticCourses);
                 <span>KSh <?php echo number_format((float)($course['course_fee'] ?? 0)); ?></span>
             </div>
         </div>
-    </a>
+        </a>
+            <button type="button" class="hp-course-apply-btn" data-dh-apply-open>
+                Apply <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </button>
+    </article>
     <?php endforeach; ?>
 </div>

@@ -68,6 +68,9 @@
   letter-spacing: 0.12em; text-transform: uppercase;
   border-radius: 8px;
   text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
   box-shadow: 0 4px 14px rgba(0,168,89,0.28);
 }
 .dh-btn-apply:hover {

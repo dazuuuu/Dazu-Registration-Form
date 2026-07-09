@@ -80,7 +80,7 @@ include __DIR__ . '/../components/public/page_banner.php';
         <h2>Ready to enroll?</h2>
         <p>Choose your course, pick physical or online, and apply in minutes.</p>
         <div class="dh-page-cta-actions">
-            <a href="<?php echo url('/#register'); ?>" class="dh-btn-apply">Apply now</a>
+            <button type="button" class="dh-btn-apply" data-dh-apply-open>Apply now</button>
             <a href="<?php echo url('contact/index.php'); ?>" class="dh-btn-login">Ask a question</a>
         </div>
     </div>

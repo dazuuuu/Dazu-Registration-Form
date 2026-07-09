@@ -18,10 +18,10 @@ $heroImg = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q
                 <a href="#courses" class="hp-btn-explore">
                     Explore Courses <i class="fas fa-arrow-right" aria-hidden="true"></i>
                 </a>
-                <a href="#register" class="hp-btn-watch">
-                    <span class="hp-play"><i class="fas fa-play" aria-hidden="true"></i></span>
-                    Watch Overview
-                </a>
+                <button type="button" class="hp-btn-watch" data-dh-apply-open>
+                    <span class="hp-play"><i class="fas fa-paper-plane" aria-hidden="true"></i></span>
+                    Apply Now
+                </button>
             </div>
         </div>
 
@@ -50,13 +50,8 @@ $heroImg = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q
                 $imgSrc = !empty($course['cover_image']) ? $course['cover_image'] : ($course['card_image'] ?? '');
                 $faIcon = $course['fa_icon'] ?? 'fa-book';
                 $rating = $course['rating'] ?? '4.8';
-                if ($usingStaticCourses) {
-                    $detailLink = url('/#register');
-                } else {
-                    $detailLink = course_view_url($course);
-                }
             ?>
-            <a href="<?php echo htmlspecialchars($detailLink); ?>" class="hp-course-card dh-reveal dh-delay-<?php echo ($i % 4) + 1; ?>" style="text-decoration:none;color:inherit;">
+            <article class="hp-course-card dh-reveal dh-delay-<?php echo ($i % 4) + 1; ?>">
                 <div class="hp-course-img-wrap">
                     <img src="<?php echo htmlspecialchars($imgSrc); ?>"
                          alt="<?php echo htmlspecialchars($course['title']); ?>"
@@ -74,8 +69,11 @@ $heroImg = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q
                         <span class="hp-dot">&middot;</span>
                         <span>Beginner to Advanced</span>
                     </div>
+                    <button type="button" class="hp-course-apply-btn" data-dh-apply-open>
+                        Apply <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </button>
                 </div>
-            </a>
+            </article>
             <?php endforeach; ?>
         </div>
     </div>
@@ -112,7 +110,7 @@ $heroImg = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q
     <div class="dh-container hp-apply-inner">
         <div class="hp-apply-info dh-reveal">
             <h2>Ready to start your tech journey?</h2>
-            <p>Fill in the application form and our team will verify your payment and get you enrolled.</p>
+            <p>Pay via M-Pesa Lipa na M-PESA, then complete your application. Our team verifies your payment and contacts you within 24 hours.</p>
             <ul class="hp-apply-list">
                 <li><i class="fas fa-check-circle"></i> Flexible monthly payment plans</li>
                 <li><i class="fas fa-check-circle"></i> Physical &amp; online study modes</li>
@@ -121,131 +119,12 @@ $heroImg = 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=800&q
             </ul>
         </div>
 
-        <div class="hp-apply-form-col dh-reveal dh-delay-2">
-            <div class="hp-form-card">
-                <div class="hp-form-head">
-                    <h2><i class="fas fa-graduation-cap" style="margin-right:6px;"></i> Apply Now</h2>
-                    <p>Limited slots per course. We follow up within 24 hours.</p>
-                </div>
-                <div class="hp-form-body">
-                    <?php if ($reg_success): ?>
-                    <div class="hf-alert hf-alert-success">
-                        <i class="fas fa-check-circle"></i>
-                        <div><strong>Application received.</strong> Our team will verify your payment and contact you within 24 hours.</div>
-                    </div>
-                    <?php else: ?>
-                    <?php if ($reg_error): ?>
-                    <div class="hf-alert hf-alert-error">
-                        <i class="fas fa-exclamation-circle"></i>
-                        <div><?php echo htmlspecialchars($reg_error); ?></div>
-                    </div>
-                    <?php endif; ?>
-
-                    <form method="POST" enctype="multipart/form-data" id="hpForm">
-                        <?php echo csrf_field(); ?>
-                        <input type="hidden" name="dh_register" value="1">
-
-                        <div class="hf-row">
-                            <div class="hf-field">
-                                <label for="hp_name">Full Name *</label>
-                                <input type="text" id="hp_name" name="full_name" required placeholder="Jane Wanjiku"
-                                       value="<?php echo htmlspecialchars($_POST['full_name'] ?? ''); ?>">
-                            </div>
-                            <div class="hf-field">
-                                <label for="hp_phone">Phone *</label>
-                                <input type="tel" id="hp_phone" name="phone" required placeholder="07XX XXX XXX"
-                                       value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>">
-                            </div>
-                        </div>
-
-                        <div class="hf-field">
-                            <label for="hp_email">Email *</label>
-                            <input type="email" id="hp_email" name="email" required placeholder="jane@email.com"
-                                   value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
-                        </div>
-
-                        <div class="hf-field">
-                            <label for="hp_course">Course *</label>
-                            <select id="hp_course" name="course_id" required>
-                                <option value="">— Select a course —</option>
-                                <?php foreach ($displayCourses as $c): ?>
-                                <option value="<?php echo (int)($c['id'] ?? 0); ?>"
-                                        data-fee="<?php echo (float)$c['course_fee']; ?>"
-                                        data-months="<?php echo (int)$c['duration_months']; ?>"
-                                        <?php echo (isset($_POST['course_id']) && (int)$_POST['course_id']===(int)($c['id']??0)) ? 'selected':''; ?>>
-                                    <?php echo htmlspecialchars($c['title']); ?> — KSh <?php echo number_format($c['course_fee']); ?>
-                                </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="hf-field">
-                            <label>Study Mode *</label>
-                            <div class="hf-mode">
-                                <div class="hf-mode-opt">
-                                    <input type="radio" id="hp_online" name="study_mode" value="online" required
-                                           <?php echo (!isset($_POST['study_mode'])||$_POST['study_mode']==='online')?'checked':''; ?>>
-                                    <label for="hp_online">💻 <strong>Online</strong></label>
-                                </div>
-                                <div class="hf-mode-opt">
-                                    <input type="radio" id="hp_physical" name="study_mode" value="physical"
-                                           <?php echo (isset($_POST['study_mode'])&&$_POST['study_mode']==='physical')?'checked':''; ?>>
-                                    <label for="hp_physical">🏫 <strong>Physical</strong></label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="hf-field">
-                            <label>Payment Plan *</label>
-                            <div class="hf-plan">
-                                <div class="hf-plan-opt">
-                                    <input type="radio" id="hp_mo" name="payment_plan" value="monthly" checked>
-                                    <label for="hp_mo"><strong>Monthly</strong><span id="hp_hint_mo">—</span></label>
-                                </div>
-                                <div class="hf-plan-opt">
-                                    <input type="radio" id="hp_3mo" name="payment_plan" value="3months">
-                                    <label for="hp_3mo"><strong>3-Month</strong><span id="hp_hint_3mo">—</span></label>
-                                </div>
-                                <div class="hf-plan-opt">
-                                    <input type="radio" id="hp_full" name="payment_plan" value="full">
-                                    <label for="hp_full"><strong>Full</strong><span id="hp_hint_full">—</span></label>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="hf-fee" id="hpFeeBox">
-                            <div class="hf-fee-row"><span>Reg. fee</span><strong id="hp_rfee">KSh 1,000</strong></div>
-                            <div class="hf-fee-row"><span id="hp_ilabel">Select a course</span><strong id="hp_iamt">—</strong></div>
-                            <hr class="hf-fee-hr">
-                            <div class="hf-fee-total">
-                                <span>Pay now</span>
-                                <span class="amt" id="hp_total">KSh 1,000</span>
-                            </div>
-                        </div>
-
-                        <div class="hf-field">
-                            <label for="hp_mpesa">M-Pesa Name / Code *</label>
-                            <input type="text" id="hp_mpesa" name="payment_reference" required
-                                   placeholder="Jane Wanjiku or QGH7XXXX"
-                                   value="<?php echo htmlspecialchars($_POST['payment_reference'] ?? ''); ?>">
-                        </div>
-
-                        <div class="hf-field">
-                            <label>ID / Result Slip (PDF) *</label>
-                            <label class="hf-upload" for="hp_id_doc">
-                                <i class="fas fa-file-pdf"></i>
-                                <span id="hpUploadText">Upload PDF</span>
-                            </label>
-                            <input type="file" id="hp_id_doc" name="id_document" accept="application/pdf" required>
-                        </div>
-
-                        <button type="submit" class="hf-submit" id="hpSubmitBtn">
-                            <i class="fas fa-paper-plane"></i> Submit Application
-                        </button>
-                    </form>
-                    <?php endif; ?>
-                </div>
-            </div>
+        <div class="hp-apply-cta-col dh-reveal dh-delay-2">
+            <?php include __DIR__ . '/payment_credentials_box.php'; ?>
+            <button type="button" class="hf-submit hp-apply-cta-btn" data-dh-apply-open style="margin-top:16px;">
+                <i class="fas fa-graduation-cap"></i> Open Application Form
+            </button>
+            <?php include __DIR__ . '/apply_share_actions.php'; ?>
         </div>
     </div>
 </section>

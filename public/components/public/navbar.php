@@ -96,7 +96,7 @@ $navLinks = [
                     </div>
                 </div>
             <?php else: ?>
-                <a href="<?php echo url('/#register'); ?>" class="dh-btn-apply">Apply</a>
+                <button type="button" class="dh-btn-apply" data-dh-apply-open>Apply</button>
                 <a href="<?php echo url('auth/login.php'); ?>" class="dh-btn-login">
                     <i class="far fa-user" aria-hidden="true"></i> Login
                 </a>
@@ -138,7 +138,7 @@ $navLinks = [
     </nav>
     <?php if (!$isLoggedIn): ?>
     <div class="dh-drawer-foot">
-        <a href="<?php echo url('/#register'); ?>" class="dh-btn-apply dh-btn-apply--block">Apply</a>
+        <button type="button" class="dh-btn-apply dh-btn-apply--block" data-dh-apply-open>Apply</button>
     </div>
     <?php endif; ?>
 </aside>

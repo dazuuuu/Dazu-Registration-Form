@@ -29,7 +29,10 @@ require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 <link rel="stylesheet" href="<?php echo asset('css/theme.css'); ?>">
 <link rel="stylesheet" href="<?php echo asset('css/mockup-nav-footer.css'); ?>">
 <link rel="stylesheet" href="<?php echo asset('css/public-pages.css'); ?>">
+<link rel="stylesheet" href="<?php echo asset('css/apply-modal.css'); ?>">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<noscript><style>.dh-reveal,.dh-reveal-left,.dh-reveal-right,.reveal{opacity:1!important;transform:none!important}</style></noscript>
 
 <?php if (isset($extra_css)) echo $extra_css; ?>
 </head>
@@ -40,7 +43,33 @@ require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
     <?php echo $content ?? ''; ?>
 </main>
 
+<script>
+(function(){
+    var els = document.querySelectorAll('.dh-reveal, .dh-reveal-left, .dh-reveal-right, .reveal');
+    if (!('IntersectionObserver' in window)) {
+        els.forEach(function(el){ el.classList.add('visible'); });
+        return;
+    }
+    var io = new IntersectionObserver(function(entries){
+        entries.forEach(function(e){
+            if(e.isIntersecting){
+                e.target.classList.add('visible');
+                io.unobserve(e.target);
+            }
+        });
+    }, { threshold: 0.12 });
+    els.forEach(function(el){ io.observe(el); });
+})();
+</script>
+
 <?php include __DIR__ . '/../../components/public/footer.php'; ?>
+
+<?php if (empty($skip_apply_modal)): ?>
+    <?php include __DIR__ . '/../../components/public/apply_modal_bootstrap.php'; ?>
+<?php endif; ?>
+
+<script>window.DH_APPLY_URL = <?php echo json_encode(url('apply/index.php')); ?>;</script>
+<script src="<?php echo asset('js/apply-form.js'); ?>"></script>
 
 <a href="<?php echo htmlspecialchars(whatsapp_chat_url('Hi Dazu Hub Institute, I have a question.')); ?>"
    class="dh-wa-float" target="_blank" rel="noopener" aria-label="Chat on WhatsApp"
@@ -59,21 +88,6 @@ require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 }
 .dh-wa-float:hover { transform: scale(1.06); color: #fff; box-shadow: 0 6px 22px rgba(37,211,102,.55); }
 </style>
-
-<script>
-(function(){
-    var io = new IntersectionObserver(function(entries){
-        entries.forEach(function(e){
-            if(e.isIntersecting){
-                e.target.classList.add('visible');
-                io.unobserve(e.target);
-            }
-        });
-    }, { threshold: 0.12 });
-    document.querySelectorAll('.dh-reveal, .dh-reveal-left, .dh-reveal-right, .reveal')
-            .forEach(function(el){ io.observe(el); });
-})();
-</script>
 
 <?php if (isset($extra_js)) echo $extra_js; ?>
 <script>
