@@ -16,7 +16,7 @@ export default function StudentDashboard() {
   const r = data.registration;
 
   return (
-    <div className="min-h-screen subtle-gradient-background p-6">
+    <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-extrabold">Student Portal</h1>

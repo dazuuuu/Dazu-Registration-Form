@@ -25,7 +25,7 @@ export default function StudentPayments() {
   };
 
   return (
-    <div className="min-h-screen subtle-gradient-background p-6">
+    <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-3xl mx-auto">
         <Link to="/student" className="text-emerald-600 font-semibold">← Dashboard</Link>
         <h1 className="text-2xl font-extrabold mt-4 mb-6">Payments</h1>

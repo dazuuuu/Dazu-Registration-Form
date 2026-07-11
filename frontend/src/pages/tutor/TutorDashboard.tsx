@@ -9,7 +9,7 @@ export default function TutorDashboard() {
   if (!data) return <div className="min-h-screen flex items-center justify-center">Loading…</div>;
 
   return (
-    <div className="min-h-screen subtle-gradient-background p-6">
+    <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-extrabold">Tutor Portal</h1>
