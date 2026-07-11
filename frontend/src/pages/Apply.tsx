@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from '../router';
-import { coursesData, type Course } from '../data/courses';
 import { useCourses } from '../hooks/useCourses';
-import { api } from '../api/client';
+import { api, type FeeQuote, type PaymentCredentials } from '../api/client';
+import type { Course } from '../data/courses';
 import { 
   User, 
   MapPin, 
@@ -27,8 +27,7 @@ import {
 
 export default function Apply() {
   const { navigate } = useRouter();
-  const { courses, findApiCourseByTitle } = useCourses();
-  const catalog = courses.length ? courses : coursesData;
+  const { courses, loading: coursesLoading, findApiCourseByTitle } = useCourses();
   
   // Form states
   const [formData, setFormData] = useState({
@@ -36,10 +35,14 @@ export default function Apply() {
     countyOrCountry: '',
     email: '',
     phone: '',
-    courseChoice: 'Web development',
+    courseChoice: '',
     intakeDate: '',
-    paymentMessage: ''
+    paymentMessage: '',
+    studyMode: 'online',
+    paymentPlan: 'monthly',
   });
+  const [feeQuote, setFeeQuote] = useState<FeeQuote | null>(null);
+  const [paymentInfo, setPaymentInfo] = useState<PaymentCredentials | null>(null);
 
   // Document Upload States with strict sandbox and anti-arbitrary upload validations
   const [idFile, setIdFile] = useState<File | null>(null);
@@ -144,36 +147,52 @@ export default function Apply() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
 
-  // Generate captcha on mount
+  useEffect(() => {
+    api.paymentSettings().then((r) => setPaymentInfo(r.data)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const apiCourse = findApiCourseByTitle(formData.courseChoice);
+    if (!apiCourse) {
+      setFeeQuote(null);
+      return;
+    }
+    api
+      .calculateFee({
+        course_id: apiCourse.id,
+        study_mode: formData.studyMode,
+        payment_plan: formData.paymentPlan,
+      })
+      .then((r) => setFeeQuote(r.data))
+      .catch(() => setFeeQuote(null));
+  }, [formData.courseChoice, formData.studyMode, formData.paymentPlan, findApiCourseByTitle]);
+
   useEffect(() => {
     generateCaptcha();
   }, []);
 
-  // Parse course from query parameter
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const courseParam = params.get('course');
     if (courseParam) {
       const decoded = decodeURIComponent(courseParam);
-      // Try to find a match (case-insensitive)
-      const matchedCourse = catalog.find(c => c.title.toLowerCase() === decoded.toLowerCase());
+      const matchedCourse = courses.find((c) => c.title.toLowerCase() === decoded.toLowerCase());
       if (matchedCourse) {
-        setFormData(prev => ({ ...prev, courseChoice: matchedCourse.title }));
+        setFormData((prev) => ({ ...prev, courseChoice: matchedCourse.title }));
         setSelectedCourse(matchedCourse);
       }
-    } else if (catalog.length > 0) {
-      // Default to first course if none selected
-      setSelectedCourse(catalog[0]);
+    } else if (courses.length > 0 && !formData.courseChoice) {
+      setFormData((prev) => ({ ...prev, courseChoice: courses[0].title }));
+      setSelectedCourse(courses[0]);
     }
-  }, []);
+  }, [courses]);
 
-  // Sync course selection dropdown with current course details panel
   useEffect(() => {
-    const matchedCourse = catalog.find(c => c.title === formData.courseChoice);
+    const matchedCourse = courses.find((c) => c.title === formData.courseChoice);
     if (matchedCourse) {
       setSelectedCourse(matchedCourse);
     }
-  }, [formData.courseChoice]);
+  }, [formData.courseChoice, courses]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -256,8 +275,8 @@ export default function Apply() {
       body.set('email', formData.email.trim());
       body.set('phone', formData.phone.trim().replace(/\s/g, ''));
       body.set('course_id', String(apiCourse.id));
-      body.set('study_mode', 'online');
-      body.set('payment_plan', 'monthly');
+      body.set('study_mode', formData.studyMode);
+      body.set('payment_plan', formData.paymentPlan);
       body.set('payment_reference', formData.paymentMessage.trim());
       body.set('id_document', idFile);
       await api.submitRegistration(body);
@@ -284,6 +303,11 @@ export default function Apply() {
         </button>
 
         {!isSubmitted ? (
+          coursesLoading ? (
+            <p className="text-center text-slate-500 py-20">Loading courses from server…</p>
+          ) : courses.length === 0 ? (
+            <p className="text-center text-amber-600 py-20 text-sm">No courses available. Add courses in the admin panel.</p>
+          ) : (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             
             {/* LEFT COLUMN: COURSE INFO & SUMMARY */}
@@ -472,7 +496,7 @@ export default function Apply() {
                         className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white transition-colors appearance-none cursor-pointer"
                         id="apply-courseChoice"
                       >
-                        {catalog.map((course) => (
+                        {courses.map((course) => (
                           <option key={course.id} value={course.title}>
                             {course.title}
                           </option>
@@ -498,6 +522,31 @@ export default function Apply() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Study Mode *</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { value: 'online', label: 'Online (KES 1,000 fee)' },
+                        { value: 'physical', label: 'Physical (KES 1,500 fee)' },
+                      ].map((mode) => (
+                        <label key={mode.value} className={`p-3 border rounded-xl text-xs font-bold cursor-pointer ${formData.studyMode === mode.value ? 'border-green-600 bg-green-50' : 'border-slate-200'}`}>
+                          <input type="radio" name="studyMode" value={mode.value} checked={formData.studyMode === mode.value} onChange={handleInputChange} className="sr-only" />
+                          {mode.label}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Payment Plan *</label>
+                    <select name="paymentPlan" value={formData.paymentPlan} onChange={handleInputChange} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium">
+                      <option value="monthly">Monthly installments</option>
+                      <option value="3months">3-month plan</option>
+                      <option value="full">Full payment</option>
+                    </select>
+                  </div>
+                </div>
+
                 {/* Prominent Payment Details Card */}
                 <div className="p-5 bg-green-50 border border-green-200 rounded-2xl space-y-4">
                   <div className="flex items-center gap-2 border-b border-green-100 pb-3">
@@ -508,17 +557,25 @@ export default function Apply() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
                     <div className="bg-white p-3 border border-green-100 rounded-xl text-center">
                       <span className="block text-slate-400 text-[9px] uppercase tracking-wider font-extrabold mb-0.5">Paybill Number</span>
-                      <strong className="text-sm font-extrabold text-slate-900 select-all">880100</strong>
+                      <strong className="text-sm font-extrabold text-slate-900 select-all">{paymentInfo?.paybill || '880100'}</strong>
                     </div>
                     <div className="bg-white p-3 border border-green-100 rounded-xl text-center">
                       <span className="block text-slate-400 text-[9px] uppercase tracking-wider font-extrabold mb-0.5">Account Number</span>
-                      <strong className="text-sm font-extrabold text-[#15A24A] select-all">681158</strong>
+                      <strong className="text-sm font-extrabold text-[#15A24A] select-all">{paymentInfo?.account_number || '681158'}</strong>
                     </div>
                     <div className="bg-white p-3 border border-green-100 rounded-xl text-center">
                       <span className="block text-slate-400 text-[9px] uppercase tracking-wider font-extrabold mb-0.5">Business Name</span>
-                      <strong className="text-sm font-extrabold text-slate-900">Dazu hub</strong>
+                      <strong className="text-sm font-extrabold text-slate-900">{paymentInfo?.account_name || 'Dazu hub'}</strong>
                     </div>
                   </div>
+
+                  {feeQuote && (
+                    <div className="bg-white border border-green-100 rounded-xl p-4 text-xs space-y-2">
+                      <div className="flex justify-between"><span>Registration fee</span><strong>KES {feeQuote.registration_fee.toLocaleString()}</strong></div>
+                      <div className="flex justify-between"><span>First installment</span><strong>KES {feeQuote.installment_amount.toLocaleString()}</strong></div>
+                      <div className="flex justify-between font-extrabold text-green-800"><span>Pay now</span><span>KES {feeQuote.total_due_now.toLocaleString()}</span></div>
+                    </div>
+                  )}
 
                   <div className="flex items-start gap-2 text-[11px] text-green-800 font-semibold leading-relaxed">
                     <Info className="h-4 w-4 text-green-700 shrink-0 mt-0.5" />
@@ -702,6 +759,7 @@ export default function Apply() {
             </div>
 
           </div>
+          )
         ) : (
           /* SUCCESS STATE */
           <div className="max-w-xl mx-auto bg-white border-2 border-slate-900 rounded-[24px] p-8 md:p-12 text-center relative overflow-hidden">
@@ -772,9 +830,11 @@ export default function Apply() {
                     countyOrCountry: '',
                     email: '',
                     phone: '',
-                    courseChoice: coursesData[0]?.title || '',
+                    courseChoice: courses[0]?.title || '',
                     intakeDate: '',
-                    paymentMessage: ''
+                    paymentMessage: '',
+                    studyMode: 'online',
+                    paymentPlan: 'monthly',
                   });
                   setIsSubmitted(false);
                 }}

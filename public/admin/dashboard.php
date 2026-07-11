@@ -8,7 +8,7 @@ require_once __DIR__ . '/../../app/v1/models/DashboardModel.php';
 use Models\DashboardModel;
 
 if (!isLoggedIn()) redirect(url('admin/portal.php'));
-if (($_SESSION['role_id'] ?? 99) > 2) redirect(url('auth/login.php'));
+if (($_SESSION['role_id'] ?? 99) > 2) redirect(url('admin/portal.php'));
 
 $dash = new DashboardModel($pdo);
 $stats = $dash->adminStats();

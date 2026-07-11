@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../app/v1/helpers/functions.php';
 
 // If already logged in as admin, redirect to admin profile
 if (isLoggedIn() && isAdmin()) {
-    redirect(url('profile/admin/index.php'));
+    redirect(url('admin/dashboard.php'));
 }
 
 $error = '';
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role_id'] = $user['role_id'];
             $_SESSION['logged_in'] = true;
 
-            redirect(url('profile/admin/index.php'));
+            redirect(url('admin/dashboard.php'));
         }
     }
 }

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from '../router';
-import { coursesData, type Course } from '../data/courses';
 import { useCourses } from '../hooks/useCourses';
+import type { Course } from '../data/courses';
 import { 
   Search, 
   Filter, 
@@ -18,8 +18,7 @@ import {
 
 export default function Courses() {
   const { navigate } = useRouter();
-  const { courses } = useCourses();
-  const catalog = courses.length ? courses : coursesData;
+  const { courses, loading, error, apiCourses } = useCourses();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedLevel, setSelectedLevel] = useState<string>('All');
@@ -37,7 +36,7 @@ export default function Courses() {
   const categories = ['All', 'Software & Web', 'AI & Data Science', 'Security & Infrastructure', 'Creative & Marketing'];
   const levels = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 
-  const filteredCourses = catalog.filter((course) => {
+  const filteredCourses = courses.filter((course) => {
     const matchesSearch = 
       course.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
       course.description.toLowerCase().includes(searchQuery.toLowerCase());
@@ -131,7 +130,7 @@ export default function Courses() {
             </div>
           </div>
           <span className="font-bold text-slate-500 uppercase tracking-wider text-xs">
-            Showing <span className="text-green-600">{filteredCourses.length}</span> of {coursesData.length} available tracks
+            Showing <span className="text-green-600">{filteredCourses.length}</span> of {courses.length} available tracks
           </span>
         </div>
 
@@ -156,9 +155,12 @@ export default function Courses() {
           </div>
         )}
 
+        {loading && <p className="text-center text-slate-500 py-12">Loading courses from server…</p>}
+        {error && !loading && <p className="text-center text-amber-600 py-12 text-sm">{error}</p>}
+
         {/* Responsive Grid list of active cards with Image, Rating, Price and Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredCourses.map((course) => {
+          {!loading && filteredCourses.map((course) => {
             const IconComponent = course.icon;
             return (
               <div
@@ -228,6 +230,15 @@ export default function Courses() {
                         className="px-3.5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm cursor-pointer flex items-center gap-1"
                       >
                         Apply
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/courses/${course.id}`);
+                        }}
+                        className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition-colors cursor-pointer flex items-center gap-1 border border-slate-200"
+                      >
+                        Details
                       </button>
                       <button 
                         onClick={(e) => {

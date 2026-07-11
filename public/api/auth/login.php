@@ -33,9 +33,9 @@ SessionModel::set('logged_in', true);
 
 $redirect = match ($user['role_name']) {
     'superadmin', 'admin' => url('admin/dashboard.php'),
-    'student' => '/student',
-    'tutor' => '/tutor',
-    default => '/',
+    'student' => url('student'),
+    'tutor' => url('tutor'),
+    default => url(''),
 };
 
 json_response([

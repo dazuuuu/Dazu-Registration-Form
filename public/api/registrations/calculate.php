@@ -23,8 +23,12 @@ if (!$course) {
 $fee = (float) $course['course_fee'];
 $months = max(1, (int) $course['duration_months']);
 $regFee = $mode === 'physical' ? 1500 : 1000;
-$installments = RegistrationModel::calculateInstallments($fee, $plan, $months);
-$first = $installments[0] ?? $fee;
+$info = RegistrationModel::calculateInstallments($fee, $plan, $months);
+$first = $info['amount'] ?? $fee;
+$installmentList = [];
+for ($i = 0; $i < ($info['count'] ?? 1); $i++) {
+    $installmentList[] = ($i === ($info['count'] - 1)) ? ($info['last_amount'] ?? $first) : $first;
+}
 
 json_response([
     'success' => true,
@@ -32,7 +36,7 @@ json_response([
         'registration_fee' => $regFee,
         'installment_amount' => $first,
         'total_due_now' => $regFee + $first,
-        'installments' => $installments,
+        'installments' => $installmentList,
         'course_fee' => $fee,
     ],
 ]);

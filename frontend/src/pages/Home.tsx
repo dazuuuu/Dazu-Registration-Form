@@ -232,8 +232,7 @@ const heroSlides: HeroSlide[] = [
 
 export default function Home() {
   const { navigate } = useRouter();
-  const { courses } = useCourses();
-  const displayCourses = courses.length ? courses : coursesData;
+  const { courses, loading, error } = useCourses();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [activeTestimonial, setActiveTestimonial] = useState(0);
   const [isVideoOpen, setIsVideoOpen] = useState(false);
@@ -519,7 +518,11 @@ export default function Home() {
             </p>
           </div>          {/* Modern 3D Rectangle Course Cards Grid with Image, Ratings, Price and Apply Button */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 text-left">
-            {displayCourses.map((course, index) => {
+            {loading && <p className="col-span-full text-center text-slate-500 py-8">Loading courses from server…</p>}
+            {error && !loading && (
+              <p className="col-span-full text-center text-amber-600 py-8 text-sm">{error}</p>
+            )}
+            {!loading && courses.map((course, index) => {
               const IconComponent = course.icon;
               return (
                 <motion.div 

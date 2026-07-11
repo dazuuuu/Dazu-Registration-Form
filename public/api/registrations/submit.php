@@ -15,7 +15,7 @@ if (!empty($result['ok'])) {
     json_response([
         'success' => true,
         'message' => $result['message'] ?? 'Application received.',
-        'registration_id' => $result['registration_id'] ?? null,
+        'registration_id' => $result['id'] ?? $result['registration_id'] ?? null,
     ]);
 }
 

@@ -12,6 +12,7 @@ import Apply from './pages/Apply';
 import Login from './pages/Login';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import CourseDetail from './pages/CourseDetail';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentPayments from './pages/student/StudentPayments';
 import TutorDashboard from './pages/tutor/TutorDashboard';
@@ -33,6 +34,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<SiteLayout><Home /></SiteLayout>} />
           <Route path="/courses" element={<SiteLayout><Courses /></SiteLayout>} />
+          <Route path="/courses/:id" element={<SiteLayout><CourseDetail /></SiteLayout>} />
           <Route path="/about" element={<SiteLayout><About /></SiteLayout>} />
           <Route path="/projects" element={<SiteLayout><Projects /></SiteLayout>} />
           <Route path="/blog" element={<SiteLayout><Blog /></SiteLayout>} />
