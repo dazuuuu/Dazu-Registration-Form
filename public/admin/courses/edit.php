@@ -5,14 +5,22 @@ require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
+require_once __DIR__ . '/../../../app/v1/models/CourseCategoryModel.php';
 
 use Models\Connection;
 use Models\CourseModel;
+use Models\CourseCategoryModel;
 
 Middleware::requireAdmin();
 
 $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
+$categoryModel = new CourseCategoryModel($pdo);
+try {
+    $categories = $categoryModel->getAll(false);
+} catch (Throwable $e) {
+    $categories = [];
+}
 
 $id = (int) ($_GET['id'] ?? 0);
 $course = $courseModel->getById($id);
@@ -47,6 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $courseModel->update($id, [
                 'title'           => $_POST['title'] ?? '',
                 'abbreviation'    => $_POST['abbreviation'] ?? '',
+                'category_id'     => $_POST['category_id'] ?? null,
                 'description'     => $_POST['description'] ?? '',
                 'overview'        => $_POST['overview'] ?? '',
                 'duration_months' => $_POST['duration_months'] ?? 0,
@@ -101,6 +110,18 @@ ob_start();
                     <label class="form-label">Abbreviation</label>
                     <input type="text" name="abbreviation" class="form-control" required maxlength="10"
                            value="<?php echo htmlspecialchars($course['abbreviation']); ?>">
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Category</label>
+                    <select name="category_id" class="form-select">
+                        <option value="">— Select category —</option>
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?php echo (int) $cat['id']; ?>" <?php echo (int)($course['category_id'] ?? 0) === (int)$cat['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($cat['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
 
                 <div class="col-md-6">

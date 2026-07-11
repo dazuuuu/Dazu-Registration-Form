@@ -20,12 +20,6 @@ $syllabusUrl = $applyUrl . '#learn';
   <div class="relative h-48 w-full bg-slate-100 overflow-hidden">
     <img src="<?php echo htmlspecialchars($img); ?>" alt="<?php echo $title; ?>"
          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerpolicy="no-referrer">
-    <span class="absolute top-3 left-3 text-[10px] font-extrabold text-white bg-green-600 px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
-      <?php echo htmlspecialchars($category); ?>
-    </span>
-    <div class="absolute bottom-3 right-3 p-2 bg-white/95 text-green-600 border border-slate-100 rounded-xl shadow-sm">
-      <?php echo dazu_course_icon_markup($course['abbreviation'] ?? ''); ?>
-    </div>
   </div>
   <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
     <div class="space-y-3">

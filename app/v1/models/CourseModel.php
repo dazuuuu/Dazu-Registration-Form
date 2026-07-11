@@ -21,13 +21,16 @@ class CourseModel {
             return ['ok' => false, 'error' => $taken];
         }
 
-        $sql = "INSERT INTO courses (title, abbreviation, cover_image, description, overview, duration_months, course_fee, is_active, created_by)
-                VALUES (:title, :abbreviation, :cover_image, :description, :overview, :duration_months, :course_fee, 1, :created_by)";
-        $stmt = $this->db->prepare($sql);
+        $categoryId = !empty($data['category_id']) ? (int) $data['category_id'] : null;
+
         try {
+            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, description, overview, duration_months, course_fee, is_active, created_by)
+                    VALUES (:title, :abbreviation, :category_id, :cover_image, :description, :overview, :duration_months, :course_fee, 1, :created_by)";
+            $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':title'            => trim($data['title']),
                 ':abbreviation'     => $abbr,
+                ':category_id'      => $categoryId,
                 ':cover_image'      => $data['cover_image'] ?? null,
                 ':description'      => $data['description'] ?? '',
                 ':overview'         => $data['overview'] ?? '',
@@ -36,11 +39,27 @@ class CourseModel {
                 ':created_by'       => $this->resolveCreatedBy($createdBy),
             ]);
         } catch (\PDOException $e) {
-            $mapped = $this->mapDbError($e, $abbr);
-            if ($mapped !== null) {
-                return ['ok' => false, 'error' => $mapped];
+            if ($categoryId !== null && stripos($e->getMessage(), 'category_id') !== false) {
+                $sql = "INSERT INTO courses (title, abbreviation, cover_image, description, overview, duration_months, course_fee, is_active, created_by)
+                        VALUES (:title, :abbreviation, :cover_image, :description, :overview, :duration_months, :course_fee, 1, :created_by)";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute([
+                    ':title'            => trim($data['title']),
+                    ':abbreviation'     => $abbr,
+                    ':cover_image'      => $data['cover_image'] ?? null,
+                    ':description'      => $data['description'] ?? '',
+                    ':overview'         => $data['overview'] ?? '',
+                    ':duration_months'  => (int) $data['duration_months'],
+                    ':course_fee'       => (float) $data['course_fee'],
+                    ':created_by'       => $this->resolveCreatedBy($createdBy),
+                ]);
+            } else {
+                $mapped = $this->mapDbError($e, $abbr);
+                if ($mapped !== null) {
+                    return ['ok' => false, 'error' => $mapped];
+                }
+                throw $e;
             }
-            throw $e;
         }
         return ['ok' => true, 'id' => (int) $this->db->lastInsertId()];
     }
@@ -54,11 +73,16 @@ class CourseModel {
             return ['ok' => false, 'error' => $taken];
         }
 
-        $fields = "title = :title, abbreviation = :abbreviation, description = :description,
+        $categoryId = array_key_exists('category_id', $data)
+            ? (!empty($data['category_id']) ? (int) $data['category_id'] : null)
+            : null;
+
+        $fields = "title = :title, abbreviation = :abbreviation, category_id = :category_id, description = :description,
                    overview = :overview, duration_months = :duration_months, course_fee = :course_fee";
         $params = [
             ':title'           => trim($data['title']),
             ':abbreviation'    => $abbr,
+            ':category_id'     => $categoryId,
             ':description'     => $data['description'] ?? '',
             ':overview'        => $data['overview'] ?? '',
             ':duration_months' => (int) $data['duration_months'],
@@ -76,11 +100,19 @@ class CourseModel {
         try {
             $stmt->execute($params);
         } catch (\PDOException $e) {
-            $mapped = $this->mapDbError($e, $abbr);
-            if ($mapped !== null) {
-                return ['ok' => false, 'error' => $mapped];
+            if ($categoryId !== null && stripos($e->getMessage(), 'category_id') !== false) {
+                $fields = str_replace('category_id = :category_id, ', '', $fields);
+                unset($params[':category_id']);
+                $sql = "UPDATE courses SET $fields WHERE id = :id";
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute($params);
+            } else {
+                $mapped = $this->mapDbError($e, $abbr);
+                if ($mapped !== null) {
+                    return ['ok' => false, 'error' => $mapped];
+                }
+                throw $e;
             }
-            throw $e;
         }
         return ['ok' => true];
     }
@@ -120,8 +152,33 @@ class CourseModel {
     }
 
     public function getAll(bool $activeOnly = false): array {
-        $sql = "SELECT * FROM courses" . ($activeOnly ? " WHERE is_active = 1" : "") . " ORDER BY title ASC";
-        return $this->db->query($sql)->fetchAll();
+        try {
+            $sql = "SELECT c.*, cc.name AS category_name, cc.slug AS category_slug, cc.icon_path AS category_icon
+                    FROM courses c
+                    LEFT JOIN course_categories cc ON cc.id = c.category_id";
+            if ($activeOnly) {
+                $sql .= " WHERE c.is_active = 1";
+            }
+            $sql .= " ORDER BY c.title ASC";
+            return $this->db->query($sql)->fetchAll();
+        } catch (\PDOException $e) {
+            $sql = "SELECT * FROM courses" . ($activeOnly ? " WHERE is_active = 1" : "") . " ORDER BY title ASC";
+            return $this->db->query($sql)->fetchAll();
+        }
+    }
+
+    public function getByCategoryId(int $categoryId, bool $activeOnly = true): array {
+        $sql = "SELECT c.*, cc.name AS category_name, cc.slug AS category_slug, cc.icon_path AS category_icon
+                FROM courses c
+                LEFT JOIN course_categories cc ON cc.id = c.category_id
+                WHERE c.category_id = :category_id";
+        if ($activeOnly) {
+            $sql .= " AND c.is_active = 1";
+        }
+        $sql .= " ORDER BY c.title ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([':category_id' => $categoryId]);
+        return $stmt->fetchAll();
     }
 
     /**

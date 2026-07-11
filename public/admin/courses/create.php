@@ -5,17 +5,25 @@ require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
+require_once __DIR__ . '/../../../app/v1/models/CourseCategoryModel.php';
 
 use Models\Connection;
 use Models\CourseModel;
+use Models\CourseCategoryModel;
 
 Middleware::requireAdmin();
 
 $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
+$categoryModel = new CourseCategoryModel($pdo);
+try {
+    $categories = $categoryModel->getAll(false);
+} catch (Throwable $e) {
+    $categories = [];
+}
 
 $error = null;
-$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'overview' => '', 'duration_months' => 1, 'course_fee' => ''];
+$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'overview' => '', 'duration_months' => 1, 'course_fee' => '', 'category_id' => ''];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
@@ -41,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $courseModel->create([
                 'title'           => $_POST['title'] ?? '',
                 'abbreviation'    => $_POST['abbreviation'] ?? '',
+                'category_id'     => $_POST['category_id'] ?? null,
                 'description'     => $_POST['description'] ?? '',
                 'overview'        => $_POST['overview'] ?? '',
                 'duration_months' => $_POST['duration_months'] ?? 0,
@@ -67,7 +76,10 @@ $breadcrumbs = [
 ob_start();
 ?>
 <div class="card">
-    <div class="card-header"><h5 class="mb-0">Add Course</h5></div>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Add Course</h5>
+        <a href="<?php echo url('admin/courses/categories.php'); ?>" class="btn btn-sm btn-outline-secondary">Manage Categories</a>
+    </div>
     <div class="card-body">
         <?php if ($error): ?>
             <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
@@ -87,6 +99,21 @@ ob_start();
                     <input type="text" name="abbreviation" class="form-control" required maxlength="10"
                            placeholder="e.g. PY" value="<?php echo htmlspecialchars($old['abbreviation']); ?>">
                     <small class="text-muted">Used in student ID numbers (e.g. DH-PY01/2026). Choose carefully — changing it later won't update IDs already issued.</small>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">Category</label>
+                    <select name="category_id" class="form-select">
+                        <option value="">— Select category —</option>
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?php echo (int) $cat['id']; ?>" <?php echo (string)($old['category_id'] ?? '') === (string)$cat['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($cat['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <?php if (empty($categories)): ?>
+                        <small class="text-muted"><a href="<?php echo url('admin/courses/categories.php'); ?>">Create categories</a> for homepage tabs.</small>
+                    <?php endif; ?>
                 </div>
 
                 <div class="col-md-6">
