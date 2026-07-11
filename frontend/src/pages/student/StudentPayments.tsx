@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api, type PaymentRow } from '../../api/client';
 
-export default function StudentPaymentsPage() {
+export default function StudentPayments() {
   const [rows, setRows] = useState<PaymentRow[]>([]);
   const [msg, setMsg] = useState('');
   const [error, setError] = useState('');
@@ -15,7 +16,7 @@ export default function StudentPaymentsPage() {
     setError(''); setMsg('');
     try {
       await api.submitStudentPayment(form.mpesa_code, form.payer_reference);
-      setMsg('Payment submitted for admin verification.');
+      setMsg('Payment submitted for verification.');
       setForm({ mpesa_code: '', payer_reference: '' });
       load();
     } catch (err) {
@@ -24,29 +25,31 @@ export default function StudentPaymentsPage() {
   };
 
   return (
-    <div>
-      <h1>Payments</h1>
-      {msg && <div className="alert alert-success">{msg}</div>}
-      {error && <div className="alert alert-error">{error}</div>}
-      <form className="form-card" onSubmit={submit} style={{ marginBottom: 16 }}>
-        <div className="field"><label>M-Pesa code</label><input required value={form.mpesa_code} onChange={(e) => setForm({ ...form, mpesa_code: e.target.value })} /></div>
-        <div className="field"><label>Payer reference</label><input value={form.payer_reference} onChange={(e) => setForm({ ...form, payer_reference: e.target.value })} /></div>
-        <button className="btn btn-primary">Submit payment</button>
-      </form>
-      <div className="panel" style={{ padding: 0, overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.88rem' }}>
-          <thead><tr style={{ background: '#f8fafc' }}><th style={{ padding: 10, textAlign: 'left' }}>Amount</th><th>Status</th><th>Code</th><th>Date</th></tr></thead>
-          <tbody>
-            {rows.map((p) => (
-              <tr key={p.id} style={{ borderTop: '1px solid #e2e8f0' }}>
-                <td style={{ padding: 10 }}>KSh {Number(p.amount).toLocaleString()}</td>
-                <td>{p.status}</td>
-                <td>{p.mpesa_code || '—'}</td>
-                <td>{p.created_at || '—'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="min-h-screen subtle-gradient-background p-6">
+      <div className="max-w-3xl mx-auto">
+        <Link to="/student" className="text-emerald-600 font-semibold">← Dashboard</Link>
+        <h1 className="text-2xl font-extrabold mt-4 mb-6">Payments</h1>
+        {msg && <div className="bg-emerald-50 text-emerald-800 p-3 rounded-lg mb-4">{msg}</div>}
+        {error && <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4">{error}</div>}
+        <form onSubmit={submit} className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-200/80 mb-6 space-y-4">
+          <input required placeholder="M-Pesa code" value={form.mpesa_code} onChange={(e) => setForm({ ...form, mpesa_code: e.target.value })} className="w-full px-4 py-3 rounded-xl input-3d" />
+          <input placeholder="Payer reference" value={form.payer_reference} onChange={(e) => setForm({ ...form, payer_reference: e.target.value })} className="w-full px-4 py-3 rounded-xl input-3d" />
+          <button type="submit" className="text-white font-bold px-5 py-3 rounded-xl" style={{ background: 'var(--gradient)' }}>Submit</button>
+        </form>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 dark:bg-slate-700"><tr><th className="p-3 text-left">Amount</th><th>Status</th><th>Code</th></tr></thead>
+            <tbody>
+              {rows.map((p) => (
+                <tr key={p.id} className="border-t border-slate-200 dark:border-slate-700">
+                  <td className="p-3">KES {Number(p.amount).toLocaleString()}</td>
+                  <td className="text-center">{p.status}</td>
+                  <td className="text-center">{p.mpesa_code || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -1,35 +1,49 @@
 import { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { api, type StudentDashboard as Dash } from '../../api/client';
 
-export default function StudentDashboardPage() {
+export default function StudentDashboard() {
   const [data, setData] = useState<Dash | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    api.me().then((r) => {
-      if (!r.authenticated || r.user?.role !== 'student') setError('Please login as a student');
-    });
     api.studentDashboard().then((r) => setData(r.data)).catch((e) => setError(e.message));
   }, []);
 
   if (error) return <Navigate to="/login" replace />;
-  if (!data) return <div>Loading…</div>;
+  if (!data) return <div className="min-h-screen flex items-center justify-center">Loading…</div>;
 
   const r = data.registration;
+
   return (
-    <div>
-      <h1>Student dashboard</h1>
-      {r.portal_locked && <div className="alert alert-error">Portal locked — submit your installment payment to continue learning.</div>}
-      <div className="stat-grid">
-        <div className="stat-card"><div className="label">Course</div><div className="value" style={{ fontSize: '1rem' }}>{r.course_title}</div></div>
-        <div className="stat-card"><div className="label">Balance</div><div className="value">KSh {r.balance.toLocaleString()}</div></div>
-        <div className="stat-card"><div className="label">Paid</div><div className="value">KSh {r.total_paid.toLocaleString()}</div></div>
-      </div>
-      <div className="panel" style={{ padding: 14 }}>
-        <p><strong>Registration:</strong> {r.registration_no}</p>
-        <p><strong>Plan:</strong> {r.payment_plan} · <strong>Mode:</strong> {r.study_mode}</p>
-        <p><strong>Next due:</strong> KSh {r.next_amount.toLocaleString()}</p>
+    <div className="min-h-screen subtle-gradient-background p-6">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-extrabold">Student Portal</h1>
+          <Link to="/" className="text-emerald-600 font-semibold">← Website</Link>
+        </div>
+        {r.portal_locked && (
+          <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl mb-4">
+            Portal locked — submit your installment payment to continue.
+          </div>
+        )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200/80">
+            <div className="text-sm text-slate-500">Course</div>
+            <div className="font-bold">{r.course_title}</div>
+          </div>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200/80">
+            <div className="text-sm text-slate-500">Balance</div>
+            <div className="text-2xl font-extrabold">KES {r.balance.toLocaleString()}</div>
+          </div>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-5 border border-slate-200/80">
+            <div className="text-sm text-slate-500">Paid</div>
+            <div className="text-2xl font-extrabold">KES {r.total_paid.toLocaleString()}</div>
+          </div>
+        </div>
+        <Link to="/student/payments" className="inline-flex text-white font-bold px-5 py-3 rounded-xl" style={{ background: 'var(--gradient)' }}>
+          Manage payments
+        </Link>
       </div>
     </div>
   );
