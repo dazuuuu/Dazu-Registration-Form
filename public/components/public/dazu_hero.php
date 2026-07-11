@@ -47,7 +47,7 @@ $coursesUrl = url('courses/index.php');
           <span class="block text-slate-900 text-4xl sm:text-5xl lg:text-[3.4rem] mt-1">Feels Like Real Classroom</span>
         </h1>
 
-        <ul class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-semibold text-slate-700">
+        <ul class="flex flex-nowrap items-center gap-x-4 sm:gap-x-6 gap-y-2 text-sm font-semibold text-slate-700 overflow-x-auto">
           <li class="flex items-center gap-2 whitespace-nowrap">
             <span class="w-5 h-5 rounded-full bg-[#15A24A] text-white flex items-center justify-center text-[10px] shrink-0">✓</span>
             Get Certified
@@ -62,13 +62,13 @@ $coursesUrl = url('courses/index.php');
           </li>
         </ul>
 
-        <div class="flex flex-wrap items-center gap-4 pt-2">
+        <div class="flex flex-nowrap items-stretch gap-3 sm:gap-4 pt-2">
           <a href="<?php echo htmlspecialchars($coursesUrl); ?>"
-             class="inline-flex items-center justify-center px-9 py-4 bg-[#15A24A] hover:bg-[#128a3e] text-white text-sm font-extrabold uppercase tracking-wide transition-colors rounded-none min-w-[160px]">
+             class="inline-flex flex-1 sm:flex-none items-center justify-center px-6 sm:px-10 py-4 bg-[#15A24A] hover:bg-[#128a3e] text-white text-sm font-extrabold uppercase tracking-wide transition-colors rounded-none whitespace-nowrap">
             Get Started →
           </a>
           <a href="<?php echo htmlspecialchars($coursesUrl); ?>"
-             class="inline-flex items-center justify-center px-9 py-4 bg-[#0F172A] hover:bg-black text-white text-sm font-extrabold uppercase tracking-wide transition-colors rounded-none min-w-[160px]">
+             class="inline-flex flex-1 sm:flex-none items-center justify-center px-6 sm:px-10 py-4 bg-[#0F172A] hover:bg-black text-white text-sm font-extrabold uppercase tracking-wide transition-colors rounded-none whitespace-nowrap">
             Our Courses →
           </a>
         </div>

@@ -21,7 +21,7 @@ $firstCategoryId = !empty($popularCategories) ? (int) $popularCategories[0]['id'
       ?>
         <button type="button" role="tab" aria-selected="<?php echo $isActive ? 'true' : 'false'; ?>"
                 data-category-id="<?php echo $catId; ?>"
-                class="dazu-cat-tab flex-shrink-0 snap-start min-w-[200px] sm:min-w-[220px] rounded-lg border p-4 text-left transition-all <?php echo $isActive ? 'bg-[#15A24A] border-[#15A24A] text-white shadow-md' : 'bg-white border-slate-200 text-slate-900 hover:border-[#15A24A]/50'; ?>">
+                class="dazu-cat-tab flex-shrink-0 snap-start min-w-[200px] sm:min-w-[220px] rounded-none border p-4 text-left transition-all <?php echo $isActive ? 'bg-[#15A24A] border-[#15A24A] text-white shadow-md' : 'bg-white border-slate-200 text-slate-900 hover:border-[#15A24A]/50'; ?>">
           <div class="flex items-start gap-4">
             <span class="dazu-cat-icon-wrap w-12 h-12 rounded-xl flex items-center justify-center shrink-0 <?php echo $isActive ? 'bg-white/20' : 'bg-green-50'; ?>">
               <?php if ($iconUrl !== ''): ?>
@@ -49,7 +49,7 @@ $firstCategoryId = !empty($popularCategories) ? (int) $popularCategories[0]['id'
             $course['_display_category_id'] = $course['_display_category_id'] ?? dazu_resolve_course_category_id($course);
             $visible = ((int) $course['_display_category_id'] === $firstCategoryId) ? '' : 'hidden';
           ?>
-            <div class="dazu-course-wrap flex-shrink-0 w-[320px] sm:w-[340px] snap-start <?php echo $visible; ?>" data-category-id="<?php echo (int) $course['_display_category_id']; ?>">
+            <div class="dazu-course-wrap flex-shrink-0 w-[360px] max-w-[360px] snap-start <?php echo $visible; ?>" data-category-id="<?php echo (int) $course['_display_category_id']; ?>">
               <?php include __DIR__ . '/dazu_course_card.php'; ?>
             </div>
           <?php endforeach; ?>
@@ -57,9 +57,9 @@ $firstCategoryId = !empty($popularCategories) ? (int) $popularCategories[0]['id'
       </div>
     </div>
 
-    <div class="text-center pt-2">
+    <div class="text-center pt-4">
       <a href="<?php echo url('courses/index.php'); ?>"
-         class="inline-flex items-center justify-center px-10 py-4 bg-[#15A24A] hover:bg-[#128a3e] text-white text-sm font-extrabold uppercase tracking-wide transition-colors rounded-none">
+         class="inline-flex items-center justify-center px-12 py-4 bg-[#15A24A] hover:bg-[#128a3e] text-white text-sm font-extrabold uppercase tracking-wide transition-colors rounded-none whitespace-nowrap">
         View All Courses →
       </a>
     </div>
