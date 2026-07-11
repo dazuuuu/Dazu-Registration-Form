@@ -1,673 +1,159 @@
 <?php
-// public/projects/index.php — Dazu Hub Institute
-require_once __DIR__ . '/../../app/v1/config/paths.php';
-require_once __DIR__ . '/../../app/v1/config/db_connect.php';
+$page_title = 'Student Capstone Projects — Dazu hub Institute';
+$page_description = 'Browse graduate projects built at Dazu hub Institute — web apps, AI, mobile UX and automation.';
+
+require_once __DIR__ . '/../../app/v1/init.php';
+require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
 require_once __DIR__ . '/../../app/v1/controllers/ProjectController.php';
 
-if (session_status() === PHP_SESSION_NONE) { session_start(); }
+$controller = new ProjectController($pdo);
+$categoryFilter = $_GET['category'] ?? 'All';
+$categories = ['All', 'Web Apps', 'AI & Data', 'Mobile & UX', 'Automation'];
 
-$controller      = new ProjectController($pdo);
-$category_filter = $_GET['category'] ?? null;
-$search          = trim($_GET['search'] ?? '');
+$dbProjects = [];
+try {
+    $dbProjects = $controller->getProjects('published');
+} catch (Throwable $e) {
+    $dbProjects = [];
+}
 
-$allProjects = $controller->getProjects('published');
-$categories  = $controller->getCategories();
+function dazu_static_projects(): array
+{
+    return [
+        ['id' => 0, 'title' => 'Thika Soko Hub', 'category' => 'Web Apps', 'cohort' => 'Software Dev - Q1 2026', 'description' => 'A fast local e-commerce platform allowing informal agricultural traders to list products, manage inventory, and receive payments.', 'tech' => ['React.js', 'Tailwind CSS', 'Node.js', 'Express', 'PostgreSQL'], 'developer' => 'Eunice Wangari & Team', 'details' => 'Full-stack application with merchant onboarding, storefront routing, and M-Pesa Daraja API integration.'],
+        ['id' => 0, 'title' => 'MedicAI Predictor', 'category' => 'AI & Data', 'cohort' => 'AI Master Class - Feb 2026', 'description' => 'A localized diagnostic-assisting AI model trained to parse basic patient symptoms and suggest likely diagnoses.', 'tech' => ['Python', 'Pandas', 'Scikit-Learn', 'Streamlit', 'Gemini API'], 'developer' => 'Dennis Kipruto', 'details' => 'Integrated regional disease stats with Gemini API prompts for supportive clinical queries.'],
+        ['id' => 0, 'title' => 'Figma RealEstate UI', 'category' => 'Mobile & UX', 'cohort' => 'Graphics & UI - Q2 2026', 'description' => 'A responsive mobile apartment searching interface formulated for Nairobi & Thika rentals.', 'tech' => ['Figma', 'UI Design', 'Color Theory', 'Responsive Grid'], 'developer' => 'Mercy Mwende', 'details' => 'Design system with custom icons, pricing sliders, and clean mobile booking flow.'],
+        ['id' => 0, 'title' => 'AgriWater Smart Automation', 'category' => 'Automation', 'cohort' => 'AI Automations - Q1 2026', 'description' => 'An automated greenhouse hydration controller triggering irrigation schedules based on soil humidity APIs.', 'tech' => ['Python', 'Make.com', 'JSON APIs', 'Cron Schedulers'], 'developer' => 'Mark Kamore', 'details' => 'Uses climate API endpoints and Telegram alarms for farmer reports.'],
+        ['id' => 0, 'title' => 'FinFlow Analytics Dashboard', 'category' => 'AI & Data', 'cohort' => 'Data Analytics - Q1 2026', 'description' => 'An interactive Power BI finance tracker designed to monitor operational costs and sales loops of Thika MSMEs.', 'tech' => ['Power BI', 'SQL', 'Excel', 'Data Modeling'], 'developer' => 'Joseph Njuguna', 'details' => 'DAX calculations, revenue trends, and dynamic filter panels for MSME owners.'],
+        ['id' => 0, 'title' => 'SecureNet Threat Sentinel', 'category' => 'Automation', 'cohort' => 'Cybersecurity - Q2 2026', 'description' => 'A custom network auditing script designed to scan router terminals and report weak active configurations.', 'tech' => ['Python', 'Linux Bash', 'Networking', 'Cryptography'], 'developer' => 'Alex Kipkoech', 'details' => 'Maps local network nodes, identifies vulnerable ports, and logs remediation steps.'],
+    ];
+}
 
-// Filter by category
-$projects = $allProjects;
-if ($category_filter) {
-    $projects = array_filter($allProjects, function ($p) use ($category_filter, $categories) {
-        foreach ($categories as $cat) {
-            if ($cat['id'] == $p['category_id'] && $cat['category_slug'] == $category_filter) return true;
+function dazu_map_project_category(string $name): string
+{
+    $n = strtolower($name);
+    if (str_contains($n, 'web') || str_contains($n, 'software')) return 'Web Apps';
+    if (str_contains($n, 'ai') || str_contains($n, 'data') || str_contains($n, 'analytics')) return 'AI & Data';
+    if (str_contains($n, 'mobile') || str_contains($n, 'ux') || str_contains($n, 'design') || str_contains($n, 'graphic')) return 'Mobile & UX';
+    if (str_contains($n, 'auto') || str_contains($n, 'cyber') || str_contains($n, 'security')) return 'Automation';
+    return 'Web Apps';
+}
+
+$projects = [];
+if (!empty($dbProjects)) {
+    foreach ($dbProjects as $p) {
+        $tags = [];
+        try {
+            $tags = array_column($controller->getProjectTags($p['id']) ?? [], 'tag_name');
+        } catch (Throwable $e) {
+            $tags = [];
         }
-        return false;
-    });
+        $projects[] = [
+            'id' => (int) $p['id'],
+            'title' => $p['major_title'] ?: $p['small_title'],
+            'category' => dazu_map_project_category($p['category_name'] ?? ''),
+            'cohort' => strtoupper($p['small_title'] ?? $p['category_name'] ?? 'Capstone'),
+            'description' => $p['description'] ?? '',
+            'tech' => $tags ?: ['Capstone Project'],
+            'developer' => $p['author'] ?? 'Dazu Hub Graduate',
+            'details' => $p['description'] ?? '',
+            'readmore' => url('projects/readmore.php?id=' . (int) $p['id']),
+        ];
+    }
+} else {
+    foreach (dazu_static_projects() as $p) {
+        $p['readmore'] = null;
+        $projects[] = $p;
+    }
 }
 
-// Filter by search
-if ($search) {
-    $projects = array_filter($projects, function ($p) use ($search) {
-        return stripos($p['small_title'],  $search) !== false
-            || stripos($p['major_title'],  $search) !== false
-            || stripos($p['description'],  $search) !== false;
-    });
+if ($categoryFilter !== 'All') {
+    $projects = array_values(array_filter($projects, static fn($p) => $p['category'] === $categoryFilter));
 }
 
-$projects = array_values($projects); // reset keys for indexed loops
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Projects — Dazu Hub Institute</title>
-  <meta name="description" content="Browse student and graduate projects built at Dazu Hub Institute.">
-
-  <link rel="stylesheet" href="../assets/css/theme.css">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-  <style>
-  /* ── Base offset for fixed nav ─────────────────────────── */
-  body { padding-top: var(--navbar-height); }
-
-  /* ═══════════════════════════════════════════════════════
-     PAGE HERO — minimal dark banner
-  ═══════════════════════════════════════════════════════ */
-  .page-hero {
-    background: var(--color-primary);
-    padding: var(--space-20) 0 var(--space-16);
-    position: relative;
-    overflow: hidden;
-  }
-  .page-hero::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(ellipse 60% 80% at 80% 50%,
-                rgba(200,242,60,0.07) 0%, transparent 70%);
-    pointer-events: none;
-  }
-  .page-hero-inner { position: relative; z-index: 1; }
-
-  .page-hero .eyebrow { color: rgba(255,255,255,0.45); margin-bottom: var(--space-3); }
-  .page-hero .eyebrow::before { background: var(--color-accent); }
-
-  .page-hero h1 {
-    font-family: var(--font-display);
-    font-style: italic;
-    font-size: clamp(2.2rem, 5vw, 3.5rem);
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: var(--space-4);
-    letter-spacing: 0.01em;
-    line-height: 1.08;
-  }
-  .page-hero h1 strong {
-    font-style: normal;
-    color: var(--color-accent);
-  }
-  .page-hero p {
-    font-size: var(--text-sm);
-    color: rgba(255,255,255,0.55);
-    max-width: 480px;
-    line-height: 1.8;
-  }
-
-  /* Breadcrumb */
-  .breadcrumb-wrap {
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-    font-size: var(--text-xs);
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.35);
-    margin-bottom: var(--space-6);
-  }
-  .breadcrumb-wrap a { color: rgba(255,255,255,0.5); transition: color var(--transition-fast); }
-  .breadcrumb-wrap a:hover { color: var(--color-accent); }
-  .breadcrumb-wrap .sep { font-size: 8px; }
-
-  /* ═══════════════════════════════════════════════════════
-     LAYOUT — sidebar + grid
-  ═══════════════════════════════════════════════════════ */
-  .projects-layout {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    gap: var(--space-10);
-    padding: var(--space-12) 0 var(--space-20);
-    align-items: start;
-  }
-
-  /* ═══════════════════════════════════════════════════════
-     SIDEBAR
-  ═══════════════════════════════════════════════════════ */
-  .sidebar { position: sticky; top: calc(var(--navbar-height) + 24px); }
-
-  .sidebar-block {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    padding: var(--space-6);
-    margin-bottom: var(--space-5);
-  }
-  .sidebar-block-title {
-    font-family: var(--font-body);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-text-muted);
-    margin-bottom: var(--space-4);
-    display: flex;
-    align-items: center;
-    gap: var(--space-2);
-  }
-  .sidebar-block-title i { color: var(--color-accent); font-size: 0.85em; }
-
-  /* Search */
-  .search-form { position: relative; }
-  .search-form input {
-    width: 100%;
-    padding: 10px 44px 10px 14px;
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-full);
-    font-family: var(--font-body);
-    font-size: var(--text-sm);
-    color: var(--color-text-body);
-    background: var(--color-surface-alt);
-    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-    outline: none;
-  }
-  .search-form input:focus {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px rgba(10,10,10,0.06);
-    background: var(--color-surface);
-  }
-  .search-form button {
-    position: absolute; right: 4px; top: 50%;
-    transform: translateY(-50%);
-    width: 34px; height: 34px;
-    border-radius: var(--radius-full);
-    border: none;
-    background: var(--color-primary);
-    color: #fff;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.75rem;
-    transition: background var(--transition-fast);
-  }
-  .search-form button:hover { background: #222; }
-
-  /* Clear search */
-  .clear-search {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: var(--text-xs); color: var(--color-text-muted);
-    margin-top: var(--space-2);
-    cursor: pointer; transition: color var(--transition-fast);
-    background: none; border: none; padding: 0;
-    font-family: var(--font-body);
-  }
-  .clear-search:hover { color: var(--color-primary); }
-
-  /* Category list */
-  .cat-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
-  .cat-link {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 9px 12px;
-    border-radius: var(--radius-md);
-    font-size: var(--text-sm);
-    font-weight: 400;
-    color: var(--color-text-body);
-    text-decoration: none;
-    transition: background var(--transition-fast), color var(--transition-fast);
-    gap: var(--space-2);
-  }
-  .cat-link:hover { background: var(--color-surface-alt); color: var(--color-primary); }
-  .cat-link.is-active {
-    background: var(--color-primary);
-    color: #fff;
-    font-weight: 500;
-  }
-  .cat-link-left { display: flex; align-items: center; gap: 8px; }
-  .cat-link-left i { font-size: 0.75em; color: inherit; opacity: 0.6; }
-  .cat-link.is-active .cat-link-left i { opacity: 0.9; }
-  .cat-count {
-    font-size: 10px; font-weight: 600;
-    padding: 2px 7px;
-    border-radius: var(--radius-full);
-    background: rgba(0,0,0,0.08);
-    color: inherit;
-    flex-shrink: 0;
-  }
-  .cat-link.is-active .cat-count { background: rgba(255,255,255,0.2); }
-
-  /* Stats mini-block */
-  .stat-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: var(--space-3) 0;
-    border-bottom: 1px solid var(--color-border);
-    font-size: var(--text-sm);
-  }
-  .stat-row:last-child { border-bottom: none; padding-bottom: 0; }
-  .stat-row-label { color: var(--color-text-muted); font-weight: 400; }
-  .stat-row-value { font-weight: 600; color: var(--color-text-heading); }
-
-  /* ═══════════════════════════════════════════════════════
-     PROJECTS GRID
-  ═══════════════════════════════════════════════════════ */
-  .grid-header {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-bottom: var(--space-8); gap: var(--space-4); flex-wrap: wrap;
-  }
-  .grid-header-left h2 {
-    font-size: var(--text-xl); font-weight: 700; margin: 0; line-height: 1.2;
-  }
-  .result-count {
-    font-size: var(--text-xs); font-weight: 500; color: var(--color-text-muted);
-    margin-top: 2px; display: flex; align-items: center; gap: 6px;
-  }
-  .result-count span {
-    display: inline-block; padding: 2px 8px;
-    border-radius: var(--radius-full);
-    background: var(--color-surface-alt);
-    border: 1px solid var(--color-border);
-    font-weight: 600; color: var(--color-text-heading);
-  }
-
-  /* Active filter pill */
-  .filter-pill {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 5px 12px;
-    border-radius: var(--radius-full);
-    background: var(--color-primary);
-    color: #fff;
-    font-size: var(--text-xs); font-weight: 500;
-    text-decoration: none;
-  }
-  .filter-pill i { font-size: 0.65em; opacity: 0.7; }
-  .filter-pill:hover { background: #222; color: #fff; }
-
-  .projects-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: var(--space-5);
-  }
-
-  /* Project card */
-  .proj-card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    display: flex; flex-direction: column;
-    transition: box-shadow var(--transition-base), transform var(--transition-base), border-color var(--transition-base);
-    position: relative;
-  }
-  .proj-card:hover {
-    box-shadow: var(--shadow-xl);
-    transform: translateY(-5px);
-    border-color: transparent;
-  }
-
-  .proj-thumb {
-    position: relative;
-    aspect-ratio: 16 / 10;
-    overflow: hidden;
-    background: var(--color-surface-alt);
-  }
-  .proj-thumb img {
-    width: 100%; height: 100%;
-    object-fit: cover;
-    transition: transform 0.65s ease;
-    display: block;
-  }
-  .proj-card:hover .proj-thumb img { transform: scale(1.06); }
-
-  /* No-image placeholder */
-  .proj-thumb-placeholder {
-    width: 100%; height: 100%;
-    display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, #f0f0ec, #e4e4dc);
-  }
-  .proj-thumb-placeholder i { font-size: 2rem; color: var(--color-border); }
-
-  .proj-cat-badge {
-    position: absolute; top: 14px; left: 14px;
-    background: rgba(255,255,255,0.92);
-    backdrop-filter: blur(8px);
-    padding: 4px 11px;
-    border-radius: var(--radius-full);
-    font-size: 10px; font-weight: 600;
-    color: var(--color-primary);
-    letter-spacing: 0.05em; text-transform: uppercase;
-  }
-
-  .proj-body {
-    padding: var(--space-5) var(--space-6);
-    display: flex; flex-direction: column; flex-grow: 1; gap: var(--space-2);
-  }
-  .proj-subtitle {
-    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
-    text-transform: uppercase; color: #6a5af9;
-  }
-  .proj-title {
-    font-family: var(--font-display);
-    font-size: var(--text-lg); font-weight: 700;
-    color: var(--color-text-heading); line-height: 1.3;
-  }
-  .proj-excerpt {
-    font-size: var(--text-sm); color: var(--color-text-muted);
-    line-height: 1.65; flex-grow: 1;
-  }
-
-  .proj-footer {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: var(--space-4) var(--space-6);
-    border-top: 1px solid var(--color-border);
-    gap: var(--space-3);
-  }
-  .proj-meta {
-    display: flex; align-items: center; gap: var(--space-4);
-    font-size: var(--text-xs); color: var(--color-text-muted);
-  }
-  .proj-meta span { display: flex; align-items: center; gap: 4px; }
-
-  .proj-view-btn {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 7px 16px;
-    border-radius: var(--radius-full);
-    background: var(--color-surface-alt);
-    border: 1px solid var(--color-border);
-    font-size: var(--text-xs); font-weight: 600;
-    color: var(--color-primary);
-    text-decoration: none;
-    transition: all var(--transition-fast);
-    white-space: nowrap;
-    flex-shrink: 0;
-  }
-  .proj-view-btn:hover {
-    background: var(--color-primary);
-    border-color: var(--color-primary);
-    color: #fff;
-  }
-  .proj-view-btn i { font-size: 0.7em; transition: transform var(--transition-fast); }
-  .proj-view-btn:hover i { transform: translateX(3px); }
-
-  /* ── Empty state ──────────────────────────────────────── */
-  .empty-state {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: var(--space-20) var(--space-8);
-    border: 1px dashed var(--color-border);
-    border-radius: var(--radius-xl);
-    background: var(--color-surface-alt);
-  }
-  .empty-icon {
-    width: 72px; height: 72px;
-    border-radius: 50%;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    display: flex; align-items: center; justify-content: center;
-    margin: 0 auto var(--space-6);
-    font-size: 1.75rem; color: var(--color-text-muted);
-  }
-  .empty-state h3 { font-size: var(--text-xl); margin-bottom: var(--space-3); }
-  .empty-state p  { font-size: var(--text-sm); color: var(--color-text-muted); max-width: 360px; margin: 0 auto var(--space-8); }
-
-  /* ═══════════════════════════════════════════════════════
-     MOBILE RESPONSIVE
-  ═══════════════════════════════════════════════════════ */
-  @media (max-width: 1024px) {
-    .projects-layout { grid-template-columns: 220px 1fr; gap: var(--space-8); }
-  }
-
-  @media (max-width: 820px) {
-    .projects-layout { grid-template-columns: 1fr; }
-
-    /* Sidebar collapses to horizontal filter row on mobile */
-    .sidebar { position: static; }
-    .sidebar-block--categories { order: -1; }
-
-    /* Mobile filter bar */
-    .cat-list {
-      flex-direction: row;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-    .cat-link {
-      padding: 6px 12px;
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-full);
-    }
-    .cat-link.is-active { border-color: var(--color-primary); }
-    .cat-link-left i { display: none; }
-  }
-
-  @media (max-width: 600px) {
-    .projects-grid { grid-template-columns: 1fr; }
-    .grid-header { flex-direction: column; align-items: flex-start; }
-    .page-hero { padding: var(--space-12) 0 var(--space-10); }
-  }
-
-  @media (max-width: 380px) {
-    .cat-count { display: none; }
-  }
-  </style>
-</head>
-<body>
-
-<!--?php include  '/public/components/public/nav.php'; ?-->
-<?php include __DIR__ . '/../components/public/navbar.php'; ?>
-
-
-<?php
-  $hero_eyebrow = 'Student work';
-  $hero_title   = 'Projects';
-  $hero_sub     = 'Built by Dazu Hub learners';
-  $hero_desc    = 'Real applications and portfolios created by our students during their training programs.';
-  $hero_image   = 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=1600&q=80';
-  include __DIR__ . '/../components/public/page_hero.php';
-?>
-
-
-<!-- ══════════════════════════════════════════════════════
-     PAGE HERO
-══════════════════════════════════════════════════════ -->
-<!--section class="page-hero">
-  <div class="container page-hero-inner">
-    <div class="breadcrumb-wrap">
-      <a href="/Ismano/public/">Home</a>
-      <i class="fas fa-chevron-right sep"></i>
-      <span>Projects</span>
+<div class="bg-white min-h-screen py-16 text-slate-900">
+  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
+    <div class="max-w-2xl mb-12">
+      <span class="text-green-600 text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-green-50 border border-green-200 rounded-full">Student Achievements</span>
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mt-4">Student Capstone Projects</h1>
+      <p class="text-slate-600 font-medium leading-relaxed mt-3">See actual products designed, coded, and deployed live by Dazu Hub graduates.</p>
     </div>
-    <p class="eyebrow">Our work</p>
-    <h1>Creative <strong>Projects</strong></h1>
-    <p>Explore our portfolio of innovative solutions and creative work across every discipline.</p>
-  </div>
-</section-->
 
-<!-- ══════════════════════════════════════════════════════
-     LAYOUT
-══════════════════════════════════════════════════════ -->
-<div class="container">
-  <div class="projects-layout">
+    <div class="flex flex-wrap items-center gap-2 pb-6 mb-12 border-b border-slate-100">
+      <?php foreach ($categories as $cat): ?>
+        <?php $active = $categoryFilter === $cat; $href = $cat === 'All' ? url('projects/index.php') : url('projects/index.php?category=' . rawurlencode($cat)); ?>
+        <a href="<?php echo htmlspecialchars($href); ?>"
+           class="px-4 py-3 text-xs font-bold uppercase tracking-wider rounded-xl border transition-all <?php echo $active ? 'bg-green-600 text-white border-green-600 font-extrabold' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'; ?>">
+          <?php echo htmlspecialchars($cat === 'All' ? 'ALL' : strtoupper($cat)); ?>
+        </a>
+      <?php endforeach; ?>
+    </div>
 
-    <!-- ── Sidebar ─────────────────────────────────────── -->
-    <aside class="sidebar" aria-label="Filter projects">
-
-      <!-- Search -->
-      <div class="sidebar-block">
-        <p class="sidebar-block-title"><i class="fas fa-magnifying-glass"></i> Search</p>
-        <form method="GET" class="search-form" role="search">
-          <?php if ($category_filter): ?>
-            <input type="hidden" name="category" value="<?php echo htmlspecialchars($category_filter); ?>">
-          <?php endif; ?>
-          <input type="text" name="search"
-                 placeholder="Search projects…"
-                 value="<?php echo htmlspecialchars($search); ?>"
-                 aria-label="Search projects">
-          <button type="submit" aria-label="Submit search">
-            <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-          </button>
-        </form>
-        <?php if ($search): ?>
-          <a href="?<?php echo $category_filter ? 'category=' . urlencode($category_filter) : ''; ?>"
-             class="clear-search">
-            <i class="fas fa-xmark"></i> Clear search
-          </a>
-        <?php endif; ?>
-      </div>
-
-      <!-- Categories -->
-      <div class="sidebar-block sidebar-block--categories">
-        <p class="sidebar-block-title"><i class="fas fa-layer-group"></i> Categories</p>
-        <ul class="cat-list" role="list">
-          <li>
-            <a href="<?php echo url('projects/' . ($search ? '?search=' . urlencode($search) : '')); ?>"
-               class="cat-link <?php echo !$category_filter ? 'is-active' : ''; ?>">
-              <span class="cat-link-left">
-                <i class="fas fa-border-all" aria-hidden="true"></i> All Projects
-              </span>
-              <span class="cat-count"><?php echo count($allProjects); ?></span>
-            </a>
-          </li>
-          <?php foreach ($categories as $cat):
-            $catCount = count(array_filter($allProjects, fn($p) => $p['category_id'] == $cat['id']));
-            if ($catCount === 0) continue; ?>
-            <li>
-              <a href="?category=<?php echo urlencode($cat['category_slug']); ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?>"
-                 class="cat-link <?php echo $category_filter === $cat['category_slug'] ? 'is-active' : ''; ?>">
-                <span class="cat-link-left">
-                  <i class="fas fa-folder" aria-hidden="true"></i>
-                  <?php echo htmlspecialchars($cat['category_name']); ?>
-                </span>
-                <span class="cat-count"><?php echo $catCount; ?></span>
-              </a>
-            </li>
-          <?php endforeach; ?>
-        </ul>
-      </div>
-
-      <!-- Stats -->
-      <div class="sidebar-block">
-        <p class="sidebar-block-title"><i class="fas fa-chart-bar"></i> Overview</p>
-        <div class="stat-row">
-          <span class="stat-row-label">Total projects</span>
-          <span class="stat-row-value"><?php echo count($allProjects); ?></span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-row-label">Categories</span>
-          <span class="stat-row-value"><?php echo count($categories); ?></span>
-        </div>
-        <div class="stat-row">
-          <span class="stat-row-label">Showing</span>
-          <span class="stat-row-value"><?php echo count($projects); ?></span>
-        </div>
-      </div>
-
-    </aside>
-
-    <!-- ── Projects grid ────────────────────────────────── -->
-    <main aria-label="Projects list">
-
-      <div class="grid-header">
-        <div class="grid-header-left">
-          <h2>
-            <?php if ($category_filter):
-              $activeCat = null;
-              foreach ($categories as $c) { if ($c['category_slug'] === $category_filter) { $activeCat = $c; break; } }
-              echo $activeCat ? htmlspecialchars($activeCat['category_name']) : 'Filtered Projects';
-            elseif ($search):
-              echo 'Search Results';
-            else:
-              echo 'All Projects';
-            endif; ?>
-          </h2>
-          <p class="result-count">
-            <span><?php echo count($projects); ?></span>
-            <?php echo count($projects) === 1 ? 'project found' : 'projects found'; ?>
-          </p>
-        </div>
-
-        <!-- Active filter pills -->
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <?php if ($category_filter && $activeCat ?? null): ?>
-            <a href="<?php echo url('projects/' . ($search ? '?search=' . urlencode($search) : '')); ?>"
-               class="filter-pill" title="Remove category filter">
-              <i class="fas fa-folder" aria-hidden="true"></i>
-              <?php echo htmlspecialchars($activeCat['category_name']); ?>
-              <i class="fas fa-xmark" aria-hidden="true"></i>
-            </a>
-          <?php endif; ?>
-          <?php if ($search): ?>
-            <a href="<?php echo url('projects/' . ($category_filter ? '?category=' . urlencode($category_filter) : '')); ?>"
-               class="filter-pill" title="Clear search">
-              <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
-              "<?php echo htmlspecialchars(mb_strimwidth($search, 0, 20, '…')); ?>"
-              <i class="fas fa-xmark" aria-hidden="true"></i>
-            </a>
-          <?php endif; ?>
-        </div>
-      </div>
-
-      <!-- Grid -->
-      <div class="projects-grid">
-        <?php if (empty($projects)): ?>
-          <div class="empty-state">
-            <div class="empty-icon"><i class="fa-regular fa-folder-open" aria-hidden="true"></i></div>
-            <h3>No projects found</h3>
-            <p>No projects match your current filters. Try a different category or clear your search.</p>
-            <a href="<?php echo url('projects/'); ?>" class="btn btn--dark">
-              View All Projects <i class="fas fa-arrow-right"></i>
-            </a>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <?php foreach ($projects as $idx => $project): ?>
+        <article class="bg-slate-50 border border-slate-200 rounded-2xl p-8 flex flex-col justify-between min-h-[340px] hover:border-green-600 hover:bg-white transition-all duration-300">
+          <div>
+            <div class="flex items-center justify-between mb-6">
+              <span class="text-[10px] font-bold text-green-700 bg-green-50 border border-green-100 rounded-full px-2.5 py-1 uppercase tracking-widest"><?php echo htmlspecialchars(strtoupper($project['category'])); ?></span>
+              <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest"><?php echo htmlspecialchars($project['cohort']); ?></span>
+            </div>
+            <h3 class="text-xl font-extrabold text-slate-900 mb-3 uppercase tracking-tight"><?php echo htmlspecialchars($project['title']); ?></h3>
+            <p class="text-slate-600 text-xs leading-relaxed font-semibold line-clamp-3 mb-4"><?php echo htmlspecialchars($project['description']); ?></p>
+            <div class="flex flex-wrap gap-1.5 mb-6">
+              <?php foreach ($project['tech'] as $t): ?>
+                <span class="text-[10px] font-bold bg-white border border-slate-200 text-slate-600 px-2 py-0.5 rounded-md"><?php echo htmlspecialchars($t); ?></span>
+              <?php endforeach; ?>
+            </div>
           </div>
+          <div class="flex items-center justify-between pt-4 border-t border-slate-200">
+            <span class="text-xs text-slate-500 font-semibold">By <?php echo htmlspecialchars($project['developer']); ?></span>
+            <button type="button" class="dazu-project-open text-xs font-extrabold text-green-600 hover:text-green-700 flex items-center gap-1"
+                    data-title="<?php echo htmlspecialchars($project['title'], ENT_QUOTES); ?>"
+                    data-details="<?php echo htmlspecialchars($project['details'], ENT_QUOTES); ?>"
+                    data-url="<?php echo htmlspecialchars($project['readmore'] ?? '', ENT_QUOTES); ?>">
+              View Sandbox <span class="text-green-500">▶</span>
+            </button>
+          </div>
+        </article>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</div>
 
-        <?php else: ?>
-          <?php foreach ($projects as $i => $project): ?>
-            <article class="proj-card reveal reveal-delay-<?php echo ($i % 4) + 1; ?>">
-
-              <div class="proj-thumb">
-                <?php if (!empty($project['cover_image'])): ?>
-                  <img src="<?php echo htmlspecialchars($project['cover_image']); ?>"
-                       alt="<?php echo htmlspecialchars($project['small_title']); ?>"
-                       loading="<?php echo $i < 4 ? 'eager' : 'lazy'; ?>">
-                <?php else: ?>
-                  <div class="proj-thumb-placeholder" aria-hidden="true">
-                    <i class="fa-regular fa-image"></i>
-                  </div>
-                <?php endif; ?>
-
-                <?php if (!empty($project['category_name'])): ?>
-                  <span class="proj-cat-badge"><?php echo htmlspecialchars($project['category_name']); ?></span>
-                <?php endif; ?>
-              </div>
-
-              <div class="proj-body">
-                <?php if (!empty($project['major_title'])): ?>
-                  <div class="proj-subtitle"><?php echo htmlspecialchars($project['major_title']); ?></div>
-                <?php endif; ?>
-                <h3 class="proj-title"><?php echo htmlspecialchars($project['small_title']); ?></h3>
-                <p class="proj-excerpt">
-                  <?php echo htmlspecialchars(mb_strimwidth(strip_tags($project['description'] ?? ''), 0, 110, '…')); ?>
-                </p>
-              </div>
-
-              <div class="proj-footer">
-                <div class="proj-meta">
-                  <span><i class="fa-regular fa-eye" aria-hidden="true"></i> <?php echo number_format($project['view_count'] ?? 0); ?></span>
-                  <span><i class="fa-regular fa-calendar" aria-hidden="true"></i> <?php echo date('M Y', strtotime($project['created_at'])); ?></span>
-                </div>
-                <a href="readmore.php?id=<?php echo (int)$project['id']; ?>" class="proj-view-btn">
-                  View <i class="fas fa-arrow-right" aria-hidden="true"></i>
-                </a>
-              </div>
-
-            </article>
-          <?php endforeach; ?>
-        <?php endif; ?>
-      </div>
-
-    </main>
-  </div><!-- /.projects-layout -->
-</div><!-- /.container -->
-
-<?php include __DIR__ . '/../components/public/footer.php'; ?>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<div id="dazu-project-modal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center z-50 p-4">
+  <div class="bg-white border-2 border-slate-900 rounded-2xl w-full max-w-2xl overflow-hidden">
+    <div class="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
+      <h3 id="dazu-project-modal-title" class="text-lg font-bold text-slate-900 uppercase"></h3>
+      <button type="button" id="dazu-project-modal-close" class="p-2 hover:bg-slate-200 rounded-lg text-slate-500">✕</button>
+    </div>
+    <div class="p-6 space-y-4">
+      <p id="dazu-project-modal-body" class="text-sm text-slate-600 leading-relaxed font-semibold"></p>
+      <a id="dazu-project-modal-link" href="#" class="hidden inline-block px-5 py-2.5 bg-green-600 text-white text-xs font-bold rounded-xl">Full project page →</a>
+    </div>
+  </div>
+</div>
 <script>
-// Scroll reveal
-(function () {
-  const io = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) { e.target.classList.add('is-visible'); io.unobserve(e.target); }
+(function(){
+  var modal = document.getElementById('dazu-project-modal');
+  var title = document.getElementById('dazu-project-modal-title');
+  var body = document.getElementById('dazu-project-modal-body');
+  var link = document.getElementById('dazu-project-modal-link');
+  document.querySelectorAll('.dazu-project-open').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      title.textContent = btn.getAttribute('data-title') || '';
+      body.textContent = btn.getAttribute('data-details') || '';
+      var url = btn.getAttribute('data-url');
+      if (url) { link.href = url; link.classList.remove('hidden'); } else { link.classList.add('hidden'); }
+      modal.classList.remove('hidden'); modal.classList.add('flex');
     });
-  }, { threshold: 0.08 });
-  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+  });
+  function close(){ modal.classList.add('hidden'); modal.classList.remove('flex'); }
+  document.getElementById('dazu-project-modal-close').addEventListener('click', close);
+  modal.addEventListener('click', function(e){ if(e.target===modal) close(); });
 })();
 </script>
-
-</body>
-</html>
+<?php
+$content = ob_get_clean();
+require __DIR__ . '/../templates/public/dazu_layout.php';

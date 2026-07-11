@@ -16,13 +16,16 @@ class EnquiryController {
      */
     public function submit($data) {
         // Validate required fields
-        if (empty($data['name']) || empty($data['email']) || empty($data['phone']) || empty($data['message'])) {
+        if (empty($data['name']) || empty($data['phone']) || empty($data['message'])) {
             return ['success' => false, 'message' => 'Please fill in all required fields'];
         }
         
-        // Validate email
-        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+        $email = trim($data['email'] ?? '');
+        if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return ['success' => false, 'message' => 'Please enter a valid email address'];
+        }
+        if ($email === '') {
+            $email = 'no-email@dazuaihub.local';
         }
         
         // Validate phone (basic)
