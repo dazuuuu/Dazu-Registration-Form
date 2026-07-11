@@ -16,6 +16,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
   <meta name="description" content="<?php echo htmlspecialchars($page_description ?? 'Practical tech training in Thika Town — software, cybersecurity, data analytics and AI.'); ?>">
   <link rel="icon" type="image/jpeg" href="https://i.ibb.co/fzfZFtGc/223025.jpg">
   <link rel="stylesheet" href="<?php echo dazu_tailwind_css(); ?>">
+  <style>svg.dazu-icon{width:1.25rem;height:1.25rem;flex-shrink:0}</style>
   <?php if (!empty($extra_head)) echo $extra_head; ?>
 </head>
 <body class="bg-white text-slate-900 font-sans antialiased">

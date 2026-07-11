@@ -20,19 +20,19 @@ $year = date('Y');
       <div class="space-y-6">
         <h4 class="text-sm uppercase tracking-widest font-bold text-white">Company</h4>
         <ul class="space-y-3 text-sm">
-          <li><a href="<?php echo url('about/index.php'); ?>" class="hover:text-green-500">About Us</a></li>
-          <li><a href="<?php echo url('projects/index.php'); ?>" class="hover:text-green-500">Student Projects</a></li>
-          <li><a href="<?php echo url('blogs/index.php'); ?>" class="hover:text-green-500">Institute Blog</a></li>
-          <li><a href="<?php echo url('contact/index.php'); ?>" class="hover:text-green-500">Contact &amp; Support</a></li>
+          <li><a href="<?php echo url('about'); ?>" class="hover:text-green-500">About Us</a></li>
+          <li><a href="<?php echo url('projects'); ?>" class="hover:text-green-500">Student Projects</a></li>
+          <li><a href="<?php echo url('blog'); ?>" class="hover:text-green-500">Institute Blog</a></li>
+          <li><a href="<?php echo url('contact'); ?>" class="hover:text-green-500">Contact &amp; Support</a></li>
         </ul>
       </div>
       <div class="space-y-6">
         <h4 class="text-sm uppercase tracking-widest font-bold text-white">Courses</h4>
         <ul class="space-y-3 text-sm">
-          <li><a href="<?php echo url('courses/index.php'); ?>" class="hover:text-green-500">Software Development</a></li>
-          <li><a href="<?php echo url('courses/index.php'); ?>" class="hover:text-green-500">Artificial Intelligence</a></li>
-          <li><a href="<?php echo url('courses/index.php'); ?>" class="hover:text-green-500">Cybersecurity</a></li>
-          <li><a href="<?php echo url('courses/index.php'); ?>" class="hover:text-green-500">Data Analytics</a></li>
+          <li><a href="<?php echo url('courses'); ?>" class="hover:text-green-500">Software Development</a></li>
+          <li><a href="<?php echo url('courses'); ?>" class="hover:text-green-500">Artificial Intelligence</a></li>
+          <li><a href="<?php echo url('courses'); ?>" class="hover:text-green-500">Cybersecurity</a></li>
+          <li><a href="<?php echo url('courses'); ?>" class="hover:text-green-500">Data Analytics</a></li>
         </ul>
       </div>
       <div class="space-y-6 col-span-2 md:col-span-1">
@@ -48,8 +48,8 @@ $year = date('Y');
     <div class="border-t border-slate-900 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
       <p>&copy; <?php echo $year; ?> Dazu hub Institute. All rights reserved.</p>
       <div class="flex gap-6">
-        <a href="<?php echo url('contact/index.php'); ?>" class="hover:text-white">Support</a>
-        <a href="<?php echo url('about/index.php'); ?>" class="hover:text-white">Terms of Study</a>
+        <a href="<?php echo url('contact'); ?>" class="hover:text-white">Support</a>
+        <a href="<?php echo url('about'); ?>" class="hover:text-white">Terms of Study</a>
       </div>
     </div>
   </div>

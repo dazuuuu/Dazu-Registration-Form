@@ -4,6 +4,11 @@
 if (!function_exists('dazu_tailwind_css')) {
     function dazu_tailwind_css(): string
     {
+        $stable = public_path('assets/css/dazu-tailwind.css');
+        if (is_file($stable)) {
+            return asset('css/dazu-tailwind.css');
+        }
+
         $dir = public_path('assets/app');
         $files = glob($dir . DIRECTORY_SEPARATOR . 'index-*.css') ?: [];
         usort($files, static fn($a, $b) => filemtime($b) <=> filemtime($a));
@@ -11,6 +16,7 @@ if (!function_exists('dazu_tailwind_css')) {
         if ($file) {
             return asset('app/' . basename($file));
         }
+
         return asset('css/theme.css');
     }
 }

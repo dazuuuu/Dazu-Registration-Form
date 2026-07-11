@@ -1,6 +1,12 @@
 RewriteEngine On
 
-# Pretty URLs for main site pages
+# Redirect /page/index.php → /page (canonical clean URLs)
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteCond %{THE_REQUEST} \s[^\s?]*/index\.php[\s?] [NC]
+RewriteRule ^index\.php$ ./ [R=301,L]
+RewriteRule ^(.*)index\.php$ $1 [R=301,L]
+
+# Pretty URLs → PHP handlers
 RewriteRule ^login/?$ auth/login.php [L]
 RewriteRule ^apply/?$ apply/index.php [L]
 RewriteRule ^courses/?$ courses/index.php [L]
@@ -9,7 +15,6 @@ RewriteRule ^contact/?$ contact/index.php [L]
 RewriteRule ^projects/?$ projects/index.php [L]
 RewriteRule ^blog/?$ blogs/index.php [L]
 
-# Default homepage
 DirectoryIndex index.php
 
 # Serve existing files and directories (api, admin, uploads, assets, PHP pages)
@@ -17,5 +22,5 @@ RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# PHP site fallback — no React SPA
+# Homepage fallback
 RewriteRule ^ index.php [L]

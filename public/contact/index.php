@@ -3,6 +3,7 @@ $page_title = 'Contact Dazu Hub — Dazu hub Institute';
 $page_description = 'Contact Dazu hub Institute — tuition, study plans, campus labs in Thika Town.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
+require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
 require_once __DIR__ . '/../../app/v1/helpers/contact.php';
 require_once __DIR__ . '/../../app/v1/helpers/site_contact.php';
 require_once __DIR__ . '/../../app/v1/controllers/EnquiryController.php';
@@ -73,19 +74,19 @@ ob_start();
           <h3 class="text-lg font-bold text-slate-900 uppercase tracking-wide">Institute Directory</h3>
           <ul class="space-y-6 text-sm">
             <li class="flex items-start gap-4">
-              <div class="p-3 bg-white border border-slate-200 text-green-600 rounded-xl"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></div>
+              <div class="p-3 bg-white border border-slate-200 text-green-600 rounded-xl"><svg class="dazu-icon h-5 w-5" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg></div>
               <div><span class="block text-slate-400 uppercase tracking-wider text-[10px] font-bold">Call / WhatsApp</span><span class="text-base font-bold text-slate-900"><?php echo htmlspecialchars($c['contact_phone']); ?></span></div>
             </li>
             <li class="flex items-start gap-4">
-              <div class="p-3 bg-white border border-slate-200 text-green-600 rounded-xl"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div>
+              <div class="p-3 bg-white border border-slate-200 text-green-600 rounded-xl"><svg class="dazu-icon h-5 w-5" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg></div>
               <div><span class="block text-slate-400 uppercase tracking-wider text-[10px] font-bold">Email Admissions</span><span class="text-base font-bold text-slate-900"><?php echo htmlspecialchars($c['contact_email']); ?></span></div>
             </li>
             <li class="flex items-start gap-4">
-              <div class="p-3 bg-white border border-slate-200 text-green-600 rounded-xl"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
+              <div class="p-3 bg-white border border-slate-200 text-green-600 rounded-xl"><svg class="dazu-icon h-5 w-5" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
               <div><span class="block text-slate-400 uppercase tracking-wider text-[10px] font-bold">Campus Location</span><span class="text-base font-bold text-slate-900"><?php echo htmlspecialchars($c['contact_address']); ?></span></div>
             </li>
             <li class="flex items-start gap-4">
-              <div class="p-3 bg-white border border-slate-200 text-green-600 rounded-xl"><svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+              <div class="p-3 bg-white border border-slate-200 text-green-600 rounded-xl"><svg class="dazu-icon h-5 w-5" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
               <div><span class="block text-slate-400 uppercase tracking-wider text-[10px] font-bold">Office Hours</span><span class="text-base font-bold text-slate-900"><?php echo htmlspecialchars($c['contact_hours']); ?></span></div>
             </li>
           </ul>
@@ -102,7 +103,7 @@ ob_start();
             </div>
           <?php else: ?>
             <div class="bg-white border border-slate-200 rounded-xl p-8 text-center space-y-4 aspect-[4/3] flex flex-col justify-center items-center">
-              <svg class="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+              <svg class="dazu-icon h-10 w-10 text-green-600" width="40" height="40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
               <div>
                 <p class="font-extrabold text-slate-900"><?php echo htmlspecialchars($c['contact_map_title']); ?></p>
                 <p class="text-xs font-semibold text-slate-400 uppercase tracking-widest mt-1"><?php echo htmlspecialchars($c['contact_map_subtitle']); ?></p>
@@ -122,7 +123,7 @@ ob_start();
 
           <?php if ($sent): ?>
             <div class="p-8 border border-green-200 bg-green-50 rounded-2xl text-center space-y-3">
-              <svg class="h-12 w-12 text-green-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <svg class="dazu-icon h-12 w-12 text-green-600 mx-auto" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               <h4 class="text-lg font-bold text-slate-900">Message Delivered Successfully!</h4>
               <p class="text-xs text-slate-600">Thank you for contacting Dazu Hub Institute. We will call your phone number shortly.</p>
             </div>
@@ -173,7 +174,7 @@ ob_start();
               </div>
               <button type="submit" class="inline-flex items-center gap-2 px-8 py-3.5 bg-[#15A24A] hover:bg-[#128a3e] text-white text-xs font-extrabold uppercase tracking-widest rounded-xl">
                 Send Inquiry
-                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                <svg class="dazu-icon h-4 w-4" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
               </button>
             </form>
           <?php endif; ?>
