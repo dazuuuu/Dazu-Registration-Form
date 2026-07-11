@@ -86,7 +86,10 @@ ob_start();
                  class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-green-600">
         </div>
         <div class="space-y-2">
-          <label class="block text-xs font-bold uppercase tracking-widest text-slate-500" for="password">Password</label>
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold uppercase tracking-widest text-slate-500" for="password">Password</label>
+            <a href="<?php echo url('forgot-password'); ?>" class="text-[10px] font-bold text-green-600 hover:underline">Forgot password?</a>
+          </div>
           <input type="password" id="password" name="password" required autocomplete="current-password"
                  class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-green-600">
         </div>
