@@ -1,108 +1,110 @@
 <?php
 /**
- * Homepage hero — matches Dazu/EDURA design (navbar untouched).
+ * Homepage hero — matches EDURA reference layout exactly.
  */
-$heroImage = asset('app/hero_student_1783619555973-Dfwss1g9.jpg');
-if (!is_file(public_path('assets/app/hero_student_1783619555973-Dfwss1g9.jpg'))) {
-    $heroImage = 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80';
+$heroImage = 'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=900&q=80';
+$localHero = public_path('assets/app/hero_student_1783619555973-Dfwss1g9.jpg');
+if (is_file($localHero)) {
+    $heroImage = asset('app/hero_student_1783619555973-Dfwss1g9.jpg');
 }
 
-if (!function_exists('dazu_hero_cta')) {
-    function dazu_hero_cta(string $label, string $href, string $variant = 'green'): void {
-        $green = $variant === 'green';
-        ?>
-        <a href="<?php echo htmlspecialchars($href); ?>"
-           class="inline-flex items-stretch overflow-hidden rounded-md shadow-sm transition-opacity hover:opacity-95 <?php echo $green ? 'bg-[#15A24A]' : 'bg-[#0F172A]'; ?>">
-          <span class="px-5 sm:px-7 py-3.5 text-[11px] sm:text-xs font-extrabold uppercase tracking-widest text-white flex items-center">
-            <?php echo htmlspecialchars($label); ?>
-          </span>
-          <span class="w-11 sm:w-12 flex items-center justify-center <?php echo $green ? 'bg-[#128a3e]' : 'bg-black'; ?>">
-            <span class="w-7 h-7 bg-white rounded-full flex items-center justify-center text-[#15A24A]">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-            </span>
-          </span>
-        </a>
-        <?php
-    }
-}
+$coursesUrl = url('courses/index.php');
 ?>
 <section class="relative bg-white overflow-hidden" id="dazu-hero">
-  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 pt-4 md:pt-6 pb-0">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-center">
-      <div class="space-y-5 z-10">
-        <div class="inline-flex items-center gap-2 text-[#15A24A] text-[11px] font-extrabold uppercase tracking-widest">
-          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14M13 6l6 6-6 6"/></svg>
-          Online E-Learning Course
-        </div>
-
-        <h1 class="text-3xl sm:text-4xl lg:text-[2.85rem] font-extrabold leading-[1.05] tracking-tight text-slate-900 uppercase">
-          <span class="text-[#15A24A] normal-case">Online Education</span><br>
-          Feels Like Real Classroom
-        </h1>
-
-        <ul class="space-y-2.5 text-sm font-semibold text-slate-700">
-          <li class="flex items-center gap-3"><span class="w-5 h-5 rounded-full bg-[#15A24A] text-white flex items-center justify-center text-[10px] shrink-0">✓</span> Get Certified</li>
-          <li class="flex items-center gap-3"><span class="w-5 h-5 rounded-full bg-[#15A24A] text-white flex items-center justify-center text-[10px] shrink-0">✓</span> Gain Job-ready Skills</li>
-          <li class="flex items-center gap-3"><span class="w-5 h-5 rounded-full bg-[#15A24A] text-white flex items-center justify-center text-[10px] shrink-0">✓</span> Great Life</li>
-        </ul>
-
-        <div class="flex flex-wrap items-center gap-3 pt-1">
-          <?php dazu_hero_cta('Get Started', url('courses/index.php'), 'green'); ?>
-          <?php dazu_hero_cta('Our Courses', url('courses/index.php'), 'dark'); ?>
-        </div>
-      </div>
-
-      <div class="relative flex justify-center lg:justify-end items-center py-2 lg:py-4 min-h-[300px] sm:min-h-[360px]">
-        <div class="absolute w-[260px] h-[260px] sm:w-[340px] sm:h-[340px] rounded-full border-[3px] border-[#15A24A] pointer-events-none"></div>
-
-        <div class="relative z-10 w-[220px] sm:w-[280px] lg:w-[300px] aspect-[4/5] rounded-2xl overflow-hidden shadow-lg border-4 border-white">
-          <img src="<?php echo htmlspecialchars($heroImage); ?>" alt="Dazu Hub student"
-               class="w-full h-full object-cover object-top" referrerpolicy="no-referrer">
-        </div>
-
-        <div class="absolute top-[8%] left-[0%] sm:left-[6%] bg-white rounded-lg shadow-md border border-slate-100 px-3 py-2.5 flex items-center gap-2.5 z-20 max-w-[170px]">
-          <span class="w-9 h-9 rounded-md bg-violet-100 text-violet-600 flex items-center justify-center shrink-0">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-          </span>
-          <div class="min-w-0">
-            <p class="text-base font-extrabold text-slate-900 leading-none">16500+</p>
-            <p class="text-[9px] font-bold text-violet-600 uppercase tracking-wide mt-0.5">Active Students</p>
-          </div>
-        </div>
-
-        <div class="absolute bottom-[14%] right-[0%] sm:right-[4%] bg-white rounded-lg shadow-md border border-slate-100 px-3 py-2.5 flex items-center gap-2.5 z-20 max-w-[190px]">
-          <span class="w-9 h-9 rounded-md bg-red-50 text-red-500 flex items-center justify-center shrink-0">
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-          </span>
-          <div class="min-w-0">
-            <p class="text-base font-extrabold text-slate-900 leading-none">7500+</p>
-            <p class="text-[9px] font-bold text-violet-600 uppercase tracking-wide mt-0.5">Online Video Courses</p>
-          </div>
-        </div>
-      </div>
+  <!-- Background decorations -->
+  <div class="pointer-events-none absolute inset-0 z-0" aria-hidden="true">
+    <!-- Top-left green corner lines -->
+    <svg class="absolute top-6 left-4 md:left-12 w-24 h-24 text-[#15A24A]/25" viewBox="0 0 100 100" fill="none">
+      <path d="M8 8 H55 M8 8 V55" stroke="currentColor" stroke-width="2"/>
+      <path d="M20 20 H45 M20 20 V45" stroke="currentColor" stroke-width="1.5"/>
+    </svg>
+    <!-- Top-right faint waves -->
+    <svg class="absolute top-8 right-6 md:right-16 w-32 h-20 text-slate-200" viewBox="0 0 120 60" fill="none">
+      <path d="M0 30 Q30 10 60 30 T120 30" stroke="currentColor" stroke-width="1.5"/>
+      <path d="M0 45 Q30 25 60 45 T120 45" stroke="currentColor" stroke-width="1"/>
+      <circle cx="95" cy="12" r="2" fill="currentColor"/>
+      <circle cx="108" cy="22" r="1.5" fill="currentColor"/>
+    </svg>
+    <!-- Bottom-left dot cluster -->
+    <div class="absolute bottom-16 left-[12%] hidden sm:grid grid-cols-5 gap-1.5 opacity-40">
+      <?php for ($i = 0; $i < 15; $i++): ?>
+        <span class="w-1.5 h-1.5 rounded-full bg-[#15A24A]"></span>
+      <?php endfor; ?>
     </div>
   </div>
 
-  <!-- Stats strip -->
-  <div class="border-t border-[#15A24A]/10 bg-[#eef8f0] mt-2">
-    <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 py-4">
-      <div class="flex flex-wrap items-center justify-center lg:justify-between gap-x-6 gap-y-3">
-        <?php
-        $stats = [
-            ['label' => '20k+ Online Courses', 'icon' => 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'],
-            ['label' => 'Lifetime Access', 'icon' => 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
-            ['label' => 'Value For Money', 'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-            ['label' => 'Lifetime Support', 'icon' => 'M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-            ['label' => 'Community Support', 'icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z'],
-        ];
-        foreach ($stats as $stat): ?>
-          <div class="flex items-center gap-2.5 shrink-0">
-            <span class="w-9 h-9 rounded-full bg-[#15A24A] text-white flex items-center justify-center shrink-0">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="<?php echo $stat['icon']; ?>"/></svg>
-            </span>
-            <span class="text-[10px] sm:text-xs font-bold text-slate-700 uppercase tracking-wide whitespace-nowrap"><?php echo htmlspecialchars($stat['label']); ?></span>
+  <div class="relative z-10 max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 pt-4 md:pt-5 pb-10 md:pb-14">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-6 items-center">
+      <!-- Left -->
+      <div class="space-y-6 lg:pr-4">
+        <p class="inline-flex items-center gap-2 text-slate-600 text-[11px] font-bold uppercase tracking-[0.18em]">
+          <svg class="w-4 h-4 text-[#15A24A] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14M13 6l6 6-6 6"/></svg>
+          Online E-Learning Course
+        </p>
+
+        <h1 class="font-extrabold leading-[1.08] tracking-tight">
+          <span class="block text-[#15A24A] text-4xl sm:text-5xl lg:text-[3.4rem]">Online Education</span>
+          <span class="block text-slate-900 text-4xl sm:text-5xl lg:text-[3.4rem] mt-1">Feels Like Real Classroom</span>
+        </h1>
+
+        <ul class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-semibold text-slate-700">
+          <li class="flex items-center gap-2 whitespace-nowrap">
+            <span class="w-5 h-5 rounded-full bg-[#15A24A] text-white flex items-center justify-center text-[10px] shrink-0">✓</span>
+            Get Certified
+          </li>
+          <li class="flex items-center gap-2 whitespace-nowrap">
+            <span class="w-5 h-5 rounded-full bg-[#15A24A] text-white flex items-center justify-center text-[10px] shrink-0">✓</span>
+            Gain Job-ready Skills
+          </li>
+          <li class="flex items-center gap-2 whitespace-nowrap">
+            <span class="w-5 h-5 rounded-full bg-[#15A24A] text-white flex items-center justify-center text-[10px] shrink-0">✓</span>
+            Great Life
+          </li>
+        </ul>
+
+        <div class="flex flex-wrap items-center gap-3 pt-1">
+          <a href="<?php echo htmlspecialchars($coursesUrl); ?>"
+             class="inline-flex items-center justify-center px-7 sm:px-8 py-3.5 bg-[#15A24A] hover:bg-[#128a3e] text-white text-[11px] sm:text-xs font-extrabold uppercase tracking-widest transition-colors rounded-none">
+            Get Started →
+          </a>
+          <a href="<?php echo htmlspecialchars($coursesUrl); ?>"
+             class="inline-flex items-center justify-center px-7 sm:px-8 py-3.5 bg-[#0F172A] hover:bg-black text-white text-[11px] sm:text-xs font-extrabold uppercase tracking-widest transition-colors rounded-none">
+            Our Courses →
+          </a>
+        </div>
+      </div>
+
+      <!-- Right -->
+      <div class="relative flex justify-center lg:justify-end items-end min-h-[340px] sm:min-h-[420px] lg:min-h-[480px]">
+        <!-- Green circle behind head -->
+        <div class="absolute top-[6%] left-1/2 -translate-x-1/2 lg:left-[58%] lg:translate-x-0 w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] lg:w-[320px] lg:h-[320px] rounded-full border-[3px] border-[#15A24A] pointer-events-none z-0"></div>
+
+        <img src="<?php echo htmlspecialchars($heroImage); ?>"
+             alt="Student at Dazu Hub Institute"
+             class="relative z-10 max-h-[360px] sm:max-h-[440px] lg:max-h-[500px] w-auto object-contain object-bottom drop-shadow-sm"
+             referrerpolicy="no-referrer">
+
+        <!-- Active Students -->
+        <div class="absolute z-20 left-[2%] sm:left-[8%] lg:left-[4%] bottom-[28%] sm:bottom-[32%] bg-white rounded-xl shadow-lg border border-slate-100 px-4 py-3 flex items-center gap-3">
+          <span class="w-11 h-11 rounded-full bg-[#15A24A] text-white flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+          </span>
+          <div>
+            <p class="text-xl font-extrabold text-slate-900 leading-none">16500+</p>
+            <p class="text-xs text-slate-500 font-medium mt-0.5">Active Students</p>
           </div>
-        <?php endforeach; ?>
+        </div>
+
+        <!-- Online Video Courses -->
+        <div class="absolute z-20 right-[0%] sm:right-[6%] lg:right-[2%] top-[38%] sm:top-[40%] bg-white rounded-xl shadow-lg border border-slate-100 px-4 py-3 flex items-center gap-3">
+          <span class="w-11 h-11 rounded-full bg-red-500 text-white flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          </span>
+          <div>
+            <p class="text-xl font-extrabold text-slate-900 leading-none">7500+</p>
+            <p class="text-xs text-slate-500 font-medium mt-0.5">Online Video Courses</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
