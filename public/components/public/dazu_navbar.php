@@ -50,7 +50,7 @@ $role = $_SESSION['role'] ?? '';
 
       <div class="hidden lg:flex items-center gap-4">
         <a href="tel:+254750116600" class="text-xs font-extrabold text-slate-700 hover:text-[#15A24A] flex items-center gap-1.5 mr-2">+254 750 116600</a>
-        <a href="<?php echo url('auth/student_register.php'); ?>" class="px-6 py-2.5 text-xs font-extrabold tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-md uppercase">APPLY</a>
+        <a href="<?php echo url('courses/index.php'); ?>" class="px-6 py-2.5 text-xs font-extrabold tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-md uppercase">APPLY</a>
         <?php if ($isLoggedIn && in_array($role, ['admin', 'superadmin'], true)): ?>
           <a href="<?php echo url('admin/dashboard.php'); ?>" class="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md">Admin</a>
         <?php elseif ($isLoggedIn && $role === 'student'): ?>
@@ -76,7 +76,7 @@ $role = $_SESSION['role'] ?? '';
         </a>
       <?php endforeach; ?>
       <div class="pt-4 border-t border-slate-100 flex flex-col gap-3">
-        <a href="<?php echo url('auth/student_register.php'); ?>" class="w-full py-3 text-center text-xs font-extrabold tracking-widest text-white bg-[#15A24A] rounded-md uppercase">APPLY</a>
+        <a href="<?php echo url('courses/index.php'); ?>" class="w-full py-3 text-center text-xs font-extrabold tracking-widest text-white bg-[#15A24A] rounded-md uppercase">APPLY</a>
         <a href="<?php echo url('auth/login.php'); ?>" class="w-full py-3 text-center text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-md">Login</a>
       </div>
     </div>

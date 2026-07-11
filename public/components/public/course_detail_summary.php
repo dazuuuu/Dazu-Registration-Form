@@ -16,11 +16,7 @@ $icon = $icons[strtoupper($course['abbreviation'] ?? '')] ?? '📚';
 ?>
 <div class="cds-card dh-reveal">
     <div class="cds-cover">
-        <?php if ($coverImg): ?>
-            <img src="<?php echo htmlspecialchars($coverImg); ?>" alt="<?php echo htmlspecialchars($course['title']); ?>">
-        <?php else: ?>
-            <div class="cds-cover-ph"><?php echo $icon; ?></div>
-        <?php endif; ?>
+        <img src="<?php echo htmlspecialchars($coverImg); ?>" alt="<?php echo htmlspecialchars($course['title']); ?>" referrerpolicy="no-referrer">
     </div>
     <div class="cds-body">
         <div class="cds-badges">

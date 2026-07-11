@@ -1,0 +1,217 @@
+<?php
+/**
+ * Admission application form — requires $course, $reg_success, $reg_error, optional $pfx, $referrer
+ */
+if (!isset($course)) {
+    throw new RuntimeException('dazu_admission_form requires $course');
+}
+require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
+require_once __DIR__ . '/../../../app/v1/helpers/payment_credentials.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+
+$pfx = $pfx ?? 'adm';
+$reg_success = $reg_success ?? false;
+$reg_error = $reg_error ?? null;
+$referrer = $referrer ?? null;
+$payment = payment_credentials();
+$fee = (float) ($course['course_fee'] ?? 0);
+$mo = max(1, (int) ($course['duration_months'] ?? 1));
+$studyMode = $_POST['study_mode'] ?? 'online';
+$paymentPlan = $_POST['payment_plan'] ?? 'monthly';
+$quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
+?>
+
+<?php if ($reg_success): ?>
+<div class="bg-green-50 border border-green-200 text-green-800 rounded-2xl p-8 text-center space-y-4">
+  <svg class="h-12 w-12 text-green-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+  <h2 class="text-xl font-extrabold">Application Received!</h2>
+  <p class="text-sm text-green-700 max-w-md mx-auto">Our team will verify your M-Pesa payment and contact you within 24 hours. You can also reach us on WhatsApp at 0750 116 600.</p>
+  <a href="<?php echo url('/'); ?>" class="inline-block px-6 py-3 bg-green-600 text-white text-xs font-extrabold uppercase tracking-wider rounded-xl">Back to Home</a>
+</div>
+<?php else: ?>
+
+<div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-10">
+  <div class="border-b border-slate-100 pb-6 mb-8">
+    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-950 tracking-tight">Admission Application Form</h1>
+    <p class="text-slate-500 text-xs font-medium mt-1">Fill in all required fields to reserve your slot and verify your intake.</p>
+  </div>
+
+  <?php if ($reg_error): ?>
+  <div class="mb-6 p-4 border border-red-200 bg-red-50 text-red-700 text-xs font-semibold rounded-xl"><?php echo htmlspecialchars($reg_error); ?></div>
+  <?php endif; ?>
+
+  <?php if ($referrer): ?>
+  <div class="mb-6 p-4 bg-blue-50 border border-blue-100 text-blue-800 text-xs font-semibold rounded-xl">
+    Recommended by <strong><?php echo htmlspecialchars($referrer['full_name']); ?></strong> (<?php echo htmlspecialchars($referrer['registration_no']); ?>)
+  </div>
+  <?php endif; ?>
+
+  <form method="POST" enctype="multipart/form-data" id="<?php echo $pfx; ?>Form" class="space-y-6">
+    <?php echo csrf_field(); ?>
+    <input type="hidden" name="dh_register" value="1">
+    <input type="hidden" name="course_id" value="<?php echo (int) $course['id']; ?>">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div class="space-y-1.5">
+        <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500" for="<?php echo $pfx; ?>_name">Names *</label>
+        <input type="text" id="<?php echo $pfx; ?>_name" name="full_name" required placeholder="E.g. Jane Wangari Kamau"
+               value="<?php echo htmlspecialchars($_POST['full_name'] ?? ''); ?>"
+               class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white">
+      </div>
+      <div class="space-y-1.5">
+        <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500" for="<?php echo $pfx; ?>_county">County / Country *</label>
+        <input type="text" id="<?php echo $pfx; ?>_county" name="county_country" required placeholder="E.g. Kiambu / Kenya"
+               value="<?php echo htmlspecialchars($_POST['county_country'] ?? ''); ?>"
+               class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white">
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div class="space-y-1.5">
+        <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500" for="<?php echo $pfx; ?>_email">Email Address *</label>
+        <input type="email" id="<?php echo $pfx; ?>_email" name="email" required placeholder="E.g. jane.wangari@example.com"
+               value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"
+               class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white">
+      </div>
+      <div class="space-y-1.5">
+        <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500" for="<?php echo $pfx; ?>_phone">Phone Number *</label>
+        <input type="tel" id="<?php echo $pfx; ?>_phone" name="phone" required placeholder="E.g. 0712345678"
+               value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>"
+               class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white">
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div class="space-y-1.5">
+        <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Course Choice *</label>
+        <input type="text" readonly value="<?php echo htmlspecialchars($course['title']); ?>"
+               class="w-full px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-xs font-bold text-slate-900">
+      </div>
+      <div class="space-y-1.5">
+        <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500" for="<?php echo $pfx; ?>_intake">Intake with Calendar *</label>
+        <input type="date" id="<?php echo $pfx; ?>_intake" name="intake_date" required
+               value="<?php echo htmlspecialchars($_POST['intake_date'] ?? ''); ?>"
+               class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white">
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+      <div class="space-y-2">
+        <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Study Mode *</label>
+        <div class="grid grid-cols-2 gap-2">
+          <label class="p-3 border rounded-xl text-xs font-bold cursor-pointer text-center <?php echo $studyMode === 'online' ? 'border-green-600 bg-green-50' : 'border-slate-200'; ?>">
+            <input type="radio" name="study_mode" value="online" class="sr-only" <?php echo $studyMode === 'online' ? 'checked' : ''; ?>> Online (KES 1,000)
+          </label>
+          <label class="p-3 border rounded-xl text-xs font-bold cursor-pointer text-center <?php echo $studyMode === 'physical' ? 'border-green-600 bg-green-50' : 'border-slate-200'; ?>">
+            <input type="radio" name="study_mode" value="physical" class="sr-only" <?php echo $studyMode === 'physical' ? 'checked' : ''; ?>> Physical (KES 1,500)
+          </label>
+        </div>
+      </div>
+      <div class="space-y-2">
+        <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Payment Plan *</label>
+        <select name="payment_plan" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600">
+          <option value="monthly" <?php echo $paymentPlan === 'monthly' ? 'selected' : ''; ?>>Monthly installments</option>
+          <option value="3months" <?php echo $paymentPlan === '3months' ? 'selected' : ''; ?>>3-month plan</option>
+          <option value="full" <?php echo $paymentPlan === 'full' ? 'selected' : ''; ?>>Full payment</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="p-5 bg-green-50 border border-green-200 rounded-2xl space-y-4">
+      <div class="flex items-center gap-2 border-b border-green-100 pb-3">
+        <svg class="h-5 w-5 text-[#15A24A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        <span class="text-xs font-extrabold text-green-950 uppercase tracking-wider">M-Pesa Admission Fee Payment Details</span>
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+        <div class="bg-white p-3 border border-green-100 rounded-xl text-center">
+          <span class="block text-slate-400 text-[9px] uppercase tracking-wider font-extrabold mb-0.5">Paybill Number</span>
+          <strong class="text-sm font-extrabold text-slate-900 select-all"><?php echo htmlspecialchars($payment['paybill']); ?></strong>
+        </div>
+        <div class="bg-white p-3 border border-green-100 rounded-xl text-center">
+          <span class="block text-slate-400 text-[9px] uppercase tracking-wider font-extrabold mb-0.5">Account Number</span>
+          <strong class="text-sm font-extrabold text-[#15A24A] select-all"><?php echo htmlspecialchars($payment['account_number']); ?></strong>
+        </div>
+        <div class="bg-white p-3 border border-green-100 rounded-xl text-center">
+          <span class="block text-slate-400 text-[9px] uppercase tracking-wider font-extrabold mb-0.5">Business Name</span>
+          <strong class="text-sm font-extrabold text-slate-900">Dazu hub</strong>
+        </div>
+      </div>
+      <div class="bg-white border border-green-100 rounded-xl p-4 text-xs space-y-2" id="<?php echo $pfx; ?>FeeBox"
+           data-fee="<?php echo $fee; ?>" data-months="<?php echo $mo; ?>">
+        <div class="flex justify-between"><span>Registration fee</span><strong id="<?php echo $pfx; ?>RegFee">KES <?php echo number_format($quote['registration_fee']); ?></strong></div>
+        <div class="flex justify-between"><span>First installment</span><strong id="<?php echo $pfx; ?>InstAmt">KES <?php echo number_format($quote['installment_amount']); ?></strong></div>
+        <div class="flex justify-between font-extrabold text-green-800 border-t border-green-100 pt-2"><span>Pay now</span><span id="<?php echo $pfx; ?>Total">KES <?php echo number_format($quote['total_due_now']); ?></span></div>
+      </div>
+      <p class="text-[11px] text-green-800 font-semibold leading-relaxed flex items-start gap-2">
+        <svg class="h-4 w-4 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Pay the admission fee to the Paybill above, then paste your full M-Pesa confirmation SMS below.
+      </p>
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500" for="<?php echo $pfx; ?>_mpesa">Paste M-Pesa / Payment Message *</label>
+      <textarea id="<?php echo $pfx; ?>_mpesa" name="payment_reference" required rows="4"
+                placeholder="Paste your full payment confirmation SMS here..."
+                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white"><?php echo htmlspecialchars($_POST['payment_reference'] ?? ''); ?></textarea>
+    </div>
+
+    <div class="space-y-2 pt-4 border-t border-slate-100">
+      <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500">National ID / Result Slip (PDF, max 5 MB) *</label>
+      <label class="flex flex-col items-center justify-center p-6 bg-slate-50 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-green-600 transition-colors min-h-[120px]"
+             for="<?php echo $pfx; ?>_id_doc">
+        <svg class="h-8 w-8 text-slate-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+        <span class="text-xs font-bold text-slate-600" id="<?php echo $pfx; ?>_uploadText">Click to upload PDF</span>
+      </label>
+      <input type="file" id="<?php echo $pfx; ?>_id_doc" name="id_document" accept="application/pdf" required class="sr-only">
+    </div>
+
+    <button type="submit" id="<?php echo $pfx; ?>SubmitBtn"
+            class="w-full py-4 text-xs font-extrabold uppercase tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-xl transition-colors">
+      Submit Application
+    </button>
+  </form>
+</div>
+
+<script>
+(function(){
+  var pfx = <?php echo json_encode($pfx); ?>;
+  var box = document.getElementById(pfx + 'FeeBox');
+  if (!box) return;
+  var fee = parseFloat(box.getAttribute('data-fee')) || 0;
+  var mo = parseInt(box.getAttribute('data-months'), 10) || 1;
+  function el(id){ return document.getElementById(pfx + id); }
+  function fmt(n){ return 'KES ' + Math.round(n).toLocaleString(); }
+  function recalc(){
+    var plan = 'monthly', mode = 'online';
+    document.querySelectorAll('#'+pfx+'Form input[name="payment_plan"]').forEach(function(s){ if(s.tagName==='SELECT' && s.value) plan=s.value; });
+    var sel = document.querySelector('#'+pfx+'Form select[name="payment_plan"]');
+    if (sel) plan = sel.value;
+    document.querySelectorAll('#'+pfx+'Form input[name="study_mode"]').forEach(function(r){ if(r.checked) mode=r.value; });
+    var reg = mode === 'physical' ? 1500 : 1000;
+    var count = plan === 'monthly' ? Math.max(1, mo) : (plan === '3months' ? 3 : 1);
+    var inst = fee / count;
+    if (el('RegFee')) el('RegFee').textContent = fmt(reg);
+    if (el('InstAmt')) el('InstAmt').textContent = fmt(inst);
+    if (el('Total')) el('Total').textContent = fmt(reg + inst);
+    document.querySelectorAll('#'+pfx+'Form label:has(input[name="study_mode"])').forEach(function(l){
+      var inp = l.querySelector('input');
+      l.className = 'p-3 border rounded-xl text-xs font-bold cursor-pointer text-center ' + (inp && inp.checked ? 'border-green-600 bg-green-50' : 'border-slate-200');
+    });
+  }
+  document.querySelectorAll('#'+pfx+'Form input[name="study_mode"], #'+pfx+'Form select[name="payment_plan"]').forEach(function(r){ r.addEventListener('change', recalc); });
+  recalc();
+  var inp = document.getElementById(pfx+'_id_doc'), txt = document.getElementById(pfx+'_uploadText');
+  if (inp && txt) inp.addEventListener('change', function(){ txt.textContent = inp.files[0] ? inp.files[0].name : 'Click to upload PDF'; });
+  var form = document.getElementById(pfx+'Form');
+  if (form) form.addEventListener('submit', function(){
+    var county = document.getElementById(pfx+'_county');
+    var mpesa = document.getElementById(pfx+'_mpesa');
+    if (county && mpesa && county.value.trim() && !mpesa.value.includes('[Location:')) {
+      mpesa.value = '[Location: ' + county.value.trim() + '] ' + mpesa.value;
+    }
+    var b = document.getElementById(pfx+'SubmitBtn');
+    if (b){ b.disabled=true; b.textContent='Submitting…'; }
+  });
+})();
+</script>
+<?php endif; ?>

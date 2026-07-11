@@ -2,7 +2,7 @@ RewriteEngine On
 
 # Pretty URLs for main site pages
 RewriteRule ^login/?$ auth/login.php [L]
-RewriteRule ^apply/?$ auth/student_register.php [L]
+RewriteRule ^apply/?$ apply/index.php [L]
 RewriteRule ^courses/?$ courses/index.php [L]
 RewriteRule ^about/?$ about/index.php [L]
 RewriteRule ^contact/?$ contact/index.php [L]

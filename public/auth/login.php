@@ -94,7 +94,7 @@ ob_start();
       </form>
 
       <div class="text-center space-y-3 text-xs text-slate-500">
-        <a href="<?php echo url('auth/student_register.php'); ?>" class="text-green-600 font-bold hover:underline block">New student? Apply here</a>
+        <a href="<?php echo url('courses/index.php'); ?>" class="text-green-600 font-bold hover:underline block">New student? Apply here</a>
         <a href="<?php echo url('admin/portal.php'); ?>" class="text-slate-600 hover:text-green-600 font-semibold block">Admin login →</a>
         <a href="<?php echo url('/'); ?>" class="text-slate-400 hover:text-slate-600 block">← Back to website</a>
       </div>
