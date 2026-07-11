@@ -49,7 +49,7 @@ $firstCategoryId = !empty($popularCategories) ? (int) $popularCategories[0]['id'
             $course['_display_category_id'] = $course['_display_category_id'] ?? dazu_resolve_course_category_id($course);
             $visible = ((int) $course['_display_category_id'] === $firstCategoryId) ? '' : 'hidden';
           ?>
-            <div class="dazu-course-wrap flex-shrink-0 w-[300px] sm:w-[320px] snap-start <?php echo $visible; ?>" data-category-id="<?php echo (int) $course['_display_category_id']; ?>">
+            <div class="dazu-course-wrap flex-shrink-0 w-[320px] sm:w-[340px] snap-start <?php echo $visible; ?>" data-category-id="<?php echo (int) $course['_display_category_id']; ?>">
               <?php include __DIR__ . '/dazu_course_card.php'; ?>
             </div>
           <?php endforeach; ?>
@@ -59,13 +59,8 @@ $firstCategoryId = !empty($popularCategories) ? (int) $popularCategories[0]['id'
 
     <div class="text-center pt-2">
       <a href="<?php echo url('courses/index.php'); ?>"
-         class="inline-flex items-stretch overflow-hidden rounded-md bg-[#15A24A] hover:opacity-95 text-white shadow-sm transition-opacity">
-        <span class="px-8 py-3.5 text-xs font-extrabold uppercase tracking-widest flex items-center">View All Courses</span>
-        <span class="w-12 flex items-center justify-center bg-[#128a3e]">
-          <span class="w-7 h-7 bg-white rounded-full flex items-center justify-center text-[#15A24A]">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-          </span>
-        </span>
+         class="inline-flex items-center justify-center px-10 py-4 bg-[#15A24A] hover:bg-[#128a3e] text-white text-sm font-extrabold uppercase tracking-wide transition-colors rounded-none">
+        View All Courses →
       </a>
     </div>
   </div>

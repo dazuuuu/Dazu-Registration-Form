@@ -5,7 +5,6 @@ if (!isset($course) || !function_exists('dazu_course_apply_url')) {
 }
 $id = (int) ($course['id'] ?? 0);
 $img = dazu_course_image_url($course);
-$category = dazu_course_category($course['abbreviation'] ?? '');
 $rating = htmlspecialchars($course['rating'] ?? '4.8');
 $reviews = dazu_course_rating_count($course['abbreviation'] ?? '');
 $months = (int) ($course['duration_months'] ?? 0);
@@ -13,15 +12,15 @@ $fee = number_format((float) ($course['course_fee'] ?? 0));
 $title = htmlspecialchars($course['title'] ?? '');
 $overview = htmlspecialchars($course['overview'] ?? $course['description'] ?? '');
 $applyUrl = dazu_course_apply_url($course);
-$syllabusUrl = $applyUrl . '#learn';
+$detailsUrl = $applyUrl;
 ?>
 <article class="group bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col h-full hover:border-green-600 hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-md">
-  <div class="relative h-48 w-full bg-slate-100 overflow-hidden">
+  <div class="relative h-44 w-full bg-slate-100 overflow-hidden">
     <img src="<?php echo htmlspecialchars($img); ?>" alt="<?php echo $title; ?>"
          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerpolicy="no-referrer">
   </div>
-  <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
-    <div class="space-y-3">
+  <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+    <div class="space-y-2.5">
       <div class="flex items-center gap-1.5 text-xs flex-wrap">
         <div class="flex items-center text-amber-500"><svg class="h-3.5 w-3.5 fill-current" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg></div>
         <span class="font-extrabold text-slate-800"><?php echo $rating; ?></span>
@@ -32,19 +31,19 @@ $syllabusUrl = $applyUrl . '#learn';
           <?php echo $months; ?> months
         </span>
       </div>
-      <h3 class="text-xl font-extrabold text-slate-900 group-hover:text-green-600 transition-colors uppercase tracking-tight"><?php echo $title; ?></h3>
+      <h3 class="text-lg font-extrabold text-slate-900 group-hover:text-green-600 transition-colors uppercase tracking-tight leading-snug"><?php echo $title; ?></h3>
       <p class="text-slate-500 text-xs font-semibold leading-relaxed line-clamp-2"><?php echo $overview; ?></p>
     </div>
-    <div class="pt-4 border-t border-slate-100 flex items-center justify-between" onclick="event.stopPropagation()">
-      <div>
-        <span class="block text-[9px] font-bold text-slate-400 uppercase tracking-wider">Tuition Fee</span>
-        <span class="text-green-600 font-extrabold text-base">KES <?php echo $fee; ?></span>
+    <div class="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+      <div class="shrink-0">
+        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tuition Fee</span>
+        <span class="text-green-600 font-extrabold text-lg leading-tight">KES <?php echo $fee; ?></span>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <a href="<?php echo htmlspecialchars($applyUrl); ?>"
-           class="px-3.5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-md transition-colors shadow-sm">Apply</a>
-        <a href="<?php echo htmlspecialchars($syllabusUrl); ?>"
-           class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-md border border-slate-200">Syllabus</a>
+           class="inline-flex items-center justify-center px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white text-sm font-bold rounded-md transition-colors shadow-sm whitespace-nowrap">Apply</a>
+        <a href="<?php echo htmlspecialchars($detailsUrl); ?>"
+           class="inline-flex items-center justify-center px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-md border border-slate-200 whitespace-nowrap">View Details</a>
       </div>
     </div>
   </div>

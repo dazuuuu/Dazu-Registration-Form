@@ -62,30 +62,30 @@ $coursesUrl = url('courses/index.php');
           </li>
         </ul>
 
-        <div class="flex flex-wrap items-center gap-3 pt-1">
+        <div class="flex flex-wrap items-center gap-4 pt-2">
           <a href="<?php echo htmlspecialchars($coursesUrl); ?>"
-             class="inline-flex items-center justify-center px-7 sm:px-8 py-3.5 bg-[#15A24A] hover:bg-[#128a3e] text-white text-[11px] sm:text-xs font-extrabold uppercase tracking-widest transition-colors rounded-none">
+             class="inline-flex items-center justify-center px-9 py-4 bg-[#15A24A] hover:bg-[#128a3e] text-white text-sm font-extrabold uppercase tracking-wide transition-colors rounded-none min-w-[160px]">
             Get Started →
           </a>
           <a href="<?php echo htmlspecialchars($coursesUrl); ?>"
-             class="inline-flex items-center justify-center px-7 sm:px-8 py-3.5 bg-[#0F172A] hover:bg-black text-white text-[11px] sm:text-xs font-extrabold uppercase tracking-widest transition-colors rounded-none">
+             class="inline-flex items-center justify-center px-9 py-4 bg-[#0F172A] hover:bg-black text-white text-sm font-extrabold uppercase tracking-wide transition-colors rounded-none min-w-[160px]">
             Our Courses →
           </a>
         </div>
       </div>
 
       <!-- Right -->
-      <div class="relative flex justify-center lg:justify-end items-end min-h-[340px] sm:min-h-[420px] lg:min-h-[480px]">
+      <div class="relative flex justify-center lg:justify-end items-end min-h-[260px] sm:min-h-[300px] lg:min-h-[340px]">
         <!-- Green circle behind head -->
-        <div class="absolute top-[6%] left-1/2 -translate-x-1/2 lg:left-[58%] lg:translate-x-0 w-[220px] h-[220px] sm:w-[280px] sm:h-[280px] lg:w-[320px] lg:h-[320px] rounded-full border-[3px] border-[#15A24A] pointer-events-none z-0"></div>
+        <div class="absolute top-[8%] left-1/2 -translate-x-1/2 lg:left-[58%] lg:translate-x-0 w-[160px] h-[160px] sm:w-[200px] sm:h-[200px] lg:w-[230px] lg:h-[230px] rounded-full border-[3px] border-[#15A24A] pointer-events-none z-0"></div>
 
         <img src="<?php echo htmlspecialchars($heroImage); ?>"
              alt="Student at Dazu Hub Institute"
-             class="relative z-10 max-h-[360px] sm:max-h-[440px] lg:max-h-[500px] w-auto object-contain object-bottom drop-shadow-sm"
+             class="relative z-10 max-h-[240px] sm:max-h-[300px] lg:max-h-[340px] w-auto object-contain object-bottom drop-shadow-sm"
              referrerpolicy="no-referrer">
 
         <!-- Active Students -->
-        <div class="absolute z-20 left-[2%] sm:left-[8%] lg:left-[4%] bottom-[28%] sm:bottom-[32%] bg-white rounded-xl shadow-lg border border-slate-100 px-4 py-3 flex items-center gap-3">
+        <div class="absolute z-20 left-[2%] sm:left-[8%] lg:left-[4%] bottom-[24%] sm:bottom-[28%] bg-white rounded-xl shadow-lg border border-slate-100 px-3 py-2.5 flex items-center gap-2.5 scale-90 sm:scale-100 origin-bottom-left">
           <span class="w-11 h-11 rounded-full bg-[#15A24A] text-white flex items-center justify-center shrink-0">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
           </span>
@@ -96,7 +96,7 @@ $coursesUrl = url('courses/index.php');
         </div>
 
         <!-- Online Video Courses -->
-        <div class="absolute z-20 right-[0%] sm:right-[6%] lg:right-[2%] top-[38%] sm:top-[40%] bg-white rounded-xl shadow-lg border border-slate-100 px-4 py-3 flex items-center gap-3">
+        <div class="absolute z-20 right-[0%] sm:right-[6%] lg:right-[2%] top-[40%] sm:top-[42%] bg-white rounded-xl shadow-lg border border-slate-100 px-3 py-2.5 flex items-center gap-2.5 scale-90 sm:scale-100 origin-top-right">
           <span class="w-11 h-11 rounded-full bg-red-500 text-white flex items-center justify-center shrink-0">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
           </span>
