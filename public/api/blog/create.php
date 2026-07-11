@@ -47,6 +47,8 @@ try {
         $tags = array_map('trim', $tags);
     }
     
+    $_POST['tags'] = $tags;
+    
     $blogController = new BlogController($pdo);
     $result = $blogController->create($_POST, $featured_image);
     

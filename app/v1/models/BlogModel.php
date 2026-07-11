@@ -10,8 +10,8 @@ class BlogModel {
     
     // Create blog post
     public function create($data) {
-        $sql = "INSERT INTO blogs (title, slug, excerpt, content, featured_image, category_id, author_id, status, meta_title, meta_description, meta_keywords, published_at) 
-                VALUES (:title, :slug, :excerpt, :content, :featured_image, :category_id, :author_id, :status, :meta_title, :meta_description, :meta_keywords, :published_at)";
+        $sql = "INSERT INTO blogs (title, slug, excerpt, content, featured_image, category_id, author_id, status, is_featured, meta_title, meta_description, meta_keywords, published_at) 
+                VALUES (:title, :slug, :excerpt, :content, :featured_image, :category_id, :author_id, :status, :is_featured, :meta_title, :meta_description, :meta_keywords, :published_at)";
         
         $stmt = $this->db->prepare($sql);
         
@@ -113,7 +113,7 @@ class BlogModel {
         }
         
         if (empty($fields)) {
-            return false;
+            return true;
         }
         
         $sql = "UPDATE blogs SET " . implode(', ', $fields) . " WHERE id = :id";
@@ -170,7 +170,7 @@ class BlogModel {
         }
         
         if (empty($fields)) {
-            return false;
+            return true;
         }
         
         $sql = "UPDATE blog_sections SET " . implode(', ', $fields) . " WHERE id = :id";
