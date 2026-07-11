@@ -1,0 +1,6 @@
+# Ampps / shared hosting: send all traffic into public/
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^public/ - [L]
+RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

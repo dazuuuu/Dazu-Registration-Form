@@ -1,12 +1,8 @@
+<IfModule mod_rewrite.c>
+Options +FollowSymLinks -MultiViews
 RewriteEngine On
 
-# Redirect /page/index.php → /page (canonical clean URLs)
-RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteCond %{THE_REQUEST} \s[^\s?]*/index\.php[\s?] [NC]
-RewriteRule ^index\.php$ ./ [R=301,L]
-RewriteRule ^(.*)index\.php$ $1 [R=301,L]
-
-# Pretty URLs → PHP handlers
+# Pretty URLs (internal rewrite — no risky redirects)
 RewriteRule ^login/?$ auth/login.php [L]
 RewriteRule ^apply/?$ apply/index.php [L]
 RewriteRule ^courses/?$ courses/index.php [L]
@@ -15,12 +11,13 @@ RewriteRule ^contact/?$ contact/index.php [L]
 RewriteRule ^projects/?$ projects/index.php [L]
 RewriteRule ^blog/?$ blogs/index.php [L]
 
-DirectoryIndex index.php
-
-# Serve existing files and directories (api, admin, uploads, assets, PHP pages)
+# Real files and folders (css, images, api, admin, etc.)
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Homepage fallback
+# Homepage
 RewriteRule ^ index.php [L]
+</IfModule>
+
+DirectoryIndex index.php
