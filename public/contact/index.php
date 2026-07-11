@@ -4,7 +4,6 @@ $page_description = 'Contact Dazu hub Institute — tuition, study plans, campus
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
-require_once __DIR__ . '/../../app/v1/helpers/contact.php';
 require_once __DIR__ . '/../../app/v1/helpers/site_contact.php';
 require_once __DIR__ . '/../../app/v1/controllers/EnquiryController.php';
 

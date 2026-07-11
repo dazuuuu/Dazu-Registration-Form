@@ -53,3 +53,5 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once APP_V1_ROOT . '/helpers/functions.php';
 require_once APP_V1_ROOT . '/helpers/contact.php';
+require_once APP_V1_ROOT . '/helpers/uploads.php';
+require_once APP_V1_ROOT . '/config/db_connect.php';
