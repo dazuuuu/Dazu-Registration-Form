@@ -10,7 +10,7 @@ RewriteRule ^projects/?$ projects/index.php [L]
 RewriteRule ^blog/?$ blogs/index.php [L]
 
 # Default homepage
-DirectoryIndex index.php index.html
+DirectoryIndex index.php
 
 # Serve existing files and directories (api, admin, uploads, assets, PHP pages)
 RewriteCond %{REQUEST_FILENAME} -f [OR]

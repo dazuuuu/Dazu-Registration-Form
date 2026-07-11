@@ -1,6 +1,6 @@
 <?php
 /**
- * Shared bootstrap for JSON API endpoints consumed by the React frontend.
+ * Shared bootstrap for JSON API endpoints.
  */
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
