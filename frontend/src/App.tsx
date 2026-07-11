@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { getBasename } from './lib/apiBase';
 import { RouterProvider } from './router';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -29,7 +30,7 @@ function SiteLayout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={getBasename()}>
       <RouterProvider>
         <Routes>
           <Route path="/" element={<SiteLayout><Home /></SiteLayout>} />

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from '../router';
-import { getWebRoot } from '../lib/apiBase';
+import { getPhpUrl, toSpaPath } from '../lib/apiBase';
 import { api } from '../api/client';
 import { User, Lock, ShieldAlert, ShieldCheck } from 'lucide-react';
 
@@ -19,14 +19,14 @@ export default function Login() {
       const res = await api.login(email.trim(), password);
       const role = res.user.role;
       if (role === 'admin' || role === 'superadmin' || res.redirect.includes('admin')) {
-        window.location.href = res.redirect;
+        window.location.href = getPhpUrl('/admin/dashboard.php');
         return;
       }
       if (role === 'tutor' || res.redirect.includes('tutor')) {
-        navigate('/tutor');
+        navigate(toSpaPath(res.redirect.includes('tutor') ? res.redirect : '/tutor'));
         return;
       }
-      navigate('/student');
+      navigate(toSpaPath(res.redirect.includes('student') ? res.redirect : '/student'));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -98,7 +98,7 @@ export default function Login() {
               New student? Apply here
             </button>
             <p>
-              <a href={`${getWebRoot()}/admin/portal.php`} className="text-slate-600 hover:text-green-600 font-semibold inline-flex items-center gap-1">
+              <a href={getPhpUrl('/admin/portal.php')} className="text-slate-600 hover:text-green-600 font-semibold inline-flex items-center gap-1">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Admin login
               </a>

@@ -61,7 +61,10 @@ function api_require_role(string ...$roles): array
 
 function api_shape_course(array $c): array
 {
-    $cover = $c['cover_image'] ?? '';
+    $cover = trim((string) ($c['cover_image'] ?? ''));
+    if ($cover === '' || $cover === 'null') {
+        $cover = trim((string) ($c['card_image'] ?? ''));
+    }
     if ($cover !== '' && !preg_match('#^https?://#i', $cover)) {
         $cover = url(ltrim($cover, '/'));
     }

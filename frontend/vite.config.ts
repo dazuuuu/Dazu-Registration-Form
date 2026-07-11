@@ -10,7 +10,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
-    base: '/',
+    // Relative asset paths so the build works under Ampps subfolders (/Registration-System/public/)
+    base: './',
     build: {
       outDir: '../public',
       emptyOutDir: false,
@@ -28,6 +29,18 @@ export default defineConfig(({ mode }) => {
                 rewrite: (path) => `${basePath}${path}`,
               }
             : {}),
+          configure: (proxy) => {
+            proxy.on('proxyRes', (proxyRes) => {
+              const cookies = proxyRes.headers['set-cookie'];
+              if (!cookies) return;
+              proxyRes.headers['set-cookie'] = cookies.map((cookie) =>
+                cookie
+                  .replace(/;\s*Secure/gi, '')
+                  .replace(/;\s*Domain=[^;]+/gi, '')
+                  .replace(/;\s*Path=\/[^;]*/gi, '; Path=/')
+              );
+            });
+          },
         },
       },
     },
