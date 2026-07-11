@@ -152,12 +152,18 @@ ob_start();
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">All Testimonials</h5>
-        <div class="d-flex gap-2">
-        <a href="create_video.php" class="btn btn-sm btn-success">
-            <i class="fas fa-video"></i> Add video testimonial
+        <div class="d-flex gap-2 flex-wrap">
+        <a href="settings.php" class="btn btn-sm btn-warning">
+            <i class="fas fa-cog"></i> Student portal settings
         </a>
-        <a href="<?php echo url('/testimonials'); ?>" class="btn btn-sm btn-primary" target="_blank">
-            <i class="fas fa-external-link-alt"></i> View public page
+        <a href="create.php" class="btn btn-sm btn-outline-success">
+            <i class="fas fa-quote-left"></i> Add text
+        </a>
+        <a href="create_video.php" class="btn btn-sm btn-success">
+            <i class="fas fa-video"></i> Add video
+        </a>
+        <a href="<?php echo url('testimonials/submit'); ?>" class="btn btn-sm btn-primary" target="_blank">
+            <i class="fas fa-external-link-alt"></i> Student submit page
         </a>
         </div>
     </div>

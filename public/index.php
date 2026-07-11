@@ -4,6 +4,7 @@ $page_description = 'Hands-on software development, cybersecurity, data analytic
 
 require_once __DIR__ . '/../app/v1/init.php';
 require_once __DIR__ . '/../app/v1/helpers/dazu_theme.php';
+require_once __DIR__ . '/../app/v1/helpers/testimonials.php';
 require_once __DIR__ . '/../app/v1/models/Connection.php';
 require_once __DIR__ . '/../app/v1/models/CourseModel.php';
 
@@ -14,6 +15,10 @@ $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
 [$displayCourses] = dazu_load_courses($courseModel);
 $featured = array_slice(array_filter($displayCourses, static fn($c) => !empty($c['is_active']) || (int)($c['id'] ?? 0) === 0), 0, 4);
+
+$testimonialData = testimonial_load_for_homepage($pdo);
+$textTestimonials = $testimonialData['text'];
+$videoTestimonials = $testimonialData['video'];
 
 ob_start();
 include __DIR__ . '/components/public/dazu_hero.php';
@@ -45,18 +50,15 @@ include __DIR__ . '/components/public/dazu_hero.php';
     </div>
 
     <div class="text-center mt-12">
-      <a href="<?php echo url('courses/index.php'); ?>" class="inline-block px-8 py-3.5 text-xs font-extrabold uppercase tracking-widest text-white bg-slate-900 hover:bg-slate-800 rounded-xl">Browse All Courses</a>
+      <a href="<?php echo url('courses'); ?>" class="inline-block px-8 py-3.5 text-xs font-extrabold uppercase tracking-widest text-white bg-slate-900 hover:bg-slate-800 rounded-xl">Browse All Courses</a>
     </div>
   </div>
 </section>
 
-<section class="py-20 bg-white">
-  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 text-center">
-    <h2 class="text-3xl font-extrabold text-slate-900 mb-4">Ready to start your tech career?</h2>
-    <p class="text-slate-600 max-w-xl mx-auto mb-8">Join hundreds of students building portfolios and landing jobs through hands-on training at Dazu hub Institute.</p>
-    <a href="<?php echo url('courses/index.php'); ?>" class="inline-block px-10 py-4 text-xs font-extrabold uppercase tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-xl">Start Application</a>
-  </div>
-</section>
+<?php include __DIR__ . '/components/public/dazu_campus_section.php'; ?>
+<?php include __DIR__ . '/components/public/dazu_video_testimonials.php'; ?>
+<?php include __DIR__ . '/components/public/dazu_text_testimonials.php'; ?>
+<?php include __DIR__ . '/components/public/dazu_cta_section.php'; ?>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/templates/public/dazu_layout.php';

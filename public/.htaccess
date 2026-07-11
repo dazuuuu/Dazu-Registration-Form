@@ -6,6 +6,7 @@ RewriteEngine On
 RewriteRule ^login/?$ auth/login.php [L]
 RewriteRule ^forgot-password/?$ auth/forgot_password.php [L]
 RewriteRule ^reset-password/?$ auth/reset_password.php [L]
+RewriteRule ^testimonials/submit/?$ testimonials/submit.php [L]
 RewriteRule ^apply/?$ apply/index.php [L]
 RewriteRule ^courses/?$ courses/index.php [L]
 RewriteRule ^about/?$ about/index.php [L]

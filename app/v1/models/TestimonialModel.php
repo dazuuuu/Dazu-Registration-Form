@@ -10,24 +10,41 @@ class TestimonialModel {
      * Create new testimonial from customer feedback
      */
     public function create($data) {
-        $sql = "INSERT INTO testimonials (customer_name, customer_email, customer_phone, customer_initial, 
-                rating, testimonial_text, service_tag, role, status) 
-                VALUES (:customer_name, :customer_email, :customer_phone, :customer_initial, 
-                :rating, :testimonial_text, :service_tag, :role, 'pending')";
+        $status = $data['status'] ?? 'pending';
+        $type = $data['testimonial_type'] ?? 'text';
+
+        $sql = "INSERT INTO testimonials (
+                    customer_name, customer_email, customer_phone, customer_initial,
+                    rating, testimonial_text, testimonial_type, video_url, video_provider,
+                    avatar_url, thumbnail_url, service_tag, role, status, is_featured, approved_at
+                ) VALUES (
+                    :customer_name, :customer_email, :customer_phone, :customer_initial,
+                    :rating, :testimonial_text, :testimonial_type, :video_url, :video_provider,
+                    :avatar_url, :thumbnail_url, :service_tag, :role, :status, :is_featured,
+                    " . ($status === 'approved' ? 'NOW()' : 'NULL') . "
+                )";
         $stmt = $this->db->prepare($sql);
-        
+
+        $name = $data['customer_name'] ?? '';
         $result = $stmt->execute([
-            ':customer_name' => $data['customer_name'],
+            ':customer_name' => $name,
             ':customer_email' => $data['customer_email'] ?? null,
             ':customer_phone' => $data['customer_phone'] ?? null,
-            ':customer_initial' => $data['customer_initial'] ?? strtoupper(substr($data['customer_name'], 0, 1)),
-            ':rating' => $data['rating'] ?? 5,
-            ':testimonial_text' => $data['testimonial_text'],
+            ':customer_initial' => $data['customer_initial'] ?? strtoupper(substr($name, 0, 1)),
+            ':rating' => (int) ($data['rating'] ?? 5),
+            ':testimonial_text' => $data['testimonial_text'] ?? '',
+            ':testimonial_type' => $type,
+            ':video_url' => $data['video_url'] ?? null,
+            ':video_provider' => $data['video_provider'] ?? ($type === 'video' ? 'youtube' : 'none'),
+            ':avatar_url' => $data['avatar_url'] ?? null,
+            ':thumbnail_url' => $data['thumbnail_url'] ?? null,
             ':service_tag' => $data['service_tag'] ?? null,
-            ':role' => $data['role'] ?? null
+            ':role' => $data['role'] ?? null,
+            ':status' => $status,
+            ':is_featured' => !empty($data['is_featured']) ? 1 : 0,
         ]);
-        
-        return $result ? $this->db->lastInsertId() : false;
+
+        return $result ? (int) $this->db->lastInsertId() : false;
     }
     
     /**
