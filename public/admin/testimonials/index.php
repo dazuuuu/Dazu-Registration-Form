@@ -152,9 +152,14 @@ ob_start();
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">All Testimonials</h5>
-        <a href="<?php echo url('feedback/'); ?>" class="btn btn-sm btn-primary" target="_blank">
-            <i class="fas fa-external-link-alt"></i> View Feedback Page
+        <div class="d-flex gap-2">
+        <a href="create_video.php" class="btn btn-sm btn-success">
+            <i class="fas fa-video"></i> Add video testimonial
         </a>
+        <a href="<?php echo url('/testimonials'); ?>" class="btn btn-sm btn-primary" target="_blank">
+            <i class="fas fa-external-link-alt"></i> View public page
+        </a>
+        </div>
     </div>
     <div class="card-body">
         <?php if (empty($testimonials)): ?>

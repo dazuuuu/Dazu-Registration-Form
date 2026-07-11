@@ -84,7 +84,8 @@ class TestimonialModel {
         $fields = [];
         $params = [':id' => $id];
         $allowed = ['customer_name', 'customer_email', 'customer_phone', 'customer_initial', 
-                   'rating', 'testimonial_text', 'service_tag', 'role', 'status', 
+                   'rating', 'testimonial_text', 'testimonial_type', 'video_url', 'video_provider',
+                   'avatar_url', 'thumbnail_url', 'service_tag', 'role', 'status', 
                    'is_featured', 'sort_order'];
         
         foreach ($allowed as $field) {

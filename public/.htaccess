@@ -1,10 +1,9 @@
-# Dazu Hub Institute — Apache (optional)
-# WEB_ROOT is auto-detected: works on Ampps (/Registration-System/public/...)
-# and cPanel when public/ is the document root (no prefix needed).
-#
-# Only uncomment on cPanel IF links/assets still show the wrong prefix:
-# SetEnv APP_WEB_ROOT ""
+RewriteEngine On
 
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-</IfModule>
+# Serve existing files and directories (api, admin, uploads, tutor PHP tools, assets)
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# React SPA fallback
+RewriteRule ^ index.html [L]
