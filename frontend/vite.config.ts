@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   // Ampps Apache is usually port 80, not 8080. Override in frontend/.env.local if needed.
   const target = env.VITE_API_PROXY_TARGET || 'http://127.0.0.1';
-  const basePath = (env.VITE_API_PROXY_BASE || '').replace(/\/$/, '');
+  const basePath = (env.VITE_API_PROXY_BASE || '/Registration-System/public').replace(/\/$/, '');
 
   return {
     plugins: [react(), tailwindcss()],
