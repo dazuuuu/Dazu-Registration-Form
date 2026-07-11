@@ -1,5 +1,4 @@
 <?php
-// public/auth/login.php
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/models/UserModel.php';
 
@@ -8,14 +7,13 @@ $error = '';
 $success = '';
 
 if (!empty($_GET['error']) && $_GET['error'] === 'session_expired') {
-    $error = '[err] your session expired after a database reset — please log in again';
+    $error = 'Your session expired — please sign in again.';
 }
 
 if (isLoggedIn()) {
-    $role_id = $_SESSION['role_id'] ?? 0;
     $role = $_SESSION['role'] ?? '';
-    if ($role_id <= 2) {
-        redirect(url('profile/admin/index.php'));
+    if (in_array($role, ['admin', 'superadmin'], true) || (int)($_SESSION['role_id'] ?? 99) <= 2) {
+        redirect(url('admin/dashboard.php'));
     } elseif ($role === 'student') {
         redirect(url('students/dashboard/index.php'));
     } elseif ($role === 'tutor') {
@@ -26,22 +24,19 @@ if (isLoggedIn()) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email']);
-    $password = $_POST['password'];
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    if (empty($email) || empty($password)) {
-        $error = '[err] EMAIL and PASS are required';
+    if ($email === '' || $password === '') {
+        $error = 'Email and password are required.';
     } else {
         $user = $userModel->getUserByEmail($email);
 
-        if (!$user) {
-            $error = '[err] authentication failed — invalid credentials';
-            $userModel->logLoginAttempt($email, $_SERVER['REMOTE_ADDR']);
-        } elseif (!password_verify($password, $user['password_hash'])) {
-            $error = '[err] authentication failed — invalid credentials';
-            $userModel->logLoginAttempt($email, $_SERVER['REMOTE_ADDR']);
-        } elseif (!$user['is_active']) {
-            $error = '[err] account deactivated — contact administrator';
+        if (!$user || !password_verify($password, $user['password_hash'])) {
+            $error = 'Invalid email or password.';
+            $userModel->logLoginAttempt($email, $_SERVER['REMOTE_ADDR'] ?? '');
+        } elseif (empty($user['is_active'])) {
+            $error = 'Account is deactivated. Contact the administrator.';
         } else {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
@@ -50,71 +45,62 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role_id'] = $user['role_id'];
             $_SESSION['logged_in'] = true;
 
-            $success = '[ ok ] login successful — redirecting...';
-
             if ($user['role_id'] <= 2) {
-                header("refresh:2;url=" . url("profile/admin/index.php"));
+                redirect(url('admin/dashboard.php'));
             } elseif ($user['role_name'] === 'student') {
-                header("refresh:2;url=" . url("students/dashboard/index.php"));
+                redirect(url('students/dashboard/index.php'));
             } elseif ($user['role_name'] === 'tutor') {
-                header("refresh:2;url=" . url("tutor/dashboard/index.php"));
+                redirect(url('tutor/dashboard/index.php'));
             } else {
-                header("refresh:2;url=" . url("profile/client/index.php"));
+                redirect(url('profile/client/index.php'));
             }
         }
     }
 }
 
-$auth_page_title = 'Sign in';
-$auth_window_title = 'dazu@hub — auth.dazu.hub';
-require __DIR__ . '/../components/auth/terminal_layout_start.php';
+$page_title = 'Sign In — Dazu hub Institute';
+$standalone = true;
+ob_start();
 ?>
+<div class="bg-slate-50 min-h-screen py-16 flex items-center justify-center">
+  <div class="max-w-md w-full mx-auto px-4">
+    <div class="bg-white border border-slate-200 rounded-2xl p-8 md:p-10 space-y-8 shadow-sm">
+      <div class="space-y-2 text-center">
+        <span class="text-green-600 text-[10px] uppercase tracking-widest font-extrabold px-2.5 py-1 bg-green-50 border border-green-200 rounded-full">Dazu Hub Portal</span>
+        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight pt-2">Sign In</h1>
+        <p class="text-xs text-slate-400 font-semibold">Students and tutors sign in here. Admins use the admin portal link below.</p>
+      </div>
 
-<div id="authBootLog" class="auth-terminal-boot" aria-live="polite"></div>
+      <?php if ($error): ?>
+        <div class="p-4 border border-red-200 bg-red-50 text-red-700 text-xs font-semibold rounded-xl"><?php echo htmlspecialchars($error); ?></div>
+      <?php endif; ?>
+      <?php if ($success): ?>
+        <div class="p-4 border border-green-200 bg-green-50 text-green-700 text-xs font-semibold rounded-xl"><?php echo htmlspecialchars($success); ?></div>
+      <?php endif; ?>
 
-<?php if ($error): ?>
-    <div class="auth-terminal-alert error" role="alert">
-        <i class="fas fa-times-circle me-1"></i> <?php echo htmlspecialchars($error); ?>
-    </div>
-<?php endif; ?>
-<?php if ($success): ?>
-    <div class="auth-terminal-alert success" role="alert">
-        <i class="fas fa-check-circle me-1"></i> <?php echo htmlspecialchars($success); ?>
-    </div>
-<?php endif; ?>
+      <form method="POST" class="space-y-6">
+        <div class="space-y-2">
+          <label class="block text-xs font-bold uppercase tracking-widest text-slate-500" for="email">Email</label>
+          <input type="email" id="email" name="email" required autocomplete="username"
+                 value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"
+                 class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-green-600">
+        </div>
+        <div class="space-y-2">
+          <label class="block text-xs font-bold uppercase tracking-widest text-slate-500" for="password">Password</label>
+          <input type="password" id="password" name="password" required autocomplete="current-password"
+                 class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-green-600">
+        </div>
+        <button type="submit" class="w-full py-3.5 text-xs font-extrabold uppercase tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-xl">Sign In</button>
+      </form>
 
-<form method="POST" class="auth-terminal-form" novalidate>
-    <div class="auth-cmd-row">
-        <span class="auth-cmd-prompt">dazu@hub:~/auth$</span>
-        <label class="auth-cmd-label" for="email">export EMAIL=</label>
-        <input type="email" id="email" name="email" class="auth-cmd-input"
-               placeholder="you@dazuhub.institute" autocomplete="username"
-               value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
+      <div class="text-center space-y-3 text-xs text-slate-500">
+        <a href="<?php echo url('auth/student_register.php'); ?>" class="text-green-600 font-bold hover:underline block">New student? Apply here</a>
+        <a href="<?php echo url('admin/portal.php'); ?>" class="text-slate-600 hover:text-green-600 font-semibold block">Admin login →</a>
+        <a href="<?php echo url('/'); ?>" class="text-slate-400 hover:text-slate-600 block">← Back to website</a>
+      </div>
     </div>
-
-    <div class="auth-cmd-row">
-        <span class="auth-cmd-prompt">dazu@hub:~/auth$</span>
-        <label class="auth-cmd-label" for="password">export PASS=</label>
-        <input type="password" id="password" name="password" class="auth-cmd-input"
-               placeholder="••••••••" autocomplete="current-password" required>
-        <span id="passEcho" class="auth-cmd-label" style="margin-left:4px;color:var(--term-green-dim);" aria-hidden="true"></span>
-    </div>
-
-    <button type="submit" class="auth-cmd-submit">
-        <i class="fas fa-terminal"></i> ./signin.sh --execute
-    </button>
-</form>
-
-<div class="auth-terminal-links">
-    <div class="row">
-        <span class="guest">guest@hub:~$</span>
-        <span>new user?</span>
-        <a href="register.php">./register.sh</a>
-    </div>
-    <div class="row">
-        <span class="guest">admin@hub:~$</span>
-        <a href="<?php echo url('admin/portal.php'); ?>">sudo portal</a>
-    </div>
+  </div>
 </div>
-
-<?php require __DIR__ . '/../components/auth/terminal_layout_end.php'; ?>
+<?php
+$content = ob_get_clean();
+require __DIR__ . '/../templates/public/dazu_layout.php';

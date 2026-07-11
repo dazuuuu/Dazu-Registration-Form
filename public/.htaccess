@@ -1,9 +1,21 @@
 RewriteEngine On
 
-# Serve existing files and directories (api, admin, uploads, tutor PHP tools, assets)
+# Pretty URLs for main site pages
+RewriteRule ^login/?$ auth/login.php [L]
+RewriteRule ^apply/?$ auth/student_register.php [L]
+RewriteRule ^courses/?$ courses/index.php [L]
+RewriteRule ^about/?$ about/index.php [L]
+RewriteRule ^contact/?$ contact/index.php [L]
+RewriteRule ^projects/?$ projects/index.php [L]
+RewriteRule ^blog/?$ blogs/index.php [L]
+
+# Default homepage
+DirectoryIndex index.php index.html
+
+# Serve existing files and directories (api, admin, uploads, assets, PHP pages)
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# React SPA fallback
-RewriteRule ^ index.html [L]
+# PHP site fallback — no React SPA
+RewriteRule ^ index.php [L]
