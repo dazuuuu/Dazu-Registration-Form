@@ -1,7 +1,13 @@
-const API = '/api';
+import { getApiBase } from '../lib/apiBase';
+
+function apiUrl(path: string): string {
+  const base = getApiBase().replace(/\/$/, '');
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${p}`;
+}
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API}${path}`, {
+  const res = await fetch(apiUrl(path), {
     credentials: 'include',
     headers: {
       Accept: 'application/json',

@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useRouter } from '../router';
+import { getWebRoot } from '../lib/apiBase';
 import { api } from '../api/client';
 import { User, Lock, ShieldAlert, ShieldCheck } from 'lucide-react';
 
@@ -97,7 +98,7 @@ export default function Login() {
               New student? Apply here
             </button>
             <p>
-              <a href="../admin/portal.php" className="text-slate-600 hover:text-green-600 font-semibold inline-flex items-center gap-1">
+              <a href={`${getWebRoot()}/admin/portal.php`} className="text-slate-600 hover:text-green-600 font-semibold inline-flex items-center gap-1">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 Admin login
               </a>
