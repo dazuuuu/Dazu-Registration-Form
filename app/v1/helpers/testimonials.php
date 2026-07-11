@@ -37,7 +37,14 @@ if (!function_exists('testimonials_students_open')) {
 if (!function_exists('testimonial_youtube_id')) {
     function testimonial_youtube_id(string $url): ?string
     {
-        if (preg_match('#(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})#', $url, $m)) {
+        $url = trim($url);
+        if ($url === '') {
+            return null;
+        }
+        if (preg_match('#(?:youtube\.com/(?:watch\?.*v=|embed/|shorts/|v/)|youtu\.be/)([a-zA-Z0-9_-]{11})#', $url, $m)) {
+            return $m[1];
+        }
+        if (preg_match('#^[a-zA-Z0-9_-]{11}$#', $url, $m)) {
             return $m[1];
         }
         return null;
@@ -77,14 +84,30 @@ if (!function_exists('testimonial_load_for_homepage')) {
         $model = new TestimonialModel($pdo);
         $approved = $model->getAll('approved', 50, 0, false);
 
-        $text = array_values(array_filter($approved, static fn($r) => ($r['testimonial_type'] ?? 'text') !== 'video'));
-        $video = array_values(array_filter($approved, static fn($r) => ($r['testimonial_type'] ?? 'text') === 'video'));
+        $text = array_values(array_filter($approved, static function ($r) {
+            $type = $r['testimonial_type'] ?? 'text';
+            $hasVideo = trim((string) ($r['video_url'] ?? '')) !== '';
+            return $type !== 'video' && !$hasVideo;
+        }));
+        $video = array_values(array_filter($approved, static function ($r) {
+            $type = $r['testimonial_type'] ?? 'text';
+            $hasVideo = trim((string) ($r['video_url'] ?? '')) !== '';
+            return $type === 'video' || $hasVideo;
+        }));
+
+        $video = array_values(array_filter($video, static function ($r) {
+            $url = trim((string) ($r['video_url'] ?? ''));
+            return $url !== '' && testimonial_video_embed_url($r) !== null;
+        }));
 
         if (!$text) {
             $text = testimonial_static_text_fallbacks();
         }
         if (!$video) {
-            $video = testimonial_static_video_fallbacks();
+            $video = array_values(array_filter(
+                testimonial_static_video_fallbacks(),
+                static fn($r) => !empty($r['video_url'])
+            ));
         }
 
         return ['text' => $text, 'video' => $video];
@@ -182,7 +205,7 @@ if (!function_exists('testimonial_video_embed_url')) {
         }
         $id = testimonial_youtube_id($url);
         if ($id) {
-            return 'https://www.youtube.com/embed/' . $id . '?autoplay=1&rel=0';
+            return 'https://www.youtube-nocookie.com/embed/' . $id . '?rel=0&modestbranding=1&playsinline=1';
         }
         if (($t['video_provider'] ?? '') === 'vimeo' && preg_match('#vimeo\.com/(\d+)#', $url, $m)) {
             return 'https://player.vimeo.com/video/' . $m[1] . '?autoplay=1';
