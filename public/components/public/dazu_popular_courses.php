@@ -7,12 +7,9 @@ $popularCategories = $popularCategories ?? [];
 $popularCourses = $popularCourses ?? [];
 $firstCategoryId = !empty($popularCategories) ? (int) $popularCategories[0]['id'] : 0;
 ?>
-<section class="py-20 bg-white" id="popular-courses">
-  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 space-y-10">
-    <div class="text-center max-w-2xl mx-auto space-y-3">
-      <span class="inline-block text-[#15A24A] text-[10px] uppercase tracking-widest font-extrabold px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">Popular Courses</span>
-      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Our Popular Online Courses</h2>
-    </div>
+<section class="py-16 bg-white" id="popular-courses">
+  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 space-y-8">
+    <h2 class="text-center text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight uppercase">Our Popular Online Courses</h2>
 
     <?php if (!empty($popularCategories)): ?>
     <div class="flex gap-4 overflow-x-auto pb-2 snap-x scrollbar-thin" id="dazu-category-tabs" role="tablist">
@@ -24,7 +21,7 @@ $firstCategoryId = !empty($popularCategories) ? (int) $popularCategories[0]['id'
       ?>
         <button type="button" role="tab" aria-selected="<?php echo $isActive ? 'true' : 'false'; ?>"
                 data-category-id="<?php echo $catId; ?>"
-                class="dazu-cat-tab flex-shrink-0 snap-start min-w-[200px] sm:min-w-[220px] rounded-2xl border p-5 text-left transition-all <?php echo $isActive ? 'bg-[#15A24A] border-[#15A24A] text-white shadow-lg shadow-green-600/20' : 'bg-white border-slate-200 text-slate-900 hover:border-[#15A24A]/50'; ?>">
+                class="dazu-cat-tab flex-shrink-0 snap-start min-w-[200px] sm:min-w-[220px] rounded-lg border p-4 text-left transition-all <?php echo $isActive ? 'bg-[#15A24A] border-[#15A24A] text-white shadow-md' : 'bg-white border-slate-200 text-slate-900 hover:border-[#15A24A]/50'; ?>">
           <div class="flex items-start gap-4">
             <span class="dazu-cat-icon-wrap w-12 h-12 rounded-xl flex items-center justify-center shrink-0 <?php echo $isActive ? 'bg-white/20' : 'bg-green-50'; ?>">
               <?php if ($iconUrl !== ''): ?>
@@ -52,19 +49,23 @@ $firstCategoryId = !empty($popularCategories) ? (int) $popularCategories[0]['id'
             $course['_display_category_id'] = $course['_display_category_id'] ?? dazu_resolve_course_category_id($course);
             $visible = ((int) $course['_display_category_id'] === $firstCategoryId) ? '' : 'hidden';
           ?>
-            <div class="dazu-course-wrap flex-shrink-0 snap-start <?php echo $visible; ?>" data-category-id="<?php echo (int) $course['_display_category_id']; ?>">
-              <?php include __DIR__ . '/dazu_popular_course_card.php'; ?>
+            <div class="dazu-course-wrap flex-shrink-0 w-[300px] sm:w-[320px] snap-start <?php echo $visible; ?>" data-category-id="<?php echo (int) $course['_display_category_id']; ?>">
+              <?php include __DIR__ . '/dazu_course_card.php'; ?>
             </div>
           <?php endforeach; ?>
         <?php endif; ?>
       </div>
     </div>
 
-    <div class="text-center pt-4">
+    <div class="text-center pt-2">
       <a href="<?php echo url('courses/index.php'); ?>"
-         class="inline-flex items-center gap-2 px-10 py-4 rounded-full bg-[#15A24A] hover:bg-[#128a3e] text-white text-xs font-extrabold uppercase tracking-widest transition-all shadow-md shadow-green-600/20">
-        View All Courses
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+         class="inline-flex items-stretch overflow-hidden rounded-md bg-[#15A24A] hover:opacity-95 text-white shadow-sm transition-opacity">
+        <span class="px-8 py-3.5 text-xs font-extrabold uppercase tracking-widest flex items-center">View All Courses</span>
+        <span class="w-12 flex items-center justify-center bg-[#128a3e]">
+          <span class="w-7 h-7 bg-white rounded-full flex items-center justify-center text-[#15A24A]">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+          </span>
+        </span>
       </a>
     </div>
   </div>
@@ -97,8 +98,9 @@ $firstCategoryId = !empty($popularCategories) ? (int) $popularCategories[0]['id'
       tab.classList.toggle('bg-[#15A24A]', active);
       tab.classList.toggle('border-[#15A24A]', active);
       tab.classList.toggle('text-white', active);
-      tab.classList.toggle('shadow-lg', active);
-      tab.classList.toggle('shadow-green-600/20', active);
+      tab.classList.toggle('shadow-md', active);
+      tab.classList.toggle('shadow-lg', false);
+      tab.classList.toggle('shadow-green-600/20', false);
       tab.classList.toggle('bg-white', !active);
       tab.classList.toggle('border-slate-200', !active);
       tab.classList.toggle('text-slate-900', !active);

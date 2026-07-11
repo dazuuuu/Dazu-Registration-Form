@@ -15,8 +15,7 @@ $overview = htmlspecialchars($course['overview'] ?? $course['description'] ?? ''
 $applyUrl = dazu_course_apply_url($course);
 $syllabusUrl = $applyUrl . '#learn';
 ?>
-<article class="group bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col h-full cursor-pointer hover:border-green-600 hover:-translate-y-1.5 transition-all duration-300 shadow-sm hover:shadow-md"
-         onclick="window.location.href='<?php echo htmlspecialchars($applyUrl, ENT_QUOTES); ?>'">
+<article class="group bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col h-full hover:border-green-600 hover:-translate-y-1 transition-all duration-300 shadow-sm hover:shadow-md">
   <div class="relative h-48 w-full bg-slate-100 overflow-hidden">
     <img src="<?php echo htmlspecialchars($img); ?>" alt="<?php echo $title; ?>"
          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" referrerpolicy="no-referrer">
@@ -43,9 +42,9 @@ $syllabusUrl = $applyUrl . '#learn';
       </div>
       <div class="flex items-center gap-2">
         <a href="<?php echo htmlspecialchars($applyUrl); ?>"
-           class="px-3.5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg transition-colors shadow-sm">Apply</a>
+           class="px-3.5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-md transition-colors shadow-sm">Apply</a>
         <a href="<?php echo htmlspecialchars($syllabusUrl); ?>"
-           class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg border border-slate-200">Syllabus</a>
+           class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-md border border-slate-200">Syllabus</a>
       </div>
     </div>
   </div>
