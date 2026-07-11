@@ -16,36 +16,16 @@ $courseModel = new CourseModel($pdo);
 $featured = array_slice(array_filter($displayCourses, static fn($c) => !empty($c['is_active']) || (int)($c['id'] ?? 0) === 0), 0, 4);
 
 ob_start();
+include __DIR__ . '/components/public/dazu_hero.php';
 ?>
-<section class="relative bg-slate-950 text-white overflow-hidden">
-  <div class="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-950 to-emerald-950 opacity-90"></div>
-  <div class="relative max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 py-20 md:py-28 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-    <div class="space-y-6">
-      <span class="inline-block text-green-400 text-[10px] uppercase tracking-widest font-extrabold px-3 py-1 bg-green-500/10 border border-green-500/30 rounded-full">KICD-Aligned · Thika Campus</span>
-      <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight">
-        Build real tech skills at <span class="text-[#22C55E]">Dazu hub</span> Institute
-      </h1>
-      <p class="text-slate-300 text-lg leading-relaxed max-w-xl">
-        Project-based certification tracks in software, cybersecurity, data analytics and AI. Study physically at Witeithie House, Room 529 — or online.
-      </p>
-      <div class="flex flex-wrap gap-4">
-        <a href="<?php echo url('auth/student_register.php'); ?>" class="px-8 py-3.5 text-xs font-extrabold uppercase tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-xl">Apply Now</a>
-        <a href="<?php echo url('courses/index.php'); ?>" class="px-8 py-3.5 text-xs font-extrabold uppercase tracking-widest text-white border border-slate-600 hover:border-green-500 rounded-xl">View Courses</a>
-      </div>
-    </div>
-    <div class="relative hidden lg:block">
-      <img src="<?php echo asset('app/hero_student_1783619555973-Dfwss1g9.jpg'); ?>" alt="Student at Dazu hub Institute" class="rounded-2xl shadow-2xl border border-slate-700 w-full h-[420px] object-cover" onerror="this.src='https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=800&q=80'">
-    </div>
-  </div>
-</section>
 
-<section class="py-16 bg-white border-b border-slate-100">
+<section class="bg-slate-50 border-y border-slate-100 py-12">
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-      <div><div class="text-3xl font-extrabold text-slate-900">500+</div><div class="text-xs uppercase tracking-widest text-slate-500 font-bold mt-1">Graduates</div></div>
-      <div><div class="text-3xl font-extrabold text-slate-900">10+</div><div class="text-xs uppercase tracking-widest text-slate-500 font-bold mt-1">Course Tracks</div></div>
-      <div><div class="text-3xl font-extrabold text-slate-900">95%</div><div class="text-xs uppercase tracking-widest text-slate-500 font-bold mt-1">Placement Rate</div></div>
-      <div><div class="text-3xl font-extrabold text-slate-900">4.8★</div><div class="text-xs uppercase tracking-widest text-slate-500 font-bold mt-1">Student Rating</div></div>
+      <div class="space-y-1"><span class="block text-4xl font-extrabold text-slate-950">1200+</span><span class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Students Trained</span></div>
+      <div class="space-y-1"><span class="block text-4xl font-extrabold text-slate-950">14+</span><span class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Practical Courses</span></div>
+      <div class="space-y-1"><span class="block text-4xl font-extrabold text-slate-950">95%</span><span class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Placement Rate</span></div>
+      <div class="space-y-1"><span class="block text-4xl font-extrabold text-slate-950">4.8★</span><span class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Student Rating</span></div>
     </div>
   </div>
 </section>
