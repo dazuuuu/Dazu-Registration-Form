@@ -50,7 +50,7 @@ $role = $_SESSION['role'] ?? '';
 
       <div class="hidden lg:flex items-center gap-4">
         <a href="tel:+254750116600" class="text-xs font-extrabold text-slate-700 hover:text-[#15A24A] flex items-center gap-1.5 mr-2">+254 750 116600</a>
-        <a href="<?php echo url('courses'); ?>" class="px-6 py-2.5 text-xs font-extrabold tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-md uppercase">APPLY</a>
+        <a href="<?php echo url('apply/index.php'); ?>" class="px-6 py-2.5 text-xs font-extrabold tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-md uppercase transition-all duration-200">APPLY</a>
         <?php if ($isLoggedIn && in_array($role, ['admin', 'superadmin'], true)): ?>
           <a href="<?php echo url('admin/dashboard.php'); ?>" class="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md">Admin</a>
         <?php elseif ($isLoggedIn && $role === 'student'): ?>
@@ -58,7 +58,10 @@ $role = $_SESSION['role'] ?? '';
         <?php elseif ($isLoggedIn && $role === 'tutor'): ?>
           <a href="<?php echo url('tutor/dashboard/index.php'); ?>" class="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md">Portal</a>
         <?php else: ?>
-          <a href="<?php echo url('auth/login.php'); ?>" class="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md">Login</a>
+          <a href="<?php echo url('auth/login.php'); ?>" class="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md transition-all duration-200 flex items-center gap-1.5">
+            <svg class="h-4 w-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            Login
+          </a>
         <?php endif; ?>
       </div>
 
@@ -76,7 +79,7 @@ $role = $_SESSION['role'] ?? '';
         </a>
       <?php endforeach; ?>
       <div class="pt-4 border-t border-slate-100 flex flex-col gap-3">
-        <a href="<?php echo url('courses'); ?>" class="w-full py-3 text-center text-xs font-extrabold tracking-widest text-white bg-[#15A24A] rounded-md uppercase">APPLY</a>
+        <a href="<?php echo url('apply/index.php'); ?>" class="w-full py-3 text-center text-xs font-extrabold tracking-widest text-white bg-[#15A24A] rounded-md uppercase">APPLY</a>
         <a href="<?php echo url('auth/login.php'); ?>" class="w-full py-3 text-center text-xs font-bold text-slate-700 bg-white border border-slate-200 rounded-md">Login</a>
       </div>
     </div>

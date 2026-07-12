@@ -1,0 +1,42 @@
+@import url('https://fonts.cdnfonts.com/css/nasalization');
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@700;800;900&family=Fredoka:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+
+h1, h2, h3, h4, .font-display, .font-heroic {
+  font-family: "Nasalization Rg", "Bebas Neue", "Cinzel", "Space Grotesk", sans-serif !important;
+  letter-spacing: 0.04em;
+}
+
+body, p, span, a, button, label, input, textarea, select, li {
+  font-family: "Fredoka", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+
+code, pre, .font-mono {
+  font-family: "Space Mono", "JetBrains Mono", monospace !important;
+}
+
+@keyframes dazu-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes dazu-scale-up {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes dazu-slide-up-in {
+  from { opacity: 0; transform: translateY(50px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: dazu-fade-in 0.3s ease-out; }
+.animate-scale-up { animation: dazu-scale-up 0.3s ease-out; }
+.dazu-hero-slide { animation: dazu-slide-up-in 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+
+.dazu-course-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 25px -5px rgba(21, 162, 74, 0.1), 0 10px 10px -5px rgba(21, 162, 74, 0.04);
+}
+
+.selection\:bg-green-100::selection,
+::selection {
+  background-color: #dcfce7;
+  color: #166534;
+}

@@ -15,7 +15,6 @@ use Models\CourseModel;
 $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
 $popularSection = dazu_load_popular_courses_section($pdo, $courseModel);
-$popularCategories = $popularSection['categories'];
 $popularCourses = $popularSection['courses'];
 
 $testimonialData = testimonial_load_for_homepage($pdo);
@@ -24,13 +23,10 @@ $videoTestimonials = $testimonialData['video'];
 
 ob_start();
 include __DIR__ . '/components/public/dazu_hero.php';
+include __DIR__ . '/components/public/dazu_stats_bar.php';
 include __DIR__ . '/components/public/dazu_popular_courses.php';
-?>
-
-<?php include __DIR__ . '/components/public/dazu_campus_section.php'; ?>
-<?php include __DIR__ . '/components/public/dazu_video_testimonials.php'; ?>
-<?php include __DIR__ . '/components/public/dazu_text_testimonials.php'; ?>
-<?php include __DIR__ . '/components/public/dazu_cta_section.php'; ?>
-<?php
+include __DIR__ . '/components/public/dazu_campus_section.php';
+include __DIR__ . '/components/public/dazu_testimonials_section.php';
+include __DIR__ . '/components/public/dazu_cta_section.php';
 $content = ob_get_clean();
 require __DIR__ . '/templates/public/dazu_layout.php';
