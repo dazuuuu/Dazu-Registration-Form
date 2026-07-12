@@ -1,13 +1,24 @@
 <?php
 /**
- * Homepage "Our Courses" — ported from Dazu-frontend Home.tsx
- * Expects $popularCourses (from index.php / dazu_load_popular_courses_section).
+ * Homepage "Our Courses" — category cards + filtered course grid.
+ * Expects $popularCategories and $popularCourses.
  */
+$popularCategories = $popularCategories ?? [];
 $popularCourses = $popularCourses ?? [];
+
+foreach ($popularCourses as &$course) {
+    $course['_display_category_id'] = $course['_display_category_id'] ?? dazu_resolve_course_category_id($course);
+}
+unset($course);
+
+$activeCategoryId = !empty($popularCategories) ? (int) $popularCategories[0]['id'] : 0;
+$visibleCount = count(array_filter($popularCourses, static fn($c) => (int)($c['_display_category_id'] ?? 0) === $activeCategoryId));
+$tabsId = 'dazu-home-course-cat-tabs';
+$countId = 'dazu-home-courses-count';
 ?>
 <section class="py-24 bg-white" id="popular-courses">
-  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 text-center">
-    <div class="max-w-xl mx-auto space-y-3 mb-16">
+  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
+    <div class="max-w-xl mx-auto space-y-3 mb-10 text-center">
       <h2 class="text-3xl font-extrabold tracking-tight text-slate-950 relative inline-block pb-3">
         Our Courses
         <span class="absolute bottom-0 left-1/4 right-1/4 h-[3px] bg-[#15A24A] rounded-full"></span>
@@ -17,12 +28,27 @@ $popularCourses = $popularCourses ?? [];
       </p>
     </div>
 
+    <?php if (!empty($popularCategories)): ?>
+      <?php
+      $courseCategories = $popularCategories;
+      include __DIR__ . '/dazu_course_category_cards.php';
+      ?>
+    <?php endif; ?>
+
     <?php if (empty($popularCourses)): ?>
-      <p class="text-slate-500 text-sm font-semibold py-8">No courses available yet. Add courses in the admin panel.</p>
+      <p class="text-slate-500 text-sm font-semibold py-8 text-center">No courses available yet. Add courses in the admin panel.</p>
     <?php else: ?>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 text-left items-start">
-        <?php foreach ($popularCourses as $course): ?>
-          <?php include __DIR__ . '/dazu_course_card.php'; ?>
+      <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mt-8 mb-6">
+        Showing <span id="<?php echo $countId; ?>"><?php echo $visibleCount; ?></span> course<?php echo $visibleCount === 1 ? '' : 's'; ?>
+      </p>
+      <div id="dazu-home-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 text-left items-start">
+        <?php foreach ($popularCourses as $course):
+            $catId = (int) ($course['_display_category_id'] ?? 0);
+            $hidden = ($catId !== $activeCategoryId) ? 'hidden' : '';
+        ?>
+          <div class="dazu-course-list-item <?php echo $hidden; ?>" data-category-id="<?php echo $catId; ?>">
+            <?php include __DIR__ . '/dazu_course_card.php'; ?>
+          </div>
         <?php endforeach; ?>
       </div>
     <?php endif; ?>
@@ -54,6 +80,13 @@ $popularCourses = $popularCourses ?? [];
           </div>
         </div>
       <?php endforeach; ?>
+    </div>
+
+    <div class="text-center pt-10">
+      <a href="<?php echo url('courses/index.php'); ?>"
+         class="inline-flex items-center justify-center px-10 py-3.5 bg-[#15A24A] hover:bg-[#128a3e] text-white text-xs font-extrabold uppercase tracking-widest transition-colors">
+        View All Courses →
+      </a>
     </div>
   </div>
 </section>

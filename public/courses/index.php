@@ -58,7 +58,11 @@ ob_start();
     </div>
 
     <?php if (!empty($courseCategories)): ?>
-      <?php include __DIR__ . '/../components/public/dazu_course_category_cards.php'; ?>
+      <?php
+      $tabsId = 'dazu-courses-page-cat-tabs';
+      $countId = 'dazu-courses-count';
+      include __DIR__ . '/../components/public/dazu_course_category_cards.php';
+      ?>
     <?php endif; ?>
 
     <?php if (empty($courses)): ?>

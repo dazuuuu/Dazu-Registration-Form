@@ -15,6 +15,7 @@ use Models\CourseModel;
 $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
 $popularSection = dazu_load_popular_courses_section($pdo, $courseModel);
+$popularCategories = $popularSection['categories'];
 $popularCourses = $popularSection['courses'];
 
 $testimonialData = testimonial_load_for_homepage($pdo);
