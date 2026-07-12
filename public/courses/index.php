@@ -37,7 +37,7 @@ ob_start();
       </div>
     <?php else: ?>
       <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-8">Showing <?php echo count($courses); ?> course<?php echo count($courses) === 1 ? '' : 's'; ?></p>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6 items-start">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 items-start">
         <?php foreach ($courses as $course): ?>
           <?php include __DIR__ . '/../components/public/dazu_course_card.php'; ?>
         <?php endforeach; ?>
