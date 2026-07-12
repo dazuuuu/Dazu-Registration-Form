@@ -41,7 +41,7 @@ $firstCategoryId = !empty($popularCategories) ? (int) $popularCategories[0]['id'
     <?php endif; ?>
 
     <div class="relative">
-      <div id="dazu-courses-row" class="flex gap-6 overflow-x-auto pb-4 snap-x scroll-smooth" style="-webkit-overflow-scrolling: touch;">
+      <div id="dazu-courses-row" class="flex gap-5 md:gap-6 overflow-x-auto pb-4 snap-x scroll-smooth items-start" style="-webkit-overflow-scrolling: touch;">
         <?php if (empty($popularCourses)): ?>
           <p class="text-slate-500 text-sm font-semibold py-8">No courses available yet. Add courses in the admin panel.</p>
         <?php else: ?>
@@ -49,7 +49,7 @@ $firstCategoryId = !empty($popularCategories) ? (int) $popularCategories[0]['id'
             $course['_display_category_id'] = $course['_display_category_id'] ?? dazu_resolve_course_category_id($course);
             $visible = ((int) $course['_display_category_id'] === $firstCategoryId) ? '' : 'hidden';
           ?>
-            <div class="dazu-course-wrap flex-shrink-0 w-[360px] max-w-[360px] snap-start <?php echo $visible; ?>" data-category-id="<?php echo (int) $course['_display_category_id']; ?>">
+            <div class="dazu-course-wrap flex-shrink-0 w-[280px] max-w-[280px] snap-start <?php echo $visible; ?>" data-category-id="<?php echo (int) $course['_display_category_id']; ?>">
               <?php include __DIR__ . '/dazu_course_card.php'; ?>
             </div>
           <?php endforeach; ?>
