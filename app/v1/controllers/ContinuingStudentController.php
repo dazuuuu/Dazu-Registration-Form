@@ -73,6 +73,10 @@ class ContinuingStudentController {
         $waiveRegFee = !empty($data['registration_fee_waived']);
         $portalLocked = !empty($data['portal_locked']);
         $feeNote = trim((string) ($data['fee_balance_note'] ?? ''));
+        $feeStatus = $data['fee_status'] ?? 'current';
+        if (!in_array($feeStatus, ['current', 'partial', 'overdue', 'paid_in_full'], true)) {
+            $feeStatus = 'current';
+        }
         $paymentRef = trim((string) ($data['payment_reference'] ?? 'Continuing enrollment — prior payments'));
 
         $installments = RegistrationModel::calculateInstallments(
@@ -103,12 +107,12 @@ class ContinuingStudentController {
                  (registration_no, full_name, email, phone, course_id, study_mode, id_document_path,
                   registration_fee, course_fee, payment_plan, installment_count, installment_amount,
                   payment_reference, possible_returning_student, enrollment_type, prior_registration_id,
-                  current_learning_month, fee_balance_note, registration_fee_waived,
+                  current_learning_month, fee_balance_note, fee_status, registration_fee_waived,
                   installments_paid, status, reviewed_by, reviewed_at, user_id, portal_locked)
                  VALUES
                  (:reg_no, :full_name, :email, :phone, :course_id, :study_mode, :id_doc,
                   :reg_fee, :course_fee, :plan, :inst_count, :inst_amount,
-                  :pay_ref, 1, 'continuing', :prior_id, :learning_month, :fee_note, :waived,
+                  :pay_ref, 1, 'continuing', :prior_id, :learning_month, :fee_note, :fee_status, :waived,
                   :inst_paid, 'approved', :admin, NOW(), :user_id, :locked)"
             );
             $stmt->execute([
@@ -128,6 +132,7 @@ class ContinuingStudentController {
                 ':prior_id'       => $priorId,
                 ':learning_month' => $learningMonth,
                 ':fee_note'       => $feeNote !== '' ? $feeNote : null,
+                ':fee_status'     => $feeStatus,
                 ':waived'         => $waiveRegFee ? 1 : 0,
                 ':inst_paid'      => $installmentsPaid,
                 ':admin'          => $resolvedAdmin,
@@ -206,16 +211,23 @@ class ContinuingStudentController {
     /**
      * Update fee balance note and portal lock based on outstanding balance.
      */
-    public function updateFeeStatus(int $registrationId, ?string $note, bool $portalLocked): array {
+    public function updateFeeStatus(int $registrationId, ?string $note, bool $portalLocked, string $feeStatus = 'current'): array {
         $reg = $this->studentModel->getById($registrationId);
         if (!$reg || $reg['status'] !== 'approved') {
             return ['ok' => false, 'error' => 'Student not found.'];
         }
+        if (!in_array($feeStatus, ['current', 'partial', 'overdue', 'paid_in_full'], true)) {
+            $feeStatus = 'current';
+        }
 
         $stmt = $this->db->prepare(
-            "UPDATE registrations SET fee_balance_note = :note WHERE id = :id"
+            "UPDATE registrations SET fee_balance_note = :note, fee_status = :status WHERE id = :id"
         );
-        $stmt->execute([':note' => $note !== '' ? $note : null, ':id' => $registrationId]);
+        $stmt->execute([
+            ':note'   => $note !== '' ? $note : null,
+            ':status' => $feeStatus,
+            ':id'     => $registrationId,
+        ]);
 
         if ($portalLocked) {
             $this->studentModel->lockPortal($registrationId);

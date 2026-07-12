@@ -27,8 +27,8 @@ ob_start();
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <span class="fw-semibold"><i class="fas fa-user-graduate me-2"></i>Enrolled Students</span>
         <div class="d-flex align-items-center gap-2">
-            <a href="<?php echo url('admin/students/register_continuing.php'); ?>" class="btn btn-sm btn-primary">
-                <i class="fas fa-user-plus me-1"></i> Register Continuing Student
+            <a href="<?php echo url('admin/students/onboard.php'); ?>" class="btn btn-sm btn-primary">
+                <i class="fas fa-user-plus me-1"></i> Onboard Student
             </a>
             <span class="badge bg-secondary"><?php echo count($students); ?> total</span>
         </div>

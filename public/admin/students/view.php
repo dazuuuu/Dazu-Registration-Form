@@ -93,7 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $continuing->updateFeeStatus(
                 $id,
                 trim($_POST['fee_balance_note'] ?? ''),
-                !empty($_POST['portal_locked'])
+                !empty($_POST['portal_locked']),
+                $_POST['fee_status'] ?? 'current'
             );
             if ($result['ok']) {
                 SessionModel::setFlash('success', 'Fee status and portal access updated.');
