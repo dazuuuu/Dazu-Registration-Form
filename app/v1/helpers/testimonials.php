@@ -106,7 +106,7 @@ if (!function_exists('testimonial_load_for_homepage')) {
         if (!$video) {
             $video = array_values(array_filter(
                 testimonial_static_video_fallbacks(),
-                static fn($r) => !empty($r['video_url'])
+                static fn($r) => testimonial_video_embed_url($r) !== null
             ));
         }
 
@@ -163,10 +163,11 @@ if (!function_exists('testimonial_static_video_fallbacks')) {
                 'service_tag' => 'Web Development',
                 'role' => 'Full-Stack Graduate',
                 'testimonial_type' => 'video',
-                'video_url' => '',
-                'video_provider' => 'none',
+                'video_url' => 'https://www.youtube.com/watch?v=EUY5XaeDsCI',
+                'video_provider' => 'youtube',
                 'thumbnail_url' => '',
                 'bg_class' => 'from-emerald-600 to-teal-900',
+                'duration' => '0:18',
             ],
             [
                 'id' => 0,
@@ -175,22 +176,37 @@ if (!function_exists('testimonial_static_video_fallbacks')) {
                 'service_tag' => 'Cybersecurity & Networks',
                 'role' => 'Security Graduate',
                 'testimonial_type' => 'video',
-                'video_url' => '',
-                'video_provider' => 'none',
+                'video_url' => 'https://www.youtube.com/watch?v=wsnMje68J9M',
+                'video_provider' => 'youtube',
                 'thumbnail_url' => '',
                 'bg_class' => 'from-blue-700 to-indigo-950',
+                'duration' => '0:18',
             ],
             [
                 'id' => 0,
-                'customer_name' => 'Grace Akinyi',
-                'customer_initial' => 'GA',
-                'service_tag' => 'AI & Data Science',
-                'role' => 'Data Science Cohort',
+                'customer_name' => 'Naomi Chege',
+                'customer_initial' => 'NC',
+                'service_tag' => 'Data Analytics',
+                'role' => 'Data Analyst Graduate',
                 'testimonial_type' => 'video',
-                'video_url' => '',
-                'video_provider' => 'none',
+                'video_url' => 'https://www.youtube.com/watch?v=y0vgFgUXYAI',
+                'video_provider' => 'youtube',
                 'thumbnail_url' => '',
                 'bg_class' => 'from-purple-700 to-fuchsia-950',
+                'duration' => '0:18',
+            ],
+            [
+                'id' => 0,
+                'customer_name' => 'David Ochieng',
+                'customer_initial' => 'DO',
+                'service_tag' => 'AI & Digital Marketing',
+                'role' => 'Marketing Graduate',
+                'testimonial_type' => 'video',
+                'video_url' => 'https://www.youtube.com/watch?v=BK0wlEJ3nR4',
+                'video_provider' => 'youtube',
+                'thumbnail_url' => '',
+                'bg_class' => 'from-amber-600 to-orange-800',
+                'duration' => '0:18',
             ],
         ];
     }

@@ -6,12 +6,18 @@
 $videoTestimonials = $videoTestimonials ?? [];
 $textTestimonials = $textTestimonials ?? [];
 $playable = array_values(array_filter($videoTestimonials, static fn($t) => (bool) testimonial_video_embed_url($t)));
+if (!$playable && function_exists('testimonial_static_video_fallbacks')) {
+    $playable = array_values(array_filter(
+        testimonial_static_video_fallbacks(),
+        static fn($t) => (bool) testimonial_video_embed_url($t)
+    ));
+}
 
 $gradients = [
-    'from-emerald-500 to-teal-800',
-    'from-blue-600 to-indigo-900',
-    'from-purple-600 to-fuchsia-950',
-    'from-amber-500 to-orange-800',
+    'linear-gradient(to bottom right, #10b981, #115e59)',
+    'linear-gradient(to bottom right, #2563eb, #312e81)',
+    'linear-gradient(to bottom right, #9333ea, #4a044e)',
+    'linear-gradient(to bottom right, #f59e0b, #9a3412)',
 ];
 ?>
 <section class="py-24 bg-white" id="testimonials">
@@ -30,7 +36,7 @@ $gradients = [
     </div>
 
     <?php if ($playable): ?>
-      <div id="dazu-video-row" class="flex flex-wrap justify-center gap-4 sm:gap-5 max-w-4xl mx-auto">
+      <div id="dazu-video-row">
         <?php foreach ($playable as $i => $t):
             $embed = testimonial_video_embed_url($t);
             $thumb = testimonial_video_thumb($t);
@@ -41,13 +47,13 @@ $gradients = [
             $duration = $t['duration'] ?? '0:18';
             $embedQs = (str_contains($embed, '?') ? '&' : '?') . 'autoplay=1&modestbranding=1&rel=0';
         ?>
-          <article class="dazu-vcard group relative flex-shrink-0 w-[150px] sm:w-[170px] rounded-xl overflow-hidden border-2 border-slate-950 bg-slate-950 shadow-sm hover:-translate-y-0.5 transition-transform"
+          <article class="dazu-vcard group rounded-xl overflow-hidden border-2 border-slate-950 bg-slate-950 shadow-sm hover:-translate-y-0.5 transition-transform"
                    data-dazu-vcard
                    data-embed="<?php echo htmlspecialchars($embed); ?>"
                    data-name="<?php echo htmlspecialchars($name); ?>"
                    data-track="<?php echo htmlspecialchars($track); ?>">
             <!-- Inline player -->
-            <div class="dazu-vplayer hidden absolute inset-0 z-20 bg-black aspect-[4/5]">
+            <div class="dazu-vplayer hidden">
               <iframe class="dazu-viframe w-full h-full border-0"
                       data-src="<?php echo htmlspecialchars($embed . $embedQs); ?>"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -64,14 +70,14 @@ $gradients = [
             </div>
 
             <!-- Poster -->
-            <div class="dazu-vposter relative w-full aspect-[4/5]">
+            <div class="dazu-vposter">
               <?php if ($thumb): ?>
                 <img src="<?php echo htmlspecialchars($thumb); ?>" alt="<?php echo htmlspecialchars($name); ?>"
                      class="absolute inset-0 w-full h-full object-cover" loading="lazy">
               <?php else: ?>
-                <div class="absolute inset-0 bg-gradient-to-br <?php echo htmlspecialchars($gradient); ?>"></div>
+                <div class="absolute inset-0" style="background:<?php echo htmlspecialchars($gradient); ?>"></div>
               <?php endif; ?>
-              <div class="absolute inset-0 bg-gradient-to-br from-slate-900/80 to-slate-950/90"></div>
+              <div class="absolute inset-0" style="background:linear-gradient(to bottom right, rgba(15,23,42,0.8), rgba(2,6,23,0.9))"></div>
 
               <button type="button" class="dazu-vplay absolute inset-0 flex items-center justify-center z-10"
                       aria-label="Play <?php echo htmlspecialchars($name); ?>">
