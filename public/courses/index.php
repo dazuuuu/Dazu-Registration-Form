@@ -24,11 +24,6 @@ $courses = array_values(array_filter($courses, static function ($c) use ($usingS
     return !empty($c['is_active']) && (int) ($c['id'] ?? 0) > 0;
 }));
 
-foreach ($courses as &$course) {
-    $course['_display_category_id'] = dazu_resolve_course_category_id($course);
-}
-unset($course);
-
 try {
     $courseCategories = $categoryModel->getAll(true);
 } catch (Throwable $e) {
@@ -37,12 +32,14 @@ try {
 
 if (empty($courseCategories)) {
     $courseCategories = dazu_fallback_course_categories();
-    foreach ($courseCategories as &$cat) {
-        $cat['course_count'] = count(array_filter($courses, static fn($c) => (int)($c['_display_category_id'] ?? 0) === (int)$cat['id']));
-    }
-    unset($cat);
-    $courseCategories = array_values(array_filter($courseCategories, static fn($c) => (int)$c['course_count'] > 0));
 }
+
+foreach ($courses as &$course) {
+    $course['_display_category_id'] = dazu_resolve_course_category_id($course, $courseCategories);
+}
+unset($course);
+
+$courseCategories = dazu_recount_course_categories($courseCategories, $courses);
 
 $activeCategoryId = !empty($courseCategories) ? (int) $courseCategories[0]['id'] : 0;
 $visibleCount = count(array_filter($courses, static fn($c) => (int)($c['_display_category_id'] ?? 0) === $activeCategoryId));
@@ -61,6 +58,7 @@ ob_start();
       <?php
       $tabsId = 'dazu-courses-page-cat-tabs';
       $countId = 'dazu-courses-count';
+      $gridId = 'dazu-courses-grid';
       include __DIR__ . '/../components/public/dazu_course_category_cards.php';
       ?>
     <?php endif; ?>
@@ -77,7 +75,7 @@ ob_start();
       <div id="dazu-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
         <?php foreach ($courses as $course):
             $catId = (int) ($course['_display_category_id'] ?? 0);
-            $hidden = ($catId !== $activeCategoryId) ? 'hidden' : '';
+            $hidden = ($catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
         ?>
           <div class="dazu-course-list-item <?php echo $hidden; ?>" data-category-id="<?php echo $catId; ?>">
             <?php include __DIR__ . '/../components/public/dazu_course_card.php'; ?>

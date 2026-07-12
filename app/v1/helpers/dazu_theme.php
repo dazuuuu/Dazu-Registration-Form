@@ -210,13 +210,63 @@ if (!function_exists('dazu_abbr_category_map')) {
     }
 }
 
+if (!function_exists('dazu_recount_course_categories')) {
+    /**
+     * Recompute course_count per category using resolved display category ids.
+     *
+     * @param array<int, array<string, mixed>> $categories
+     * @param array<int, array<string, mixed>> $courses
+     * @return array<int, array<string, mixed>>
+     */
+    function dazu_recount_course_categories(array $categories, array $courses): array
+    {
+        foreach ($categories as &$cat) {
+            $catId = (int) ($cat['id'] ?? 0);
+            $cat['course_count'] = count(array_filter(
+                $courses,
+                static fn($c) => (int) ($c['_display_category_id'] ?? 0) === $catId
+            ));
+        }
+        unset($cat);
+
+        return array_values(array_filter($categories, static fn($c) => (int) ($c['course_count'] ?? 0) > 0));
+    }
+}
+
+if (!function_exists('dazu_abbr_category_slug_map')) {
+    function dazu_abbr_category_slug_map(): array
+    {
+        return [
+            'WD' => 'web-development',
+            'PY' => 'web-development',
+            'PHP' => 'web-development',
+            'ND' => 'web-development',
+            'FE' => 'web-development',
+            'FS' => 'web-development',
+            'CY' => 'cybersecurity',
+            'DA' => 'data-analytics',
+            'AI' => 'ai-machine-learning',
+        ];
+    }
+}
+
 if (!function_exists('dazu_resolve_course_category_id')) {
-    function dazu_resolve_course_category_id(array $course): int
+    function dazu_resolve_course_category_id(array $course, ?array $categories = null): int
     {
         if (!empty($course['category_id'])) {
             return (int) $course['category_id'];
         }
+
         $abbr = strtoupper(trim($course['abbreviation'] ?? ''));
+        if ($categories) {
+            $slug = dazu_abbr_category_slug_map()[$abbr] ?? 'web-development';
+            foreach ($categories as $cat) {
+                if (($cat['slug'] ?? '') === $slug) {
+                    return (int) $cat['id'];
+                }
+            }
+        }
+
         $map = dazu_abbr_category_map();
         return (int) ($map[$abbr] ?? 1);
     }
@@ -240,26 +290,23 @@ if (!function_exists('dazu_load_popular_courses_section')) {
         [$courses] = dazu_load_courses($courseModel);
         $courses = array_values(array_filter($courses, static fn($c) => !empty($c['is_active']) || (int)($c['id'] ?? 0) === 0));
 
+        if (empty($categories)) {
+            $categories = dazu_fallback_course_categories();
+        }
+
         foreach ($courses as &$course) {
-            $course['_display_category_id'] = dazu_resolve_course_category_id($course);
+            $course['_display_category_id'] = dazu_resolve_course_category_id($course, $categories);
         }
         unset($course);
 
-        if (empty($categories)) {
-            $categories = dazu_fallback_course_categories();
-            foreach ($categories as &$cat) {
-                $cat['course_count'] = count(array_filter($courses, static fn($c) => (int)($c['_display_category_id'] ?? 0) === (int)$cat['id']));
-            }
-            unset($cat);
-            $categories = array_values(array_filter($categories, static fn($c) => (int)$c['course_count'] > 0));
-        }
+        $categories = dazu_recount_course_categories($categories, $courses);
 
         if (empty($categories) && !empty($courses)) {
             $categories = dazu_fallback_course_categories();
             $categories[0]['course_count'] = count($courses);
             $categories = [$categories[0]];
             foreach ($courses as &$course) {
-                $course['_display_category_id'] = 1;
+                $course['_display_category_id'] = (int) $categories[0]['id'];
             }
             unset($course);
         }

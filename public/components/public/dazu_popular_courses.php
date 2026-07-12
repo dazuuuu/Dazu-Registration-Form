@@ -7,7 +7,7 @@ $popularCategories = $popularCategories ?? [];
 $popularCourses = $popularCourses ?? [];
 
 foreach ($popularCourses as &$course) {
-    $course['_display_category_id'] = $course['_display_category_id'] ?? dazu_resolve_course_category_id($course);
+    $course['_display_category_id'] = $course['_display_category_id'] ?? dazu_resolve_course_category_id($course, $popularCategories ?: null);
 }
 unset($course);
 
@@ -31,6 +31,7 @@ $countId = 'dazu-home-courses-count';
     <?php if (!empty($popularCategories)): ?>
       <?php
       $courseCategories = $popularCategories;
+      $gridId = 'dazu-home-courses-grid';
       include __DIR__ . '/dazu_course_category_cards.php';
       ?>
     <?php endif; ?>
@@ -44,7 +45,7 @@ $countId = 'dazu-home-courses-count';
       <div id="dazu-home-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 text-left items-start">
         <?php foreach ($popularCourses as $course):
             $catId = (int) ($course['_display_category_id'] ?? 0);
-            $hidden = ($catId !== $activeCategoryId) ? 'hidden' : '';
+            $hidden = ($catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
         ?>
           <div class="dazu-course-list-item <?php echo $hidden; ?>" data-category-id="<?php echo $catId; ?>">
             <?php include __DIR__ . '/dazu_course_card.php'; ?>
