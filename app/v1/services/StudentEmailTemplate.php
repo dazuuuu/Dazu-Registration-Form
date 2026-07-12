@@ -87,6 +87,10 @@ class StudentEmailTemplate {
                 ];
 
             case 'payment_approved':
+                $receiptUrl = '';
+                if (!empty($data['payment_id']) && function_exists('url')) {
+                    $receiptUrl = url('students/payments/receipt.php?id=' . (int) $data['payment_id']);
+                }
                 return [
                     'Payment confirmed — receipt enclosed',
                     self::layout(
@@ -94,9 +98,13 @@ class StudentEmailTemplate {
                         '<p>Hi ' . self::e($data['full_name']) . ',</p>'
                         . '<p>Your payment has been <strong>verified and approved</strong>. Your student portal has been unlocked.</p>'
                         . ($data['receipt_html'] ?? '')
-                        . '<p style="text-align:center;margin:24px 0;">'
-                        . '<a href="' . self::e($data['login_url']) . '" style="background:#0D9488;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;">Go to Student Portal</a>'
-                        . '</p>'
+                        . ($receiptUrl !== ''
+                            ? '<p style="text-align:center;margin:16px 0;">'
+                                . '<a href="' . self::e($data['login_url'] ?? $receiptUrl) . '" style="background:#15A24A;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;margin:4px;">Go to Student Portal</a>'
+                                . '</p>'
+                            : '<p style="text-align:center;margin:24px 0;">'
+                                . '<a href="' . self::e($data['login_url']) . '" style="background:#15A24A;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;">Go to Student Portal</a>'
+                                . '</p>')
                     ),
                 ];
 
@@ -166,9 +174,11 @@ class StudentEmailTemplate {
 
     private static function layout(string $heading, string $bodyHtml): string {
         $company = 'Dazu Hub Institute';
+        $logoUrl = 'https://i.ibb.co/fzfZFtGc/223025.jpg';
         return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">'
             . '<div style="text-align:center;padding:24px 0;border-bottom:1px solid #eee;">'
-            . '<img src="cid:ismanlogo" alt="Logo" style="max-height:56px;">'
+            . '<img src="' . $logoUrl . '" alt="' . self::e($company) . '" style="width:56px;height:56px;border-radius:8px;object-fit:cover;margin-bottom:8px;">'
+            . '<div style="font-size:18px;font-weight:bold;color:#15A24A;">' . self::e($company) . '</div>'
             . '</div>'
             . '<div style="padding:24px;">'
             . '<h2 style="color:#0D9488;margin:0 0 8px;">' . self::e($heading) . '</h2>'

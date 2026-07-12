@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'approve') {
             $result = $controller->approvePayment($paymentId, $adminId);
             if ($result['ok']) {
-                SessionModel::setFlash('success', 'Payment approved. Receipt <strong>' . htmlspecialchars($result['receipt_no']) . '</strong>. Student portal unlocked.');
+                SessionModel::setFlash('success', 'Payment approved. Receipt <strong>' . htmlspecialchars($result['receipt_no']) . '</strong> generated and emailed to the student. Portal unlocked.');
                 header('Location: ' . url('admin/payments/index.php'));
                 exit();
             }

@@ -24,9 +24,14 @@ ob_start();
 ?>
 
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <span class="fw-semibold"><i class="fas fa-user-graduate me-2"></i>Enrolled Students</span>
-        <span class="badge bg-secondary"><?php echo count($students); ?> total</span>
+        <div class="d-flex align-items-center gap-2">
+            <a href="<?php echo url('admin/students/register_continuing.php'); ?>" class="btn btn-sm btn-primary">
+                <i class="fas fa-user-plus me-1"></i> Register Continuing Student
+            </a>
+            <span class="badge bg-secondary"><?php echo count($students); ?> total</span>
+        </div>
     </div>
     <div class="card-body p-0">
         <?php if (empty($students)): ?>
@@ -39,6 +44,7 @@ ob_start();
                         <th>Student ID</th>
                         <th>Name</th>
                         <th>Course</th>
+                        <th>Month</th>
                         <th>Plan</th>
                         <th>Portal</th>
                         <th>Credentials</th>
@@ -58,6 +64,14 @@ ob_start();
                             <small class="text-muted"><?php echo htmlspecialchars($s['email']); ?></small>
                         </td>
                         <td><?php echo htmlspecialchars($s['course_title']); ?></td>
+                        <td>
+                            <?php
+                            $month = (int) ($s['current_learning_month'] ?? 1);
+                            echo 'M' . $month;
+                            if (!empty($s['enrollment_type']) && $s['enrollment_type'] === 'continuing'): ?>
+                                <br><small class="text-muted">Continuing</small>
+                            <?php endif; ?>
+                        </td>
                         <td><span class="badge bg-light text-dark"><?php echo htmlspecialchars($s['payment_plan']); ?></span></td>
                         <td>
                             <?php if ($s['portal_locked']): ?>
