@@ -30,40 +30,69 @@ $gradients = [
     </div>
 
     <?php if ($playable): ?>
-      <div class="grid grid-cols-2 gap-3 sm:gap-8 max-w-5xl mx-auto px-1 sm:px-0">
+      <div id="dazu-video-row" class="flex flex-wrap justify-center gap-4 sm:gap-5 max-w-4xl mx-auto">
         <?php foreach ($playable as $i => $t):
             $embed = testimonial_video_embed_url($t);
+            $thumb = testimonial_video_thumb($t);
             $name = $t['customer_name'] ?? 'Alumni';
             $track = $t['service_tag'] ?? 'Tech Track';
             $title = $t['role'] ?? ($t['testimonial_text'] ?? '');
             $gradient = $gradients[$i % count($gradients)];
             $duration = $t['duration'] ?? '0:18';
+            $embedQs = (str_contains($embed, '?') ? '&' : '?') . 'autoplay=1&modestbranding=1&rel=0';
         ?>
-          <button type="button"
-                  class="dazu-video-trigger group relative rounded-xl sm:rounded-2xl overflow-hidden border-2 border-slate-950 cursor-pointer transition-all duration-200 hover:-translate-y-1 active:translate-y-0 select-none text-left w-full"
-                  style="aspect-ratio:16/16.38"
-                  data-embed="<?php echo htmlspecialchars($embed); ?>"
-                  data-name="<?php echo htmlspecialchars($name); ?>"
-                  data-track="<?php echo htmlspecialchars($track); ?>">
-            <div class="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-950 opacity-90 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2 sm:p-6 text-center">
-              <div class="absolute inset-0 bg-gradient-to-br <?php echo htmlspecialchars($gradient); ?> opacity-70 group-hover:opacity-85 transition-opacity"></div>
-              <div class="absolute inset-0 bg-slate-950/20 group-hover:bg-slate-950/5 transition-colors"></div>
-              <div class="w-8 h-8 sm:w-12 sm:h-12 bg-[#15A24A] text-white rounded-full flex items-center justify-center relative z-10 group-hover:scale-110 transition-transform border border-white/20 shrink-0">
-                <svg class="h-2.5 w-2.5 sm:h-4 sm:w-4 fill-white ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+          <article class="dazu-vcard group relative flex-shrink-0 w-[150px] sm:w-[170px] rounded-xl overflow-hidden border-2 border-slate-950 bg-slate-950 shadow-sm hover:-translate-y-0.5 transition-transform"
+                   data-dazu-vcard
+                   data-embed="<?php echo htmlspecialchars($embed); ?>"
+                   data-name="<?php echo htmlspecialchars($name); ?>"
+                   data-track="<?php echo htmlspecialchars($track); ?>">
+            <!-- Inline player -->
+            <div class="dazu-vplayer hidden absolute inset-0 z-20 bg-black aspect-[4/5]">
+              <iframe class="dazu-viframe w-full h-full border-0"
+                      data-src="<?php echo htmlspecialchars($embed . $embedQs); ?>"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowfullscreen
+                      title="<?php echo htmlspecialchars($name); ?> testimonial"></iframe>
+              <div class="absolute top-1.5 right-1.5 z-30 flex items-center gap-1">
+                <button type="button" class="dazu-vpause w-7 h-7 rounded-full bg-black/70 text-white text-[10px] hover:bg-black/90 flex items-center justify-center" aria-label="Pause" title="Pause">
+                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
+                </button>
+                <button type="button" class="dazu-vexpand w-7 h-7 rounded-full bg-black/70 text-white hover:bg-black/90 flex items-center justify-center" aria-label="Expand" title="Expand">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                </button>
               </div>
-              <div class="absolute bottom-1.5 left-1.5 right-1.5 sm:bottom-4 sm:left-4 sm:right-4 text-left z-10 bg-black/50 backdrop-blur-sm p-1.5 sm:p-3 rounded-lg sm:rounded-xl border border-white/5">
-                <span class="text-[7px] sm:text-[9px] font-extrabold uppercase tracking-widest text-green-300 block mb-0.5 truncate"><?php echo htmlspecialchars($track); ?></span>
-                <h4 class="text-[9px] sm:text-sm font-extrabold text-white leading-tight truncate"><?php echo htmlspecialchars($name); ?></h4>
-                <div class="flex items-center justify-between text-[8px] sm:text-[10px] text-slate-300 font-semibold mt-0.5 sm:mt-1">
-                  <p class="truncate mr-2 hidden sm:block"><?php echo htmlspecialchars($title); ?></p>
-                  <span class="flex items-center gap-0.5 sm:gap-1 shrink-0 bg-white/10 px-1 sm:px-1.5 py-0.5 rounded">
-                    <svg class="h-2 w-2 sm:h-3 sm:w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            </div>
+
+            <!-- Poster -->
+            <div class="dazu-vposter relative w-full aspect-[4/5]">
+              <?php if ($thumb): ?>
+                <img src="<?php echo htmlspecialchars($thumb); ?>" alt="<?php echo htmlspecialchars($name); ?>"
+                     class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+              <?php else: ?>
+                <div class="absolute inset-0 bg-gradient-to-br <?php echo htmlspecialchars($gradient); ?>"></div>
+              <?php endif; ?>
+              <div class="absolute inset-0 bg-gradient-to-br from-slate-900/80 to-slate-950/90"></div>
+
+              <button type="button" class="dazu-vplay absolute inset-0 flex items-center justify-center z-10"
+                      aria-label="Play <?php echo htmlspecialchars($name); ?>">
+                <span class="w-9 h-9 bg-[#15A24A] text-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform border border-white/20 shadow-lg">
+                  <svg class="w-3.5 h-3.5 fill-white ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </span>
+              </button>
+
+              <div class="absolute bottom-0 left-0 right-0 z-10 p-2 bg-black/55 backdrop-blur-sm border-t border-white/5">
+                <span class="text-[7px] font-extrabold uppercase tracking-widest text-green-300 block truncate"><?php echo htmlspecialchars($track); ?></span>
+                <h4 class="text-[10px] font-extrabold text-white leading-tight truncate"><?php echo htmlspecialchars($name); ?></h4>
+                <div class="flex items-center justify-between mt-0.5">
+                  <p class="text-[8px] text-slate-300 truncate mr-1 hidden sm:block"><?php echo htmlspecialchars($title); ?></p>
+                  <span class="flex items-center gap-0.5 text-[8px] text-slate-300 shrink-0 bg-white/10 px-1 py-0.5 rounded">
+                    <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     <?php echo htmlspecialchars($duration); ?>
                   </span>
                 </div>
               </div>
             </div>
-          </button>
+          </article>
         <?php endforeach; ?>
       </div>
     <?php else: ?>
@@ -126,42 +155,118 @@ $gradients = [
   </div>
 </section>
 
-<!-- Video modal -->
-<div id="dazu-video-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+<!-- Expanded video overlay -->
+<div id="dazu-video-expand" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center z-50 p-4">
   <div class="bg-slate-950 border border-slate-800 rounded-2xl w-full max-w-sm sm:max-w-md overflow-hidden relative flex flex-col aspect-[9/16] shadow-2xl">
-    <div class="flex items-center justify-between p-4 border-b border-slate-800 bg-slate-950 text-white shrink-0">
-      <div class="text-left">
-        <span id="dazu-video-modal-track" class="text-[10px] uppercase tracking-widest text-[#15A24A] font-extrabold"></span>
-        <h3 id="dazu-video-modal-title" class="font-extrabold text-xs sm:text-sm text-slate-100"></h3>
+    <div class="flex items-center justify-between p-3 border-b border-slate-800 bg-slate-950 text-white shrink-0">
+      <div class="text-left min-w-0">
+        <span id="dazu-video-expand-track" class="text-[10px] uppercase tracking-widest text-[#15A24A] font-extrabold"></span>
+        <h3 id="dazu-video-expand-title" class="font-extrabold text-xs sm:text-sm text-slate-100 truncate"></h3>
       </div>
-      <button type="button" id="dazu-video-modal-close" class="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white" aria-label="Close">✕</button>
+      <button type="button" id="dazu-video-expand-close" class="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white shrink-0 ml-2" aria-label="Close expanded video">✕</button>
     </div>
     <div class="relative flex-1 bg-black">
-      <iframe id="dazu-video-modal-iframe" class="absolute inset-0 w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen title="Video testimonial"></iframe>
+      <iframe id="dazu-video-expand-iframe" class="absolute inset-0 w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen title="Expanded video testimonial"></iframe>
     </div>
   </div>
 </div>
 
 <script>
 (function(){
-  var modal = document.getElementById('dazu-video-modal');
-  var iframe = document.getElementById('dazu-video-modal-iframe');
-  var closeBtn = document.getElementById('dazu-video-modal-close');
-  document.querySelectorAll('.dazu-video-trigger').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var embed = btn.getAttribute('data-embed');
-      var name = btn.getAttribute('data-name');
-      var track = btn.getAttribute('data-track');
-      document.getElementById('dazu-video-modal-track').textContent = track;
-      document.getElementById('dazu-video-modal-title').textContent = name + ' — Alumni Story';
-      iframe.src = embed + (embed.indexOf('?') >= 0 ? '&' : '?') + 'autoplay=1&modestbranding=1&rel=0';
-      modal.classList.remove('hidden'); modal.classList.add('flex');
+  var expandModal = document.getElementById('dazu-video-expand');
+  var expandIframe = document.getElementById('dazu-video-expand-iframe');
+  var expandClose = document.getElementById('dazu-video-expand-close');
+  var activeCard = null;
+
+  function stopCard(card, keepExpanded) {
+    if (!card) return;
+    var player = card.querySelector('.dazu-vplayer');
+    var poster = card.querySelector('.dazu-vposter');
+    var iframe = card.querySelector('.dazu-viframe');
+    if (player) player.classList.add('hidden');
+    if (poster) poster.classList.remove('hidden');
+    if (iframe) iframe.removeAttribute('src');
+    if (!keepExpanded && activeCard === card) activeCard = null;
+  }
+
+  function stopAll(except) {
+    document.querySelectorAll('[data-dazu-vcard]').forEach(function(card){
+      if (card !== except) stopCard(card);
     });
+  }
+
+  function playCard(card) {
+    stopAll(card);
+    var player = card.querySelector('.dazu-vplayer');
+    var poster = card.querySelector('.dazu-vposter');
+    var iframe = card.querySelector('.dazu-viframe');
+    if (!player || !iframe) return;
+    var src = iframe.getAttribute('data-src');
+    if (src) iframe.setAttribute('src', src);
+    player.classList.remove('hidden');
+    if (poster) poster.classList.add('hidden');
+    activeCard = card;
+  }
+
+  function openExpand(card) {
+    var embed = card.getAttribute('data-embed');
+    var name = card.getAttribute('data-name');
+    var track = card.getAttribute('data-track');
+    if (!embed || !expandModal || !expandIframe) return;
+    document.getElementById('dazu-video-expand-track').textContent = track;
+    document.getElementById('dazu-video-expand-title').textContent = name + ' — Alumni Story';
+    var qs = embed.indexOf('?') >= 0 ? '&' : '?';
+    expandIframe.src = embed + qs + 'autoplay=1&modestbranding=1&rel=0';
+    expandModal.classList.remove('hidden');
+    expandModal.classList.add('flex');
+    expandModal.dataset.fromCard = '1';
+  }
+
+  function closeExpand() {
+    if (!expandModal) return;
+    expandModal.classList.add('hidden');
+    expandModal.classList.remove('flex');
+    if (expandIframe) expandIframe.removeAttribute('src');
+  }
+
+  document.querySelectorAll('[data-dazu-vcard]').forEach(function(card){
+    var playBtn = card.querySelector('.dazu-vplay');
+    var pauseBtn = card.querySelector('.dazu-vpause');
+    var expandBtn = card.querySelector('.dazu-vexpand');
+
+    if (playBtn) {
+      playBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        playCard(card);
+      });
+    }
+    if (pauseBtn) {
+      pauseBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        stopCard(card);
+      });
+    }
+    if (expandBtn) {
+      expandBtn.addEventListener('click', function(e){
+        e.stopPropagation();
+        if (!card.querySelector('.dazu-vplayer') || card.querySelector('.dazu-vplayer').classList.contains('hidden')) {
+          playCard(card);
+        }
+        openExpand(card);
+      });
+    }
   });
-  if(closeBtn) closeBtn.addEventListener('click', function(){
-    modal.classList.add('hidden'); modal.classList.remove('flex');
-    iframe.removeAttribute('src');
-  });
+
+  if (expandClose) {
+    expandClose.addEventListener('click', function(){
+      closeExpand();
+    });
+  }
+  if (expandModal) {
+    expandModal.addEventListener('click', function(e){
+      if (e.target === expandModal) closeExpand();
+    });
+  }
 
   var slides = document.querySelectorAll('.dazu-text-slide');
   var dots = document.querySelectorAll('.dazu-text-dot');
