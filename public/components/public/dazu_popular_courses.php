@@ -44,10 +44,11 @@ $totalCourseCount = count($popularCourses);
         <p class="text-xs font-extrabold uppercase tracking-widest text-slate-600 mt-8 mb-6">
           Showing <span id="<?php echo $countId; ?>"><?php echo $visibleCount; ?></span> course<?php echo $visibleCount === 1 ? '' : 's'; ?>
         </p>
-        <div id="dazu-home-courses-grid" class="dazu-courses-grid grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-5 sm:gap-6 text-left items-start">
+        <div id="dazu-home-courses-grid" class="dazu-courses-grid grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 text-left items-start">
           <?php foreach ($popularCourses as $course):
               $catId = (int) ($course['_display_category_id'] ?? 0);
               $hidden = ($activeCategoryId > 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
+              $courseCardVariant = 'home';
           ?>
             <div class="dazu-course-list-item <?php echo $hidden; ?>" data-category-id="<?php echo $catId; ?>">
               <?php include __DIR__ . '/dazu_course_card.php'; ?>
