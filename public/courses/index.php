@@ -34,12 +34,9 @@ if (empty($courseCategories)) {
     $courseCategories = dazu_fallback_course_categories();
 }
 
-foreach ($courses as &$course) {
-    $course['_display_category_id'] = dazu_resolve_course_category_id($course, $courseCategories);
-}
-unset($course);
-
-$courseCategories = dazu_recount_course_categories($courseCategories, $courses);
+$listing = dazu_prepare_course_listing($courseCategories, $courses);
+$courseCategories = $listing['categories'];
+$courses = $listing['courses'];
 
 $activeCategoryId = 0;
 $visibleCount = count($courses);
@@ -54,7 +51,7 @@ ob_start();
       <p class="text-slate-600 font-medium leading-relaxed mt-3">Pick a category below, then choose a course to view details or apply online.</p>
     </div>
 
-    <?php if (!empty($courseCategories)): ?>
+    <?php if (!empty($courseCategories) || !empty($courses)): ?>
       <?php
       $tabsId = 'dazu-courses-page-cat-tabs';
       $countId = 'dazu-courses-count';
@@ -71,7 +68,7 @@ ob_start();
         <p class="text-slate-500 text-sm mt-1">Add courses in the admin panel or check back soon.</p>
       </div>
     <?php else: ?>
-      <p class="text-xs font-bold uppercase tracking-wider text-slate-500">
+      <p class="text-xs font-extrabold uppercase tracking-widest text-slate-600">
         Showing <span id="dazu-courses-count"><?php echo $visibleCount; ?></span> course<?php echo $visibleCount === 1 ? '' : 's'; ?>
       </p>
       <div id="dazu-courses-grid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 items-start">

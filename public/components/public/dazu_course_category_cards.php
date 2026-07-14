@@ -13,10 +13,10 @@ $gridId = $gridId ?? '';
 if (empty($courseCategories) || $gridId === '') {
     return;
 }
+static $dazuCatStylesPrinted = false;
 if ($totalCourseCount <= 0) {
     $totalCourseCount = array_sum(array_map(static fn($c) => (int) ($c['course_count'] ?? 0), $courseCategories));
 }
-static $dazuCatStylesPrinted = false;
 ?>
 <?php if (!$dazuCatStylesPrinted): $dazuCatStylesPrinted = true; ?>
 <style>

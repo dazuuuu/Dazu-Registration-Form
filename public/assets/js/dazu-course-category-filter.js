@@ -1,5 +1,5 @@
 /**
- * Course category tab filter — init all .dazu-course-cat-row blocks on DOM ready.
+ * Course category tab filter — default shows ALL courses (category id 0).
  */
 (function () {
   function showCategory(tabsRoot, grid, countEl, catId) {
@@ -13,7 +13,8 @@
     });
     var visible = 0;
     wraps.forEach(function (wrap) {
-      var show = catId === '0' || wrap.getAttribute('data-category-id') === catId;
+      var itemCat = String(wrap.getAttribute('data-category-id') || '');
+      var show = catId === '0' || itemCat === catId;
       wrap.classList.toggle('dazu-filter-hidden', !show);
       if (show) visible++;
     });
@@ -40,12 +41,9 @@
       });
     });
 
-    var activeTab = tabsRoot.querySelector('.dazu-course-cat-tab.is-active')
-      || tabsRoot.querySelector('.dazu-course-cat-tab[data-category-id="0"]')
-      || tabs[0];
-    if (activeTab) {
-      showCategory(tabsRoot, grid, countEl, activeTab.getAttribute('data-category-id'));
-    }
+    var allTab = tabsRoot.querySelector('.dazu-course-cat-tab[data-category-id="0"]');
+    var startId = allTab ? '0' : (tabsRoot.querySelector('.dazu-course-cat-tab.is-active') || tabs[0]).getAttribute('data-category-id');
+    showCategory(tabsRoot, grid, countEl, startId);
   }
 
   function initAll() {

@@ -6,10 +6,9 @@
 $popularCategories = $popularCategories ?? [];
 $popularCourses = $popularCourses ?? [];
 
-foreach ($popularCourses as &$course) {
-    $course['_display_category_id'] = $course['_display_category_id'] ?? dazu_resolve_course_category_id($course, $popularCategories ?: null);
-}
-unset($course);
+$listing = dazu_prepare_course_listing($popularCategories, $popularCourses);
+$popularCategories = $listing['categories'];
+$popularCourses = $listing['courses'];
 
 $activeCategoryId = 0;
 $visibleCount = count($popularCourses);
@@ -29,7 +28,7 @@ $totalCourseCount = count($popularCourses);
       </p>
     </div>
 
-    <?php if (!empty($popularCategories)): ?>
+    <?php if (!empty($popularCategories) || !empty($popularCourses)): ?>
       <?php
       $courseCategories = $popularCategories;
       $gridId = 'dazu-home-courses-grid';
@@ -41,7 +40,7 @@ $totalCourseCount = count($popularCourses);
     <?php if (empty($popularCourses)): ?>
       <p class="text-slate-500 text-sm font-semibold py-8 text-center">No courses available yet. Add courses in the admin panel.</p>
     <?php else: ?>
-      <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mt-8 mb-6">
+      <p class="text-xs font-extrabold uppercase tracking-widest text-slate-600 mt-8 mb-6">
         Showing <span id="<?php echo $countId; ?>"><?php echo $visibleCount; ?></span> course<?php echo $visibleCount === 1 ? '' : 's'; ?>
       </p>
       <div id="dazu-home-courses-grid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 text-left items-start">
