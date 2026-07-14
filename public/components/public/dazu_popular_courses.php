@@ -28,32 +28,34 @@ $totalCourseCount = count($popularCourses);
       </p>
     </div>
 
-    <?php if (!empty($popularCategories) || !empty($popularCourses)): ?>
-      <?php
-      $courseCategories = $popularCategories;
-      $gridId = 'dazu-home-courses-grid';
-      $showAllTab = true;
-      include __DIR__ . '/dazu_course_category_cards.php';
-      ?>
-    <?php endif; ?>
-
-    <?php if (empty($popularCourses)): ?>
-      <p class="text-slate-500 text-sm font-semibold py-8 text-center">No courses available yet. Add courses in the admin panel.</p>
-    <?php else: ?>
-      <p class="text-xs font-extrabold uppercase tracking-widest text-slate-600 mt-8 mb-6">
-        Showing <span id="<?php echo $countId; ?>"><?php echo $visibleCount; ?></span> course<?php echo $visibleCount === 1 ? '' : 's'; ?>
-      </p>
-      <div id="dazu-home-courses-grid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 text-left items-start">
-        <?php foreach ($popularCourses as $course):
-            $catId = (int) ($course['_display_category_id'] ?? 0);
-            $hidden = ($activeCategoryId > 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
+    <div class="dazu-courses-listing">
+      <?php if (!empty($popularCategories) || !empty($popularCourses)): ?>
+        <?php
+        $courseCategories = $popularCategories;
+        $gridId = 'dazu-home-courses-grid';
+        $showAllTab = true;
+        include __DIR__ . '/dazu_course_category_cards.php';
         ?>
-          <div class="dazu-course-list-item <?php echo $hidden; ?>" data-category-id="<?php echo $catId; ?>">
-            <?php include __DIR__ . '/dazu_course_card.php'; ?>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
+      <?php endif; ?>
+
+      <?php if (empty($popularCourses)): ?>
+        <p class="text-slate-500 text-sm font-semibold py-8 text-center">No courses available yet. Add courses in the admin panel.</p>
+      <?php else: ?>
+        <p class="text-xs font-extrabold uppercase tracking-widest text-slate-600 mt-8 mb-6">
+          Showing <span id="<?php echo $countId; ?>"><?php echo $visibleCount; ?></span> course<?php echo $visibleCount === 1 ? '' : 's'; ?>
+        </p>
+        <div id="dazu-home-courses-grid" class="dazu-courses-grid grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 text-left items-start">
+          <?php foreach ($popularCourses as $course):
+              $catId = (int) ($course['_display_category_id'] ?? 0);
+              $hidden = ($activeCategoryId > 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
+          ?>
+            <div class="dazu-course-list-item <?php echo $hidden; ?>" data-category-id="<?php echo $catId; ?>">
+              <?php include __DIR__ . '/dazu_course_card.php'; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
 
     <div class="mt-20 pt-12 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 text-left">
       <?php

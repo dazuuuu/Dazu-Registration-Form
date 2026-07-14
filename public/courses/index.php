@@ -51,37 +51,39 @@ ob_start();
       <p class="text-slate-600 font-medium leading-relaxed mt-3">Pick a category below, then choose a course to view details or apply online.</p>
     </div>
 
-    <?php if (!empty($courseCategories) || !empty($courses)): ?>
-      <?php
-      $tabsId = 'dazu-courses-page-cat-tabs';
-      $countId = 'dazu-courses-count';
-      $gridId = 'dazu-courses-grid';
-      $totalCourseCount = count($courses);
-      $showAllTab = true;
-      include __DIR__ . '/../components/public/dazu_course_category_cards.php';
-      ?>
-    <?php endif; ?>
-
-    <?php if (empty($courses)): ?>
-      <div class="text-center py-24 border border-dashed border-slate-200 rounded-2xl bg-slate-50">
-        <h3 class="text-lg font-bold text-slate-900">No courses available</h3>
-        <p class="text-slate-500 text-sm mt-1">Add courses in the admin panel or check back soon.</p>
-      </div>
-    <?php else: ?>
-      <p class="text-xs font-extrabold uppercase tracking-widest text-slate-600">
-        Showing <span id="dazu-courses-count"><?php echo $visibleCount; ?></span> course<?php echo $visibleCount === 1 ? '' : 's'; ?>
-      </p>
-      <div id="dazu-courses-grid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 items-start">
-        <?php foreach ($courses as $course):
-            $catId = (int) ($course['_display_category_id'] ?? 0);
-            $hidden = ($activeCategoryId > 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
+    <div class="dazu-courses-listing">
+      <?php if (!empty($courseCategories) || !empty($courses)): ?>
+        <?php
+        $tabsId = 'dazu-courses-page-cat-tabs';
+        $countId = 'dazu-courses-count';
+        $gridId = 'dazu-courses-grid';
+        $totalCourseCount = count($courses);
+        $showAllTab = true;
+        include __DIR__ . '/../components/public/dazu_course_category_cards.php';
         ?>
-          <div class="dazu-course-list-item <?php echo $hidden; ?>" data-category-id="<?php echo $catId; ?>">
-            <?php include __DIR__ . '/../components/public/dazu_course_card.php'; ?>
-          </div>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
+      <?php endif; ?>
+
+      <?php if (empty($courses)): ?>
+        <div class="text-center py-24 border border-dashed border-slate-200 rounded-2xl bg-slate-50">
+          <h3 class="text-lg font-bold text-slate-900">No courses available</h3>
+          <p class="text-slate-500 text-sm mt-1">Add courses in the admin panel or check back soon.</p>
+        </div>
+      <?php else: ?>
+        <p class="text-xs font-extrabold uppercase tracking-widest text-slate-600">
+          Showing <span id="dazu-courses-count"><?php echo $visibleCount; ?></span> course<?php echo $visibleCount === 1 ? '' : 's'; ?>
+        </p>
+        <div id="dazu-courses-grid" class="dazu-courses-grid grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 items-start">
+          <?php foreach ($courses as $course):
+              $catId = (int) ($course['_display_category_id'] ?? 0);
+              $hidden = ($activeCategoryId > 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
+          ?>
+            <div class="dazu-course-list-item <?php echo $hidden; ?>" data-category-id="<?php echo $catId; ?>">
+              <?php include __DIR__ . '/../components/public/dazu_course_card.php'; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
   </div>
 </div>
 <?php

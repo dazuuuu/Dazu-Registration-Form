@@ -26,7 +26,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
   <?php echo $content ?? ''; ?>
 </main>
 <?php include __DIR__ . '/../../components/public/dazu_footer.php'; ?>
-<script src="<?php echo asset('js/dazu-course-category-filter.js'); ?>"></script>
+<script src="<?php echo asset('js/dazu-course-category-filter.js?v=20260701'); ?>"></script>
 <?php if (!empty($extra_js)) echo $extra_js; ?>
 </body>
 </html>
