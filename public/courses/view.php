@@ -50,6 +50,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $share_url = course_share_url((int) $course['id']);
 $share_title = 'Apply for ' . $course['title'] . ' at Dazu hub Institute';
 
+[$allCourses, $usingStatic] = dazu_load_courses($courseModel);
+$allCourses = array_values(array_filter($allCourses, static function ($c) use ($usingStatic) {
+    if ($usingStatic) {
+        return true;
+    }
+    return !empty($c['is_active']) && (int) ($c['id'] ?? 0) > 0;
+}));
+$allCourses = array_map('course_catalog_enrich', $allCourses);
+
 ob_start();
 ?>
 <div class="bg-slate-50 min-h-screen py-10 md:py-16">
@@ -71,6 +80,16 @@ ob_start();
     </div>
   </div>
 </div>
+<script>
+(function () {
+  var switcher = document.getElementById('dazu-course-switcher');
+  if (!switcher) return;
+  switcher.addEventListener('change', function () {
+    var url = switcher.value;
+    if (url) window.location.href = url;
+  });
+})();
+</script>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/../templates/public/dazu_layout.php';

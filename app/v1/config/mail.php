@@ -21,6 +21,12 @@ return [
         FILTER_VALIDATE_BOOLEAN
     ),
 
+    /** Contact / enquiry form notifications — enabled by default */
+    'enquiry_mail_enabled' => filter_var(
+        dazu_env('MAIL_ENQUIRY_ENABLED', 'true'),
+        FILTER_VALIDATE_BOOLEAN
+    ),
+
     'host'       => dazu_env('MAIL_HOST', 'smtp.gmail.com'),
     'port'       => (int) dazu_env('MAIL_PORT', '587'),
     'encryption' => dazu_env('MAIL_ENCRYPTION', 'tls'),

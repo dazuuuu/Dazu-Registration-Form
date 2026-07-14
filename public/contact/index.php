@@ -124,7 +124,7 @@ ob_start();
             <div class="p-8 border border-green-200 bg-green-50 rounded-2xl text-center space-y-3">
               <svg class="dazu-icon h-12 w-12 text-green-600 mx-auto" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               <h4 class="text-lg font-bold text-slate-900">Message Delivered Successfully!</h4>
-              <p class="text-xs text-slate-600">Thank you for contacting Dazu Hub Institute. We will call your phone number shortly.</p>
+              <p class="text-xs text-slate-600">Thank you for contacting Dazu Hub Institute. Our team has received your enquiry<?php if (!empty($_POST['email'])): ?> and a confirmation has been sent to your email<?php endif; ?>. You will be contacted soon by our admin team.</p>
             </div>
           <?php else: ?>
             <?php if ($form_error): ?>

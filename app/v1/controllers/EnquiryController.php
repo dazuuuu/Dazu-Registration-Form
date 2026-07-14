@@ -1,10 +1,13 @@
 <?php
 require_once __DIR__ . '/../models/EnquiryModel.php';
+require_once __DIR__ . '/../services/EnquiryNotifier.php';
 
 class EnquiryController {
     private $enquiryModel;
+    private $pdo;
     
     public function __construct($pdo) {
+        $this->pdo = $pdo;
         $this->enquiryModel = new EnquiryModel($pdo);
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
@@ -35,7 +38,7 @@ class EnquiryController {
         
         $enquiryData = [
             ':name' => htmlspecialchars(strip_tags($data['name'])),
-            ':email' => filter_var($data['email'], FILTER_SANITIZE_EMAIL),
+            ':email' => $email,
             ':phone' => htmlspecialchars(strip_tags($data['phone'])),
             ':service' => !empty($data['service']) ? htmlspecialchars(strip_tags($data['service'])) : null,
             ':message' => htmlspecialchars(strip_tags($data['message'])),
@@ -45,12 +48,11 @@ class EnquiryController {
         $enquiryId = $this->enquiryModel->create($enquiryData);
         
         if ($enquiryId) {
-            // Optional: Send email notification to admin
-            $this->sendNotificationEmail($enquiryData, $enquiryId);
+            $this->sendNotificationEmail($enquiryData, (int) $enquiryId);
             
             return [
                 'success' => true, 
-                'message' => 'Thank you for your enquiry. We will get back to you within 24 hours.',
+                'message' => 'Thank you for contacting us. You will be contacted soon by our team.',
                 'enquiry_id' => $enquiryId
             ];
         }
@@ -59,12 +61,32 @@ class EnquiryController {
     }
     
     /**
-     * Send email notification to admin
+     * Send email notification to admins and confirmation to submitter.
      */
     private function sendNotificationEmail($data, $enquiryId) {
-        // You can implement email notification here
-        // For now, just log it
-        error_log("New enquiry #{$enquiryId} from {$data['name']} ({$data['email']})");
+        try {
+            $notifier = new EnquiryNotifier($this->pdo);
+            $payload = [
+                'name' => $data[':name'] ?? '',
+                'email' => $data[':email'] ?? '',
+                'phone' => $data[':phone'] ?? '',
+                'service' => $data[':service'] ?? 'General Inquiry',
+                'message' => $data[':message'] ?? '',
+            ];
+
+            $adminResult = $notifier->notifyAdmins($this->pdo, $payload, $enquiryId);
+            if (empty($adminResult['ok']) && empty($adminResult['skipped'])) {
+                error_log('[enquiry] admin notify failed: ' . ($adminResult['message'] ?? 'unknown'));
+            }
+
+            $confirmResult = $notifier->sendConfirmation($payload['email'], $payload['name']);
+            if (empty($confirmResult['ok']) && empty($confirmResult['skipped'])) {
+                error_log('[enquiry] confirmation failed: ' . ($confirmResult['message'] ?? 'unknown'));
+            }
+        } catch (Throwable $e) {
+            error_log('[enquiry] mail error: ' . $e->getMessage());
+        }
+
         return true;
     }
     

@@ -7,6 +7,15 @@ $enquiryController = new EnquiryController($pdo);
 $page_title = 'Enquiries Management';
 $breadcrumbs = [['label' => 'Enquiries', 'active' => true]];
 
+if (isset($_GET['delete'])) {
+    $deleteId = (int) $_GET['delete'];
+    if ($deleteId > 0) {
+        $enquiryController->delete($deleteId);
+        header('Location: ' . url('admin/enquiries/index.php?status=' . urlencode($_GET['status'] ?? 'all')));
+        exit;
+    }
+}
+
 // Get filter parameters
 $status = $_GET['status'] ?? 'all';
 $search = $_GET['search'] ?? null;

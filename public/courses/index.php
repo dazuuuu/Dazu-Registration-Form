@@ -58,7 +58,7 @@ ob_start();
         $countId = 'dazu-courses-count';
         $gridId = 'dazu-courses-grid';
         $totalCourseCount = count($courses);
-        $showAllTab = true;
+        $showAllTab = false;
         include __DIR__ . '/../components/public/dazu_course_category_cards.php';
         ?>
       <?php endif; ?>
@@ -72,7 +72,7 @@ ob_start();
         <p class="text-xs font-extrabold uppercase tracking-widest text-slate-600">
           Showing <span id="dazu-courses-count"><?php echo $visibleCount; ?></span> course<?php echo $visibleCount === 1 ? '' : 's'; ?>
         </p>
-        <div id="dazu-courses-grid" class="dazu-courses-grid grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 items-start">
+        <div id="dazu-courses-grid" class="dazu-courses-grid grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-5 sm:gap-6 items-start">
           <?php foreach ($courses as $course):
               $catId = (int) ($course['_display_category_id'] ?? 0);
               $hidden = ($activeCategoryId > 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
