@@ -20,7 +20,7 @@ if ((int) ($course['id'] ?? 0) > 0) {
     $viewUrl = url('courses/view.php?id=' . (int) $course['id']);
 }
 ?>
-<article class="dazu-course-card group bg-white rounded-[14px] overflow-hidden flex flex-col h-full border border-slate-200/90 shadow-[0_2px_16px_rgba(15,23,42,0.06)] hover:border-[#15A24A] hover:shadow-[0_8px_28px_rgba(21,162,74,0.12)] transition-all duration-300">
+<article class="dazu-course-card group bg-white overflow-hidden flex flex-col h-full border border-slate-200/80">
   <div class="relative h-[180px] sm:h-[190px] w-full overflow-hidden bg-slate-100">
     <img src="<?= htmlspecialchars($img) ?>" alt="<?= $title ?>"
          class="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
