@@ -30,14 +30,13 @@ code, pre, .font-mono {
 .animate-scale-up { animation: dazu-scale-up 0.3s ease-out; }
 .dazu-hero-slide { animation: dazu-slide-up-in 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
 
+/* Course cards — layout stays in component; only shadow + hover glow here */
 .dazu-course-card {
-  border-radius: 22px;
   box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
-  transition: transform 0.3s ease, box-shadow 0.35s ease, border-color 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.35s ease;
 }
 .dazu-course-card:hover {
-  transform: translateY(-4px);
-  border-color: rgba(21, 162, 74, 0.45);
+  transform: translateY(-6px);
   box-shadow:
     0 14px 36px rgba(21, 162, 74, 0.18),
     0 6px 16px rgba(21, 162, 74, 0.1);
