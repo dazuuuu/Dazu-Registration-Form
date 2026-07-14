@@ -11,10 +11,11 @@ foreach ($popularCourses as &$course) {
 }
 unset($course);
 
-$activeCategoryId = !empty($popularCategories) ? (int) $popularCategories[0]['id'] : 0;
-$visibleCount = count(array_filter($popularCourses, static fn($c) => (int)($c['_display_category_id'] ?? 0) === $activeCategoryId));
+$activeCategoryId = 0;
+$visibleCount = count($popularCourses);
 $tabsId = 'dazu-home-course-cat-tabs';
 $countId = 'dazu-home-courses-count';
+$totalCourseCount = count($popularCourses);
 ?>
 <section class="py-24 bg-white" id="popular-courses">
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
@@ -32,6 +33,7 @@ $countId = 'dazu-home-courses-count';
       <?php
       $courseCategories = $popularCategories;
       $gridId = 'dazu-home-courses-grid';
+      $showAllTab = true;
       include __DIR__ . '/dazu_course_category_cards.php';
       ?>
     <?php endif; ?>
@@ -42,10 +44,10 @@ $countId = 'dazu-home-courses-count';
       <p class="text-xs font-bold uppercase tracking-wider text-slate-500 mt-8 mb-6">
         Showing <span id="<?php echo $countId; ?>"><?php echo $visibleCount; ?></span> course<?php echo $visibleCount === 1 ? '' : 's'; ?>
       </p>
-      <div id="dazu-home-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 text-left items-start">
+      <div id="dazu-home-courses-grid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 text-left items-start">
         <?php foreach ($popularCourses as $course):
             $catId = (int) ($course['_display_category_id'] ?? 0);
-            $hidden = ($catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
+            $hidden = ($activeCategoryId > 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
         ?>
           <div class="dazu-course-list-item <?php echo $hidden; ?>" data-category-id="<?php echo $catId; ?>">
             <?php include __DIR__ . '/dazu_course_card.php'; ?>

@@ -5,11 +5,16 @@
  */
 $courseCategories = $courseCategories ?? [];
 $activeCategoryId = (int) ($activeCategoryId ?? 0);
+$showAllTab = (bool) ($showAllTab ?? true);
+$totalCourseCount = (int) ($totalCourseCount ?? 0);
 $tabsId = $tabsId ?? 'dazu-course-cat-tabs';
 $countId = $countId ?? 'dazu-courses-count';
 $gridId = $gridId ?? '';
 if (empty($courseCategories) || $gridId === '') {
     return;
+}
+if ($totalCourseCount <= 0) {
+    $totalCourseCount = array_sum(array_map(static fn($c) => (int) ($c['course_count'] ?? 0), $courseCategories));
 }
 static $dazuCatStylesPrinted = false;
 ?>
@@ -80,9 +85,20 @@ static $dazuCatStylesPrinted = false;
      role="tablist"
      data-grid-id="<?php echo htmlspecialchars($gridId); ?>"
      data-count-id="<?php echo htmlspecialchars($countId); ?>">
+  <?php if ($showAllTab): ?>
+    <button type="button" role="tab" aria-selected="<?php echo $activeCategoryId === 0 ? 'true' : 'false'; ?>"
+            data-category-id="0"
+            class="dazu-course-cat-tab<?php echo $activeCategoryId === 0 ? ' is-active' : ''; ?>">
+      <span class="dazu-course-cat-icon-wrap">
+        <svg class="dazu-course-cat-icon-svg" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+      </span>
+      <span class="dazu-course-cat-name">All Courses</span>
+      <span class="dazu-course-cat-count"><?php echo $totalCourseCount; ?> course<?php echo $totalCourseCount === 1 ? '' : 's'; ?></span>
+    </button>
+  <?php endif; ?>
   <?php foreach ($courseCategories as $i => $cat):
       $catId = (int) $cat['id'];
-      $isActive = $activeCategoryId ? ($catId === $activeCategoryId) : ($i === 0);
+      $isActive = $activeCategoryId > 0 && $catId === $activeCategoryId;
       $iconUrl = dazu_category_icon_url($cat['icon_path'] ?? null);
       $count = (int) ($cat['course_count'] ?? 0);
   ?>

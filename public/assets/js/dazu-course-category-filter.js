@@ -13,7 +13,7 @@
     });
     var visible = 0;
     wraps.forEach(function (wrap) {
-      var show = wrap.getAttribute('data-category-id') === catId;
+      var show = catId === '0' || wrap.getAttribute('data-category-id') === catId;
       wrap.classList.toggle('dazu-filter-hidden', !show);
       if (show) visible++;
     });
@@ -40,7 +40,9 @@
       });
     });
 
-    var activeTab = tabsRoot.querySelector('.dazu-course-cat-tab.is-active') || tabs[0];
+    var activeTab = tabsRoot.querySelector('.dazu-course-cat-tab.is-active')
+      || tabsRoot.querySelector('.dazu-course-cat-tab[data-category-id="0"]')
+      || tabs[0];
     if (activeTab) {
       showCategory(tabsRoot, grid, countEl, activeTab.getAttribute('data-category-id'));
     }

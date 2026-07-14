@@ -41,8 +41,8 @@ unset($course);
 
 $courseCategories = dazu_recount_course_categories($courseCategories, $courses);
 
-$activeCategoryId = !empty($courseCategories) ? (int) $courseCategories[0]['id'] : 0;
-$visibleCount = count(array_filter($courses, static fn($c) => (int)($c['_display_category_id'] ?? 0) === $activeCategoryId));
+$activeCategoryId = 0;
+$visibleCount = count($courses);
 
 ob_start();
 ?>
@@ -59,6 +59,8 @@ ob_start();
       $tabsId = 'dazu-courses-page-cat-tabs';
       $countId = 'dazu-courses-count';
       $gridId = 'dazu-courses-grid';
+      $totalCourseCount = count($courses);
+      $showAllTab = true;
       include __DIR__ . '/../components/public/dazu_course_category_cards.php';
       ?>
     <?php endif; ?>
@@ -72,10 +74,10 @@ ob_start();
       <p class="text-xs font-bold uppercase tracking-wider text-slate-500">
         Showing <span id="dazu-courses-count"><?php echo $visibleCount; ?></span> course<?php echo $visibleCount === 1 ? '' : 's'; ?>
       </p>
-      <div id="dazu-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
+      <div id="dazu-courses-grid" class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6 items-start">
         <?php foreach ($courses as $course):
             $catId = (int) ($course['_display_category_id'] ?? 0);
-            $hidden = ($catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
+            $hidden = ($activeCategoryId > 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
         ?>
           <div class="dazu-course-list-item <?php echo $hidden; ?>" data-category-id="<?php echo $catId; ?>">
             <?php include __DIR__ . '/../components/public/dazu_course_card.php'; ?>
