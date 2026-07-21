@@ -25,6 +25,10 @@ $portalLocked = $portal_locked ?? false;
                    class="nav-link-sm <?php echo $current_dir === 'payments' ? 'active' : ''; ?>">
                     <i class="fas fa-money-bill-wave"></i> <span>Payments</span>
                 </a>
+                <a href="<?php echo url('students/resources/index.php'); ?>"
+                   class="nav-link-sm <?php echo $current_dir === 'resources' ? 'active' : ''; ?>">
+                    <i class="fas fa-folder-open"></i> <span>Resources</span>
+                </a>
             <?php endif; ?>
         </div>
 
@@ -38,6 +42,9 @@ $portalLocked = $portal_locked ?? false;
                     <?php if (!$portalLocked): ?>
                         <li><a class="dropdown-item" href="<?php echo url('students/dashboard/index.php'); ?>">
                             <i class="fas fa-tachometer-alt me-2"></i> Dashboard
+                        </a></li>
+                        <li><a class="dropdown-item" href="<?php echo url('students/resources/index.php'); ?>">
+                            <i class="fas fa-folder-open me-2"></i> Resources
                         </a></li>
                         <li><a class="dropdown-item" href="<?php echo url('students/payments/index.php'); ?>">
                             <i class="fas fa-receipt me-2"></i> Payment History

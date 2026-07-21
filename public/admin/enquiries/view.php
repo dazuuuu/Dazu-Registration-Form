@@ -31,16 +31,17 @@ if (isset($_POST['action'])) {
             $result = $enquiryController->addNote($id, $_POST['note']);
             $_SESSION['flash'][$result['success'] ? 'success' : 'error'] = $result['message'];
             break;
+        case 'delete':
+            if (!csrf_verify($_POST['csrf_token'] ?? null)) {
+                $_SESSION['flash']['error'] = 'Security check failed. Please refresh and try again.';
+                break;
+            }
+            $result = $enquiryController->delete($id);
+            $_SESSION['flash'][$result['success'] ? 'success' : 'error'] = $result['message'];
+            header('Location: index.php');
+            exit();
     }
     header('Location: view.php?id=' . $id);
-    exit();
-}
-
-// Handle delete
-if (isset($_GET['delete']) && $_GET['delete'] == 'true') {
-    $result = $enquiryController->delete($id);
-    $_SESSION['flash'][$result['success'] ? 'success' : 'error'] = $result['message'];
-    header('Location: index.php');
     exit();
 }
 
@@ -274,9 +275,13 @@ ob_start();
                 <a href="tel:<?php echo htmlspecialchars($enquiry['phone']); ?>" class="btn btn-outline-success w-100 mb-2">
                     <i class="fas fa-phone"></i> Call Client
                 </a>
-                <a href="?delete=true" class="btn btn-outline-danger w-100" onclick="return confirm('Delete this enquiry?')">
-                    <i class="fas fa-trash"></i> Delete Enquiry
-                </a>
+                <form method="post" onsubmit="return confirm('Delete this enquiry and all of its replies? This cannot be undone.');">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="delete">
+                    <button type="submit" class="btn btn-outline-danger w-100">
+                        <i class="fas fa-trash"></i> Delete Enquiry
+                    </button>
+                </form>
                 <a href="index.php" class="btn btn-outline-secondary w-100">
                     <i class="fas fa-arrow-left"></i> Back to List
                 </a>

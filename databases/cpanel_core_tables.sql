@@ -16,6 +16,8 @@ CREATE TABLE IF NOT EXISTS courses (
     description TEXT,
     overview TEXT,
     duration_months TINYINT UNSIGNED NOT NULL,
+    weeks_of_study SMALLINT UNSIGNED DEFAULT NULL,
+    hours_of_study SMALLINT UNSIGNED DEFAULT NULL,
     course_fee DECIMAL(10,2) NOT NULL,
     last_sequence INT UNSIGNED NOT NULL DEFAULT 0,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,

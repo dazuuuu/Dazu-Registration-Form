@@ -4,7 +4,11 @@
 
 if (!isset($course)) return;
 
-$coverImg = !empty($course['cover_image']) ? settings_asset_url($course['cover_image']) : null;
+if (!function_exists('dazu_course_image_url')) {
+    require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
+}
+
+$coverImg = dazu_course_image_url($course);
 $fee = (float) $course['course_fee'];
 $mo  = max(1, (int) $course['duration_months']);
 $icons = ['PY'=>'🐍','PHP'=>'🐘','ND'=>'⬡','FE'=>'⚡','FS'=>'🚀','AI'=>'🤖'];
@@ -12,11 +16,7 @@ $icon = $icons[strtoupper($course['abbreviation'] ?? '')] ?? '📚';
 ?>
 <div class="cds-card dh-reveal">
     <div class="cds-cover">
-        <?php if ($coverImg): ?>
-            <img src="<?php echo htmlspecialchars($coverImg); ?>" alt="<?php echo htmlspecialchars($course['title']); ?>">
-        <?php else: ?>
-            <div class="cds-cover-ph"><?php echo $icon; ?></div>
-        <?php endif; ?>
+        <img src="<?php echo htmlspecialchars($coverImg); ?>" alt="<?php echo htmlspecialchars($course['title']); ?>" referrerpolicy="no-referrer">
     </div>
     <div class="cds-body">
         <div class="cds-badges">

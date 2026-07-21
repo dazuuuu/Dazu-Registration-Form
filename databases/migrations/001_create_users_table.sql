@@ -1,7 +1,7 @@
--- Active: 1780050571987@@127.0.0.1@3306@realestate_db
+-- Active: 1780050571987@@127.0.0.1@3306@registration_db
 -- databases/migrations/001_create_users_table.sql
-CREATE DATABASE IF NOT EXISTS realestate_db;
-USE realestate_db;
+CREATE DATABASE IF NOT EXISTS registration_db;
+USE registration_db;
 
 -- Create roles table
 CREATE TABLE IF NOT EXISTS roles (

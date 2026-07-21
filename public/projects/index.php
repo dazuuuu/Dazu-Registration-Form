@@ -1,188 +1,190 @@
 <?php
-// public/projects/index.php — Student projects (public layout)
-$page_title = 'Student Projects — Dazu Hub Tech Skills Institute';
-$page_description = 'Browse real applications and portfolios built by Dazu Hub students during their training programs.';
+$page_title = 'Student Capstone Projects — Dazu hub Institute';
+$page_description = 'Browse graduate projects built at Dazu hub Institute — web apps, AI, mobile UX and automation.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
-require_once __DIR__ . '/../../app/v1/config/db_connect.php';
+require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
 require_once __DIR__ . '/../../app/v1/controllers/ProjectController.php';
 
-$controller      = new ProjectController($pdo);
-$category_filter = $_GET['category'] ?? null;
-$search          = trim($_GET['search'] ?? '');
+$controller = new ProjectController($pdo);
+$categoryFilterId = (int) ($_GET['category'] ?? 0);
 
-$allProjects = $controller->getProjects('published');
-$categories  = $controller->getCategories();
+$dbCategories = [];
+$dbProjects = [];
+try {
+    $dbCategories = $controller->getCategories();
+    $dbProjects = $controller->getProjects('published');
+} catch (Throwable $e) {
+    $dbCategories = [];
+    $dbProjects = [];
+}
 
-$projects = $allProjects;
-if ($category_filter) {
-    $projects = array_filter($allProjects, function ($p) use ($category_filter, $categories) {
-        foreach ($categories as $cat) {
-            if ($cat['id'] == $p['category_id'] && $cat['category_slug'] == $category_filter) {
-                return true;
-            }
+$projects = [];
+if (!empty($dbProjects)) {
+    foreach ($dbProjects as $p) {
+        $tags = [];
+        try {
+            $tags = array_column($controller->getProjectTags($p['id']) ?? [], 'tag_name');
+        } catch (Throwable $e) {
+            $tags = [];
         }
-        return false;
-    });
+        $cover = $p['cover_image'] ?? '';
+        if ($cover && !preg_match('#^https?://#i', $cover)) {
+            $cover = (str_starts_with($cover, '/')) ? $cover : url(ltrim($cover, '/'));
+        }
+        $projects[] = [
+            'id' => (int) $p['id'],
+            'category_id' => (int) ($p['category_id'] ?? 0),
+            'title' => $p['major_title'] ?: $p['small_title'],
+            'category' => $p['category_name'] ?? 'Capstone',
+            'cohort' => strtoupper($p['small_title'] ?? 'Capstone'),
+            'description' => $p['description'] ?? '',
+            'tech' => $tags ?: ['Capstone Project'],
+            'developer' => $p['author'] ?? 'Dazu Hub Graduate',
+            'details' => $p['description'] ?? '',
+            'cover_image' => $cover,
+            'readmore' => url('projects/readmore.php?id=' . (int) $p['id']),
+        ];
+    }
 }
-if ($search) {
-    $projects = array_filter($projects, function ($p) use ($search) {
-        return stripos($p['small_title'], $search) !== false
-            || stripos($p['major_title'], $search) !== false
-            || stripos($p['description'], $search) !== false;
-    });
-}
-$projects = array_values($projects);
 
-$activeCat = null;
-if ($category_filter) {
-    foreach ($categories as $c) {
-        if ($c['category_slug'] === $category_filter) {
-            $activeCat = $c;
+$usingStatic = empty($projects);
+if ($usingStatic) {
+    foreach ([
+        ['id' => 0, 'category_id' => 1, 'title' => 'Thika Soko Hub', 'category' => 'Web Apps', 'cohort' => 'Software Dev - Q1 2026', 'description' => 'A fast local e-commerce platform for agricultural traders.', 'tech' => ['React.js', 'Node.js', 'PostgreSQL'], 'developer' => 'Eunice Wangari & Team', 'details' => 'Full-stack with M-Pesa integration.', 'cover_image' => ''],
+        ['id' => 0, 'category_id' => 2, 'title' => 'MedicAI Predictor', 'category' => 'AI & Data', 'cohort' => 'AI Class - Feb 2026', 'description' => 'Diagnostic-assisting AI model for basic patient symptoms.', 'tech' => ['Python', 'Scikit-Learn'], 'developer' => 'Dennis Kipruto', 'details' => 'Streamlit app with Gemini API.', 'cover_image' => ''],
+    ] as $p) {
+        $p['readmore'] = null;
+        $projects[] = $p;
+    }
+    $dbCategories = [
+        ['id' => 1, 'category_name' => 'Web Apps', 'project_count' => 1],
+        ['id' => 2, 'category_name' => 'AI & Data', 'project_count' => 1],
+    ];
+}
+
+$allProjects = $projects;
+$activeCategoryId = $categoryFilterId;
+
+if ($categoryFilterId > 0) {
+    $projects = array_values(array_filter($allProjects, static fn($p) => (int)($p['category_id'] ?? 0) === $categoryFilterId));
+} elseif (!empty($dbCategories)) {
+    foreach ($dbCategories as $cat) {
+        if ((int)($cat['project_count'] ?? 0) > 0) {
+            $activeCategoryId = (int) $cat['id'];
             break;
         }
     }
+    if ($activeCategoryId === 0) {
+        $activeCategoryId = (int) ($dbCategories[0]['id'] ?? 0);
+    }
+    $projects = array_values(array_filter($allProjects, static fn($p) => (int)($p['category_id'] ?? 0) === $activeCategoryId));
+} else {
+    $projects = $allProjects;
 }
 
 ob_start();
 ?>
-
-<?php
-$banner_eyebrow = 'Student work';
-$banner_title   = 'Projects';
-$banner_lead    = 'Real applications and portfolios created by our students during training.';
-include __DIR__ . '/../components/public/page_banner.php';
-?>
-
-<section class="dh-listing-section">
-    <div class="dh-container">
-        <div class="dh-listing-layout">
-
-            <aside class="dh-sidebar" aria-label="Filter projects">
-                <div class="dh-sidebar-block">
-                    <p class="dh-sidebar-title"><i class="fas fa-magnifying-glass"></i> Search</p>
-                    <form method="GET" class="dh-search-form" role="search">
-                        <?php if ($category_filter): ?>
-                            <input type="hidden" name="category" value="<?php echo htmlspecialchars($category_filter); ?>">
-                        <?php endif; ?>
-                        <input type="search" name="search" placeholder="Search projects…"
-                               value="<?php echo htmlspecialchars($search); ?>" aria-label="Search projects">
-                        <button type="submit" aria-label="Search"><i class="fas fa-magnifying-glass"></i></button>
-                    </form>
-                    <?php if ($search): ?>
-                        <a href="<?php echo url('projects/' . ($category_filter ? '?category=' . urlencode($category_filter) : '')); ?>" class="dh-clear-link">
-                            <i class="fas fa-xmark"></i> Clear search
-                        </a>
-                    <?php endif; ?>
-                </div>
-
-                <div class="dh-sidebar-block">
-                    <p class="dh-sidebar-title"><i class="fas fa-layer-group"></i> Categories</p>
-                    <ul class="dh-cat-list">
-                        <li>
-                            <a href="<?php echo url('projects/' . ($search ? '?search=' . urlencode($search) : '')); ?>"
-                               class="dh-cat-link <?php echo !$category_filter ? 'is-active' : ''; ?>">
-                                <span>All projects</span>
-                                <span class="dh-cat-count"><?php echo count($allProjects); ?></span>
-                            </a>
-                        </li>
-                        <?php foreach ($categories as $cat):
-                            $catCount = count(array_filter($allProjects, fn($p) => (int)$p['category_id'] === (int)$cat['id']));
-                            if ($catCount === 0) continue; ?>
-                        <li>
-                            <a href="?category=<?php echo urlencode($cat['category_slug']); ?><?php echo $search ? '&search=' . urlencode($search) : ''; ?>"
-                               class="dh-cat-link <?php echo $category_filter === $cat['category_slug'] ? 'is-active' : ''; ?>">
-                                <span><?php echo htmlspecialchars($cat['category_name']); ?></span>
-                                <span class="dh-cat-count"><?php echo $catCount; ?></span>
-                            </a>
-                        </li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            </aside>
-
-            <main>
-                <div class="dh-listing-head dh-reveal">
-                    <div>
-                        <h2>
-                            <?php
-                            if ($activeCat) {
-                                echo htmlspecialchars($activeCat['category_name']);
-                            } elseif ($search) {
-                                echo 'Search results';
-                            } else {
-                                echo 'All projects';
-                            }
-                            ?>
-                        </h2>
-                        <p class="dh-listing-count"><?php echo count($projects); ?> project<?php echo count($projects) === 1 ? '' : 's'; ?> found</p>
-                    </div>
-                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <?php if ($activeCat): ?>
-                            <a href="<?php echo url('projects/' . ($search ? '?search=' . urlencode($search) : '')); ?>" class="dh-filter-pill">
-                                <?php echo htmlspecialchars($activeCat['category_name']); ?> <i class="fas fa-xmark"></i>
-                            </a>
-                        <?php endif; ?>
-                        <?php if ($search): ?>
-                            <a href="<?php echo url('projects/' . ($category_filter ? '?category=' . urlencode($category_filter) : '')); ?>" class="dh-filter-pill">
-                                "<?php echo htmlspecialchars(mb_strimwidth($search, 0, 20, '…')); ?>" <i class="fas fa-xmark"></i>
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-
-                <div class="dh-card-grid">
-                    <?php if (empty($projects)): ?>
-                        <div class="dh-empty-state dh-reveal">
-                            <i class="far fa-folder-open"></i>
-                            <h3>No projects found</h3>
-                            <p>Try a different category or clear your search.</p>
-                            <a href="<?php echo url('projects/'); ?>" class="dh-btn-apply" style="display:inline-flex;">View all</a>
-                        </div>
-                    <?php else: ?>
-                        <?php foreach ($projects as $i => $project): ?>
-                        <article class="dh-media-card dh-reveal dh-delay-<?php echo ($i % 4) + 1; ?>">
-                            <a href="<?php echo url('projects/readmore.php?id=' . (int)$project['id']); ?>" style="text-decoration:none;color:inherit;display:flex;flex-direction:column;flex:1;">
-                                <div class="dh-media-card-img">
-                                    <?php if (!empty($project['cover_image'])): ?>
-                                        <img src="<?php echo htmlspecialchars($project['cover_image']); ?>"
-                                             alt="<?php echo htmlspecialchars($project['small_title']); ?>"
-                                             loading="<?php echo $i < 4 ? 'eager' : 'lazy'; ?>">
-                                    <?php else: ?>
-                                        <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#ecfdf3,#d1fae5);color:#00A859;font-size:2.5rem;">
-                                            <i class="far fa-image"></i>
-                                        </div>
-                                    <?php endif; ?>
-                                    <?php if (!empty($project['category_name'])): ?>
-                                        <span class="dh-media-card-badge"><?php echo htmlspecialchars($project['category_name']); ?></span>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="dh-media-card-body">
-                                    <?php if (!empty($project['major_title'])): ?>
-                                        <div class="dh-media-card-meta"><?php echo htmlspecialchars($project['major_title']); ?></div>
-                                    <?php endif; ?>
-                                    <h3 class="dh-media-card-title"><?php echo htmlspecialchars($project['small_title']); ?></h3>
-                                    <p class="dh-media-card-excerpt">
-                                        <?php echo htmlspecialchars(mb_strimwidth(strip_tags($project['description'] ?? ''), 0, 120, '…')); ?>
-                                    </p>
-                                    <div class="dh-media-card-foot">
-                                        <span class="dh-media-card-meta" style="margin:0;">
-                                            <span><i class="far fa-eye"></i> <?php echo number_format($project['view_count'] ?? 0); ?></span>
-                                            <span><i class="far fa-calendar"></i> <?php echo date('M Y', strtotime($project['created_at'])); ?></span>
-                                        </span>
-                                        <span class="dh-media-card-link">View <i class="fas fa-arrow-right"></i></span>
-                                    </div>
-                                </div>
-                            </a>
-                        </article>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
-            </main>
-        </div>
+<div class="bg-white min-h-screen py-16 text-slate-900">
+  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 space-y-10">
+    <div class="max-w-2xl">
+      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-green-50 border border-green-100 rounded-full">Student Achievements</span>
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mt-4">Student Capstone Projects</h1>
+      <p class="text-slate-600 font-medium leading-relaxed mt-3">See products designed, coded, and deployed by Dazu Hub graduates. Categories are managed in Admin → Projects.</p>
     </div>
-</section>
 
+    <?php if (!empty($dbCategories)): ?>
+      <div class="flex gap-4 overflow-x-auto pb-2 snap-x" id="dazu-project-cat-tabs">
+        <?php foreach ($dbCategories as $i => $cat):
+            $catId = (int) $cat['id'];
+            $isActive = (int)$activeCategoryId === $catId;
+            $count = (int) ($cat['project_count'] ?? 0);
+            $href = url('projects/index.php?category=' . $catId);
+        ?>
+          <a href="<?php echo htmlspecialchars($href); ?>"
+             class="flex-shrink-0 snap-start min-w-[200px] sm:min-w-[220px] rounded-none border p-4 text-left transition-all <?php echo $isActive ? 'bg-[#15A24A] border-[#15A24A] text-white shadow-md' : 'bg-white border-slate-200 text-slate-900 hover:border-[#15A24A]/50'; ?>">
+            <p class="text-sm font-extrabold leading-tight"><?php echo htmlspecialchars($cat['category_name']); ?></p>
+            <p class="text-[11px] font-semibold mt-1 opacity-80"><?php echo $count; ?> Project<?php echo $count === 1 ? '' : 's'; ?></p>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+
+    <?php if (empty($projects)): ?>
+      <div class="text-center py-20 border border-dashed border-slate-200 rounded-2xl bg-slate-50">
+        <p class="text-slate-600 font-semibold">No projects in this category yet.</p>
+        <p class="text-slate-500 text-sm mt-1">Publish projects from Admin → Projects.</p>
+      </div>
+    <?php else: ?>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <?php foreach ($projects as $project): ?>
+          <article class="bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col hover:border-[#15A24A] hover:shadow-md transition-all duration-300">
+            <?php if (!empty($project['cover_image'])): ?>
+              <img src="<?php echo htmlspecialchars($project['cover_image']); ?>" alt="<?php echo htmlspecialchars($project['title']); ?>" class="w-full h-44 object-cover">
+            <?php else: ?>
+              <div class="h-44 bg-gradient-to-br from-[#15A24A] to-slate-800 flex items-center justify-center text-white text-[10px] font-extrabold uppercase tracking-widest px-4 text-center"><?php echo htmlspecialchars($project['category']); ?></div>
+            <?php endif; ?>
+            <div class="p-6 flex flex-col flex-1">
+              <div class="flex items-center justify-between mb-4">
+                <span class="text-[10px] font-bold text-[#15A24A] bg-green-50 border border-green-100 rounded-full px-2.5 py-1 uppercase tracking-widest"><?php echo htmlspecialchars(strtoupper($project['category'])); ?></span>
+                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest"><?php echo htmlspecialchars($project['cohort']); ?></span>
+              </div>
+              <h3 class="text-lg font-extrabold text-slate-900 mb-2 uppercase tracking-tight leading-snug"><?php echo htmlspecialchars($project['title']); ?></h3>
+              <p class="text-slate-600 text-xs leading-relaxed font-semibold line-clamp-3 mb-4 flex-1"><?php echo htmlspecialchars($project['description']); ?></p>
+              <div class="flex flex-wrap gap-1.5 mb-4">
+                <?php foreach ($project['tech'] as $t): ?>
+                  <span class="text-[10px] font-bold bg-slate-50 border border-slate-200 text-slate-600 px-2 py-0.5 rounded-md"><?php echo htmlspecialchars($t); ?></span>
+                <?php endforeach; ?>
+              </div>
+              <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+                <span class="text-xs text-slate-500 font-semibold">By <?php echo htmlspecialchars($project['developer']); ?></span>
+                <button type="button" class="dazu-project-open text-xs font-extrabold text-[#15A24A] hover:text-[#128a3e] flex items-center gap-1"
+                        data-title="<?php echo htmlspecialchars($project['title'], ENT_QUOTES); ?>"
+                        data-details="<?php echo htmlspecialchars($project['details'], ENT_QUOTES); ?>"
+                        data-url="<?php echo htmlspecialchars($project['readmore'] ?? '', ENT_QUOTES); ?>">
+                  View Sandbox <span>→</span>
+                </button>
+              </div>
+            </div>
+          </article>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
+
+<div id="dazu-project-modal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center z-50 p-4">
+  <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl overflow-hidden shadow-xl">
+    <div class="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
+      <h3 id="dazu-project-modal-title" class="text-lg font-bold text-slate-900 uppercase"></h3>
+      <button type="button" id="dazu-project-modal-close" class="p-2 hover:bg-slate-200 rounded-lg text-slate-500" aria-label="Close">✕</button>
+    </div>
+    <div class="p-6 space-y-4">
+      <p id="dazu-project-modal-body" class="text-sm text-slate-600 leading-relaxed font-semibold"></p>
+      <a id="dazu-project-modal-link" href="#" class="hidden inline-block px-5 py-2.5 bg-[#15A24A] text-white text-xs font-bold rounded-md">Full project page →</a>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var modal = document.getElementById('dazu-project-modal');
+  var title = document.getElementById('dazu-project-modal-title');
+  var body = document.getElementById('dazu-project-modal-body');
+  var link = document.getElementById('dazu-project-modal-link');
+  document.querySelectorAll('.dazu-project-open').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      title.textContent = btn.getAttribute('data-title') || '';
+      body.textContent = btn.getAttribute('data-details') || '';
+      var url = btn.getAttribute('data-url');
+      if (url) { link.href = url; link.classList.remove('hidden'); } else { link.classList.add('hidden'); }
+      modal.classList.remove('hidden'); modal.classList.add('flex');
+    });
+  });
+  function close(){ modal.classList.add('hidden'); modal.classList.remove('flex'); }
+  document.getElementById('dazu-project-modal-close').addEventListener('click', close);
+  modal.addEventListener('click', function(e){ if(e.target===modal) close(); });
+})();
+</script>
 <?php
 $content = ob_get_clean();
-require __DIR__ . '/../templates/public/layout.php';
+require __DIR__ . '/../templates/public/dazu_layout.php';

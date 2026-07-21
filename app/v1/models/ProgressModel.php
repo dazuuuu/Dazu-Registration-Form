@@ -9,15 +9,19 @@ class ProgressModel {
         $this->db = $pdo;
     }
 
-    /** Initialize progress rows when a student is approved — unlock first unit. */
-    public function initializeForRegistration(int $registrationId, int $courseId): void {
+    /** Initialize progress rows when a student is approved — unlock through learning month. */
+    public function initializeForRegistration(int $registrationId, int $courseId, int $learningMonth = 1): void {
         $units = $this->db->prepare(
             "SELECT id FROM curriculum_units WHERE course_id = :cid AND is_active = 1 ORDER BY sort_order, id"
         );
         $units->execute([':cid' => $courseId]);
         $unitIds = $units->fetchAll(\PDO::FETCH_COLUMN);
 
-        if (empty($unitIds)) return;
+        if (empty($unitIds)) {
+            return;
+        }
+
+        $unlockThrough = max(1, min(count($unitIds), $learningMonth));
 
         $ins = $this->db->prepare(
             "INSERT IGNORE INTO student_unit_progress (registration_id, unit_id, is_unlocked)
@@ -27,7 +31,33 @@ class ProgressModel {
             $ins->execute([
                 ':rid'      => $registrationId,
                 ':uid'      => $unitId,
-                ':unlocked' => $i === 0 ? 1 : 0,
+                ':unlocked' => ($i < $unlockThrough) ? 1 : 0,
+            ]);
+        }
+    }
+
+    /** Unlock all curriculum units up to the given learning month (1-based, maps to unit sort order). */
+    public function syncUnlockedThroughMonth(int $registrationId, int $courseId, int $learningMonth): void {
+        $units = $this->db->prepare(
+            "SELECT id FROM curriculum_units WHERE course_id = :cid AND is_active = 1 ORDER BY sort_order, id"
+        );
+        $units->execute([':cid' => $courseId]);
+        $unitIds = $units->fetchAll(\PDO::FETCH_COLUMN);
+        if (empty($unitIds)) {
+            return;
+        }
+
+        $unlockThrough = max(1, min(count($unitIds), $learningMonth));
+        $upsert = $this->db->prepare(
+            "INSERT INTO student_unit_progress (registration_id, unit_id, is_unlocked)
+             VALUES (:rid, :uid, :unlocked)
+             ON DUPLICATE KEY UPDATE is_unlocked = VALUES(is_unlocked)"
+        );
+        foreach ($unitIds as $i => $unitId) {
+            $upsert->execute([
+                ':rid'      => $registrationId,
+                ':uid'      => $unitId,
+                ':unlocked' => ($i < $unlockThrough) ? 1 : 0,
             ]);
         }
     }

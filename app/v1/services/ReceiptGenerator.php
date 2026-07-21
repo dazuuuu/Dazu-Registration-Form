@@ -6,6 +6,8 @@ require_once __DIR__ . '/../helpers/currency.php';
 
 class ReceiptGenerator {
 
+  private const LOGO_URL = 'https://i.ibb.co/fzfZFtGc/223025.jpg';
+
     /**
      * @param array $reg   Registration row with course_title
      * @param array $payment Payment row
@@ -18,9 +20,10 @@ class ReceiptGenerator {
         $receiptNo = $payment['receipt_no'] ?? ('RCP-PENDING');
 
         $html = '<div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">'
-            . '<div style="background:#0D9488;color:#fff;padding:20px 24px;text-align:center;">'
-            . '<h1 style="margin:0;font-size:22px;">' . self::e($companyName) . '</h1>'
-            . '<p style="margin:8px 0 0;opacity:0.9;font-size:14px;">Official Payment Receipt</p>'
+            . '<div style="background:#fff;color:#0f172a;padding:20px 24px;text-align:center;border-bottom:3px solid #15A24A;">'
+            . '<img src="' . self::LOGO_URL . '" alt="' . self::e($companyName) . '" style="width:56px;height:56px;border-radius:8px;object-fit:cover;margin-bottom:8px;">'
+            . '<h1 style="margin:0;font-size:20px;color:#15A24A;">' . self::e($companyName) . '</h1>'
+            . '<p style="margin:8px 0 0;opacity:0.85;font-size:14px;color:#475569;">Official Payment Receipt</p>'
             . '</div>'
             . '<div style="padding:24px;">'
             . '<table style="width:100%;font-size:14px;border-collapse:collapse;">'

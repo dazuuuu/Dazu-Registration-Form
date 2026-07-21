@@ -47,6 +47,7 @@ class BlogController {
             ':category_id' => $category_id,
             ':author_id' => $_SESSION['user_id'],
             ':status' => $data['status'] ?? 'draft',
+            ':is_featured' => !empty($data['is_featured']) ? 1 : 0,
             ':meta_title' => $data['meta_title'] ?? null,
             ':meta_description' => $data['meta_description'] ?? null,
             ':meta_keywords' => $data['meta_keywords'] ?? null,
@@ -152,7 +153,7 @@ class BlogController {
         
         $result = $this->blogModel->update($id, $updateData);
         
-        if ($result && isset($data['tags'])) {
+        if (isset($data['tags'])) {
             // Update tags
             $this->blogModel->removeTags($id);
             
@@ -184,7 +185,7 @@ class BlogController {
             }
         }
         
-        if ($result) {
+        if ($result || isset($data['tags'])) {
             return ['success' => true, 'message' => 'Blog post updated successfully'];
         }
         

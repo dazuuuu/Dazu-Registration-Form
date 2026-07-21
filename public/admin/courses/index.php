@@ -39,9 +39,14 @@ ob_start();
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">All Courses</h5>
-        <a href="<?php echo url('admin/courses/create.php'); ?>" class="btn btn-primary btn-sm">
-            <i class="fas fa-plus me-1"></i> Add Course
-        </a>
+        <div class="d-flex gap-2">
+            <a href="<?php echo url('admin/courses/categories.php'); ?>" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-folder me-1"></i> Categories
+            </a>
+            <a href="<?php echo url('admin/courses/create.php'); ?>" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i> Add Course
+            </a>
+        </div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">

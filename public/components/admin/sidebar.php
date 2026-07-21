@@ -19,12 +19,12 @@ function isStoreActive($current_dir) {
 
 // New System group: registration, students, courses, tutors, payments
 function isSystemActive($current_dir) {
-    return in_array($current_dir, ['registrations', 'students', 'courses', 'tutors', 'payments'], true);
+    return in_array($current_dir, ['registrations', 'students', 'courses', 'tutors', 'payments', 'resources'], true);
 }
 
 // Existing public-site content pages, now grouped under "Website Content"
 function isWebsiteActive($current_dir) {
-    return in_array($current_dir, ['orders', 'enquiries', 'projects', 'services', 'blogs', 'gallery', 'testimonials'], true)
+    return in_array($current_dir, ['orders', 'enquiries', 'projects', 'services', 'blogs', 'gallery', 'testimonials', 'team'], true)
         || isStoreActive($current_dir);
 }
 ?>
@@ -81,6 +81,11 @@ function isWebsiteActive($current_dir) {
                             <i class="fas fa-user-graduate"></i>
                             <span>Students</span>
                         </a>
+                        <a href="<?php echo url('admin/students/onboard.php'); ?>"
+                           class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'onboard.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Onboard Student</span>
+                        </a>
                         <a href="<?php echo url('admin/courses/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'courses' ? 'active' : ''; ?>">
                             <i class="fas fa-book"></i>
@@ -95,6 +100,11 @@ function isWebsiteActive($current_dir) {
                            class="nav-link <?php echo $current_dir == 'payments' ? 'active' : ''; ?>">
                             <i class="fas fa-money-bill-wave"></i>
                             <span>Payments</span>
+                        </a>
+                        <a href="<?php echo url('admin/resources/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'resources' ? 'active' : ''; ?>">
+                            <i class="fas fa-folder-open"></i>
+                            <span>Resources &amp; IDs</span>
                         </a>
                     </div>
                 </div>
@@ -146,6 +156,11 @@ function isWebsiteActive($current_dir) {
                            class="nav-link <?php echo isActive('testimonials', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-star"></i>
                             <span>Testimonials</span>
+                        </a>
+                        <a href="<?php echo url('admin/team/index.php'); ?>"
+                           class="nav-link <?php echo isActive('team', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-users"></i>
+                            <span>Team</span>
                         </a>
 
                         <!-- STORE SUB-SECTION (nested collapse, unchanged from original) -->

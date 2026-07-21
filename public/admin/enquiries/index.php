@@ -191,8 +191,21 @@ document.querySelectorAll('.priority-select').forEach(select => {
 });
 
 function deleteEnquiry(id) {
-    if (confirm('Are you sure you want to delete this enquiry?')) {
-        window.location.href = `?delete=${id}`;
+    if (confirm('Delete this enquiry and all of its replies? This cannot be undone.')) {
+        fetch(url('api/enquiry/delete.php'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id, csrf_token: <?php echo json_encode(csrf_token()); ?> })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert(data.message || 'Failed to delete enquiry.');
+            }
+        })
+        .catch(() => alert('Failed to delete enquiry. Please try again.'));
     }
 }
 </script>

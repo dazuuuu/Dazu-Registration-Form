@@ -5,6 +5,11 @@ class EnquiryModel {
     public function __construct($pdo) {
         $this->db = $pdo;
     }
+
+    /** Exposes the shared connection to application services that need settings. */
+    public function getConnection(): PDO {
+        return $this->db;
+    }
     
     /**
      * Create new enquiry
@@ -168,9 +173,21 @@ class EnquiryModel {
      * Delete enquiry
      */
     public function delete($id) {
-        $sql = "DELETE FROM enquiries WHERE id = :id";
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute([':id' => $id]);
+        try {
+            $this->db->beginTransaction();
+            $this->db->prepare('DELETE FROM enquiry_replies WHERE enquiry_id = :id')
+                ->execute([':id' => $id]);
+            $stmt = $this->db->prepare('DELETE FROM enquiries WHERE id = :id');
+            $stmt->execute([':id' => $id]);
+            $this->db->commit();
+            return $stmt->rowCount() > 0;
+        } catch (Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('[enquiry] Delete failed: ' . $e->getMessage());
+            return false;
+        }
     }
     
     /**

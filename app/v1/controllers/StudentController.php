@@ -8,6 +8,7 @@ use Models\PaymentModel;
 use Models\RegistrationModel;
 
 require_once __DIR__ . '/../services/ReceiptGenerator.php';
+require_once __DIR__ . '/../services/StudentNotifier.php';
 
 class StudentController {
 
@@ -67,7 +68,8 @@ class StudentController {
         }
 
         $payment = $this->paymentModel->getById($result['id']);
-        // Email notifications disabled — admin verifies in dashboard.
+        $notifier = new \StudentNotifier($this->db);
+        $notifier->sendPaymentSubmitted($reg, $payment);
 
         return $result;
     }
@@ -107,6 +109,10 @@ class StudentController {
         $updatedPayment = $this->paymentModel->getById($paymentId);
         $updatedReg = $this->studentModel->getById((int) $payment['registration_id']);
 
+        $notifier = new \StudentNotifier($this->db);
+        $emailPayment = array_merge($updatedPayment, ['payment_id' => $paymentId]);
+        $notifier->sendPaymentApproved($updatedReg, $emailPayment, $receiptHtml);
+
         return ['ok' => true, 'receipt_no' => $receiptNo, 'registration_id' => (int) $payment['registration_id']];
     }
 
@@ -132,6 +138,10 @@ class StudentController {
         }
 
         $reg = $this->studentModel->getById((int) $payment['registration_id']);
+        if ($reg) {
+            $notifier = new \StudentNotifier($this->db);
+            $notifier->sendPaymentRejected($reg, $payment, $reason);
+        }
 
         return ['ok' => true];
     }

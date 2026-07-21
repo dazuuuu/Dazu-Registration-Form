@@ -53,7 +53,14 @@ class Mailer {
     /**
      * @return array ['ok'=>bool, 'message'=>string]
      */
-    public function send(string $toEmail, string $toName, string $subject, string $htmlBody): array {
+    public function send(
+        string $toEmail,
+        string $toName,
+        string $subject,
+        string $htmlBody,
+        ?string $replyToEmail = null,
+        ?string $replyToName = null
+    ): array {
         if (array_key_exists('enabled', $this->cfg) && empty($this->cfg['enabled'])) {
             return ['ok' => true, 'message' => 'skipped', 'skipped' => true];
         }
@@ -82,6 +89,9 @@ class Mailer {
 
             $mail->setFrom($this->cfg['from_email'] ?? 'no-reply@example.com', $this->cfg['from_name'] ?? 'Store');
             $mail->addAddress($toEmail, $toName);
+            if ($replyToEmail !== null && filter_var($replyToEmail, FILTER_VALIDATE_EMAIL)) {
+                $mail->addReplyTo($replyToEmail, $replyToName ?? '');
+            }
 
             // Embed the logo so it shows without a public image URL: reference cid:ismanlogo.
             $logo = $this->cfg['logo_path'] ?? '';

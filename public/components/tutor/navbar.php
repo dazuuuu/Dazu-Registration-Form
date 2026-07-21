@@ -12,6 +12,7 @@ $username = $_SESSION['username'] ?? 'Tutor';
             <a class="nav-link <?php echo $current_dir === 'courses' ? 'active fw-semibold' : ''; ?>" href="<?php echo url('tutor/courses/index.php'); ?>">My Courses</a>
             <a class="nav-link <?php echo $current_dir === 'students' ? 'active fw-semibold' : ''; ?>" href="<?php echo url('tutor/students/index.php'); ?>">Students</a>
             <a class="nav-link <?php echo $current_dir === 'submissions' ? 'active fw-semibold' : ''; ?>" href="<?php echo url('tutor/submissions/index.php'); ?>">Submissions</a>
+            <a class="nav-link <?php echo $current_dir === 'resources' ? 'active fw-semibold' : ''; ?>" href="<?php echo url('tutor/resources/index.php'); ?>">Resources</a>
             <span class="text-muted small ms-2"><?php echo htmlspecialchars($username); ?></span>
             <a class="nav-link text-danger" href="<?php echo url('auth/logout.php'); ?>"><i class="fas fa-sign-out-alt"></i></a>
         </div>

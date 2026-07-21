@@ -160,8 +160,12 @@ ob_start();
                         <td>
                             <?php if ($p['status'] === 'approved' && !empty($p['receipt_no'])): ?>
                                 <a href="<?php echo url('students/payments/receipt.php?id=' . (int)$p['id']); ?>"
-                                   class="btn btn-sm btn-outline-secondary" target="_blank">
+                                   class="btn btn-sm btn-outline-secondary" target="_blank" title="View receipt">
                                     <i class="fas fa-file-invoice"></i> <?php echo htmlspecialchars($p['receipt_no']); ?>
+                                </a>
+                                <a href="<?php echo url('students/payments/receipt.php?id=' . (int)$p['id'] . '&download=1'); ?>"
+                                   class="btn btn-sm btn-outline-success" title="Download receipt">
+                                    <i class="fas fa-download"></i>
                                 </a>
                             <?php else: ?>
                                 —

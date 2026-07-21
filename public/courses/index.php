@@ -1,91 +1,135 @@
 <?php
-// public/courses/index.php — All courses (physical & online)
-$page_title = 'Our Courses — Dazu Hub Tech Skills Institute';
-$page_description = 'Browse web development, cybersecurity, data analytics, AI and more. Study physically in Nairobi or online with flexible payment plans.';
+$page_title = 'Our Technology Courses — Dazu hub Institute';
+$page_description = 'Browse software, cybersecurity, data analytics and AI courses at Dazu hub Institute, Thika Town.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
-require_once __DIR__ . '/../../app/v1/helpers/uploads.php';
-require_once __DIR__ . '/../../app/v1/helpers/course_share.php';
-require_once __DIR__ . '/../../app/v1/helpers/course_catalog.php';
+require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
 require_once __DIR__ . '/../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../app/v1/models/CourseModel.php';
+require_once __DIR__ . '/../../app/v1/models/CourseCategoryModel.php';
+require_once __DIR__ . '/../components/public/dazu_course_filter_helpers.php';
 
 use Models\Connection;
 use Models\CourseModel;
+use Models\CourseCategoryModel;
 
 $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
-[$displayCourses, $usingStaticCourses] = course_catalog_for_display($courseModel);
+$categoryModel = new CourseCategoryModel($pdo);
 
-$extra_css = '<link rel="stylesheet" href="' . asset('css/homepage.css') . '">';
+[$courses, $usingStatic] = dazu_load_courses($courseModel);
+$courses = array_values(array_filter($courses, static function ($c) use ($usingStatic) {
+    if ($usingStatic) {
+        return true;
+    }
+    return !empty($c['is_active']) && (int) ($c['id'] ?? 0) > 0;
+}));
+
+try {
+    $courseCategories = $categoryModel->getAll(true);
+} catch (Throwable $e) {
+    $courseCategories = [];
+}
+
+if (empty($courseCategories)) {
+    $courseCategories = dazu_fallback_course_categories();
+}
+
+foreach ($courses as &$course) {
+    $course['_display_category_id'] = dazu_resolve_course_category_id($course, $courseCategories);
+}
+unset($course);
+
+// Keep the chip on the card consistent with the tab the card is filed under.
+// CourseModel joins category_name off courses.category_id, which is NULL on some
+// rows; dazu_resolve_course_category_id() then files those by abbreviation, so
+// the chip and the tab disagree without this.
+$categoryNamesById = [];
+foreach ($courseCategories as $cat) {
+    $categoryNamesById[(int) $cat['id']] = (string) $cat['name'];
+}
+foreach ($courses as &$course) {
+    $resolvedId = (int) ($course['_display_category_id'] ?? 0);
+    if (isset($categoryNamesById[$resolvedId])) {
+        $course['category_name'] = $categoryNamesById[$resolvedId];
+    }
+    $course['_search_blob'] = dazu_course_search_blob($course);
+}
+unset($course);
+
+$courseCategories = dazu_recount_course_categories($courseCategories, $courses);
+
+$totalCourseCount = count($courses);
+
+// 0 = "All courses", the default. ?category=3 deep-links to that tab.
+// Validated here and not only inside the tabs component, because that component
+// returns early when there is nothing worth rendering — an unclamped id would
+// then hide every card with no tab left to undo it.
+$activeCategoryId = (int) ($_GET['category'] ?? 0);
+$activeCategoryIsValid = $activeCategoryId !== 0 && in_array(
+    $activeCategoryId,
+    array_map(static fn($c) => (int) $c['id'], $courseCategories),
+    true
+);
+if (!$activeCategoryIsValid) {
+    $activeCategoryId = 0;
+}
+
+$visibleCount = $activeCategoryId === 0
+    ? $totalCourseCount
+    : count(array_filter($courses, static fn($c) => (int)($c['_display_category_id'] ?? 0) === $activeCategoryId));
 
 ob_start();
 ?>
-
-<?php
-$banner_eyebrow = 'Programs';
-$banner_title   = 'Our Courses';
-$banner_lead    = 'Hands-on tech training in Nairobi — attend classes on campus or study online from anywhere in Kenya.';
-include __DIR__ . '/../components/public/page_banner.php';
-?>
-
-<section class="dh-study-modes">
-    <div class="dh-container">
-        <div class="dh-study-modes-grid">
-            <div class="dh-study-mode-card dh-reveal">
-                <h3><i class="fas fa-building" aria-hidden="true"></i> Physical classes</h3>
-                <p>Learn on campus with tutors, peers, and lab time. Ideal if you want face-to-face mentorship in Nairobi.</p>
-                <ul>
-                    <li><i class="fas fa-check"></i> In-person sessions at our institute</li>
-                    <li><i class="fas fa-check"></i> Student ID card included</li>
-                    <li><i class="fas fa-check"></i> Registration fee: KSh 1,500</li>
-                    <li><i class="fas fa-check"></i> Hands-on projects with classmates</li>
-                </ul>
-            </div>
-            <div class="dh-study-mode-card dh-reveal dh-delay-1">
-                <h3><i class="fas fa-laptop" aria-hidden="true"></i> Online classes</h3>
-                <p>Same curriculum and tutor support — join live sessions and submit work through the student portal.</p>
-                <ul>
-                    <li><i class="fas fa-check"></i> Live online sessions</li>
-                    <li><i class="fas fa-check"></i> Student portal for coursework &amp; fees</li>
-                    <li><i class="fas fa-check"></i> Registration fee: KSh 1,000</li>
-                    <li><i class="fas fa-check"></i> Flexible monthly payment plans</li>
-                </ul>
-            </div>
-        </div>
+<div class="bg-white min-h-screen py-16">
+  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 space-y-10">
+    <div class="max-w-2xl">
+      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-green-50 border border-green-100 rounded-full">Practical Certifications</span>
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mt-4">Our Technology Courses</h1>
+      <p class="text-slate-600 font-medium leading-relaxed mt-3">Every track we run is listed below. Search or filter by category, then open a course to view details and apply online.</p>
     </div>
-</section>
 
-<section class="dh-courses-page-grid">
-    <div class="dh-container">
-        <div class="hp-section-head dh-reveal" style="margin-bottom:36px;">
-            <h2>All course tracks</h2>
-        </div>
+    <?php if (!empty($courseCategories)): ?>
+      <?php
+      $tabsId = 'dazu-courses-page-cat-tabs';
+      $countId = 'dazu-courses-count';
+      $gridId = 'dazu-courses-grid';
+      $emptyId = 'dazu-courses-empty';
+      $searchId = 'dazu-courses-search';
+      $showSearch = true;
+      $urlSync = true;
+      include __DIR__ . '/../components/public/dazu_course_category_cards.php';
+      ?>
+    <?php endif; ?>
 
-        <?php if (empty($displayCourses)): ?>
-            <div class="dh-empty-state dh-reveal">
-                <i class="fas fa-book-open"></i>
-                <h3>No courses available yet</h3>
-                <p>Check back soon or contact us for the next intake.</p>
-                <a href="<?php echo url('contact/index.php'); ?>" class="dh-btn-apply" style="display:inline-flex;">Contact us</a>
-            </div>
-        <?php else: ?>
-            <?php include __DIR__ . '/../components/public/course_cards_grid.php'; ?>
-        <?php endif; ?>
-    </div>
-</section>
+    <?php if (empty($courses)): ?>
+      <div class="text-center py-24 border border-dashed border-slate-200 rounded-2xl bg-slate-50">
+        <h3 class="text-lg font-bold text-slate-900">No courses available</h3>
+        <p class="text-slate-500 text-sm mt-1">Add courses in the admin panel or check back soon.</p>
+      </div>
+    <?php else: ?>
+      <div id="dazu-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
+        <?php foreach ($courses as $course):
+            $catId = (int) ($course['_display_category_id'] ?? 0);
+            // All (0) hides nothing, so the page is correct before JS runs.
+            $hidden = ($activeCategoryId !== 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
+        ?>
+          <div class="dazu-course-list-item <?php echo $hidden; ?>"
+               data-category-id="<?php echo $catId; ?>"
+               data-search="<?php echo htmlspecialchars($course['_search_blob'] ?? '', ENT_QUOTES); ?>">
+            <?php include __DIR__ . '/../components/public/dazu_course_card.php'; ?>
+          </div>
+        <?php endforeach; unset($course); ?>
+      </div>
 
-<section class="dh-page-cta">
-    <div class="dh-container dh-reveal">
-        <h2>Ready to enroll?</h2>
-        <p>Choose your course, pick physical or online, and apply in minutes.</p>
-        <div class="dh-page-cta-actions">
-            <a href="<?php echo url('/#register'); ?>" class="dh-btn-apply">Apply now</a>
-            <a href="<?php echo url('contact/index.php'); ?>" class="dh-btn-login">Ask a question</a>
-        </div>
-    </div>
-</section>
-
+      <div id="dazu-courses-empty" class="dazu-course-empty" hidden>
+        <h3>No matching tracks</h3>
+        <p data-empty-message>Nothing here yet.</p>
+        <button type="button" data-empty-reset>Clear filters</button>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
 <?php
 $content = ob_get_clean();
-require __DIR__ . '/../templates/public/layout.php';
+require __DIR__ . '/../templates/public/dazu_layout.php';

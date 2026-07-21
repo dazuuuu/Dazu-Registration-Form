@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../models/EnquiryModel.php';
+require_once __DIR__ . '/../services/EnquiryNotifier.php';
 
 class EnquiryController {
     private $enquiryModel;
@@ -16,14 +17,15 @@ class EnquiryController {
      */
     public function submit($data) {
         // Validate required fields
-        if (empty($data['name']) || empty($data['email']) || empty($data['phone']) || empty($data['message'])) {
+        if (empty($data['name']) || empty($data['phone']) || empty($data['message'])) {
             return ['success' => false, 'message' => 'Please fill in all required fields'];
         }
         
-        // Validate email
-        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+        $submittedEmail = trim($data['email'] ?? '');
+        if ($submittedEmail !== '' && !filter_var($submittedEmail, FILTER_VALIDATE_EMAIL)) {
             return ['success' => false, 'message' => 'Please enter a valid email address'];
         }
+        $email = $submittedEmail !== '' ? $submittedEmail : 'no-email@dazuaihub.local';
         
         // Validate phone (basic)
         if (!preg_match('/^[0-9+\-\s()]+$/', $data['phone'])) {
@@ -31,18 +33,22 @@ class EnquiryController {
         }
         
         $enquiryData = [
-            ':name' => htmlspecialchars(strip_tags($data['name'])),
-            ':email' => filter_var($data['email'], FILTER_SANITIZE_EMAIL),
-            ':phone' => htmlspecialchars(strip_tags($data['phone'])),
-            ':service' => !empty($data['service']) ? htmlspecialchars(strip_tags($data['service'])) : null,
-            ':message' => htmlspecialchars(strip_tags($data['message'])),
-            ':priority' => 'medium'
+            'name' => trim(strip_tags($data['name'])),
+            'email' => $email,
+            'phone' => trim(strip_tags($data['phone'])),
+            'service' => !empty($data['service']) ? trim(strip_tags($data['service'])) : null,
+            'message' => trim(strip_tags($data['message'])),
+            'priority' => 'medium',
+            // This is not persisted; it only prevents a placeholder address
+            // from becoming the email Reply-To header.
+            '_reply_to_email' => $submittedEmail,
         ];
         
         $enquiryId = $this->enquiryModel->create($enquiryData);
         
         if ($enquiryId) {
-            // Optional: Send email notification to admin
+            // The database record is created first so every valid enquiry is
+            // visible to admins even when the mail server is temporarily unavailable.
             $this->sendNotificationEmail($enquiryData, $enquiryId);
             
             return [
@@ -59,10 +65,17 @@ class EnquiryController {
      * Send email notification to admin
      */
     private function sendNotificationEmail($data, $enquiryId) {
-        // You can implement email notification here
-        // For now, just log it
-        error_log("New enquiry #{$enquiryId} from {$data['name']} ({$data['email']})");
-        return true;
+        try {
+            $notifier = new EnquiryNotifier($this->enquiryModel->getConnection());
+            $result = $notifier->notifyAdmin($data, (int) $enquiryId);
+            if (empty($result['ok'])) {
+                error_log("[enquiry] Email notification failed for #{$enquiryId}: " . ($result['message'] ?? 'Unknown error'));
+            }
+            return !empty($result['ok']);
+        } catch (Throwable $e) {
+            error_log("[enquiry] Email notification error for #{$enquiryId}: " . $e->getMessage());
+            return false;
+        }
     }
     
     /**

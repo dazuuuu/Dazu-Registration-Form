@@ -73,6 +73,7 @@ unset($_SESSION['flash']);
     .ic-logo{ background:linear-gradient(135deg,var(--brand-royal),var(--brand-sky)); }
     .ic-hero{ background:linear-gradient(135deg,var(--brand-sky),#36c0ff); }
     .ic-head{ background:linear-gradient(135deg,var(--brand-gold),#f6c074); }
+    .ic-contact{ background:linear-gradient(135deg,#15A24A,#22c55e); }
     .card-top h3{ margin:0; font-size:1.05rem; font-weight:700; }
     .card-top span{ display:block; font-size:.8rem; color:#8a93a3; font-weight:500; }
     .logo-preview{
@@ -174,6 +175,15 @@ unset($_SESSION['flash']);
         <?php endforeach; ?>
       </ul>
       <a class="btn" href="edit.php?section=headers"><i class="fa-solid fa-pen"></i> Edit banners</a>
+    </div>
+
+    <div class="card">
+      <div class="card-top">
+        <div class="card-icon ic-contact"><i class="fa-solid fa-map-location-dot"></i></div>
+        <div><h3>Contact &amp; Map</h3><span>Phone, email, campus map embed</span></div>
+      </div>
+      <p style="font-size:.85rem;color:#5b6472;margin:0;">Configure the contact page directory and Google Maps iframe shown to visitors.</p>
+      <a class="btn" href="edit.php?section=contact"><i class="fa-solid fa-pen"></i> Edit contact</a>
     </div>
 
   </div>
