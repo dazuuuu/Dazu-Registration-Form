@@ -192,64 +192,195 @@ class BlogController {
         return ['success' => false, 'message' => 'Failed to update blog post'];
     }
     
+    /** Uploads one file into uploads/blog/sections/ and returns its site-relative URL, or throws on failure. */
+    private function uploadSectionFile(array $file): ?string {
+        if ($file['error'] !== 0) {
+            $messages = [
+                UPLOAD_ERR_INI_SIZE   => 'Image exceeds the server upload size limit.',
+                UPLOAD_ERR_FORM_SIZE  => 'Image exceeds the allowed upload size.',
+                UPLOAD_ERR_PARTIAL    => 'Image was only partially uploaded — please try again.',
+                UPLOAD_ERR_NO_FILE    => null, // no file chosen; not an error
+            ];
+            if (array_key_exists($file['error'], $messages)) {
+                if ($messages[$file['error']] === null) return null;
+                throw new RuntimeException($messages[$file['error']]);
+            }
+            throw new RuntimeException('Image upload failed (error code ' . $file['error'] . ').');
+        }
+        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . url('uploads/blog/sections/');
+        if (!is_dir($upload_dir)) {
+            mkdir($upload_dir, 0777, true);
+        }
+
+        $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+        $filename = time() . '_' . uniqid() . '.' . $ext;
+        $target_file = $upload_dir . $filename;
+
+        if (move_uploaded_file($file['tmp_name'], $target_file)) {
+            return url('uploads/blog/sections/') . $filename;
+        }
+        throw new RuntimeException('Could not save the uploaded image to the server.');
+    }
+
+    private function extractYoutubeId(string $url): ?string {
+        preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/', $url, $matches);
+        return $matches[1] ?? null;
+    }
+
+    /**
+     * Builds the persisted field set for a block, handling per-type uploads/parsing.
+     * $existing (when updating) supplies fallbacks so omitted fields (e.g. no new
+     * image chosen) keep their previous value instead of being wiped to null.
+     */
+    private function buildSectionFields(array $data, ?array $existing = null): array {
+        $type = $data['section_type'] ?? ($existing['section_type'] ?? 'paragraph');
+
+        $fields = [
+            'section_type'   => $type,
+            'title'          => $existing['title'] ?? null,
+            'content'        => $existing['content'] ?? null,
+            'media_url'      => $existing['media_url'] ?? null,
+            'gallery_images' => $existing['gallery_images'] ?? null,
+            'media_type'     => $existing['media_type'] ?? 'image',
+            'video_id'       => $existing['video_id'] ?? null,
+            'link_label'     => $existing['link_label'] ?? null,
+            'cta_type'       => $existing['cta_type'] ?? null,
+            'cta_value'      => $existing['cta_value'] ?? null,
+            'cta_label'      => $existing['cta_label'] ?? null,
+            'faq_items'      => $existing['faq_items'] ?? null,
+        ];
+
+        switch ($type) {
+            case 'heading':
+                $fields['title'] = trim($data['title'] ?? '');
+                break;
+
+            case 'paragraph':
+            case 'quote':
+                $fields['content'] = $data['content'] ?? '';
+                $fields['title'] = $data['title'] ?? null; // quote attribution
+                break;
+
+            case 'image':
+                if (isset($data['media_file']) && is_array($data['media_file'])) {
+                    $uploaded = $this->uploadSectionFile($data['media_file']);
+                    if ($uploaded) {
+                        $fields['media_url'] = $uploaded;
+                    }
+                }
+                $fields['media_type'] = 'image';
+                $fields['title'] = $data['title'] ?? null; // caption / alt text
+                break;
+
+            case 'image_gallery':
+                $images = [];
+                if (!empty($data['gallery_images_touched'])) {
+                    // Client sent the explicit retained set (may be empty if all were removed)
+                    if (isset($data['existing_gallery_images']) && is_array($data['existing_gallery_images'])) {
+                        $images = array_values($data['existing_gallery_images']);
+                    }
+                } elseif (!empty($existing['gallery_images'])) {
+                    $decoded = json_decode($existing['gallery_images'], true);
+                    if (is_array($decoded)) $images = $decoded;
+                }
+                if (isset($data['gallery_files']) && is_array($data['gallery_files']['name'] ?? null)) {
+                    $count = count($data['gallery_files']['name']);
+                    for ($i = 0; $i < $count; $i++) {
+                        if (($data['gallery_files']['error'][$i] ?? 1) !== 0) continue;
+                        $file = [
+                            'name'     => $data['gallery_files']['name'][$i],
+                            'tmp_name' => $data['gallery_files']['tmp_name'][$i],
+                            'error'    => $data['gallery_files']['error'][$i],
+                        ];
+                        $uploaded = $this->uploadSectionFile($file);
+                        if ($uploaded) $images[] = $uploaded;
+                    }
+                }
+                $fields['gallery_images'] = !empty($images) ? json_encode(array_values($images)) : null;
+                $fields['media_type'] = 'image';
+                $fields['title'] = $data['title'] ?? null; // gallery heading
+                break;
+
+            case 'youtube':
+                $url = trim($data['media_url'] ?? '');
+                if ($url !== '') {
+                    $fields['media_url'] = $url;
+                    $fields['video_id'] = $this->extractYoutubeId($url);
+                }
+                $fields['media_type'] = 'youtube';
+                $fields['title'] = $data['title'] ?? null; // caption
+                break;
+
+            case 'link':
+                $fields['media_url'] = trim($data['media_url'] ?? ($existing['media_url'] ?? ''));
+                $fields['link_label'] = $data['link_label'] ?? null;
+                break;
+
+            case 'cta':
+                $fields['cta_type'] = $data['cta_type'] ?? null;
+                $fields['cta_value'] = trim($data['cta_value'] ?? '');
+                $fields['cta_label'] = $data['cta_label'] ?? null;
+                break;
+
+            case 'faq':
+                $questions = $data['faq_question'] ?? [];
+                $answers = $data['faq_answer'] ?? [];
+                $items = [];
+                foreach ($questions as $i => $q) {
+                    $q = trim($q);
+                    $a = trim($answers[$i] ?? '');
+                    if ($q === '' || $a === '') continue;
+                    $items[] = ['question' => $q, 'answer' => $a];
+                }
+                $fields['faq_items'] = !empty($items) ? json_encode($items) : ($existing['faq_items'] ?? null);
+                break;
+        }
+
+        return $fields;
+    }
+
     // Add section
     public function addSection($blog_id, $data, $sort_order = 0) {
-        $media_url = $data['media_url'] ?? null;
-        $video_id = $data['video_id'] ?? null;
-        $media_type = $data['media_type'] ?? 'image';
-        
-        // Handle file upload
-        if (isset($data['media_file']) && $data['media_file']['error'] === 0) {
-            $upload_dir = $_SERVER['DOCUMENT_ROOT'] . url('uploads/blog/sections/');
-            if (!is_dir($upload_dir)) {
-                mkdir($upload_dir, 0777, true);
-            }
-            
-            $ext = pathinfo($data['media_file']['name'], PATHINFO_EXTENSION);
-            $filename = time() . '_' . uniqid() . '.' . $ext;
-            $target_file = $upload_dir . $filename;
-            
-            if (move_uploaded_file($data['media_file']['tmp_name'], $target_file)) {
-                $media_url = url('uploads/blog/sections/') . $filename;
-                
-                // Determine media type
-                if (in_array($ext, ['mp4', 'webm', 'ogg'])) {
-                    $media_type = 'video';
-                } else {
-                    $media_type = 'image';
-                }
-            }
+        $fields = $this->buildSectionFields($data);
+
+        $sectionData = [':blog_id' => $blog_id, ':sort_order' => $sort_order];
+        foreach ($fields as $key => $value) {
+            $sectionData[":$key"] = $value;
         }
-        
-        // Extract YouTube video ID
-        if ($data['section_type'] === 'youtube' && $media_url) {
-            preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/', $media_url, $matches);
-            $video_id = $matches[1] ?? null;
-            $media_type = 'youtube';
-        }
-        
-        $sectionData = [
-            ':blog_id' => $blog_id,
-            ':section_type' => $data['section_type'],
-            ':title' => $data['title'] ?? null,
-            ':content' => $data['content'] ?? null,
-            ':media_url' => $media_url,
-            ':media_type' => $media_type,
-            ':video_id' => $video_id,
-            ':sort_order' => $sort_order
-        ];
-        
+
         return $this->blogModel->addSection($sectionData);
     }
-    
+
     // Update section
     public function updateSection($section_id, $data) {
-        return $this->blogModel->updateSection($section_id, $data);
+        $sections = $this->blogModel->getSections($data['blog_id'] ?? 0);
+        $existing = null;
+        foreach ($sections as $s) {
+            if ((int) $s['id'] === (int) $section_id) { $existing = $s; break; }
+        }
+
+        $fields = $this->buildSectionFields($data, $existing);
+        if (isset($data['sort_order'])) {
+            $fields['sort_order'] = (int) $data['sort_order'];
+        }
+
+        return $this->blogModel->updateSection($section_id, $fields);
     }
-    
+
     // Delete section
     public function deleteSection($section_id) {
         return $this->blogModel->deleteSection($section_id);
+    }
+
+    // Reorder sections: $order is [section_id => sort_order]
+    public function reorderSections(array $order): bool {
+        $ok = true;
+        foreach ($order as $sectionId => $sortOrder) {
+            if (!$this->blogModel->updateSection((int) $sectionId, ['sort_order' => (int) $sortOrder])) {
+                $ok = false;
+            }
+        }
+        return $ok;
     }
     
     // Add FAQ

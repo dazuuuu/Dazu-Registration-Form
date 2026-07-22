@@ -80,7 +80,20 @@ ob_start();
                         </td>
                         <td><?php echo htmlspecialchars($c['title']); ?></td>
                         <td><span class="badge bg-secondary"><?php echo htmlspecialchars($c['abbreviation']); ?></span></td>
-                        <td><?php echo (int) $c['duration_months']; ?> month<?php echo $c['duration_months'] == 1 ? '' : 's'; ?></td>
+                        <td>
+                            <?php echo (int) $c['duration_months']; ?> month<?php echo $c['duration_months'] == 1 ? '' : 's'; ?>
+                            <?php if (!empty($c['weeks_of_study']) || !empty($c['hours_of_study']) || !empty($c['study_schedule'])): ?>
+                                <br><small class="text-muted">
+                                    <?php
+                                    $bits = [];
+                                    if (!empty($c['weeks_of_study'])) $bits[] = (int) $c['weeks_of_study'] . ' wk' . ((int) $c['weeks_of_study'] === 1 ? '' : 's');
+                                    if (!empty($c['hours_of_study'])) $bits[] = (int) $c['hours_of_study'] . ' hr' . ((int) $c['hours_of_study'] === 1 ? '' : 's');
+                                    if (!empty($c['study_schedule'])) $bits[] = htmlspecialchars($c['study_schedule']);
+                                    echo implode(' &middot; ', $bits);
+                                    ?>
+                                </small>
+                            <?php endif; ?>
+                        </td>
                         <td>KSh <?php echo number_format($c['course_fee'], 0); ?></td>
                         <td><?php echo (int) $c['last_sequence']; ?></td>
                         <td>

@@ -110,6 +110,9 @@ $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <?php else: ?>
         <?php foreach ($results as $result): ?>
             <div class="result-card">
+                <?php if (!empty($result['featured_image'])): ?>
+                    <img src="<?php echo htmlspecialchars($result['featured_image']); ?>" alt="" style="width:100%;max-height:220px;object-fit:cover;border-radius:var(--radius-lg);margin-bottom:var(--space-4);">
+                <?php endif; ?>
                 <div class="result-meta">
                     <span class="badge bg-primary"><?php echo htmlspecialchars($result['category_name'] ?? 'Uncategorized'); ?></span>
                     <span class="ms-3"><i class="far fa-calendar-alt"></i> <?php echo date('M d, Y', strtotime($result['published_at'])); ?></span>

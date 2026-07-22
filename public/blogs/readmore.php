@@ -177,46 +177,99 @@ ob_start();
                       [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6">
             <?php if (!empty($sections)): ?>
               <?php foreach ($sections as $section): ?>
-                <?php if ($section['section_type'] === 'text_only'): ?>
-                  <?php if ($section['title']): ?><h2><?php echo htmlspecialchars($section['title']); ?></h2><?php endif; ?>
-                  <?php echo $section['content']; ?>
+                <?php if ($section['section_type'] === 'heading'): ?>
+                  <?php if (!empty($section['title'])): ?><h2><?php echo htmlspecialchars($section['title']); ?></h2><?php endif; ?>
 
-                <?php elseif ($section['section_type'] === 'text_image_left'): ?>
-                  <div class="grid md:grid-cols-2 gap-8 items-center my-10">
-                    <img src="<?php echo htmlspecialchars($section['media_url'] ?? ''); ?>" alt="" class="rounded-xl w-full border border-slate-200 order-2 md:order-1">
-                    <div class="order-1 md:order-2">
-                      <?php if ($section['title']): ?><h2><?php echo htmlspecialchars($section['title']); ?></h2><?php endif; ?>
-                      <?php echo $section['content']; ?>
-                    </div>
-                  </div>
+                <?php elseif ($section['section_type'] === 'paragraph'): ?>
+                  <p><?php echo nl2br(htmlspecialchars($section['content'] ?? '')); ?></p>
 
-                <?php elseif ($section['section_type'] === 'text_image_right'): ?>
-                  <div class="grid md:grid-cols-2 gap-8 items-center my-10">
-                    <div>
-                      <?php if ($section['title']): ?><h2><?php echo htmlspecialchars($section['title']); ?></h2><?php endif; ?>
-                      <?php echo $section['content']; ?>
+                <?php elseif ($section['section_type'] === 'image' && !empty($section['media_url'])): ?>
+                  <figure class="my-10">
+                    <img src="<?php echo htmlspecialchars($section['media_url']); ?>" alt="<?php echo htmlspecialchars($section['title'] ?? ''); ?>" class="rounded-xl w-full border border-slate-200">
+                    <?php if (!empty($section['title'])): ?>
+                      <figcaption class="mt-2 text-center text-xs text-slate-500 font-semibold"><?php echo htmlspecialchars($section['title']); ?></figcaption>
+                    <?php endif; ?>
+                  </figure>
+
+                <?php elseif ($section['section_type'] === 'image_gallery'):
+                    $galleryImages = json_decode($section['gallery_images'] ?? '[]', true) ?: []; ?>
+                  <?php if (!empty($galleryImages)): ?>
+                    <div class="my-10">
+                      <?php if (!empty($section['title'])): ?><h3><?php echo htmlspecialchars($section['title']); ?></h3><?php endif; ?>
+                      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 not-prose">
+                        <?php foreach ($galleryImages as $img): ?>
+                          <a href="<?php echo htmlspecialchars($img); ?>" target="_blank" rel="noopener" class="block aspect-square overflow-hidden rounded-xl border border-slate-200">
+                            <img src="<?php echo htmlspecialchars($img); ?>" alt="" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                          </a>
+                        <?php endforeach; ?>
+                      </div>
                     </div>
-                    <img src="<?php echo htmlspecialchars($section['media_url'] ?? ''); ?>" alt="" class="rounded-xl w-full border border-slate-200">
-                  </div>
+                  <?php endif; ?>
 
                 <?php elseif ($section['section_type'] === 'youtube' && !empty($section['media_url'])): ?>
-                  <div class="aspect-video my-10 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-                    <iframe class="w-full h-full" src="https://www.youtube.com/embed/<?php echo htmlspecialchars(blog_youtube_id($section['media_url'])); ?>" allowfullscreen title="Video"></iframe>
+                  <div class="my-10">
+                    <?php if (!empty($section['title'])): ?><h3><?php echo htmlspecialchars($section['title']); ?></h3><?php endif; ?>
+                    <div class="aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                      <iframe class="w-full h-full" src="https://www.youtube.com/embed/<?php echo htmlspecialchars($section['video_id'] ?: blog_youtube_id($section['media_url'])); ?>" allowfullscreen title="Video"></iframe>
+                    </div>
                   </div>
 
-                <?php elseif ($section['section_type'] === 'video' && !empty($section['media_url'])): ?>
-                  <div class="aspect-video my-10 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-                    <video controls class="w-full h-full"><source src="<?php echo htmlspecialchars($section['media_url']); ?>" type="video/mp4"></video>
-                  </div>
+                <?php elseif ($section['section_type'] === 'link' && !empty($section['media_url'])): ?>
+                  <a href="<?php echo htmlspecialchars($section['media_url']); ?>" target="_blank" rel="noopener"
+                     class="not-prose my-8 flex items-center gap-3 p-4 bg-slate-50 border border-slate-200 rounded-xl hover:border-[#15A24A] transition-colors group">
+                    <span class="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg bg-white border border-slate-200 text-[#15A24A]">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5M10.172 13.828a4 4 0 010-5.656l3-3a4 4 0 015.656 5.656l-1.5 1.5"/></svg>
+                    </span>
+                    <span class="text-sm font-bold text-slate-800 group-hover:text-[#15A24A] break-all"><?php echo htmlspecialchars($section['link_label'] ?: $section['media_url']); ?></span>
+                  </a>
 
                 <?php elseif ($section['section_type'] === 'quote'): ?>
                   <blockquote class="my-8 p-6 border-l-4 border-[#15A24A] bg-green-50/50 rounded-r-xl italic text-slate-700">
-                    <?php echo $section['content']; ?>
+                    <?php echo nl2br(htmlspecialchars($section['content'] ?? '')); ?>
                     <?php if ($section['title']): ?><footer class="mt-3 not-italic text-sm text-slate-500 font-semibold">— <?php echo htmlspecialchars($section['title']); ?></footer><?php endif; ?>
                   </blockquote>
 
-                <?php elseif ($section['section_type'] === 'code_block'): ?>
-                  <pre class="bg-slate-900 text-slate-100 p-5 rounded-xl overflow-x-auto my-8 text-sm border border-slate-800"><code><?php echo htmlspecialchars($section['content'] ?? ''); ?></code></pre>
+                <?php elseif ($section['section_type'] === 'cta' && !empty($section['cta_value'])):
+                    $ctaType = $section['cta_type'] ?? 'link';
+                    $ctaValue = $section['cta_value'];
+                    if ($ctaType === 'whatsapp') {
+                        $ctaHref = 'https://wa.me/' . preg_replace('/[^0-9]/', '', $ctaValue);
+                        $ctaDefaultLabel = 'Chat on WhatsApp';
+                        $ctaIcon = 'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z';
+                    } elseif ($ctaType === 'email') {
+                        $ctaHref = 'mailto:' . $ctaValue;
+                        $ctaDefaultLabel = 'Email Us';
+                        $ctaIcon = 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z';
+                    } else {
+                        $ctaHref = preg_match('#^https?://#i', $ctaValue) ? $ctaValue : 'https://' . $ctaValue;
+                        $ctaDefaultLabel = 'Learn More';
+                        $ctaIcon = 'M17 8l4 4m0 0l-4 4m4-4H3';
+                    } ?>
+                  <div class="not-prose my-10 text-center">
+                    <a href="<?php echo htmlspecialchars($ctaHref); ?>" target="_blank" rel="noopener"
+                       class="inline-flex items-center gap-2 px-6 py-3.5 bg-[#15A24A] hover:bg-[#128a3e] text-white text-sm font-extrabold rounded-xl transition-colors shadow-sm">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="<?php echo $ctaIcon; ?>" stroke="currentColor" stroke-width="<?php echo $ctaType === 'link' ? '2' : '0'; ?>" fill="<?php echo $ctaType === 'link' ? 'none' : 'currentColor'; ?>" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      <?php echo htmlspecialchars($section['cta_label'] ?: $ctaDefaultLabel); ?>
+                    </a>
+                  </div>
+
+                <?php elseif ($section['section_type'] === 'faq'):
+                    $faqItems = json_decode($section['faq_items'] ?? '[]', true) ?: []; ?>
+                  <?php if (!empty($faqItems)): ?>
+                    <div class="not-prose my-10 space-y-3 blog-faq-block">
+                      <?php foreach ($faqItems as $fi => $item): ?>
+                        <div class="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                          <button type="button" class="blog-faq-toggle w-full flex items-center justify-between gap-4 px-5 py-4 text-left font-bold text-slate-900 hover:bg-slate-50 transition-colors" aria-expanded="false">
+                            <span class="text-sm"><?php echo htmlspecialchars($item['question'] ?? ''); ?></span>
+                            <span class="blog-faq-icon shrink-0 text-[#15A24A] text-xl font-light leading-none">+</span>
+                          </button>
+                          <div class="blog-faq-panel hidden px-5 pb-5 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-4">
+                            <?php echo nl2br(htmlspecialchars($item['answer'] ?? '')); ?>
+                          </div>
+                        </div>
+                      <?php endforeach; ?>
+                    </div>
+                  <?php endif; ?>
                 <?php endif; ?>
               <?php endforeach; ?>
             <?php else: ?>
@@ -317,5 +370,22 @@ if (!empty($blog['published_at'])) {
 if (!empty($blog['featured_image'])) {
     $extra_head .= '<meta property="og:image" content="' . htmlspecialchars($blog['featured_image']) . '">' . "\n";
 }
+
+$extra_js = <<<'HTML'
+<script>
+(function(){
+  document.querySelectorAll('.blog-faq-toggle').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var panel = btn.nextElementSibling;
+      var icon = btn.querySelector('.blog-faq-icon');
+      var open = !panel.classList.contains('hidden');
+      panel.classList.toggle('hidden');
+      btn.setAttribute('aria-expanded', open ? 'false' : 'true');
+      if (icon) icon.textContent = open ? '+' : '−';
+    });
+  });
+})();
+</script>
+HTML;
 
 require __DIR__ . '/../templates/public/dazu_layout.php';

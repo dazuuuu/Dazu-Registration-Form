@@ -99,7 +99,7 @@ $heroSlides = [
    so this overrides it — class beats element, and !important beats !important. */
 .dazu-hero__title {
   margin: 0;
-  font-family: "Konexy", "Nunito", ui-sans-serif, system-ui, sans-serif !important;
+  font-family: "Nunito", ui-sans-serif, system-ui, sans-serif !important;
   font-size: clamp(2.25rem, 5.2vw, 4rem);
   font-weight: 700;
   line-height: 1.08;

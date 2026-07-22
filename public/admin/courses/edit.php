@@ -59,6 +59,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'description'     => $_POST['description'] ?? '',
                 'overview'        => $_POST['overview'] ?? '',
                 'duration_months' => $_POST['duration_months'] ?? 0,
+                'weeks_of_study'  => $_POST['weeks_of_study'] ?? null,
+                'hours_of_study'  => $_POST['hours_of_study'] ?? null,
+                'study_schedule'  => $_POST['study_schedule'] ?? null,
                 'course_fee'      => $_POST['course_fee'] ?? 0,
                 'cover_image'     => $coverPath,
             ]);
@@ -124,10 +127,25 @@ ob_start();
                     </select>
                 </div>
 
-                <div class="col-md-6">
-                    <label class="form-label">Duration (months)</label>
+                <div class="col-md-4">
+                    <label class="form-label">Months of Study</label>
                     <input type="number" name="duration_months" class="form-control" min="1" max="36" required
                            value="<?php echo htmlspecialchars($course['duration_months']); ?>">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Weeks of Study</label>
+                    <input type="number" name="weeks_of_study" class="form-control" min="0"
+                           placeholder="Optional" value="<?php echo htmlspecialchars($course['weeks_of_study'] ?? ''); ?>">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Hours of Study</label>
+                    <input type="number" name="hours_of_study" class="form-control" min="0"
+                           placeholder="Optional" value="<?php echo htmlspecialchars($course['hours_of_study'] ?? ''); ?>">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Study Schedule</label>
+                    <input type="text" name="study_schedule" class="form-control" maxlength="150"
+                           placeholder="Optional — e.g. Mon, Wed, Fri evenings" value="<?php echo htmlspecialchars($course['study_schedule'] ?? ''); ?>">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Course Fee (KSh)</label>

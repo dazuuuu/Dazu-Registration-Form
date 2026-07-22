@@ -138,12 +138,13 @@ ob_start();
               </div>
               <div class="flex items-center justify-between pt-4 border-t border-slate-100">
                 <span class="text-xs text-slate-500 font-semibold">By <?php echo htmlspecialchars($project['developer']); ?></span>
-                <button type="button" class="dazu-project-open text-xs font-extrabold text-[#15A24A] hover:text-[#128a3e] flex items-center gap-1"
-                        data-title="<?php echo htmlspecialchars($project['title'], ENT_QUOTES); ?>"
-                        data-details="<?php echo htmlspecialchars($project['details'], ENT_QUOTES); ?>"
-                        data-url="<?php echo htmlspecialchars($project['readmore'] ?? '', ENT_QUOTES); ?>">
-                  View Sandbox <span>→</span>
-                </button>
+                <?php if (!empty($project['readmore'])): ?>
+                  <a href="<?php echo htmlspecialchars($project['readmore']); ?>" class="text-xs font-extrabold text-[#15A24A] hover:text-[#128a3e] flex items-center gap-1">
+                    View Details <span>→</span>
+                  </a>
+                <?php else: ?>
+                  <span class="text-xs font-bold text-slate-400 italic">Details coming soon</span>
+                <?php endif; ?>
               </div>
             </div>
           </article>
@@ -153,38 +154,6 @@ ob_start();
   </div>
 </div>
 
-<div id="dazu-project-modal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center z-50 p-4">
-  <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl overflow-hidden shadow-xl">
-    <div class="flex items-center justify-between p-6 border-b border-slate-200 bg-slate-50">
-      <h3 id="dazu-project-modal-title" class="text-lg font-bold text-slate-900 uppercase"></h3>
-      <button type="button" id="dazu-project-modal-close" class="p-2 hover:bg-slate-200 rounded-lg text-slate-500" aria-label="Close">✕</button>
-    </div>
-    <div class="p-6 space-y-4">
-      <p id="dazu-project-modal-body" class="text-sm text-slate-600 leading-relaxed font-semibold"></p>
-      <a id="dazu-project-modal-link" href="#" class="hidden inline-block px-5 py-2.5 bg-[#15A24A] text-white text-xs font-bold rounded-md">Full project page →</a>
-    </div>
-  </div>
-</div>
-<script>
-(function(){
-  var modal = document.getElementById('dazu-project-modal');
-  var title = document.getElementById('dazu-project-modal-title');
-  var body = document.getElementById('dazu-project-modal-body');
-  var link = document.getElementById('dazu-project-modal-link');
-  document.querySelectorAll('.dazu-project-open').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      title.textContent = btn.getAttribute('data-title') || '';
-      body.textContent = btn.getAttribute('data-details') || '';
-      var url = btn.getAttribute('data-url');
-      if (url) { link.href = url; link.classList.remove('hidden'); } else { link.classList.add('hidden'); }
-      modal.classList.remove('hidden'); modal.classList.add('flex');
-    });
-  });
-  function close(){ modal.classList.add('hidden'); modal.classList.remove('flex'); }
-  document.getElementById('dazu-project-modal-close').addEventListener('click', close);
-  modal.addEventListener('click', function(e){ if(e.target===modal) close(); });
-})();
-</script>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/../templates/public/dazu_layout.php';

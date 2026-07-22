@@ -4,8 +4,15 @@ $page_description = 'Dazu Hub Tech Skills Institute in Thika Town — hands-on l
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
+require_once __DIR__ . '/../../app/v1/controllers/GalleryController.php';
 
 $teamMembers = (new \Models\TeamMemberModel($pdo))->all(true);
+
+try {
+    $galleryItems = (new GalleryController($pdo))->getAll('active', 8, 0);
+} catch (Throwable $e) {
+    $galleryItems = [];
+}
 
 $trainers = [
     [
@@ -61,11 +68,12 @@ ob_start();
       <div class="space-y-6">
         <span class="inline-block text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">About Dazu Hub</span>
         <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-950 tracking-tight leading-tight uppercase">
-          Empowering Next-Gen Innovators in Thika.
+          Empowering Next-Gen Innovators Across Kenya.
         </h1>
         <div class="space-y-4 text-slate-600 font-medium leading-relaxed">
-          <p>Dazu Hub Tech Skills Institute is a premier technology training school located in Thika Town. We bridge the critical gap between university theory and high-growth industry standards.</p>
-          <p>Our training is designed around physical coding labs, daily software execution, and custom digital graphic sprints. We provide students, professionals, and corporate businesses with the practical expertise needed to innovate in today's tech-driven ecosystem.</p>
+          <p>Dazu Hub Institute is a leading African technology and digital skills institute with campuses in Thika Town and Nairobi. We equip students, graduates, professionals, entrepreneurs, and businesses with practical, job-ready skills for Africa's growing digital economy.</p>
+          <p>We bridge the gap between traditional education and real industry demands through hands-on training, project-based learning, and mentorship. Our programs focus on software development, artificial intelligence, cybersecurity, data science, digital marketing, graphics design, automation, and other high-demand digital skills.</p>
+          <p>Every learner builds real-world projects, gains practical experience, and develops the confidence to work, freelance, launch a business, or secure employment across Africa and beyond. Our mission is to develop skilled innovators, problem solvers, and technology leaders who drive Africa's digital transformation.</p>
         </div>
         <div class="flex flex-wrap gap-3 pt-2">
           <a href="<?php echo url('courses/index.php'); ?>" class="px-6 py-3.5 text-xs font-extrabold tracking-widest uppercase text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-xl transition-colors">Apply for Admission</a>
@@ -119,7 +127,7 @@ ob_start();
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
         </div>
         <h3 class="text-sm font-extrabold text-slate-950 uppercase tracking-wide mb-3">Lab-First Philosophy</h3>
-        <p class="text-slate-600 text-sm leading-relaxed">We skip boring theory and jump straight into functional labs where students type code, structure firewalls, and compile models.</p>
+        <p class="text-slate-600 text-sm leading-relaxed">We believe skills are built through practice. Our training follows an 80% practical and 20% theory approach, where learners spend most of their time working on real projects, solving real problems, and using industry-standard tools. Every session is designed to build hands-on experience, confidence, and job-ready skills that prepare students for employment, freelancing, entrepreneurship, and professional growth.</p>
       </div>
       <div class="bg-white border border-slate-200 rounded-2xl p-8">
         <div class="w-12 h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-[#15A24A] mb-6">
@@ -132,8 +140,97 @@ ob_start();
   </div>
 </section>
 
-<!-- Team -->
+<!-- Gallery -->
 <section class="bg-white py-20">
+  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
+    <div class="max-w-2xl mb-12">
+      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Life at Dazu Hub</span>
+      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Our Gallery</h2>
+      <p class="text-slate-600 font-medium mt-4">A look inside our labs, classes, and student milestones across our Thika Town and Nairobi campuses.</p>
+    </div>
+
+    <?php if (empty($galleryItems)): ?>
+      <p class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-slate-600">Gallery photos and videos will be available soon.</p>
+    <?php else: ?>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <?php foreach ($galleryItems as $g):
+            $isVideo = ($g['media_type'] ?? 'image') === 'video';
+            $thumb = $g['thumbnail_path'] ?: $g['file_path'];
+            if ($thumb && !preg_match('#^https?://#i', $thumb)) $thumb = url(ltrim($thumb, '/'));
+        ?>
+          <button type="button" class="dazu-about-gallery-open group relative aspect-square overflow-hidden rounded-2xl border border-slate-200 bg-slate-50"
+                  data-title="<?php echo htmlspecialchars($g['title'], ENT_QUOTES); ?>"
+                  data-desc="<?php echo htmlspecialchars($g['description'] ?? '', ENT_QUOTES); ?>"
+                  data-video="<?php echo $isVideo ? '1' : '0'; ?>"
+                  data-src="<?php echo htmlspecialchars($isVideo ? ($g['video_url'] ?? $g['file_path'] ?? '') : ($g['file_path'] ?? ''), ENT_QUOTES); ?>">
+            <?php if ($thumb): ?>
+              <img src="<?php echo htmlspecialchars($thumb); ?>" alt="<?php echo htmlspecialchars($g['title']); ?>" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+            <?php else: ?>
+              <div class="w-full h-full flex items-center justify-center text-slate-300"><i class="fas fa-image text-3xl"></i></div>
+            <?php endif; ?>
+            <span class="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/50 transition-colors flex items-center justify-center">
+              <i class="fas <?php echo $isVideo ? 'fa-play' : 'fa-search-plus'; ?> text-white opacity-0 group-hover:opacity-100 transition-opacity"></i>
+            </span>
+            <?php if ($isVideo): ?>
+              <span class="absolute top-2 right-2 w-7 h-7 rounded-full bg-slate-900/70 text-white flex items-center justify-center text-[10px]"><i class="fas fa-play"></i></span>
+            <?php endif; ?>
+          </button>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
+  </div>
+</section>
+
+<!-- Gallery lightbox -->
+<div id="dazu-about-gallery-lightbox" class="fixed inset-0 bg-slate-950/90 hidden items-center justify-center z-50 p-4">
+  <button type="button" id="dazu-about-gallery-close" class="absolute top-5 right-5 text-white/80 hover:text-white text-2xl" aria-label="Close">
+    <i class="fas fa-times"></i>
+  </button>
+  <div class="max-w-3xl w-full">
+    <div id="dazu-about-gallery-media" class="w-full"></div>
+    <div class="mt-3 text-center">
+      <h3 id="dazu-about-gallery-title" class="text-white font-bold"></h3>
+      <p id="dazu-about-gallery-desc" class="text-slate-300 text-sm mt-1"></p>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  var lb = document.getElementById('dazu-about-gallery-lightbox');
+  var media = document.getElementById('dazu-about-gallery-media');
+  var titleEl = document.getElementById('dazu-about-gallery-title');
+  var descEl = document.getElementById('dazu-about-gallery-desc');
+
+  function youtubeId(url) {
+    var m = url.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/);
+    return m ? m[1] : '';
+  }
+
+  document.querySelectorAll('.dazu-about-gallery-open').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var src = btn.getAttribute('data-src');
+      var isVideo = btn.getAttribute('data-video') === '1';
+      titleEl.textContent = btn.getAttribute('data-title') || '';
+      descEl.textContent = btn.getAttribute('data-desc') || '';
+      media.innerHTML = '';
+      if (isVideo && /youtube\.com|youtu\.be/.test(src)) {
+        media.innerHTML = '<div class="aspect-video rounded-xl overflow-hidden"><iframe class="w-full h-full" src="https://www.youtube.com/embed/' + youtubeId(src) + '" allowfullscreen title="Video"></iframe></div>';
+      } else if (isVideo) {
+        media.innerHTML = '<video controls class="w-full rounded-xl max-h-[70vh]"><source src="' + src + '" type="video/mp4"></video>';
+      } else {
+        media.innerHTML = '<img src="' + src + '" alt="" class="w-full rounded-xl max-h-[70vh] object-contain mx-auto">';
+      }
+      lb.classList.remove('hidden'); lb.classList.add('flex');
+    });
+  });
+  function closeLb(){ lb.classList.add('hidden'); lb.classList.remove('flex'); media.innerHTML=''; }
+  document.getElementById('dazu-about-gallery-close').addEventListener('click', closeLb);
+  lb.addEventListener('click', function(e){ if (e.target === lb) closeLb(); });
+})();
+</script>
+
+<!-- Team -->
+<section class="bg-white border-t border-slate-100 py-20">
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="max-w-2xl mb-12">
       <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">The people behind Dazu Hub</span>
@@ -160,6 +257,7 @@ ob_start();
             </div>
             <div class="p-5">
               <h3 class="text-lg font-extrabold tracking-tight text-slate-950"><?php echo htmlspecialchars($t['name']); ?></h3>
+              <span class="mt-1 block text-xs font-extrabold uppercase tracking-wider text-[#15A24A]"><?php echo htmlspecialchars($t['role']); ?></span>
               <p class="mt-2 text-sm leading-relaxed text-slate-600"><?php echo htmlspecialchars($t['bio'] ?? ''); ?></p>
               <div class="mt-5 flex items-center gap-2 border-t border-slate-100 pt-3 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">
                 <span class="h-2 w-2 rounded-full bg-[#15A24A]"></span>

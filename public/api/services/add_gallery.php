@@ -30,7 +30,8 @@ try {
     }
     
     require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
-    
+    require_once __DIR__ . '/../../../app/v1/config/paths.php';
+
     $upload_dir = $_SERVER['DOCUMENT_ROOT'] . url('uploads/services/gallery/');
     if (!is_dir($upload_dir)) {
         mkdir($upload_dir, 0777, true);
@@ -61,7 +62,7 @@ try {
         sendJsonResponse(false, 'Failed to upload image');
     }
     
-} catch (Exception $e) {
+} catch (Throwable $e) {
     sendJsonResponse(false, 'Server error: ' . $e->getMessage());
 }
 ?>

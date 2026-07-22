@@ -82,7 +82,7 @@ class Mailer {
                 $mail->Port = (int) ($this->cfg['port'] ?? 587);
                 $mail->SMTPAuth = true;
                 $mail->Username = $this->cfg['username'] ?? '';
-                $mail->Password = $this->cfg['password'] ?? '';
+                $mail->Password = str_replace(' ', '', $this->cfg['password'] ?? '');
                 $enc = $this->cfg['encryption'] ?? 'tls';
                 if ($enc) $mail->SMTPSecure = $enc;
             }

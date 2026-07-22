@@ -30,7 +30,8 @@ try {
     }
     
     require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
-    
+    require_once __DIR__ . '/../../../app/v1/config/paths.php';
+
     // Handle media file upload
     $media_url = $_POST['media_url'] ?? null;
     $media_type = 'image';
@@ -76,7 +77,7 @@ try {
         sendJsonResponse(false, 'Failed to add section');
     }
     
-} catch (Exception $e) {
+} catch (Throwable $e) {
     sendJsonResponse(false, 'Server error: ' . $e->getMessage());
 }
 ?>

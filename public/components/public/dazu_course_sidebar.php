@@ -5,6 +5,9 @@ require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
 $category = dazu_course_category($course['abbreviation'] ?? '');
 $syllabus = dazu_course_syllabus($course);
 $months = (int) ($course['duration_months'] ?? 0);
+$weeks = (int) ($course['weeks_of_study'] ?? 0);
+$hours = (int) ($course['hours_of_study'] ?? 0);
+$schedule = trim((string) ($course['study_schedule'] ?? ''));
 $fee = number_format((float) ($course['course_fee'] ?? 0));
 ?>
 <div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-8" id="learn">
@@ -41,6 +44,33 @@ $fee = number_format((float) ($course['course_fee'] ?? 0));
           KES <?php echo $fee; ?>
         </span>
       </div>
+      <?php if ($weeks > 0): ?>
+      <div class="p-3 bg-slate-50 border border-slate-200/60 rounded-xl">
+        <span class="block text-slate-400 uppercase tracking-widest text-[9px] font-extrabold mb-1">Weeks of Study</span>
+        <span class="text-xs font-bold text-slate-900 flex items-center gap-1">
+          <svg class="h-3.5 w-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          <?php echo $weeks; ?> Week<?php echo $weeks === 1 ? '' : 's'; ?>
+        </span>
+      </div>
+      <?php endif; ?>
+      <?php if ($hours > 0): ?>
+      <div class="p-3 bg-slate-50 border border-slate-200/60 rounded-xl">
+        <span class="block text-slate-400 uppercase tracking-widest text-[9px] font-extrabold mb-1">Hours of Study</span>
+        <span class="text-xs font-bold text-slate-900 flex items-center gap-1">
+          <svg class="h-3.5 w-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3M12 3a9 9 0 100 18 9 9 0 000-18z"/></svg>
+          <?php echo $hours; ?> Hr<?php echo $hours === 1 ? '' : 's'; ?>
+        </span>
+      </div>
+      <?php endif; ?>
+      <?php if ($schedule !== ''): ?>
+      <div class="p-3 bg-slate-50 border border-slate-200/60 rounded-xl col-span-2">
+        <span class="block text-slate-400 uppercase tracking-widest text-[9px] font-extrabold mb-1">Study Schedule</span>
+        <span class="text-xs font-bold text-slate-900 flex items-center gap-1">
+          <svg class="h-3.5 w-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          <?php echo htmlspecialchars($schedule); ?>
+        </span>
+      </div>
+      <?php endif; ?>
     </div>
 
     <div>

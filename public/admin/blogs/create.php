@@ -1,5 +1,6 @@
 <?php
 // public/admin/blogs/create.php
+require_once __DIR__ . '/../../../app/v1/config/paths.php';
 $page_title = 'Create New Blog Post';
 $breadcrumbs = [
     ['label' => 'Blog', 'url' => 'index.php'],
@@ -92,6 +93,7 @@ $allTags = $blogController->getAllTags();
                     <div class="mb-3">
                         <label class="form-label">Content *</label>
                         <textarea name="content" id="content" class="form-control" rows="15" required></textarea>
+                        <small class="text-muted">Save the post first, then use the Content Blocks builder on the edit screen to add images, galleries, YouTube videos, links, FAQs and CTA buttons.</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">SEO Meta Description</label>
@@ -120,7 +122,7 @@ $allTags = $blogController->getAllTags();
                 </div>
                 <div class="mb-3">
                     <label class="form-label">Featured Image</label>
-                    <input type="file" name="featured_image" id="featured_image" class="form-control" accept="image/*">
+                    <input type="file" name="featured_image" id="featured_image" class="form-control" accept="image/*" form="createBlogForm">
                     <img id="imagePreview" class="preview-image" style="display:none;">
                 </div>
             </div>

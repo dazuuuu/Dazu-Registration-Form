@@ -53,6 +53,7 @@ try {
             'author' => $b['author_name'] ?? 'Dazu Hub',
             'read_time' => max(1, (int) ceil($wordCount / 200)) . ' min read',
             'url' => url('blogs/readmore.php?slug=' . rawurlencode($b['slug'])),
+            'image' => $b['featured_image'] ?? '',
         ];
     }
 } catch (Throwable $e) {
@@ -114,8 +115,11 @@ ob_start();
     <?php else: ?>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
         <?php foreach ($articles as $article): ?>
-          <article class="bg-white border border-slate-200 rounded-2xl p-8 hover:border-green-600 hover:shadow-md transition-all flex flex-col justify-between min-h-[260px]">
-            <div class="space-y-4">
+          <article class="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-green-600 hover:shadow-md transition-all flex flex-col justify-between min-h-[260px]">
+            <?php if (!empty($article['image'])): ?>
+              <img src="<?php echo htmlspecialchars($article['image']); ?>" alt="" class="w-full h-40 object-cover">
+            <?php endif; ?>
+            <div class="space-y-4 p-8 pb-0">
               <div class="flex items-center justify-between">
                 <span class="text-[10px] uppercase font-extrabold tracking-widest bg-green-50 text-green-700 border border-green-200 px-3 py-1 rounded-full"><?php echo htmlspecialchars(strtoupper($article['category'])); ?></span>
                 <span class="text-[10px] text-slate-400 font-bold uppercase tracking-widest"><?php echo htmlspecialchars(strtoupper($article['read_time'])); ?></span>
@@ -123,7 +127,7 @@ ob_start();
               <h2 class="text-lg md:text-xl font-extrabold text-slate-900 uppercase tracking-tight leading-snug"><?php echo htmlspecialchars($article['title']); ?></h2>
               <p class="text-slate-500 text-xs font-semibold leading-relaxed line-clamp-3"><?php echo htmlspecialchars($article['summary']); ?></p>
             </div>
-            <div class="flex items-center justify-between pt-6 border-t border-slate-100 mt-6">
+            <div class="flex items-center justify-between pt-6 border-t border-slate-100 mt-6 p-8 pt-6">
               <span class="text-xs text-slate-500 font-semibold">By <?php echo htmlspecialchars($article['author']); ?></span>
               <a href="<?php echo htmlspecialchars($article['url']); ?>" class="text-xs font-extrabold text-green-600 hover:text-green-700">Read Article →</a>
             </div>

@@ -25,7 +25,7 @@ return [
     'port'       => (int) dazu_env('MAIL_PORT', '587'),
     'encryption' => dazu_env('MAIL_ENCRYPTION', 'tls'),
     'username'   => dazu_env('MAIL_USERNAME', 'njugunavickie7@gmail.com'),
-    'password'   => dazu_env('MAIL_PASSWORD', 'vsxz kkqg mqlp jdsd'),
+    'password'   => dazu_env('MAIL_PASSWORD', 'yyne ltcw lwmj trso'),
 
     'from_email' => dazu_env('MAIL_FROM_EMAIL', 'no-reply@dazuhub.co.ke'),
     'from_name'  => dazu_env('MAIL_FROM_NAME', 'Dazu Hub Institute'),

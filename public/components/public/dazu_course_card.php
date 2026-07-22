@@ -7,6 +7,9 @@ $img = dazu_course_image_url($course);
 $ratingVal = (float) ($course['rating'] ?? 4.8);
 $reviews = dazu_course_rating_count($course['abbreviation'] ?? '');
 $months = (int) ($course['duration_months'] ?? 0);
+$weeks = (int) ($course['weeks_of_study'] ?? 0);
+$hours = (int) ($course['hours_of_study'] ?? 0);
+$schedule = trim((string) ($course['study_schedule'] ?? ''));
 $fee = number_format((float) ($course['course_fee'] ?? 0));
 $title = htmlspecialchars($course['title'] ?? '');
 $overview = htmlspecialchars($course['overview'] ?? $course['description'] ?? '');
@@ -41,6 +44,25 @@ $cardId = (int) ($course['id'] ?? 0);
       </div>
       <h3 class="font-extrabold text-slate-900 text-base tracking-tight group-hover:text-[#15A24A] transition-colors duration-150 line-clamp-1"><?php echo $title; ?></h3>
       <p class="text-slate-500 text-xs font-semibold leading-relaxed line-clamp-2"><?php echo $overview; ?></p>
+      <?php if ($weeks > 0 || $hours > 0 || $schedule !== ''): ?>
+        <div class="flex items-center gap-2 flex-wrap">
+          <?php if ($weeks > 0): ?>
+            <span class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
+              <?php echo $weeks; ?> Week<?php echo $weeks === 1 ? '' : 's'; ?>
+            </span>
+          <?php endif; ?>
+          <?php if ($hours > 0): ?>
+            <span class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
+              <?php echo $hours; ?> Hr<?php echo $hours === 1 ? '' : 's'; ?>
+            </span>
+          <?php endif; ?>
+          <?php if ($schedule !== ''): ?>
+            <span class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
+              <?php echo htmlspecialchars($schedule); ?>
+            </span>
+          <?php endif; ?>
+        </div>
+      <?php endif; ?>
     </div>
 
     <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
