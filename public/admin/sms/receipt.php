@@ -25,8 +25,15 @@ if (!$path || !is_file($path)) {
     exit;
 }
 
-$filename = ($receipt['receipt_no'] ?? 'receipt') . '.html';
-header('Content-Type: text/html; charset=utf-8');
+$filename = ($receipt['receipt_no'] ?? 'receipt');
+$ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+if ($ext === 'pdf') {
+    header('Content-Type: application/pdf');
+    $filename .= '.pdf';
+} else {
+    header('Content-Type: text/html; charset=utf-8');
+    $filename .= '.html';
+}
 header('Content-Disposition: inline; filename="' . $filename . '"');
 header('Content-Length: ' . filesize($path));
 readfile($path);

@@ -344,16 +344,14 @@ class SmsModuleService
         return ['name' => 'Dazu Hub Institute', 'phone' => $c['contact_phone'] ?? '+254 750 116600'];
     }
 
-    private function renderReceiptPdf(array $student, string $receiptNo, string $type, float $delta, float $cost, float $paid, float $balance): string
+    private function receiptHtml(array $student, string $receiptNo, string $type, float $delta, float $cost, float $paid, float $balance): string
     {
         $co = $this->companyInfo();
-        $dir = $this->storageDir('receipts');
-        $filename = $receiptNo . '.html';
-        $path = $dir . '/' . $filename;
         $typeLabel = strtoupper($type);
         $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . htmlspecialchars($receiptNo) . '</title>
-        <style>body{font-family:Arial,sans-serif;padding:40px;color:#111}h1{color:#15A24A}table{width:100%;border-collapse:collapse;margin-top:20px}
-        td,th{border:1px solid #ddd;padding:8px;text-align:left}th{background:#f8fafc}</style></head><body>
+        <style>body{font-family:DejaVu Sans,Arial,sans-serif;padding:40px;color:#111}h1{color:#15A24A;margin:0 0 8px}
+        table{width:100%;border-collapse:collapse;margin-top:20px}td,th{border:1px solid #ddd;padding:8px;text-align:left}
+        th{background:#f8fafc;width:35%}</style></head><body>
         <h1>' . htmlspecialchars($co['name']) . '</h1>
         <p>' . htmlspecialchars($co['phone']) . '</p>
         <h2>' . $typeLabel . ' — ' . htmlspecialchars($receiptNo) . '</h2>
@@ -366,8 +364,48 @@ class SmsModuleService
             $html .= '<tr><th>This payment</th><td>KES ' . number_format($delta, 2) . '</td></tr>';
         }
         $html .= '</table><p style="margin-top:30px;color:#666;font-size:12px">Generated ' . date('Y-m-d H:i') . '</p></body></html>';
-        file_put_contents($path, $html);
-        return 'storage/sms/receipts/' . $filename;
+        return $html;
+    }
+
+    private function renderReceiptPdf(array $student, string $receiptNo, string $type, float $delta, float $cost, float $paid, float $balance): string
+    {
+        $dir = $this->storageDir('receipts');
+        $html = $this->receiptHtml($student, $receiptNo, $type, $delta, $cost, $paid, $balance);
+        $pdfFilename = $receiptNo . '.pdf';
+        $pdfPath = $dir . '/' . $pdfFilename;
+
+        if ($this->writePdfFile($html, $pdfPath)) {
+            return 'storage/sms/receipts/' . $pdfFilename;
+        }
+
+        $htmlFilename = $receiptNo . '.html';
+        file_put_contents($dir . '/' . $htmlFilename, $html);
+        return 'storage/sms/receipts/' . $htmlFilename;
+    }
+
+    private function writePdfFile(string $html, string $absolutePath): bool
+    {
+        $autoload = defined('PROJECT_ROOT')
+            ? PROJECT_ROOT . '/vendor/autoload.php'
+            : dirname(__DIR__, 2) . '/vendor/autoload.php';
+        if (!is_file($autoload)) {
+            return false;
+        }
+        require_once $autoload;
+        if (!class_exists('Dompdf\\Dompdf')) {
+            return false;
+        }
+        try {
+            $dompdf = new \Dompdf\Dompdf(['isRemoteEnabled' => false]);
+            $dompdf->loadHtml($html);
+            $dompdf->setPaper('A4', 'portrait');
+            $dompdf->render();
+            file_put_contents($absolutePath, $dompdf->output());
+            return is_file($absolutePath);
+        } catch (Throwable $e) {
+            error_log('[SmsModule] PDF render failed: ' . $e->getMessage());
+            return false;
+        }
     }
 
     private function storageDir(string $sub): string
