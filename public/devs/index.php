@@ -1,6 +1,6 @@
 <?php
 // public/devs/index.php (Updated with separate registration links)
-require_once __DIR__ . '/../../app/init.php';
+require_once __DIR__ . '/../../app/v1/init.php';
 
 session_start();
 ?>

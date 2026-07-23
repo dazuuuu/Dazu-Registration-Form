@@ -1,5 +1,6 @@
 <?php
 // public/admin/blogs/index.php
+require_once __DIR__ . '/../../../app/v1/config/paths.php';
 $page_title = 'Manage Blog Posts';
 $breadcrumbs = [
     ['label' => 'Blog', 'active' => true]

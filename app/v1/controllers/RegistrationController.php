@@ -8,7 +8,6 @@ use Models\RegistrationModel;
 use Models\UserModel;
 use Models\SessionModel;
 
-require_once __DIR__ . '/../services/StudentNotifier.php';
 require_once __DIR__ . '/../models/StudentModel.php';
 require_once __DIR__ . '/../models/ProgressModel.php';
 require_once __DIR__ . '/StudentController.php';
@@ -42,8 +41,16 @@ class RegistrationController {
         if (!$reg) return ['ok' => false, 'error' => 'Registration not found.'];
         if ($reg['status'] !== 'pending') return ['ok' => false, 'error' => 'This registration has already been reviewed.'];
 
-        // Check email not already a user (race-safe — the UNIQUE constraint on users.email will catch it too)
         $pdo = $this->db;
+        $adminId = resolve_valid_user_id($pdo, $reviewedBy, true);
+        if ($adminId === null) {
+            return ['ok' => false, 'error' => 'No valid admin account found. Log out, log in again, then retry approval.'];
+        }
+        if ($adminId !== $reviewedBy) {
+            error_log("[RegistrationController::approve] Session user_id {$reviewedBy} invalid; using user_id {$adminId}");
+        }
+
+        // Check email not already a user (race-safe — the UNIQUE constraint on users.email will catch it too)
         $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
         $stmt->execute([':email' => $reg['email']]);
         if ($stmt->fetchColumn()) {
@@ -59,7 +66,7 @@ class RegistrationController {
             $regNo = sprintf('DH-%s%02d/%s', $reg['abbreviation'], $seq, $year);
 
             // Step 2: create the user account — temporary password, student will be prompted to reset
-            $tempPassword = bin2hex(random_bytes(8)); // 16-char hex; sent via email
+            $tempPassword = bin2hex(random_bytes(8)); // 16-char hex; admin shares manually
             $hash = password_hash($tempPassword, PASSWORD_DEFAULT);
 
             // role_id for 'student' — inserted in migration 015
@@ -105,7 +112,7 @@ class RegistrationController {
                 ':reg_no' => $regNo,
                 ':uid'    => $userId,
                 ':waived' => $waiveRegFee ? 1 : 0,
-                ':admin'  => $reviewedBy,
+                ':admin'  => $adminId,
                 ':id'     => $registrationId,
             ]);
 
@@ -114,26 +121,21 @@ class RegistrationController {
             $approvedReg = $this->regModel->getById($registrationId);
             $approvedReg['registration_no'] = $regNo;
 
-            $notifier = new \StudentNotifier($pdo);
-            $notifier->sendRegistrationApproved($approvedReg, $tempPassword);
-
             $studentCtrl = new StudentController();
-            $paymentResult = $studentCtrl->recordInitialPayment($approvedReg, $reviewedBy);
-            if (!empty($paymentResult['ok']) && !empty($paymentResult['receipt_html'])) {
-                require_once __DIR__ . '/../models/PaymentModel.php';
-                $paymentModel = new \Models\PaymentModel($pdo);
-                $payment = $paymentModel->getById($paymentResult['payment_id']);
-                $notifier->sendPaymentApproved($approvedReg, $payment, $paymentResult['receipt_html']);
+            $paymentResult = $studentCtrl->recordInitialPayment($approvedReg, $adminId);
+            if (!empty($paymentResult['ok'])) {
+                $this->studentModel()->unlockPortal($registrationId);
             }
 
             $progressModel = new \Models\ProgressModel($pdo);
             $progressModel->initializeForRegistration($registrationId, (int) $approvedReg['course_id']);
 
             return [
-                'ok'           => true,
-                'reg_no'       => $regNo,
-                'user_id'      => $userId,
-                'temp_password'=> $tempPassword,
+                'ok'            => true,
+                'reg_no'        => $regNo,
+                'user_id'       => $userId,
+                'temp_password' => $tempPassword,
+                'login_email'   => $reg['email'],
             ];
 
         } catch (\Throwable $e) {
@@ -153,16 +155,30 @@ class RegistrationController {
         if ($reg['status'] !== 'pending') return ['ok' => false, 'error' => 'This registration has already been reviewed.'];
         if (empty(trim($reason))) return ['ok' => false, 'error' => 'A rejection reason is required.'];
 
+        $adminId = resolve_valid_user_id($this->db, $reviewedBy, true);
+        if ($adminId === null) {
+            return ['ok' => false, 'error' => 'No valid admin account found. Log out, log in again, then retry.'];
+        }
+
         $stmt = $this->db->prepare(
             "UPDATE registrations
              SET status = 'rejected', rejection_reason = :reason, reviewed_by = :admin, reviewed_at = NOW()
              WHERE id = :id"
         );
-        $stmt->execute([':reason' => trim($reason), ':admin' => $reviewedBy, ':id' => $registrationId]);
-
-        $notifier = new \StudentNotifier($this->db);
-        $notifier->sendRegistrationRejected($reg, trim($reason));
+        $stmt->execute([':reason' => trim($reason), ':admin' => $adminId, ':id' => $registrationId]);
 
         return ['ok' => true];
+    }
+
+    /**
+     * Delete a registration (any status). Removes the student login account if one was created.
+     */
+    public function delete(int $registrationId): array {
+        return $this->regModel->delete($registrationId);
+    }
+
+    private function studentModel(): \Models\StudentModel {
+        require_once __DIR__ . '/../models/StudentModel.php';
+        return new \Models\StudentModel($this->db);
     }
 }

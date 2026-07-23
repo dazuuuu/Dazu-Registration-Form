@@ -28,7 +28,7 @@ $DIRS = [
 ];
 
 $section = $_GET['section'] ?? 'logo';
-if (!in_array($section, ['logo', 'hero', 'headers'], true)) {
+if (!in_array($section, ['logo', 'hero', 'headers', 'contact'], true)) {
     $section = 'logo';
 }
 
@@ -147,6 +147,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect_back('headers', 'success', 'Page banner saved.');
     }
 
+    if ($action === 'save_contact') {
+        $keys = [
+            'contact_phone', 'contact_email', 'contact_address', 'contact_hours',
+            'contact_map_embed', 'contact_map_link', 'contact_map_title',
+            'contact_map_subtitle', 'contact_map_blurb',
+        ];
+        foreach ($keys as $key) {
+            if (isset($_POST[$key])) {
+                $settings->set($key, trim($_POST[$key]));
+            }
+        }
+        redirect_back('contact', 'success', 'Contact & map settings saved.');
+    }
+
     redirect_back($section, 'error', 'Unknown action.');
 }
 
@@ -162,7 +176,16 @@ $logoUrl     = settings_asset_url($settings->get('logo_path'));
 $heroSlides  = $settings->getHeroSlides(false);
 $pageHeaders = $settings->getAllPageHeaders();
 
-$titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners'];
+$titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners', 'contact' => 'Contact & Map'];
+$contactPhone = $settings->get('contact_phone', '+254 750 116 600');
+$contactEmail = $settings->get('contact_email', 'info@dazuaihub.com');
+$contactAddress = $settings->get('contact_address', 'Witeithie House, Room 529, Thika Town');
+$contactHours = $settings->get('contact_hours', 'Monday - Saturday: 8:00 AM - 5:00 PM');
+$contactMapEmbed = $settings->get('contact_map_embed', '');
+$contactMapLink = $settings->get('contact_map_link', '');
+$contactMapTitle = $settings->get('contact_map_title', 'Witeithie House, Thika');
+$contactMapSubtitle = $settings->get('contact_map_subtitle', 'Room 529 (5th Floor)');
+$contactMapBlurb = $settings->get('contact_map_blurb', 'Located directly within Thika Town, near principal transport stages, making daily commutes seamless for local students.');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -242,6 +265,7 @@ $titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page B
     <a class="tab <?php echo $section === 'logo' ? 'active' : ''; ?>"    href="edit.php?section=logo"><i class="fa-solid fa-image"></i> Branding</a>
     <a class="tab <?php echo $section === 'hero' ? 'active' : ''; ?>"    href="edit.php?section=hero"><i class="fa-solid fa-images"></i> Hero</a>
     <a class="tab <?php echo $section === 'headers' ? 'active' : ''; ?>" href="edit.php?section=headers"><i class="fa-solid fa-heading"></i> Page banners</a>
+    <a class="tab <?php echo $section === 'contact' ? 'active' : ''; ?>" href="edit.php?section=contact"><i class="fa-solid fa-map-location-dot"></i> Contact &amp; map</a>
   </div>
 
   <?php if ($flash): ?>
@@ -418,6 +442,58 @@ $titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page B
       </div>
       <div class="divider"></div>
       <button class="btn btn-primary" type="submit"><i class="fa-solid fa-plus"></i> Add page banner</button>
+    </form>
+  <?php endif; ?>
+
+  <?php if ($section === 'contact'): ?>
+    <form class="panel" method="POST">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="action" value="save_contact">
+      <h2>Contact page &amp; campus map</h2>
+      <p class="hint">These details appear on the public Contact page. Paste a Google Maps <strong>embed URL</strong> (iframe src) for the live map.</p>
+
+      <div class="row">
+        <div class="field" style="margin:0;">
+          <label>Phone / WhatsApp (display)</label>
+          <input type="text" name="contact_phone" value="<?php echo htmlspecialchars($contactPhone); ?>">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Email</label>
+          <input type="text" name="contact_email" value="<?php echo htmlspecialchars($contactEmail); ?>">
+        </div>
+      </div>
+      <div class="field">
+        <label>Campus address</label>
+        <input type="text" name="contact_address" value="<?php echo htmlspecialchars($contactAddress); ?>">
+      </div>
+      <div class="field">
+        <label>Office hours</label>
+        <input type="text" name="contact_hours" value="<?php echo htmlspecialchars($contactHours); ?>">
+      </div>
+      <div class="field">
+        <label>Google Maps embed URL (iframe src)</label>
+        <textarea name="contact_map_embed" rows="3" placeholder="https://www.google.com/maps/embed?pb=..."><?php echo htmlspecialchars($contactMapEmbed); ?></textarea>
+      </div>
+      <div class="field">
+        <label>Google Maps link (Open in Maps button)</label>
+        <input type="url" name="contact_map_link" value="<?php echo htmlspecialchars($contactMapLink); ?>" placeholder="https://maps.google.com/...">
+      </div>
+      <div class="row">
+        <div class="field" style="margin:0;">
+          <label>Map card title</label>
+          <input type="text" name="contact_map_title" value="<?php echo htmlspecialchars($contactMapTitle); ?>">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Map card subtitle</label>
+          <input type="text" name="contact_map_subtitle" value="<?php echo htmlspecialchars($contactMapSubtitle); ?>">
+        </div>
+      </div>
+      <div class="field">
+        <label>Directions blurb</label>
+        <textarea name="contact_map_blurb" rows="3"><?php echo htmlspecialchars($contactMapBlurb); ?></textarea>
+      </div>
+      <div class="divider"></div>
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save contact settings</button>
     </form>
   <?php endif; ?>
 

@@ -1,5 +1,6 @@
 <?php
 // public/admin/services/index.php
+require_once __DIR__ . '/../../../app/v1/config/paths.php';
 $page_title = 'Manage Services';
 $breadcrumbs = [
     ['label' => 'Services', 'active' => true]

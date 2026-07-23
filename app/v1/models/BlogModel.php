@@ -10,8 +10,8 @@ class BlogModel {
     
     // Create blog post
     public function create($data) {
-        $sql = "INSERT INTO blogs (title, slug, excerpt, content, featured_image, category_id, author_id, status, meta_title, meta_description, meta_keywords, published_at) 
-                VALUES (:title, :slug, :excerpt, :content, :featured_image, :category_id, :author_id, :status, :meta_title, :meta_description, :meta_keywords, :published_at)";
+        $sql = "INSERT INTO blogs (title, slug, excerpt, content, featured_image, category_id, author_id, status, is_featured, meta_title, meta_description, meta_keywords, published_at) 
+                VALUES (:title, :slug, :excerpt, :content, :featured_image, :category_id, :author_id, :status, :is_featured, :meta_title, :meta_description, :meta_keywords, :published_at)";
         
         $stmt = $this->db->prepare($sql);
         
@@ -113,7 +113,7 @@ class BlogModel {
         }
         
         if (empty($fields)) {
-            return false;
+            return true;
         }
         
         $sql = "UPDATE blogs SET " . implode(', ', $fields) . " WHERE id = :id";
@@ -145,22 +145,22 @@ class BlogModel {
     
     // Add section to blog
     public function addSection($data) {
-        $sql = "INSERT INTO blog_sections (blog_id, section_type, title, content, media_url, media_type, video_id, sort_order) 
-                VALUES (:blog_id, :section_type, :title, :content, :media_url, :media_type, :video_id, :sort_order)";
+        $sql = "INSERT INTO blog_sections (blog_id, section_type, title, content, media_url, gallery_images, media_type, video_id, link_label, cta_type, cta_value, cta_label, faq_items, sort_order)
+                VALUES (:blog_id, :section_type, :title, :content, :media_url, :gallery_images, :media_type, :video_id, :link_label, :cta_type, :cta_value, :cta_label, :faq_items, :sort_order)";
         $stmt = $this->db->prepare($sql);
-        
+
         if ($stmt->execute($data)) {
             return $this->db->lastInsertId();
         }
         return false;
     }
-    
+
     // Update section
     public function updateSection($id, $data) {
         $fields = [];
         $params = [':id' => $id];
-        
-        $allowedFields = ['section_type', 'title', 'content', 'media_url', 'media_type', 'video_id', 'sort_order'];
+
+        $allowedFields = ['section_type', 'title', 'content', 'media_url', 'gallery_images', 'media_type', 'video_id', 'link_label', 'cta_type', 'cta_value', 'cta_label', 'faq_items', 'sort_order'];
         
         foreach ($allowedFields as $field) {
             if (isset($data[$field])) {
@@ -170,7 +170,7 @@ class BlogModel {
         }
         
         if (empty($fields)) {
-            return false;
+            return true;
         }
         
         $sql = "UPDATE blog_sections SET " . implode(', ', $fields) . " WHERE id = :id";

@@ -1,13 +1,15 @@
 <?php
 // public/admin/students/view.php
-require_once __DIR__ . '/../../../app/init.php';
+require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/StudentModel.php';
 require_once __DIR__ . '/../../../app/v1/models/PaymentModel.php';
 require_once __DIR__ . '/../../../app/v1/models/RegistrationModel.php';
 require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
+require_once __DIR__ . '/../../../app/v1/controllers/ContinuingStudentController.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
 
 use Models\Connection;
@@ -15,6 +17,7 @@ use Models\StudentModel;
 use Models\PaymentModel;
 use Models\RegistrationModel;
 use Controllers\StudentController;
+use Controllers\ContinuingStudentController;
 
 Middleware::requireAdmin();
 
@@ -40,8 +43,11 @@ $installments = RegistrationModel::calculateInstallments(
     $reg['payment_plan'],
     (int) $reg['duration_months']
 );
+$learningMonth = (int) ($reg['current_learning_month'] ?? 1);
+$enrollmentType = $reg['enrollment_type'] ?? 'new';
 
 $error = null;
+$credentials = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
@@ -53,21 +59,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'send_credentials') {
             $result = $controller->sendCredentials($id);
             if ($result['ok']) {
-                SessionModel::setFlash('success', 'Login credentials have been emailed to the student.');
-                header('Location: /Registration-System/public/admin/students/view.php?id=' . $id);
-                exit();
+                $credentials = [
+                    'reg_no'        => $result['username'],
+                    'login_email'   => $result['login_email'],
+                    'username'      => $result['username'],
+                    'temp_password' => $result['temp_password'],
+                    'login_url'     => url('auth/login.php'),
+                ];
+                SessionModel::setFlash('success', 'New password generated. Share the login details below with the student.');
+            } else {
+                $error = $result['error'];
             }
-            $error = $result['error'];
         } elseif ($action === 'unlock_portal') {
             $studentModel->unlockPortal($id);
             SessionModel::setFlash('success', 'Student portal unlocked.');
-            header('Location: /Registration-System/public/admin/students/view.php?id=' . $id);
+            header('Location: ' . url('admin/students/view.php?id=' . $id));
             exit();
         } elseif ($action === 'lock_portal') {
             $studentModel->lockPortal($id);
             SessionModel::setFlash('success', 'Student portal locked.');
-            header('Location: /Registration-System/public/admin/students/view.php?id=' . $id);
+            header('Location: ' . url('admin/students/view.php?id=' . $id));
             exit();
+        } elseif ($action === 'update_learning_month') {
+            $continuing = new ContinuingStudentController();
+            $result = $continuing->updateLearningMonth($id, (int) ($_POST['current_learning_month'] ?? 1));
+            if ($result['ok']) {
+                SessionModel::setFlash('success', 'Learning month updated. Curriculum access synced.');
+            } else {
+                $error = $result['error'];
+            }
+        } elseif ($action === 'update_fee_status') {
+            $continuing = new ContinuingStudentController();
+            $result = $continuing->updateFeeStatus(
+                $id,
+                trim($_POST['fee_balance_note'] ?? ''),
+                !empty($_POST['portal_locked']),
+                $_POST['fee_status'] ?? 'current'
+            );
+            if ($result['ok']) {
+                SessionModel::setFlash('success', 'Fee status and portal access updated.');
+                header('Location: ' . url('admin/students/view.php?id=' . $id));
+                exit();
+            }
+            $error = $result['error'];
         }
     }
     $reg = $studentModel->getById($id);
@@ -133,6 +167,9 @@ ob_start();
         <div class="card mb-4">
             <div class="card-header fw-semibold">Course & Payments</div>
             <div class="card-body">
+                <?php if ($enrollmentType === 'continuing'): ?>
+                    <span class="badge bg-info mb-3">Continuing Student</span>
+                <?php endif; ?>
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <small class="text-muted d-block">Course</small>
@@ -143,6 +180,16 @@ ob_start();
                         <?php echo htmlspecialchars($reg['payment_plan']); ?>
                         (<?php echo (int) $reg['installments_paid']; ?> / <?php echo $installments['count']; ?> paid)
                     </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block">Learning Month</small>
+                        <strong>Month <?php echo $learningMonth; ?></strong> of <?php echo (int) $reg['duration_months']; ?>
+                    </div>
+                    <?php if (!empty($reg['fee_balance_note'])): ?>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block">Fee Note</small>
+                        <?php echo htmlspecialchars($reg['fee_balance_note']); ?>
+                    </div>
+                    <?php endif; ?>
                 </div>
                 <table class="table table-sm table-bordered mb-0">
                     <tr><td>Total Owed</td><td class="text-end">KSh <?php echo number_format($totalOwed); ?></td></tr>
@@ -178,7 +225,21 @@ ob_start();
                                 <td>KSh <?php echo number_format($p['amount']); ?></td>
                                 <td><?php echo htmlspecialchars($p['payer_reference']); ?></td>
                                 <td><span class="badge bg-<?php echo ['pending'=>'warning','approved'=>'success','rejected'=>'danger'][$p['status']]; ?>"><?php echo ucfirst($p['status']); ?></span></td>
-                                <td><?php echo $p['receipt_no'] ? htmlspecialchars($p['receipt_no']) : '—'; ?></td>
+                                <td>
+                                    <?php if ($p['status'] === 'approved' && !empty($p['receipt_no'])): ?>
+                                        <?php echo htmlspecialchars($p['receipt_no']); ?>
+                                        <a href="<?php echo url('admin/payments/receipt.php?id=' . (int)$p['id']); ?>"
+                                           class="btn btn-sm btn-outline-secondary ms-1" target="_blank" title="View">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="<?php echo url('admin/payments/receipt.php?id=' . (int)$p['id'] . '&download=1'); ?>"
+                                           class="btn btn-sm btn-outline-secondary" title="Download">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    <?php else: ?>
+                                        —
+                                    <?php endif; ?>
+                                </td>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
@@ -192,20 +253,96 @@ ob_start();
     <div class="col-lg-4">
         <div class="card mb-4 border-primary">
             <div class="card-header bg-primary text-white fw-semibold">
-                <i class="fas fa-envelope me-1"></i> Send Credentials
+                <i class="fas fa-key me-1"></i> Login credentials
             </div>
             <div class="card-body">
-                <p class="text-muted small">Generate a new temporary password and email login credentials to the student.</p>
+                <p class="text-muted small">Generate a new password and share login details manually (WhatsApp, in person). Emails are off.</p>
+                <?php if ($credentials): ?>
+                <?php $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? '', $credentials); ?>
+                <div class="alert alert-success small font-monospace" id="studentCredBox">
+                    <div><strong>Email:</strong> <?php echo htmlspecialchars($credentials['login_email']); ?></div>
+                    <div><strong>Username:</strong> <?php echo htmlspecialchars($credentials['username']); ?></div>
+                    <div><strong>Password:</strong> <?php echo htmlspecialchars($credentials['temp_password']); ?></div>
+                </div>
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    <button type="button" class="btn btn-sm btn-outline-success" id="copyStudentCreds">
+                        <i class="fas fa-copy me-1"></i> Copy details
+                    </button>
+                    <?php if ($waUrl): ?>
+                    <a href="<?php echo htmlspecialchars($waUrl); ?>" class="btn btn-sm btn-success" target="_blank" rel="noopener">
+                        <i class="fab fa-whatsapp me-1"></i> WhatsApp
+                    </a>
+                    <?php endif; ?>
+                </div>
+                <script>
+                (function(){
+                    var btn = document.getElementById('copyStudentCreds');
+                    var box = document.getElementById('studentCredBox');
+                    if (!btn || !box) return;
+                    btn.addEventListener('click', function(){
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(box.innerText).then(function(){ btn.innerHTML = '<i class="fas fa-check me-1"></i> Copied'; });
+                        }
+                    });
+                })();
+                </script>
+                <?php endif; ?>
                 <?php if ($reg['credentials_sent_at']): ?>
-                    <p class="small text-success mb-3">
-                        <i class="fas fa-check"></i> Last sent: <?php echo date('d M Y H:i', strtotime($reg['credentials_sent_at'])); ?>
+                    <p class="small text-muted mb-3">
+                        Last reset: <?php echo date('d M Y H:i', strtotime($reg['credentials_sent_at'])); ?>
                     </p>
                 <?php endif; ?>
-                <form method="POST" onsubmit="return confirm('Send new login credentials to this student?');">
+                <form method="POST" onsubmit="return confirm('Generate new login credentials for this student?');">
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="action" value="send_credentials">
                     <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-paper-plane me-1"></i> Email Credentials
+                        <i class="fas fa-sync me-1"></i> Reset password &amp; show details
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header fw-semibold"><i class="fas fa-book-open me-1"></i> Learning Month</div>
+            <div class="card-body">
+                <form method="POST">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="update_learning_month">
+                    <label class="form-label small text-muted">Current month (unlocks reading for months 1 through this month)</label>
+                    <div class="input-group mb-3">
+                        <input type="number" name="current_learning_month" class="form-control"
+                               value="<?php echo $learningMonth; ?>" min="1" max="<?php echo (int) $reg['duration_months']; ?>" required>
+                        <span class="input-group-text">/ <?php echo (int) $reg['duration_months']; ?></span>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary w-100 btn-sm">
+                        <i class="fas fa-save me-1"></i> Update Month &amp; Unlock Topics
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header fw-semibold"><i class="fas fa-wallet me-1"></i> Fee Status</div>
+            <div class="card-body">
+                <form method="POST">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="update_fee_status">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">Balance note</label>
+                        <textarea name="fee_balance_note" class="form-control form-control-sm" rows="2"><?php echo htmlspecialchars($reg['fee_balance_note'] ?? ''); ?></textarea>
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="portal_locked" id="feePortalLock" value="1"
+                            <?php echo $reg['portal_locked'] ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="feePortalLock">Lock portal (outstanding balance)</label>
+                    </div>
+                    <p class="small text-muted mb-2">
+                        Balance: <strong class="<?php echo $balance > 0 ? 'text-danger' : 'text-success'; ?>">
+                            <?php echo $balance > 0 ? 'KSh ' . number_format($balance) : 'Fully paid'; ?>
+                        </strong>
+                    </p>
+                    <button type="submit" class="btn btn-outline-primary w-100 btn-sm">
+                        <i class="fas fa-save me-1"></i> Save Fee Status
                     </button>
                 </form>
             </div>

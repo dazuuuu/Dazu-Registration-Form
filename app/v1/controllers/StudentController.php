@@ -7,26 +7,24 @@ use Models\StudentModel;
 use Models\PaymentModel;
 use Models\RegistrationModel;
 
-require_once __DIR__ . '/../services/StudentNotifier.php';
 require_once __DIR__ . '/../services/ReceiptGenerator.php';
+require_once __DIR__ . '/../services/StudentNotifier.php';
 
 class StudentController {
 
     private $db;
     private $studentModel;
     private $paymentModel;
-    private $notifier;
 
     public function __construct() {
         $this->db = Connection::getInstance()->getConnection();
         $this->studentModel = new StudentModel($this->db);
         $this->paymentModel = new PaymentModel($this->db);
-        $this->notifier = new \StudentNotifier($this->db);
     }
 
     /**
-     * Generate a new temp password and email credentials to the student.
-     * @return array{ok:bool, error?:string, temp_password?:string}
+     * Reset password and return credentials for admin to share manually (no email).
+     * @return array{ok:bool, error?:string, temp_password?:string, username?:string, login_email?:string}
      */
     public function sendCredentials(int $registrationId): array {
         $reg = $this->studentModel->getById($registrationId);
@@ -37,17 +35,17 @@ class StudentController {
         $tempPassword = bin2hex(random_bytes(8));
         $hash = password_hash($tempPassword, PASSWORD_DEFAULT);
 
-        $stmt = $this->db->prepare("UPDATE users SET password_hash = :hash WHERE id = :uid");
+        $stmt = $this->db->prepare("UPDATE users SET password_hash = :hash, is_active = 1, account_status = 'active' WHERE id = :uid");
         $stmt->execute([':hash' => $hash, ':uid' => $reg['user_id']]);
 
-        $mailResult = $this->notifier->sendCredentials($reg, $tempPassword);
         $this->studentModel->markCredentialsSent($registrationId);
 
-        if (!$mailResult['ok']) {
-            return ['ok' => false, 'error' => 'Password reset but email failed: ' . $mailResult['message'], 'temp_password' => $tempPassword];
-        }
-
-        return ['ok' => true, 'temp_password' => $tempPassword];
+        return [
+            'ok'            => true,
+            'temp_password' => $tempPassword,
+            'username'      => $reg['registration_no'] ?? '',
+            'login_email'   => $reg['email'],
+        ];
     }
 
     /**
@@ -70,7 +68,8 @@ class StudentController {
         }
 
         $payment = $this->paymentModel->getById($result['id']);
-        $this->notifier->sendPaymentSubmitted($reg, $payment);
+        $notifier = new \StudentNotifier($this->db);
+        $notifier->sendPaymentSubmitted($reg, $payment);
 
         return $result;
     }
@@ -84,6 +83,11 @@ class StudentController {
             return ['ok' => false, 'error' => 'Payment not found or already processed.'];
         }
 
+        $resolvedAdmin = resolve_valid_user_id($this->db, $adminId, true);
+        if ($resolvedAdmin === null) {
+            return ['ok' => false, 'error' => 'No valid admin account found. Log out, log in again, then retry.'];
+        }
+
         $reg = $this->studentModel->getById((int) $payment['registration_id']);
         if (!$reg) {
             return ['ok' => false, 'error' => 'Registration not found.'];
@@ -94,7 +98,7 @@ class StudentController {
 
         $receiptHtml = \ReceiptGenerator::generate($reg, array_merge($payment, ['receipt_no' => $receiptNo]), $totalPaid);
 
-        if (!$this->paymentModel->approve($paymentId, $adminId, $receiptNo, $receiptHtml)) {
+        if (!$this->paymentModel->approve($paymentId, $resolvedAdmin, $receiptNo, $receiptHtml)) {
             return ['ok' => false, 'error' => 'Failed to approve payment.'];
         }
 
@@ -104,9 +108,12 @@ class StudentController {
 
         $updatedPayment = $this->paymentModel->getById($paymentId);
         $updatedReg = $this->studentModel->getById((int) $payment['registration_id']);
-        $this->notifier->sendPaymentApproved($updatedReg, $updatedPayment, $receiptHtml);
 
-        return ['ok' => true, 'receipt_no' => $receiptNo];
+        $notifier = new \StudentNotifier($this->db);
+        $emailPayment = array_merge($updatedPayment, ['payment_id' => $paymentId]);
+        $notifier->sendPaymentApproved($updatedReg, $emailPayment, $receiptHtml);
+
+        return ['ok' => true, 'receipt_no' => $receiptNo, 'registration_id' => (int) $payment['registration_id']];
     }
 
     /**
@@ -121,12 +128,20 @@ class StudentController {
             return ['ok' => false, 'error' => 'A rejection reason is required.'];
         }
 
-        if (!$this->paymentModel->reject($paymentId, $adminId, $reason)) {
+        $resolvedAdmin = resolve_valid_user_id($this->db, $adminId, true);
+        if ($resolvedAdmin === null) {
+            return ['ok' => false, 'error' => 'No valid admin account found. Log out, log in again, then retry.'];
+        }
+
+        if (!$this->paymentModel->reject($paymentId, $resolvedAdmin, $reason)) {
             return ['ok' => false, 'error' => 'Failed to reject payment.'];
         }
 
         $reg = $this->studentModel->getById((int) $payment['registration_id']);
-        $this->notifier->sendPaymentRejected($reg, $payment, $reason);
+        if ($reg) {
+            $notifier = new \StudentNotifier($this->db);
+            $notifier->sendPaymentRejected($reg, $payment, $reason);
+        }
 
         return ['ok' => true];
     }
@@ -135,6 +150,11 @@ class StudentController {
      * Record initial payment and send receipt on registration approval.
      */
     public function recordInitialPayment(array $reg, int $adminId): array {
+        $resolvedAdmin = resolve_valid_user_id($this->db, $adminId, true);
+        if ($resolvedAdmin === null) {
+            return ['ok' => false, 'error' => 'No valid admin account for payment record.'];
+        }
+
         $installments = RegistrationModel::calculateInstallments(
             (float) $reg['course_fee'],
             $reg['payment_plan'],
@@ -151,7 +171,7 @@ class StudentController {
             ':rid'    => $reg['id'],
             ':amount' => $initialAmount,
             ':ref'    => $reg['payment_reference'],
-            ':admin'  => $adminId,
+            ':admin'  => $resolvedAdmin,
         ]);
         $paymentId = (int) $this->db->lastInsertId();
 

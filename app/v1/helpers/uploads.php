@@ -143,6 +143,62 @@ if (!function_exists('upload_image')) {
     }
 }
 
+if (!function_exists('validate_pdf_upload')) {
+    /**
+     * @return array{ok:bool, error?:string}
+     */
+    function validate_pdf_upload(array $file, int $maxBytes = 10485760): array
+    {
+        if (!isset($file['error']) || is_array($file['error'])) {
+            return ['ok' => false, 'error' => 'Invalid upload parameters.'];
+        }
+        if ($file['error'] === UPLOAD_ERR_NO_FILE) {
+            return ['ok' => false, 'error' => 'No file was selected.'];
+        }
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            return ['ok' => false, 'error' => 'Upload failed.'];
+        }
+        if (($file['size'] ?? 0) > $maxBytes) {
+            return ['ok' => false, 'error' => 'PDF exceeds ' . round($maxBytes / 1048576, 1) . ' MB.'];
+        }
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime = finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+        if ($mime !== 'application/pdf') {
+            return ['ok' => false, 'error' => 'Only PDF files are accepted.'];
+        }
+        return ['ok' => true];
+    }
+}
+
+if (!function_exists('upload_pdf')) {
+    /**
+     * @return array{ok:bool, path?:string, error?:string}
+     */
+    function upload_pdf(array $file, string $absDir, string $webDir, int $maxBytes = 10485760): array
+    {
+        $v = validate_pdf_upload($file, $maxBytes);
+        if (!$v['ok']) {
+            return $v;
+        }
+        if (!defined('UPLOAD_TEST_MODE') && !is_uploaded_file($file['tmp_name'])) {
+            return ['ok' => false, 'error' => 'Security check failed on the uploaded file.'];
+        }
+        if (!is_dir($absDir) && !@mkdir($absDir, 0775, true) && !is_dir($absDir)) {
+            return ['ok' => false, 'error' => 'Could not create the upload folder.'];
+        }
+        $name = time() . '_' . bin2hex(random_bytes(6)) . '.pdf';
+        $dest = rtrim($absDir, '/\\') . DIRECTORY_SEPARATOR . $name;
+        $moved = defined('UPLOAD_TEST_MODE')
+            ? @copy($file['tmp_name'], $dest)
+            : @move_uploaded_file($file['tmp_name'], $dest);
+        if (!$moved) {
+            return ['ok' => false, 'error' => 'Could not save the uploaded file.'];
+        }
+        return ['ok' => true, 'path' => rtrim($webDir, '/') . '/' . $name];
+    }
+}
+
 /* ====================================================================
    VIEW HELPERS
    ==================================================================== */

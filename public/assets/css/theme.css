@@ -333,7 +333,8 @@ main { animation: dhFadeIn 0.45s ease both; }
 .dh-course-title { font-size: 1.1rem; font-weight: 700; color: var(--text); }
 .dh-course-meta { font-size: 0.85rem; color: var(--dh-green); font-weight: 600; }
 .dh-course-desc { font-size: 0.9rem; color: var(--text-muted); flex: 1; }
-.dh-course-actions { margin-top: 12px; }
+.dh-course-actions { margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.dh-course-actions .course-share-copy { font-family: inherit; }
 
 /* ── Scroll reveal ─────────────────────────────────────────── */
 .dh-reveal,

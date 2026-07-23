@@ -1,6 +1,6 @@
 <?php
 // public/admin/courses/index.php
-require_once __DIR__ . '/../../../app/init.php';
+require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/helpers/course_share.php';
@@ -39,9 +39,14 @@ ob_start();
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">All Courses</h5>
-        <a href="<?php echo url('admin/courses/create.php'); ?>" class="btn btn-primary btn-sm">
-            <i class="fas fa-plus me-1"></i> Add Course
-        </a>
+        <div class="d-flex gap-2">
+            <a href="<?php echo url('admin/courses/categories.php'); ?>" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-folder me-1"></i> Categories
+            </a>
+            <a href="<?php echo url('admin/courses/create.php'); ?>" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i> Add Course
+            </a>
+        </div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -75,7 +80,20 @@ ob_start();
                         </td>
                         <td><?php echo htmlspecialchars($c['title']); ?></td>
                         <td><span class="badge bg-secondary"><?php echo htmlspecialchars($c['abbreviation']); ?></span></td>
-                        <td><?php echo (int) $c['duration_months']; ?> month<?php echo $c['duration_months'] == 1 ? '' : 's'; ?></td>
+                        <td>
+                            <?php echo (int) $c['duration_months']; ?> month<?php echo $c['duration_months'] == 1 ? '' : 's'; ?>
+                            <?php if (!empty($c['weeks_of_study']) || !empty($c['hours_of_study']) || !empty($c['study_schedule'])): ?>
+                                <br><small class="text-muted">
+                                    <?php
+                                    $bits = [];
+                                    if (!empty($c['weeks_of_study'])) $bits[] = (int) $c['weeks_of_study'] . ' wk' . ((int) $c['weeks_of_study'] === 1 ? '' : 's');
+                                    if (!empty($c['hours_of_study'])) $bits[] = (int) $c['hours_of_study'] . ' hr' . ((int) $c['hours_of_study'] === 1 ? '' : 's');
+                                    if (!empty($c['study_schedule'])) $bits[] = htmlspecialchars($c['study_schedule']);
+                                    echo implode(' &middot; ', $bits);
+                                    ?>
+                                </small>
+                            <?php endif; ?>
+                        </td>
                         <td>KSh <?php echo number_format($c['course_fee'], 0); ?></td>
                         <td><?php echo (int) $c['last_sequence']; ?></td>
                         <td>
@@ -87,6 +105,8 @@ ob_start();
                         </td>
                         <td class="text-end text-nowrap">
                             <?php if ($c['is_active']): ?>
+                            <a href="<?php echo htmlspecialchars(course_whatsapp_share_url($c)); ?>" target="_blank" rel="noopener"
+                               class="btn btn-sm btn-success" title="WhatsApp share"><i class="fab fa-whatsapp"></i></a>
                             <a href="<?php echo course_share_url((int)$c['id']); ?>" target="_blank" rel="noopener"
                                class="btn btn-sm btn-outline-success" title="Share registration link"><i class="fas fa-share-nodes"></i></a>
                             <?php endif; ?>

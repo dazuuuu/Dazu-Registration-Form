@@ -1,6 +1,6 @@
 <?php
 // public/students/dashboard/index.php
-require_once __DIR__ . '/../../../app/init.php';
+require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/helpers/course_share.php';
@@ -11,8 +11,6 @@ require_once __DIR__ . '/../../../app/v1/models/RegistrationModel.php';
 require_once __DIR__ . '/../../../app/v1/models/DashboardModel.php';
 require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
-require_once __DIR__ . '/../../../app/v1/services/StudentNotifier.php';
-
 use Models\Connection;
 use Models\StudentModel;
 use Models\PaymentModel;
@@ -37,9 +35,6 @@ if (!$reg) {
 $justLocked = $studentModel->ensurePortalStatus($reg);
 if ($justLocked) {
     $reg = $studentModel->getByUserId($userId);
-    $notifier = new StudentNotifier($pdo);
-    $amountDue = $studentModel->nextInstallmentAmount($reg);
-    $notifier->sendPortalLocked($reg, $amountDue);
 }
 
 $portal_locked = (bool) $reg['portal_locked'];
@@ -69,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $portal_locked) {
             $_POST['payer_reference'] ?? ''
         );
         if ($result['ok']) {
-            SessionModel::setFlash('success', 'Payment submitted successfully. You will receive a confirmation email once admin verifies your payment.');
+            SessionModel::setFlash('success', 'Payment submitted. Your portal will update once admin verifies the payment.');
             header('Location: ' . url('students/dashboard/index.php'));
             exit();
         }

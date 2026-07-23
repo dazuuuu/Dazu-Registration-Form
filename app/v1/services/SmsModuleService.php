@@ -341,7 +341,7 @@ class SmsModuleService
     {
         require_once __DIR__ . '/../helpers/site_contact.php';
         $c = site_contact_settings();
-        return ['name' => 'Dazu Hub Institute', 'phone' => $c['contact_phone'] ?? '+254 750 116600'];
+        return ['name' => $c['site_name'] ?? 'Dazu Hub Institute', 'phone' => $c['contact_phone'] ?? '+254 750 116600'];
     }
 
     private function receiptHtml(array $student, string $receiptNo, string $type, float $delta, float $cost, float $paid, float $balance): string
@@ -501,7 +501,7 @@ class SmsModuleService
     public function whatsappUrl(string $phone, array $student, array $receipt = []): string
     {
         $digits = preg_replace('/\D+/', '', $phone);
-        if (str_starts_with($digits, '0')) {
+        if (isset($digits[0]) && $digits[0] === '0') {
             $digits = '254' . substr($digits, 1);
         }
         $bal = self::balance((float) $student['cost'], (float) $student['paid']);

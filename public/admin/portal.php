@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../app/v1/helpers/functions.php';
 
 // If already logged in as admin, redirect to admin profile
 if (isLoggedIn() && isAdmin()) {
-    redirect(url('profile/admin/index.php'));
+    redirect(url('admin/dashboard.php'));
 }
 
 $error = '';
@@ -38,7 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role_id'] = $user['role_id'];
             $_SESSION['logged_in'] = true;
 
-            redirect(url('profile/admin/index.php'));
+            redirect(url('admin/dashboard.php'));
         }
     }
 }
@@ -127,7 +127,10 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
                 </div>
 
                 <div class="auth-field">
-                    <label for="password">Password</label>
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <label for="password">Password</label>
+                        <a href="<?php echo url('forgot-password'); ?>" class="small text-decoration-none">Forgot password?</a>
+                    </div>
                     <div class="auth-input">
                         <i class="fas fa-lock"></i>
                         <input type="password" id="password" name="password" placeholder="Enter your password" required>

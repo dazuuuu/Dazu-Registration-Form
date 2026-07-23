@@ -34,4 +34,33 @@ function getRoleBasedProfileUrl() {
     }
     return url('profile/client/index.php');
 }
+
+/**
+ * Return user id only if it exists in users. Optionally fall back to first active admin.
+ * Fixes FK errors when session still holds an id from an old database import.
+ */
+function resolve_valid_user_id($pdo, ?int $userId, bool $fallbackAdmin = false): ?int {
+    if ($userId !== null && $userId > 0) {
+        $stmt = $pdo->prepare('SELECT id FROM users WHERE id = :id LIMIT 1');
+        $stmt->execute([':id' => $userId]);
+        $id = $stmt->fetchColumn();
+        if ($id) {
+            return (int) $id;
+        }
+    }
+
+    if (!$fallbackAdmin) {
+        return null;
+    }
+
+    $stmt = $pdo->query(
+        "SELECT u.id FROM users u
+         INNER JOIN roles r ON r.id = u.role_id
+         WHERE r.role_name IN ('superadmin', 'admin') AND u.is_active = 1
+         ORDER BY u.id ASC
+         LIMIT 1"
+    );
+    $id = $stmt->fetchColumn();
+    return $id ? (int) $id : null;
+}
 ?>

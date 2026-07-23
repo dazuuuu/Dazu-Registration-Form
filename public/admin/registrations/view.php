@@ -1,8 +1,9 @@
 <?php
 // public/admin/registrations/view.php
-require_once __DIR__ . '/../../../app/init.php';
+require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../../app/v1/models/RegistrationModel.php';
@@ -39,6 +40,12 @@ $lastAmount  = $installments['last_amount'];
 $sameAmount  = abs($installments['amount'] - $lastAmount) < 0.01;
 
 $error = null;
+$credentials = null;
+$storedCreds = SessionModel::get('student_credentials');
+if (is_array($storedCreds) && (int) ($storedCreds['registration_id'] ?? 0) === $id) {
+    $credentials = $storedCreds;
+    SessionModel::delete('student_credentials');
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
@@ -53,11 +60,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $controller->approve($id, $waive, $adminId);
 
             if ($result['ok']) {
+                SessionModel::set('student_credentials', [
+                    'registration_id' => $id,
+                    'reg_no'        => $result['reg_no'],
+                    'login_email'   => $result['login_email'],
+                    'username'      => $result['reg_no'],
+                    'temp_password' => $result['temp_password'],
+                    'login_url'     => url('auth/login.php'),
+                ]);
                 SessionModel::setFlash('success',
-                    'Registration approved. Student ID: <strong>' . htmlspecialchars($result['reg_no']) . '</strong>. ' .
-                    'Login credentials and receipt have been emailed to the student.'
+                    'Registration approved. Student account is <strong>active</strong>. Copy the login details below and share with the student (WhatsApp, in person, etc.).'
                 );
-                header('Location: /Registration-System/public/admin/registrations/view.php?id=' . $id);
+                header('Location: ' . url('admin/registrations/view.php?id=' . $id));
                 exit();
             }
             $error = $result['error'];
@@ -67,8 +81,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $controller->reject($id, $reason, $adminId);
 
             if ($result['ok']) {
-                SessionModel::setFlash('success', 'Registration rejected. The student has been notified by email.');
-                header('Location: /Registration-System/public/admin/registrations/view.php?id=' . $id);
+                SessionModel::setFlash('success', 'Registration rejected.');
+                header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+                exit();
+            }
+            $error = $result['error'];
+
+        } elseif ($action === 'reset_credentials' && $reg['status'] === 'approved') {
+            $studentCtrl = new StudentController();
+            $result = $studentCtrl->sendCredentials($id);
+            if ($result['ok']) {
+                $credentials = [
+                    'registration_id' => $id,
+                    'reg_no'          => $result['username'],
+                    'login_email'     => $result['login_email'],
+                    'username'        => $result['username'],
+                    'temp_password'   => $result['temp_password'],
+                    'login_url'       => url('auth/login.php'),
+                ];
+                SessionModel::setFlash('success', 'New password generated. Share the login details below with the student.');
+            } else {
+                $error = $result['error'];
+            }
+
+        } elseif ($action === 'delete') {
+            $result = $controller->delete($id);
+            if ($result['ok']) {
+                SessionModel::setFlash('success', 'Registration deleted' . ($reg['status'] === 'approved' ? ' and student account removed' : '') . '.');
+                header('Location: ' . url('admin/registrations/index.php?status=pending'));
                 exit();
             }
             $error = $result['error'];
@@ -77,11 +117,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $studentCtrl = new StudentController();
             $result = $studentCtrl->sendCredentials($id);
             if ($result['ok']) {
-                SessionModel::setFlash('success', 'Login credentials emailed to the student.');
-                header('Location: /Registration-System/public/admin/registrations/view.php?id=' . $id);
-                exit();
+                $credentials = [
+                    'registration_id' => $id,
+                    'reg_no'          => $result['username'],
+                    'login_email'     => $result['login_email'],
+                    'username'        => $result['username'],
+                    'temp_password'   => $result['temp_password'],
+                    'login_url'       => url('auth/login.php'),
+                ];
+                SessionModel::setFlash('success', 'Login details generated. Share them with the student manually.');
+            } else {
+                $error = $result['error'];
             }
-            $error = $result['error'];
         }
 
         // Refresh after action attempt
@@ -100,6 +147,46 @@ ob_start();
 
 <?php if ($error): ?>
     <div class="alert alert-danger"><i class="fas fa-exclamation-circle me-2"></i><?php echo htmlspecialchars($error); ?></div>
+<?php endif; ?>
+
+<?php if ($credentials): ?>
+<?php
+$waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? '', $credentials);
+?>
+<div class="alert alert-success border-success mb-4">
+    <h5 class="alert-heading"><i class="fas fa-user-check me-2"></i>Student login details — share manually</h5>
+    <p class="mb-2 small text-muted">No email is sent. Copy these details or open WhatsApp to send them to the student. The account is active now.</p>
+    <div class="bg-white text-dark rounded p-3 font-monospace small" id="studentCredBox">
+        <div><strong>Student ID:</strong> <?php echo htmlspecialchars($credentials['reg_no'] ?? ''); ?></div>
+        <div><strong>Login email:</strong> <?php echo htmlspecialchars($credentials['login_email'] ?? ''); ?></div>
+        <div><strong>Username:</strong> <?php echo htmlspecialchars($credentials['username'] ?? $credentials['reg_no'] ?? ''); ?></div>
+        <div><strong>Password:</strong> <span id="credPassword"><?php echo htmlspecialchars($credentials['temp_password'] ?? ''); ?></span></div>
+        <div><strong>Login page:</strong> <?php echo htmlspecialchars($credentials['login_url'] ?? url('auth/login.php')); ?></div>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+        <button type="button" class="btn btn-sm btn-outline-success" id="copyStudentCreds">
+            <i class="fas fa-copy me-1"></i> Copy all details
+        </button>
+        <?php if ($waUrl): ?>
+        <a href="<?php echo htmlspecialchars($waUrl); ?>" class="btn btn-sm btn-success" target="_blank" rel="noopener">
+            <i class="fab fa-whatsapp me-1"></i> Send via WhatsApp
+        </a>
+        <?php endif; ?>
+    </div>
+</div>
+<script>
+(function(){
+    var btn = document.getElementById('copyStudentCreds');
+    var box = document.getElementById('studentCredBox');
+    if (!btn || !box) return;
+    btn.addEventListener('click', function(){
+        var text = box.innerText;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function(){ btn.innerHTML = '<i class="fas fa-check me-1"></i> Copied'; });
+        }
+    });
+})();
+</script>
 <?php endif; ?>
 
 <div class="row g-4">
@@ -291,6 +378,7 @@ ob_start();
                     <p class="text-muted small mb-3">
                         On approval, a student account is created and a registration number is issued
                         (<strong>DH-<?php echo htmlspecialchars($reg['abbreviation']); ?>XX/<?php echo date('Y'); ?></strong>).
+                        You will get the temporary password to copy or send via WhatsApp — no email is sent.
                     </p>
 
                     <button type="submit" class="btn btn-success w-100"
@@ -312,7 +400,7 @@ ob_start();
                         <label class="form-label">Reason for rejection <span class="text-danger">*</span></label>
                         <textarea name="rejection_reason" class="form-control" rows="3" required
                                   placeholder="e.g. Payment reference could not be verified on the NCBA statement."></textarea>
-                        <small class="text-muted">This reason is emailed to the student automatically.</small>
+                        <small class="text-muted">Stored for your records only — not emailed to the student.</small>
                     </div>
                     <button type="submit" class="btn btn-danger w-100"
                             onclick="return confirm('Reject this registration?');">
@@ -322,36 +410,65 @@ ob_start();
             </div>
         </div>
 
-        <?php else: ?>
-            <div class="card mb-4">
-                <div class="card-body text-muted text-center py-4">
-                    <i class="fas fa-lock fa-2x mb-2 d-block"></i>
-                    This registration has been <?php echo $reg['status']; ?>.<br>
-                    No further review actions available.
-                </div>
+        <div class="card border-secondary mt-4">
+            <div class="card-header fw-semibold">Delete application</div>
+            <div class="card-body">
+                <p class="text-muted small">Remove this pending application permanently.</p>
+                <form method="POST" onsubmit="return confirm('Delete this registration permanently?');">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="delete">
+                    <button type="submit" class="btn btn-outline-secondary w-100 btn-sm">
+                        <i class="fas fa-trash me-1"></i> Delete
+                    </button>
+                </form>
             </div>
+        </div>
+
+        <?php else: ?>
 
             <?php if ($reg['status'] === 'approved' && $reg['user_id']): ?>
-            <div class="card border-primary">
+            <div class="card border-primary mb-4">
                 <div class="card-header bg-primary text-white fw-semibold">
-                    <i class="fas fa-envelope me-1"></i> Send Credentials
+                    <i class="fas fa-key me-1"></i> Student account
                 </div>
                 <div class="card-body">
-                    <p class="text-muted small">Email the student their portal login credentials (resets their password).</p>
-                    <form method="POST" onsubmit="return confirm('Send login credentials to this student?');">
+                    <p class="text-muted small mb-2">Account is <strong class="text-success">active</strong>. Students log in with their <strong>email</strong> and the password you share below.</p>
+                    <ul class="small mb-3">
+                        <li>Email: <code><?php echo htmlspecialchars($reg['email']); ?></code></li>
+                        <li>Student ID: <code><?php echo htmlspecialchars($reg['registration_no']); ?></code></li>
+                    </ul>
+                    <form method="POST" class="mb-2" onsubmit="return confirm('Generate a new password for this student?');">
                         <?php echo csrf_field(); ?>
-                        <input type="hidden" name="action" value="send_credentials">
+                        <input type="hidden" name="action" value="reset_credentials">
                         <button type="submit" class="btn btn-primary w-100">
-                            <i class="fas fa-paper-plane me-1"></i> Email Credentials
+                            <i class="fas fa-sync me-1"></i> Reset password &amp; show new login details
                         </button>
                     </form>
                     <a href="<?php echo url('admin/students/view.php?id=' . (int)$id); ?>"
-                       class="btn btn-link btn-sm ps-0 mt-2">
-                        <i class="fas fa-user-graduate me-1"></i> Open Student Profile
+                       class="btn btn-link btn-sm ps-0">
+                        <i class="fas fa-user-graduate me-1"></i> Open student profile
                     </a>
                 </div>
             </div>
             <?php endif; ?>
+
+            <div class="card border-danger mb-4">
+                <div class="card-header bg-danger text-white fw-semibold">Delete registration</div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        Permanently removes this registration<?php echo $reg['status'] === 'approved' ? ' and deletes the student login account' : ''; ?>.
+                        Use if approval was a mistake.
+                    </p>
+                    <form method="POST" onsubmit="return confirm('Delete this registration permanently? This cannot be undone.');">
+                        <?php echo csrf_field(); ?>
+                        <input type="hidden" name="action" value="delete">
+                        <button type="submit" class="btn btn-outline-danger w-100">
+                            <i class="fas fa-trash me-1"></i> Delete registration
+                        </button>
+                    </form>
+                </div>
+            </div>
+
         <?php endif; ?>
 
         <!-- Back link -->

@@ -1,0 +1,26 @@
+<IfModule mod_rewrite.c>
+Options +FollowSymLinks -MultiViews
+RewriteEngine On
+
+# Pretty URLs (internal rewrite — no risky redirects)
+RewriteRule ^login/?$ auth/login.php [L]
+RewriteRule ^forgot-password/?$ auth/forgot_password.php [L]
+RewriteRule ^reset-password/?$ auth/reset_password.php [L]
+RewriteRule ^testimonials/submit/?$ testimonials/submit.php [L]
+RewriteRule ^apply/?$ apply/index.php [L]
+RewriteRule ^courses/?$ courses/index.php [L]
+RewriteRule ^about/?$ about/index.php [L]
+RewriteRule ^contact/?$ contact/index.php [L]
+RewriteRule ^projects/?$ projects/index.php [L]
+RewriteRule ^blog/?$ blogs/index.php [L]
+
+# Real files and folders (css, images, api, admin, etc.)
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Homepage
+RewriteRule ^ index.php [L]
+</IfModule>
+
+DirectoryIndex index.php

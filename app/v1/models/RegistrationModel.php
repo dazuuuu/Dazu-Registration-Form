@@ -69,7 +69,7 @@ class RegistrationModel {
      */
     public function submit(array $data, CourseModel $courseModel): array {
         $course = $courseModel->getById((int) $data['course_id']);
-        if (!$course || !$course['is_active']) {
+        if (!CourseModel::isShareable($course)) {
             return ['ok' => false, 'error' => 'Selected course is not available.'];
         }
 
@@ -149,6 +149,37 @@ class RegistrationModel {
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch();
         return $row ?: null;
+    }
+
+    /**
+     * Permanently remove a registration. Deletes linked student user account if approved.
+     */
+    public function delete(int $id): array {
+        $reg = $this->getById($id);
+        if (!$reg) {
+            return ['ok' => false, 'error' => 'Registration not found.'];
+        }
+
+        $userId = !empty($reg['user_id']) ? (int) $reg['user_id'] : null;
+
+        try {
+            $this->db->beginTransaction();
+
+            $this->db->prepare('DELETE FROM registrations WHERE id = :id')->execute([':id' => $id]);
+
+            if ($userId) {
+                $this->db->prepare('DELETE FROM users WHERE id = :uid')->execute([':uid' => $userId]);
+            }
+
+            $this->db->commit();
+            return ['ok' => true];
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('[RegistrationModel::delete] ' . $e->getMessage());
+            return ['ok' => false, 'error' => 'Could not delete registration: ' . $e->getMessage()];
+        }
     }
 
     public function listByStatus(string $status): array {

@@ -21,8 +21,9 @@ try {
     }
     
     require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
+    require_once __DIR__ . '/../../../app/v1/config/paths.php';
     require_once __DIR__ . '/../../../app/v1/controllers/BlogController.php';
-    
+
     // Handle featured image upload
     $featured_image = null;
     if (isset($_FILES['featured_image']) && $_FILES['featured_image']['error'] === 0) {
@@ -47,12 +48,14 @@ try {
         $tags = array_map('trim', $tags);
     }
     
+    $_POST['tags'] = $tags;
+    
     $blogController = new BlogController($pdo);
     $result = $blogController->create($_POST, $featured_image);
     
     sendJsonResponse($result['success'], $result['message'], ['blog_id' => $result['blog_id'] ?? null]);
     
-} catch (Exception $e) {
+} catch (Throwable $e) {
     sendJsonResponse(false, 'Server error: ' . $e->getMessage());
 }
 ?>

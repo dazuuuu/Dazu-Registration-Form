@@ -1,18 +1,19 @@
 <?php
-// public/auth/login.php
-require_once __DIR__ . '/../../app/init.php';
+require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/models/UserModel.php';
 
 $userModel = new UserModel($pdo);
 $error = '';
 $success = '';
 
-// If already logged in, redirect based on role
+if (!empty($_GET['error']) && $_GET['error'] === 'session_expired') {
+    $error = 'Your session expired — please sign in again.';
+}
+
 if (isLoggedIn()) {
-    $role_id = $_SESSION['role_id'] ?? 0;
     $role = $_SESSION['role'] ?? '';
-    if ($role_id <= 2) {
-        redirect(url('profile/admin/index.php'));
+    if (in_array($role, ['admin', 'superadmin'], true) || (int)($_SESSION['role_id'] ?? 99) <= 2) {
+        redirect(url('admin/dashboard.php'));
     } elseif ($role === 'student') {
         redirect(url('students/dashboard/index.php'));
     } elseif ($role === 'tutor') {
@@ -23,24 +24,20 @@ if (isLoggedIn()) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email']);
-    $password = $_POST['password'];
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    if (empty($email) || empty($password)) {
-        $error = 'Email and password are required';
+    if ($email === '' || $password === '') {
+        $error = 'Email and password are required.';
     } else {
         $user = $userModel->getUserByEmail($email);
 
-        if (!$user) {
-            $error = 'Invalid email or password';
-            $userModel->logLoginAttempt($email, $_SERVER['REMOTE_ADDR']);
-        } elseif (!password_verify($password, $user['password_hash'])) {
-            $error = 'Invalid email or password';
-            $userModel->logLoginAttempt($email, $_SERVER['REMOTE_ADDR']);
-        } elseif (!$user['is_active']) {
-            $error = 'Account is deactivated. Contact administrator.';
+        if (!$user || !password_verify($password, $user['password_hash'])) {
+            $error = 'Invalid email or password.';
+            $userModel->logLoginAttempt($email, $_SERVER['REMOTE_ADDR'] ?? '');
+        } elseif (empty($user['is_active'])) {
+            $error = 'Account is deactivated. Contact the administrator.';
         } else {
-            // Login success - set session variables
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['email'] = $user['email'];
@@ -48,136 +45,65 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role_id'] = $user['role_id'];
             $_SESSION['logged_in'] = true;
 
-            $success = 'Login successful! Redirecting...';
-
-            // Redirect based on role
             if ($user['role_id'] <= 2) {
-                header("refresh:2;url=" . url("profile/admin/index.php"));
+                redirect(url('admin/dashboard.php'));
             } elseif ($user['role_name'] === 'student') {
-                header("refresh:2;url=" . url("students/dashboard/index.php"));
+                redirect(url('students/dashboard/index.php'));
             } elseif ($user['role_name'] === 'tutor') {
-                header("refresh:2;url=" . url("tutor/dashboard/index.php"));
+                redirect(url('tutor/dashboard/index.php'));
             } else {
-                header("refresh:2;url=" . url("profile/client/index.php"));
+                redirect(url('profile/client/index.php'));
             }
         }
     }
 }
 
-// Logo (mirrors the navbar's logic — PNG if present, else inline mark)
-$logoPath = url('assets/images/logo/logo.png');
-$logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROOT'] . $logoPath);
+$page_title = 'Sign In — Dazu hub Institute';
+$standalone = true;
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login — Registration System</title>
+<div class="bg-slate-50 min-h-screen py-16 flex items-center justify-center">
+  <div class="max-w-md w-full mx-auto px-4">
+    <div class="bg-white border border-slate-200 rounded-2xl p-8 md:p-10 space-y-8 shadow-sm">
+      <div class="space-y-2 text-center">
+        <span class="text-green-600 text-[10px] uppercase tracking-widest font-extrabold px-2.5 py-1 bg-green-50 border border-green-200 rounded-full">Dazu Hub Portal</span>
+        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight pt-2">Sign In</h1>
+        <p class="text-xs text-slate-400 font-semibold">Students and tutors sign in here. Admins use the admin portal link below.</p>
+      </div>
 
-    <link rel="stylesheet" href="../assets/css/theme.css">
-    <link rel="stylesheet" href="../assets/css/auth.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-</head>
-<body class="auth-body">
+      <?php if ($error): ?>
+        <div class="p-4 border border-red-200 bg-red-50 text-red-700 text-xs font-semibold rounded-xl"><?php echo htmlspecialchars($error); ?></div>
+      <?php endif; ?>
+      <?php if ($success): ?>
+        <div class="p-4 border border-green-200 bg-green-50 text-green-700 text-xs font-semibold rounded-xl"><?php echo htmlspecialchars($success); ?></div>
+      <?php endif; ?>
 
-<div class="auth-wrap">
-
-    <!-- Brand panel -->
-    <aside class="auth-brand">
-        <img class="auth-brand-bgimg"
-             src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1400&q=80" alt="" aria-hidden="true">
-        <div class="auth-brand-inner">
-            <a class="auth-logo" href="<?php echo url('/'); ?>" aria-label="Registration System — Home">
-                <?php if ($logoExists): ?>
-                    <img src="<?php echo $logoPath; ?>" alt="Registration System logo" class="brand-logo">
-                <?php else: ?>
-                    <svg class="brand-mark" width="30" height="30" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <rect width="12" height="12" fill="currentColor"/>
-                        <rect x="16" width="12" height="12" fill="currentColor" opacity=".45"/>
-                        <rect y="16" width="12" height="12" fill="currentColor" opacity=".45"/>
-                        <rect x="16" y="16" width="12" height="12" fill="currentColor"/>
-                    </svg>
-                <?php endif; ?>
-                <span class="brand-name">Registration System</span>
-            </a>
-
-            <h1>Welcome back to <span>Registration System</span>.</h1>
-            <p class="lead">Sign in to manage your projects, track progress, and pick up right where you left off.</p>
-
-            <ul class="auth-points">
-                <li><i class="fas fa-check"></i> Your projects and updates in one place</li>
-                <li><i class="fas fa-check"></i> Secure, private access to your account</li>
-                <li><i class="fas fa-check"></i> Transparent progress, no surprises</li>
-            </ul>
+      <form method="POST" class="space-y-6">
+        <div class="space-y-2">
+          <label class="block text-xs font-bold uppercase tracking-widest text-slate-500" for="email">Email</label>
+          <input type="email" id="email" name="email" required autocomplete="username"
+                 value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"
+                 class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-green-600">
         </div>
-        <p class="auth-brand-foot">&copy; <?php echo date('Y'); ?> Registration System. All rights reserved.</p>
-    </aside>
-
-    <!-- Form panel -->
-    <main class="auth-form">
-        <div class="auth-form-top">
-            <a href="<?php echo url('/'); ?>" class="auth-back"><i class="fas fa-arrow-left"></i> Back to home</a>
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="block text-xs font-bold uppercase tracking-widest text-slate-500" for="password">Password</label>
+            <a href="<?php echo url('forgot-password'); ?>" class="text-[10px] font-bold text-green-600 hover:underline">Forgot password?</a>
+          </div>
+          <input type="password" id="password" name="password" required autocomplete="current-password"
+                 class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-green-600">
         </div>
+        <button type="submit" class="w-full py-3.5 text-xs font-extrabold uppercase tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-xl">Sign In</button>
+      </form>
 
-        <div class="auth-form-body">
-            <div class="auth-mark"><i class="fas fa-arrow-right-to-bracket"></i></div>
-            <h2>Sign in</h2>
-            <p class="sub">Enter your details to access your account.</p>
-
-            <?php if ($error): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    <?php echo htmlspecialchars($error); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            <?php endif; ?>
-            <?php if ($success): ?>
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    <i class="fas fa-check-circle me-2"></i>
-                    <?php echo htmlspecialchars($success); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            <?php endif; ?>
-
-            <form method="POST" novalidate>
-                <div class="auth-field">
-                    <label for="email">Email address</label>
-                    <div class="auth-input">
-                        <i class="fas fa-envelope"></i>
-                        <input type="email" id="email" name="email" placeholder="you@example.com"
-                               value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>" required>
-                    </div>
-                </div>
-
-                <div class="auth-field">
-                    <label for="password">Password</label>
-                    <div class="auth-input">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
-                    </div>
-                </div>
-
-                <button type="submit" class="auth-submit">
-                    <i class="fas fa-arrow-right-to-bracket"></i> Sign in
-                </button>
-            </form>
-
-            <p class="auth-alt">
-                Don't have an account? <a href="register.php">Create one</a>
-            </p>
-
-            <hr class="auth-divider">
-
-            <p class="auth-portal">
-                <a href="<?php echo url('admin/portal.php'); ?>"><i class="fas fa-user-shield me-1"></i> Admin portal</a>
-            </p>
-        </div>
-    </main>
-
+      <div class="text-center space-y-3 text-xs text-slate-500">
+        <a href="<?php echo url('courses/index.php'); ?>" class="text-green-600 font-bold hover:underline block">New student? Apply here</a>
+        <!--a href="<?php echo url('admin/portal.php'); ?>" class="text-slate-600 hover:text-green-600 font-semibold block">Admin login →</a-->
+        <a href="<?php echo url('/'); ?>" class="text-slate-400 hover:text-slate-600 block">← Back to website</a>
+      </div>
+    </div>
+  </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<?php
+$content = ob_get_clean();
+require __DIR__ . '/../templates/public/dazu_layout.php';

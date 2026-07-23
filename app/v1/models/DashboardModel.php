@@ -31,6 +31,17 @@ class DashboardModel {
             'students_by_course' => [],
             'monthly_revenue' => [],
             'portal_locked' => 0,
+            'new_enquiries' => 0,
+            'total_enquiries' => 0,
+            'recent_enquiries' => [],
+            'recent_registrations' => [],
+            'recent_payments' => [],
+            'payment_statuses' => ['approved' => 0, 'pending' => 0, 'rejected' => 0],
+            'monthly_registrations' => [],
+            'month_revenue' => 0,
+            'previous_month_revenue' => 0,
+            'expected_fees' => 0,
+            'collection_rate' => 0,
         ];
 
         if ($this->tableExists('registrations')) {
@@ -50,6 +61,19 @@ class DashboardModel {
                  GROUP BY c.id ORDER BY cnt DESC LIMIT 8"
             )->fetchAll();
             $stats['total_outstanding'] = $this->computeOutstanding();
+            $stats['expected_fees'] = $stats['total_collected'] + $stats['total_outstanding'];
+            $stats['recent_registrations'] = $this->db->query(
+                "SELECT r.id, r.full_name, r.status, r.created_at, c.title AS course_title
+                 FROM registrations r LEFT JOIN courses c ON c.id = r.course_id
+                 ORDER BY r.created_at DESC LIMIT 6"
+            )->fetchAll();
+            $stats['monthly_registrations'] = array_reverse($this->db->query(
+                "SELECT DATE_FORMAT(created_at, '%b') AS label, COUNT(*) AS total
+                 FROM registrations
+                 WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 5 MONTH)
+                 GROUP BY DATE_FORMAT(created_at, '%Y-%m'), DATE_FORMAT(created_at, '%b')
+                 ORDER BY DATE_FORMAT(created_at, '%Y-%m') DESC"
+            )->fetchAll());
         }
 
         if ($this->tableExists('tutors')) {
@@ -69,6 +93,40 @@ class DashboardModel {
                  GROUP BY ym ORDER BY ym DESC LIMIT 6"
             )->fetchAll();
             $stats['monthly_revenue'] = array_reverse($stats['monthly_revenue']);
+            foreach (array_keys($stats['payment_statuses']) as $status) {
+                $st = $this->db->prepare('SELECT COUNT(*) FROM payments WHERE status = ?');
+                $st->execute([$status]);
+                $stats['payment_statuses'][$status] = (int) $st->fetchColumn();
+            }
+            $stats['month_revenue'] = (float) $this->db->query(
+                "SELECT COALESCE(SUM(amount), 0) FROM payments
+                 WHERE status = 'approved' AND COALESCE(reviewed_at, paid_at) >= DATE_FORMAT(CURDATE(), '%Y-%m-01')"
+            )->fetchColumn();
+            $stats['previous_month_revenue'] = (float) $this->db->query(
+                "SELECT COALESCE(SUM(amount), 0) FROM payments
+                 WHERE status = 'approved'
+                   AND COALESCE(reviewed_at, paid_at) >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01')
+                   AND COALESCE(reviewed_at, paid_at) < DATE_FORMAT(CURDATE(), '%Y-%m-01')"
+            )->fetchColumn();
+            $stats['recent_payments'] = $this->db->query(
+                "SELECT p.amount, p.status, COALESCE(p.reviewed_at, p.paid_at) AS payment_date,
+                        r.full_name, r.registration_no
+                 FROM payments p LEFT JOIN registrations r ON r.id = p.registration_id
+                 ORDER BY COALESCE(p.reviewed_at, p.paid_at) DESC LIMIT 6"
+            )->fetchAll();
+        }
+
+        $stats['expected_fees'] = $stats['total_collected'] + $stats['total_outstanding'];
+        if ($stats['expected_fees'] > 0) {
+            $stats['collection_rate'] = round(($stats['total_collected'] / $stats['expected_fees']) * 100, 1);
+        }
+
+        if ($this->tableExists('enquiries')) {
+            $stats['new_enquiries'] = (int) $this->db->query("SELECT COUNT(*) FROM enquiries WHERE status = 'new'")->fetchColumn();
+            $stats['total_enquiries'] = (int) $this->db->query('SELECT COUNT(*) FROM enquiries')->fetchColumn();
+            $stats['recent_enquiries'] = $this->db->query(
+                "SELECT id, name, service, status, created_at FROM enquiries ORDER BY created_at DESC LIMIT 6"
+            )->fetchAll();
         }
 
         return $stats;

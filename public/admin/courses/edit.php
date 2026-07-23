@@ -1,18 +1,26 @@
 <?php
 // public/admin/courses/edit.php
-require_once __DIR__ . '/../../../app/init.php';
+require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
+require_once __DIR__ . '/../../../app/v1/models/CourseCategoryModel.php';
 
 use Models\Connection;
 use Models\CourseModel;
+use Models\CourseCategoryModel;
 
 Middleware::requireAdmin();
 
 $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
+$categoryModel = new CourseCategoryModel($pdo);
+try {
+    $categories = $categoryModel->getAll(false);
+} catch (Throwable $e) {
+    $categories = [];
+}
 
 $id = (int) ($_GET['id'] ?? 0);
 $course = $courseModel->getById($id);
@@ -47,9 +55,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $courseModel->update($id, [
                 'title'           => $_POST['title'] ?? '',
                 'abbreviation'    => $_POST['abbreviation'] ?? '',
+                'category_id'     => $_POST['category_id'] ?? null,
                 'description'     => $_POST['description'] ?? '',
                 'overview'        => $_POST['overview'] ?? '',
                 'duration_months' => $_POST['duration_months'] ?? 0,
+                'weeks_of_study'  => $_POST['weeks_of_study'] ?? null,
+                'hours_of_study'  => $_POST['hours_of_study'] ?? null,
+                'study_schedule'  => $_POST['study_schedule'] ?? null,
                 'course_fee'      => $_POST['course_fee'] ?? 0,
                 'cover_image'     => $coverPath,
             ]);
@@ -104,9 +116,36 @@ ob_start();
                 </div>
 
                 <div class="col-md-6">
-                    <label class="form-label">Duration (months)</label>
+                    <label class="form-label">Category</label>
+                    <select name="category_id" class="form-select">
+                        <option value="">— Select category —</option>
+                        <?php foreach ($categories as $cat): ?>
+                            <option value="<?php echo (int) $cat['id']; ?>" <?php echo (int)($course['category_id'] ?? 0) === (int)$cat['id'] ? 'selected' : ''; ?>>
+                                <?php echo htmlspecialchars($cat['name']); ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label">Months of Study</label>
                     <input type="number" name="duration_months" class="form-control" min="1" max="36" required
                            value="<?php echo htmlspecialchars($course['duration_months']); ?>">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Weeks of Study</label>
+                    <input type="number" name="weeks_of_study" class="form-control" min="0"
+                           placeholder="Optional" value="<?php echo htmlspecialchars($course['weeks_of_study'] ?? ''); ?>">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Hours of Study</label>
+                    <input type="number" name="hours_of_study" class="form-control" min="0"
+                           placeholder="Optional" value="<?php echo htmlspecialchars($course['hours_of_study'] ?? ''); ?>">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Study Schedule</label>
+                    <input type="text" name="study_schedule" class="form-control" maxlength="150"
+                           placeholder="Optional — e.g. Mon, Wed, Fri evenings" value="<?php echo htmlspecialchars($course['study_schedule'] ?? ''); ?>">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Course Fee (KSh)</label>

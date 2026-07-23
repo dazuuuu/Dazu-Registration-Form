@@ -1,6 +1,6 @@
 <?php
 // public/students/payments/index.php
-require_once __DIR__ . '/../../../app/init.php';
+require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_POST['payer_reference'] ?? ''
         );
         if ($result['ok']) {
-            SessionModel::setFlash('success', 'Payment submitted! A confirmation email has been sent. Your portal will update once admin verifies the payment.');
+            SessionModel::setFlash('success', 'Payment submitted. Your portal will update once admin verifies the payment.');
             header('Location: ' . url('students/payments/index.php'));
             exit();
         }
@@ -160,8 +160,12 @@ ob_start();
                         <td>
                             <?php if ($p['status'] === 'approved' && !empty($p['receipt_no'])): ?>
                                 <a href="<?php echo url('students/payments/receipt.php?id=' . (int)$p['id']); ?>"
-                                   class="btn btn-sm btn-outline-secondary" target="_blank">
+                                   class="btn btn-sm btn-outline-secondary" target="_blank" title="View receipt">
                                     <i class="fas fa-file-invoice"></i> <?php echo htmlspecialchars($p['receipt_no']); ?>
+                                </a>
+                                <a href="<?php echo url('students/payments/receipt.php?id=' . (int)$p['id'] . '&download=1'); ?>"
+                                   class="btn btn-sm btn-outline-success" title="Download receipt">
+                                    <i class="fas fa-download"></i>
                                 </a>
                             <?php else: ?>
                                 —

@@ -27,6 +27,7 @@ try {
     
     // Include controller
     require_once __DIR__ . '/../../../app/v1/controllers/ServiceController.php';
+    require_once __DIR__ . '/../../../app/v1/config/paths.php';
     
     $serviceController = new ServiceController($pdo);
     
@@ -50,7 +51,7 @@ try {
     $result = $serviceController->create($_POST, $cover_image);
     echo json_encode($result);
     
-} catch (Exception $e) {
+} catch (Throwable $e) {
     echo json_encode(['success' => false, 'message' => 'Server error: ' . $e->getMessage()]);
 }
 ?>
