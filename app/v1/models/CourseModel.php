@@ -22,14 +22,11 @@ class CourseModel {
         }
 
         $categoryId = !empty($data['category_id']) ? (int) $data['category_id'] : null;
-
-        $weeksOfStudy = isset($data['weeks_of_study']) && $data['weeks_of_study'] !== '' ? (int) $data['weeks_of_study'] : null;
-        $hoursOfStudy = isset($data['hours_of_study']) && $data['hours_of_study'] !== '' ? (int) $data['hours_of_study'] : null;
-        $studySchedule = isset($data['study_schedule']) && trim($data['study_schedule']) !== '' ? trim($data['study_schedule']) : null;
+        $dur = $this->durationFields($data);
 
         try {
-            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, description, overview, duration_months, weeks_of_study, hours_of_study, study_schedule, course_fee, is_active, created_by)
-                    VALUES (:title, :abbreviation, :category_id, :cover_image, :description, :overview, :duration_months, :weeks_of_study, :hours_of_study, :study_schedule, :course_fee, 1, :created_by)";
+            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, description, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, is_active, created_by)
+                    VALUES (:title, :abbreviation, :category_id, :cover_image, :description, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :course_fee, 1, :created_by)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':title'            => trim($data['title']),
@@ -38,18 +35,22 @@ class CourseModel {
                 ':cover_image'      => $data['cover_image'] ?? null,
                 ':description'      => $data['description'] ?? '',
                 ':overview'         => $data['overview'] ?? '',
-                ':duration_months'  => (int) $data['duration_months'],
-                ':weeks_of_study'   => $weeksOfStudy,
-                ':hours_of_study'   => $hoursOfStudy,
-                ':study_schedule'   => $studySchedule,
+                ':duration_months'  => $dur['duration_months'],
+                ':weeks_of_study'   => $dur['weeks_of_study'],
+                ':days_of_study'    => $dur['days_of_study'],
+                ':hours_of_study'   => $dur['hours_of_study'],
+                ':study_schedule'   => $dur['study_schedule'],
                 ':course_fee'       => (float) $data['course_fee'],
                 ':created_by'       => $this->resolveCreatedBy($createdBy),
             ]);
         } catch (\PDOException $e) {
-            $missingStudyCols = stripos($e->getMessage(), 'weeks_of_study') !== false || stripos($e->getMessage(), 'hours_of_study') !== false || stripos($e->getMessage(), 'study_schedule') !== false;
+            $missingStudyCols = stripos($e->getMessage(), 'weeks_of_study') !== false
+                || stripos($e->getMessage(), 'days_of_study') !== false
+                || stripos($e->getMessage(), 'hours_of_study') !== false
+                || stripos($e->getMessage(), 'study_schedule') !== false;
             if ($categoryId !== null && stripos($e->getMessage(), 'category_id') !== false) {
-                $sql = "INSERT INTO courses (title, abbreviation, cover_image, description, overview, duration_months, weeks_of_study, hours_of_study, study_schedule, course_fee, is_active, created_by)
-                        VALUES (:title, :abbreviation, :cover_image, :description, :overview, :duration_months, :weeks_of_study, :hours_of_study, :study_schedule, :course_fee, 1, :created_by)";
+                $sql = "INSERT INTO courses (title, abbreviation, cover_image, description, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, is_active, created_by)
+                        VALUES (:title, :abbreviation, :cover_image, :description, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :course_fee, 1, :created_by)";
                 $stmt = $this->db->prepare($sql);
                 $stmt->execute([
                     ':title'            => trim($data['title']),
@@ -57,10 +58,11 @@ class CourseModel {
                     ':cover_image'      => $data['cover_image'] ?? null,
                     ':description'      => $data['description'] ?? '',
                     ':overview'         => $data['overview'] ?? '',
-                    ':duration_months'  => (int) $data['duration_months'],
-                    ':weeks_of_study'   => $weeksOfStudy,
-                    ':hours_of_study'   => $hoursOfStudy,
-                    ':study_schedule'   => $studySchedule,
+                    ':duration_months'  => $dur['duration_months'],
+                    ':weeks_of_study'   => $dur['weeks_of_study'],
+                    ':days_of_study'    => $dur['days_of_study'],
+                    ':hours_of_study'   => $dur['hours_of_study'],
+                    ':study_schedule'   => $dur['study_schedule'],
                     ':course_fee'       => (float) $data['course_fee'],
                     ':created_by'       => $this->resolveCreatedBy($createdBy),
                 ]);
@@ -78,7 +80,7 @@ class CourseModel {
                     ':cover_image'      => $data['cover_image'] ?? null,
                     ':description'      => $data['description'] ?? '',
                     ':overview'         => $data['overview'] ?? '',
-                    ':duration_months'  => (int) $data['duration_months'],
+                    ':duration_months'  => max(1, $dur['duration_months'] ?: course_effective_months($dur)),
                     ':course_fee'       => (float) $data['course_fee'],
                     ':created_by'       => $this->resolveCreatedBy($createdBy),
                 ]);
@@ -108,17 +110,19 @@ class CourseModel {
 
         $fields = "title = :title, abbreviation = :abbreviation, category_id = :category_id, description = :description,
                    overview = :overview, duration_months = :duration_months, weeks_of_study = :weeks_of_study,
-                   hours_of_study = :hours_of_study, study_schedule = :study_schedule, course_fee = :course_fee";
+                   days_of_study = :days_of_study, hours_of_study = :hours_of_study, study_schedule = :study_schedule, course_fee = :course_fee";
+        $dur = $this->durationFields($data);
         $params = [
             ':title'           => trim($data['title']),
             ':abbreviation'    => $abbr,
             ':category_id'     => $categoryId,
             ':description'     => $data['description'] ?? '',
             ':overview'        => $data['overview'] ?? '',
-            ':duration_months' => (int) $data['duration_months'],
-            ':weeks_of_study'  => isset($data['weeks_of_study']) && $data['weeks_of_study'] !== '' ? (int) $data['weeks_of_study'] : null,
-            ':hours_of_study'  => isset($data['hours_of_study']) && $data['hours_of_study'] !== '' ? (int) $data['hours_of_study'] : null,
-            ':study_schedule'  => isset($data['study_schedule']) && trim($data['study_schedule']) !== '' ? trim($data['study_schedule']) : null,
+            ':duration_months' => $dur['duration_months'],
+            ':weeks_of_study'  => $dur['weeks_of_study'],
+            ':days_of_study'   => $dur['days_of_study'],
+            ':hours_of_study'  => $dur['hours_of_study'],
+            ':study_schedule'  => $dur['study_schedule'],
             ':course_fee'      => (float) $data['course_fee'],
             ':id'              => $id,
         ];
@@ -133,7 +137,10 @@ class CourseModel {
         try {
             $stmt->execute($params);
         } catch (\PDOException $e) {
-            $missingStudyCols = stripos($e->getMessage(), 'weeks_of_study') !== false || stripos($e->getMessage(), 'hours_of_study') !== false || stripos($e->getMessage(), 'study_schedule') !== false;
+            $missingStudyCols = stripos($e->getMessage(), 'weeks_of_study') !== false
+                || stripos($e->getMessage(), 'days_of_study') !== false
+                || stripos($e->getMessage(), 'hours_of_study') !== false
+                || stripos($e->getMessage(), 'study_schedule') !== false;
             if ($categoryId !== null && stripos($e->getMessage(), 'category_id') !== false) {
                 $fields = str_replace('category_id = :category_id, ', '', $fields);
                 unset($params[':category_id']);
@@ -146,7 +153,8 @@ class CourseModel {
                 // databases/migrations/024_add_course_study_schedule.sql to fix properly.
                 $fields = "title = :title, abbreviation = :abbreviation, category_id = :category_id, description = :description,
                            overview = :overview, duration_months = :duration_months, course_fee = :course_fee";
-                unset($params[':weeks_of_study'], $params[':hours_of_study'], $params[':study_schedule']);
+                unset($params[':weeks_of_study'], $params[':days_of_study'], $params[':hours_of_study'], $params[':study_schedule']);
+                $params[':duration_months'] = max(1, (int) $params[':duration_months'] ?: course_effective_months(array_merge($data, $dur)));
                 if (!empty($data['cover_image'])) {
                     $fields .= ", cover_image = :cover_image";
                 }
@@ -248,19 +256,27 @@ class CourseModel {
     }
 
     private function validate(array $data): ?string {
+        require_once __DIR__ . '/../helpers/course_duration.php';
         if (empty(trim($data['title'] ?? ''))) return 'Course title is required.';
         if (empty(trim($data['abbreviation'] ?? ''))) return 'Course abbreviation is required.';
         if (!preg_match('/^[A-Za-z0-9]{2,10}$/', trim($data['abbreviation']))) {
             return 'Abbreviation must be 2-10 letters or numbers, no spaces.';
         }
-        $duration = (int) ($data['duration_months'] ?? 0);
-        if ($duration < 1 || $duration > 36) return 'Duration must be between 1 and 36 months.';
+        if ($err = course_duration_validate_message($data)) {
+            return $err;
+        }
 
         $fee = (float) ($data['course_fee'] ?? 0);
         if ($fee <= 0) {
             return 'Course fee must be greater than zero.';
         }
         return null;
+    }
+
+    private function durationFields(array $data): array
+    {
+        require_once __DIR__ . '/../helpers/course_duration.php';
+        return course_normalize_duration_input($data);
     }
 
     /** Use NULL when session user id is missing or not in users (common after DB reset). */

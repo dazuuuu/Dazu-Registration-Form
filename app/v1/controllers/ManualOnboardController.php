@@ -2,6 +2,7 @@
 // app/v1/controllers/ManualOnboardController.php
 namespace Controllers;
 
+require_once __DIR__ . '/../helpers/course_duration.php';
 use Models\Connection;
 use Models\CourseModel;
 use Models\PaymentModel;
@@ -162,7 +163,7 @@ class ManualOnboardController {
             return ['error' => 'Invalid payment plan.'];
         }
 
-        $durationMonths = max(1, (int) $course['duration_months']);
+        $durationMonths = course_effective_months($course);
         $learningMonth = max(1, min($durationMonths, (int) ($data['current_learning_month'] ?? 1)));
         $installmentsPaid = max(0, (int) ($data['installments_paid'] ?? 0));
         $amountPaidPrior = max(0, (float) ($data['amount_paid_prior'] ?? 0));

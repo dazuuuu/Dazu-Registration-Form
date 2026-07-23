@@ -23,7 +23,7 @@ try {
 }
 
 $error = null;
-$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'overview' => '', 'duration_months' => 1, 'weeks_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'course_fee' => '', 'category_id' => ''];
+$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'overview' => '', 'duration_months' => '', 'weeks_of_study' => '', 'days_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'course_fee' => '', 'category_id' => ''];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
@@ -54,6 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'overview'        => $_POST['overview'] ?? '',
                 'duration_months' => $_POST['duration_months'] ?? 0,
                 'weeks_of_study'  => $_POST['weeks_of_study'] ?? null,
+                'days_of_study'   => $_POST['days_of_study'] ?? null,
                 'hours_of_study'  => $_POST['hours_of_study'] ?? null,
                 'study_schedule'  => $_POST['study_schedule'] ?? null,
                 'course_fee'      => $_POST['course_fee'] ?? 0,
@@ -119,25 +120,34 @@ ob_start();
                     <?php endif; ?>
                 </div>
 
-                <div class="col-md-4">
-                    <label class="form-label">Months of Study</label>
-                    <input type="number" name="duration_months" class="form-control" min="1" max="36" required
-                           value="<?php echo htmlspecialchars($old['duration_months']); ?>">
+                <div class="col-12">
+                    <label class="form-label">Study duration</label>
+                    <p class="text-muted small mb-2">Enter <strong>at least one</strong> — a course can be hours only (e.g. 1 hr), days only (e.g. 2 days), weeks only, or months only.</p>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Weeks of Study</label>
-                    <input type="number" name="weeks_of_study" class="form-control" min="0"
+                <div class="col-md-3">
+                    <label class="form-label">Hours of study</label>
+                    <input type="number" name="hours_of_study" class="form-control" min="0" step="1"
+                           placeholder="e.g. 1" value="<?php echo htmlspecialchars($old['hours_of_study'] ?? ''); ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Days of study</label>
+                    <input type="number" name="days_of_study" class="form-control" min="0" step="1"
+                           placeholder="e.g. 2" value="<?php echo htmlspecialchars($old['days_of_study'] ?? ''); ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Weeks of study</label>
+                    <input type="number" name="weeks_of_study" class="form-control" min="0" step="1"
                            placeholder="Optional" value="<?php echo htmlspecialchars($old['weeks_of_study'] ?? ''); ?>">
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label">Hours of Study</label>
-                    <input type="number" name="hours_of_study" class="form-control" min="0"
-                           placeholder="Optional" value="<?php echo htmlspecialchars($old['hours_of_study'] ?? ''); ?>">
+                <div class="col-md-3">
+                    <label class="form-label">Months of study</label>
+                    <input type="number" name="duration_months" class="form-control" min="0" max="36" step="1"
+                           placeholder="e.g. 6" value="<?php echo htmlspecialchars($old['duration_months'] ?? ''); ?>">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label">Study Schedule</label>
+                    <label class="form-label">Study schedule <span class="text-muted small">(optional notes)</span></label>
                     <input type="text" name="study_schedule" class="form-control" maxlength="150"
-                           placeholder="Optional — e.g. Mon, Wed, Fri evenings" value="<?php echo htmlspecialchars($old['study_schedule'] ?? ''); ?>">
+                           placeholder="e.g. Mon, Wed, Fri evenings" value="<?php echo htmlspecialchars($old['study_schedule'] ?? ''); ?>">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Course Fee (KSh)</label>

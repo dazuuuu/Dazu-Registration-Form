@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/helpers/course_share.php';
+require_once __DIR__ . '/../../../app/v1/helpers/course_duration.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 
@@ -81,18 +82,10 @@ ob_start();
                         <td><?php echo htmlspecialchars($c['title']); ?></td>
                         <td><span class="badge bg-secondary"><?php echo htmlspecialchars($c['abbreviation']); ?></span></td>
                         <td>
-                            <?php echo (int) $c['duration_months']; ?> month<?php echo $c['duration_months'] == 1 ? '' : 's'; ?>
-                            <?php if (!empty($c['weeks_of_study']) || !empty($c['hours_of_study']) || !empty($c['study_schedule'])): ?>
-                                <br><small class="text-muted">
-                                    <?php
-                                    $bits = [];
-                                    if (!empty($c['weeks_of_study'])) $bits[] = (int) $c['weeks_of_study'] . ' wk' . ((int) $c['weeks_of_study'] === 1 ? '' : 's');
-                                    if (!empty($c['hours_of_study'])) $bits[] = (int) $c['hours_of_study'] . ' hr' . ((int) $c['hours_of_study'] === 1 ? '' : 's');
-                                    if (!empty($c['study_schedule'])) $bits[] = htmlspecialchars($c['study_schedule']);
-                                    echo implode(' &middot; ', $bits);
-                                    ?>
-                                </small>
-                            <?php endif; ?>
+                            <?php
+                            $durLabel = course_study_summary($c);
+                            echo $durLabel !== '' ? htmlspecialchars($durLabel) : '<span class="text-muted">—</span>';
+                            ?>
                         </td>
                         <td>KSh <?php echo number_format($c['course_fee'], 0); ?></td>
                         <td><?php echo (int) $c['last_sequence']; ?></td>

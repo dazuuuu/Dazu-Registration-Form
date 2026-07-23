@@ -246,70 +246,45 @@ class SmsModuleService
         return $row;
     }
 
-    /** Human-readable study period from all course duration fields. */
+    /** @deprecated Use course_study_summary() helper */
     public static function courseStudySummary(?array $course): string
     {
-        if (!$course) {
-            return '';
-        }
-        $bits = [];
-        $mo = (int) ($course['duration_months'] ?? 0);
-        if ($mo > 0) {
-            $bits[] = $mo . ' month' . ($mo === 1 ? '' : 's');
-        }
-        $wk = (int) ($course['weeks_of_study'] ?? 0);
-        if ($wk > 0) {
-            $bits[] = $wk . ' week' . ($wk === 1 ? '' : 's');
-        }
-        $hrs = (int) ($course['hours_of_study'] ?? 0);
-        if ($hrs > 0) {
-            $bits[] = $hrs . ' hour' . ($hrs === 1 ? '' : 's');
-        }
-        $sched = trim((string) ($course['study_schedule'] ?? ''));
-        if ($sched !== '') {
-            $bits[] = $sched;
-        }
-        return implode(' · ', $bits);
+        require_once __DIR__ . '/../helpers/course_duration.php';
+        return course_study_summary($course);
     }
 
-    /** Primary billing/scaling unit for enrollment cost (weeks → hours → months). */
+    /** Primary billing/scaling unit for enrollment cost. */
     public static function courseDurationMeta(?array $course): array
     {
         if (!$course) {
             return ['unit' => 'months', 'value' => 1, 'label' => '1 month', 'fee' => 0.0];
         }
+        require_once __DIR__ . '/../helpers/course_duration.php';
         $fee = (float) ($course['course_fee'] ?? 0);
-        $summary = self::courseStudySummary($course);
-        if (!empty($course['weeks_of_study'])) {
-            $v = (int) $course['weeks_of_study'];
-            return ['unit' => 'weeks', 'value' => $v, 'label' => $summary ?: ($v . ' week' . ($v === 1 ? '' : 's')), 'fee' => $fee];
-        }
-        if (!empty($course['hours_of_study'])) {
-            $v = (int) $course['hours_of_study'];
-            return ['unit' => 'hours', 'value' => $v, 'label' => $summary ?: ($v . ' hour' . ($v === 1 ? '' : 's')), 'fee' => $fee];
-        }
-        $v = max(1, (int) ($course['duration_months'] ?? 1));
-        return ['unit' => 'months', 'value' => $v, 'label' => $summary ?: ($v . ' month' . ($v === 1 ? '' : 's')), 'fee' => $fee];
+        $meta = course_primary_duration_meta($course);
+        return array_merge($meta, ['fee' => $fee]);
     }
 
     public function coursePricingCatalog(): array
     {
+        require_once __DIR__ . '/../helpers/course_duration.php';
         $catalog = [];
         foreach ($this->courses() as $course) {
             $meta = self::courseDurationMeta($course);
-            $summary = self::courseStudySummary($course);
+            $v = course_duration_values($course);
             $catalog[] = [
                 'id' => (int) $course['id'],
                 'title' => $course['title'],
                 'fee' => $meta['fee'],
-                'duration_months' => (int) ($course['duration_months'] ?? 0),
-                'weeks_of_study' => (int) ($course['weeks_of_study'] ?? 0),
-                'hours_of_study' => (int) ($course['hours_of_study'] ?? 0),
-                'study_schedule' => trim((string) ($course['study_schedule'] ?? '')),
-                'duration_summary' => $summary,
+                'duration_months' => $v['months'],
+                'weeks_of_study' => $v['weeks'],
+                'days_of_study' => $v['days'],
+                'hours_of_study' => $v['hours'],
+                'study_schedule' => $v['schedule'],
+                'duration_summary' => course_study_summary($course),
                 'duration_unit' => $meta['unit'],
                 'duration_value' => $meta['value'],
-                'duration_label' => $summary ?: $meta['label'],
+                'duration_label' => $meta['label'],
             ];
         }
         return $catalog;
@@ -317,6 +292,7 @@ class SmsModuleService
 
     private function resolveStudentCostDuration(array $data, ?array $existing = null): array
     {
+        require_once __DIR__ . '/../helpers/course_duration.php';
         $courseId = (int) ($data['course_id'] ?? $existing['course_id'] ?? 0);
         $cm = new \Models\CourseModel($this->pdo);
         $course = $courseId ? $cm->getById($courseId) : null;
@@ -339,8 +315,8 @@ class SmsModuleService
             $cost = round((float) ($data['cost'] ?? $baseFee), 2);
         }
 
-        $fullSummary = $course ? self::courseStudySummary($course) : '';
-        $primaryLabel = self::formatDurationLabel($unit, $value);
+        $fullSummary = $course ? course_study_summary($course) : '';
+        $primaryLabel = course_format_duration_unit($unit, (int) round($value));
         $atDefault = abs($value - (float) $meta['value']) < 0.0001 && $unit === $meta['unit'];
         $duration = $atDefault && $fullSummary !== ''
             ? $fullSummary

@@ -103,9 +103,10 @@ ob_start();
     if (!c) return '';
     if (c.duration_summary) return c.duration_summary;
     const bits = [];
-    if (c.duration_months > 0) bits.push(c.duration_months + ' month' + (c.duration_months === 1 ? '' : 's'));
-    if (c.weeks_of_study > 0) bits.push(c.weeks_of_study + ' week' + (c.weeks_of_study === 1 ? '' : 's'));
     if (c.hours_of_study > 0) bits.push(c.hours_of_study + ' hour' + (c.hours_of_study === 1 ? '' : 's'));
+    if (c.days_of_study > 0) bits.push(c.days_of_study + ' day' + (c.days_of_study === 1 ? '' : 's'));
+    if (c.weeks_of_study > 0) bits.push(c.weeks_of_study + ' week' + (c.weeks_of_study === 1 ? '' : 's'));
+    if (c.duration_months > 0) bits.push(c.duration_months + ' month' + (c.duration_months === 1 ? '' : 's'));
     if (c.study_schedule) bits.push(c.study_schedule);
     return bits.join(' · ');
   }
@@ -114,8 +115,8 @@ ob_start();
     const v = parseInt(value, 10);
     if (!v) return '';
     if (unit === 'hours') return v + ' hour' + (v === 1 ? '' : 's');
-    if (unit === 'weeks') return v + ' week' + (v === 1 ? '' : 's');
     if (unit === 'days') return v + ' day' + (v === 1 ? '' : 's');
+    if (unit === 'weeks') return v + ' week' + (v === 1 ? '' : 's');
     return v + ' month' + (v === 1 ? '' : 's');
   }
 
