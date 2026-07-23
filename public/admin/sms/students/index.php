@@ -1,13 +1,13 @@
 <?php
 require_once __DIR__ . '/../_init.php';
-
+sms_require_tables($pdo);
 $search = trim($_GET['search'] ?? '');
 $status = $_GET['status'] ?? 'all';
 $students = $sms->listStudents($search ?: null, $status);
 
 $page_title = 'SmS Students';
 $breadcrumbs = [
-    ['label' => 'SmS', 'url' => url('admin/sms/index.php')],
+    ['label' => 'SmS', 'url' => url('admin/dashboard.php#sms-alerts')],
     ['label' => 'Students', 'active' => true],
 ];
 

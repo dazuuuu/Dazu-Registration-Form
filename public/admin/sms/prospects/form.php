@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../_init.php';
-
+sms_require_tables($pdo);
 $id = isset($_GET['id']) ? (int) $_GET['id'] : 0;
 $prospect = $id ? $sms->getProspect($id) : null;
 $error = '';
@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $page_title = $id ? 'Edit prospect' : 'Add prospect';
 $breadcrumbs = [
-    ['label' => 'SmS', 'url' => url('admin/sms/index.php')],
+    ['label' => 'SmS', 'url' => url('admin/dashboard.php#sms-alerts')],
     ['label' => 'Prospects', 'url' => url('admin/sms/prospects/index.php')],
     ['label' => $page_title, 'active' => true],
 ];

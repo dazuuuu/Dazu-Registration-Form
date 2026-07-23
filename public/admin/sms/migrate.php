@@ -3,13 +3,12 @@ require_once __DIR__ . '/_init.php';
 
 $page_title = 'SmS Database Migration';
 $breadcrumbs = [
-    ['label' => 'SmS', 'url' => url('admin/sms/index.php')],
-    ['label' => 'Migration', 'active' => true],
+    ['label' => 'Dashboard', 'url' => url('admin/dashboard.php#sms-alerts')],
+    ['label' => 'SmS setup', 'active' => true],
 ];
 
 $messages = [];
 $errors = [];
-$ran = false;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration'])) {
     $sqlFile = dirname(__DIR__, 3) . '/databases/migrations/028_sms_module.sql';
@@ -18,10 +17,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration'])) {
     } else {
         $sql = file_get_contents($sqlFile);
         $sql = preg_replace('/^\s*USE\s+[^;]+;\s*/mi', '', $sql);
-        $statements = array_filter(array_map('trim', preg_split('/;\s*[\r\n]+/', $sql)));
+        $buffer = '';
+        $statements = [];
+        foreach (preg_split('/\R/', $sql) as $line) {
+            $trim = trim($line);
+            if ($trim === '' || strpos($trim, '--') === 0) {
+                continue;
+            }
+            $buffer .= $line . "\n";
+            if (substr(rtrim($line), -1) === ';') {
+                $statements[] = trim($buffer);
+                $buffer = '';
+            }
+        }
 
         foreach ($statements as $statement) {
-            if ($statement === '' || strpos(ltrim($statement), '--') === 0) {
+            if ($statement === '') {
                 continue;
             }
             try {
@@ -33,9 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration'])) {
                 $errors[] = $e->getMessage();
             }
         }
-        $ran = empty($errors);
-        if ($ran) {
+
+        if (empty($errors) && SmsModuleService::isInstalled($pdo)) {
             $sms->log('migration', 'SmS tables migration 028 applied', 'system', null);
+            sms_flash('success', 'SmS tables created successfully.');
+            sms_redirect('admin/dashboard.php#sms-alerts');
         }
     }
 }
@@ -56,7 +69,7 @@ ob_start();
 ?>
 <div class="card shadow-sm"><div class="card-body">
   <h4 class="mb-3">SmS module database setup</h4>
-  <p class="text-muted">Run migration <code>028_sms_module.sql</code> to create all SmS tables. Safe to run more than once (uses <code>CREATE TABLE IF NOT EXISTS</code>).</p>
+  <p class="text-muted">Run migration <code>028_sms_module.sql</code> once to create all SmS tables.</p>
 
   <h6 class="mt-4">Table status</h6>
   <ul class="list-group mb-4">
@@ -87,11 +100,11 @@ ob_start();
     <button type="submit" name="run_migration" value="1" class="btn btn-success" onclick="return confirm('Run SmS migration now?')">
       <i class="fas fa-database me-1"></i> Run migration
     </button>
-    <a href="<?= url('admin/sms/index.php') ?>" class="btn btn-link">Back to dashboard</a>
+    <a href="<?= url('admin/dashboard.php#sms-alerts') ?>" class="btn btn-link">Back to dashboard</a>
   </form>
 
   <hr>
-  <p class="small text-muted mb-0">Alternative: import <code>databases/migrations/028_sms_module.sql</code> via phpMyAdmin.</p>
+  <p class="small text-muted mb-0">Alternative: import <code>databases/migrations/028_sms_module.sql</code> in phpMyAdmin.</p>
 </div></div>
 <?php
 $content = ob_get_clean();

@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/_init.php';
-
+sms_require_tables($pdo);
 $tab = $_GET['tab'] ?? 'overview';
 $overview = $sms->financeOverview();
 $studentData = $tab === 'students' ? $sms->financeStudents() : null;
@@ -8,7 +8,7 @@ $projectRows = $tab === 'projects' ? $sms->financeProjects() : null;
 
 $page_title = 'SmS Finance';
 $breadcrumbs = [
-    ['label' => 'SmS', 'url' => url('admin/sms/index.php')],
+    ['label' => 'SmS', 'url' => url('admin/dashboard.php#sms-alerts')],
     ['label' => 'Finance', 'active' => true],
 ];
 

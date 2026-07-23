@@ -132,11 +132,6 @@ function isSmsSection($section) {
                 </a>
                 <div class="collapse <?php echo isSmsActive() ? 'show' : ''; ?>" id="smsMenu">
                     <div class="ps-4 mt-2">
-                        <a href="<?php echo url('admin/sms/index.php'); ?>"
-                           class="nav-link <?php echo isSmsActive() && !isSmsSection('students') && !isSmsSection('prospects') && !isSmsSection('projects') && !isSmsSection('finance') && !isSmsSection('sales') ? 'active' : ''; ?>">
-                            <i class="fas fa-tachometer-alt"></i>
-                            <span>Dashboard</span>
-                        </a>
                         <a href="<?php echo url('admin/sms/students/index.php'); ?>"
                            class="nav-link <?php echo isSmsSection('students') ? 'active' : ''; ?>">
                             <i class="fas fa-user-graduate"></i>

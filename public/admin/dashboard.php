@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../app/v1/bootstrap.php';
 require_once __DIR__ . '/../../app/v1/models/DashboardModel.php';
+require_once __DIR__ . '/../../app/v1/services/SmsModuleService.php';
 
 use Models\DashboardModel;
 
@@ -8,8 +9,21 @@ if (!isLoggedIn() || (int) ($_SESSION['role_id'] ?? 99) > 2) {
     redirect(url('admin/portal.php'));
 }
 
+$smsService = new SmsModuleService($pdo, (int) ($_SESSION['user_id'] ?? 0));
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sms_run_reminders'])) {
+    $r = $smsService->runProspectReminders();
+    $_SESSION['flash_success'] = 'Prospect reminders sent: ' . $r['today'] . ' due today, ' . $r['two_day'] . ' two-day.';
+    redirect(url('admin/dashboard.php#sms-alerts'));
+}
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['sms_run_project_alerts'])) {
+    $r = $smsService->runProjectAlerts();
+    $_SESSION['flash_success'] = 'Project alerts: ' . $r['due'] . ' due soon, ' . $r['followups'] . ' follow-ups today.';
+    redirect(url('admin/dashboard.php#sms-alerts'));
+}
+
 $dash = new DashboardModel($pdo);
 $stats = $dash->adminStats();
+$sms = $smsService->dashboardAlerts();
 $page_title = 'System Overview';
 $breadcrumbs = [['label' => 'Dashboard', 'active' => true]];
 
@@ -44,6 +58,71 @@ ob_start();
   <div class="col-md-6 col-xl-3"><div class="card report-card"><div class="card-body"><div class="metric-label mb-2">Outstanding balance</div><div class="h4 fw-bold text-danger mb-1"><?php echo $money($stats['total_outstanding']); ?></div><small class="text-muted"><?php echo number_format($stats['portal_locked']); ?> locked student portal(s)</small></div></div></div>
   <div class="col-md-6 col-xl-3"><div class="card report-card"><div class="card-body"><div class="metric-label mb-2">Collection rate</div><div class="h4 fw-bold mb-2"><?php echo number_format($stats['collection_rate'], 1); ?>%</div><div class="progress" style="height:7px"><div class="progress-bar bg-success" style="width:<?php echo min(100, $stats['collection_rate']); ?>%"></div></div><small class="text-muted d-block mt-2">Of <?php echo $money($stats['expected_fees']); ?> expected fees</small></div></div></div>
 </div>
+
+<section id="sms-alerts" class="mb-4">
+  <div class="card report-card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <span><i class="fa-solid fa-sms text-success me-2"></i>SmS alerts</span>
+      <?php if (!empty($sms['installed'])): ?>
+      <div class="d-flex gap-2">
+        <form method="post" class="d-inline"><button type="submit" name="sms_run_reminders" value="1" class="btn btn-sm btn-outline-primary">Run prospect reminders</button></form>
+        <form method="post" class="d-inline"><button type="submit" name="sms_run_project_alerts" value="1" class="btn btn-sm btn-outline-secondary">Run project alerts</button></form>
+      </div>
+      <?php endif; ?>
+    </div>
+    <div class="card-body">
+      <?php if (empty($sms['installed'])): ?>
+        <div class="alert alert-warning mb-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span>SmS module tables are not set up yet. Run the one-time migration to enable students, prospects, and projects.</span>
+          <a class="btn btn-sm btn-success" href="<?php echo url('admin/sms/migrate.php'); ?>">Run migration</a>
+        </div>
+      <?php else:
+        $sum = $sms['summary'];
+      ?>
+        <div class="row g-3 mb-3">
+          <div class="col-6 col-md-3"><div class="accounting-stat"><div class="metric-label">SmS students</div><div class="h5 mb-0"><?php echo number_format($sum['students']); ?></div></div></div>
+          <div class="col-6 col-md-3"><div class="accounting-stat border-danger"><div class="metric-label">With balance</div><div class="h5 mb-0 text-danger"><?php echo number_format($sum['arrears']); ?></div></div></div>
+          <div class="col-6 col-md-3"><div class="accounting-stat border-warning"><div class="metric-label">Prospects due</div><div class="h5 mb-0 text-warning"><?php echo number_format($sum['prospects_due']); ?></div></div></div>
+          <div class="col-6 col-md-3"><div class="accounting-stat border-primary"><div class="metric-label">Projects due soon</div><div class="h5 mb-0 text-primary"><?php echo number_format($sum['projects_due']); ?></div></div></div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4"><small class="text-muted">Outstanding fees</small><div class="fw-bold text-danger"><?php echo $money($sum['outstanding']); ?></div></div>
+          <div class="col-md-4"><small class="text-muted">SmS collected</small><div class="fw-bold text-success"><?php echo $money($sum['collected']); ?></div></div>
+          <div class="col-md-4"><small class="text-muted">Open prospects</small><div class="fw-bold"><?php echo number_format($sum['prospects_open']); ?></div></div>
+        </div>
+        <?php if (!empty($sms['alerts'])): ?>
+        <div class="table-responsive">
+          <table class="table table-hover compact-table mb-0">
+            <thead class="table-light"><tr><th>Type</th><th>Name</th><th>Detail</th><th></th></tr></thead>
+            <tbody>
+              <?php foreach ($sms['alerts'] as $alert):
+                $icon = ['student' => 'fa-user-graduate', 'prospect' => 'fa-user-clock', 'project' => 'fa-briefcase'][$alert['kind']] ?? 'fa-bell';
+                $badge = ['danger' => 'danger', 'warning' => 'warning'][$alert['severity']] ?? 'secondary';
+              ?>
+              <tr>
+                <td><span class="badge text-bg-<?php echo $badge; ?> text-capitalize"><?php echo htmlspecialchars($alert['kind']); ?></span></td>
+                <td class="fw-semibold"><?php echo htmlspecialchars($alert['title']); ?></td>
+                <td class="text-muted small"><?php echo htmlspecialchars($alert['detail']); ?></td>
+                <td class="text-end"><a href="<?php echo url($alert['path']); ?>" class="btn btn-sm btn-outline-primary">Open</a></td>
+              </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
+        </div>
+        <?php else: ?>
+        <div class="empty-state mb-0">No SmS alerts right now — all balances and follow-ups are clear.</div>
+        <?php endif; ?>
+        <div class="d-flex flex-wrap gap-2 mt-3 pt-2 border-top">
+          <a class="btn btn-sm btn-outline-success" href="<?php echo url('admin/sms/students/index.php'); ?>">Students</a>
+          <a class="btn btn-sm btn-outline-info" href="<?php echo url('admin/sms/prospects/index.php'); ?>">Prospects</a>
+          <a class="btn btn-sm btn-outline-primary" href="<?php echo url('admin/sms/projects/index.php'); ?>">Projects</a>
+          <a class="btn btn-sm btn-outline-secondary" href="<?php echo url('admin/sms/finance/index.php'); ?>">Finance</a>
+          <a class="btn btn-sm btn-outline-secondary" href="<?php echo url('admin/sms/sales/index.php'); ?>">Sales</a>
+        </div>
+      <?php endif; ?>
+    </div>
+  </div>
+</section>
 
 <div class="row g-3 mb-4">
   <div class="col-lg-8"><div class="card report-card"><div class="card-header d-flex justify-content-between"><span><i class="fa-solid fa-chart-line text-success me-2"></i>Revenue trend</span><small class="text-muted fw-normal">Approved payments</small></div><div class="card-body"><div class="chart-wrap"><canvas id="chartRevenue"></canvas></div></div></div></div>

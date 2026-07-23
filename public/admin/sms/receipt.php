@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/_init.php';
-
+sms_require_tables($pdo);
 $id = (int) ($_GET['id'] ?? 0);
 $receipt = $sms->getReceipt($id);
 if (!$receipt) {

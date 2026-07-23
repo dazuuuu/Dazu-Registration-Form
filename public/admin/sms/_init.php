@@ -30,3 +30,11 @@ function sms_money(float $n): string
 {
     return 'KES ' . number_format($n, 2);
 }
+
+function sms_require_tables(PDO $pdo): void
+{
+    if (!SmsModuleService::isInstalled($pdo)) {
+        sms_flash('warning', 'SmS tables are not set up yet. Please run the database migration first.');
+        sms_redirect('admin/sms/migrate.php');
+    }
+}

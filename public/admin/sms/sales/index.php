@@ -1,13 +1,13 @@
 <?php
 require_once __DIR__ . '/_init.php';
-
+sms_require_tables($pdo);
 $category = $_GET['category'] ?? 'all';
 $sales = $sms->listSales($category);
 $summary = $sms->salesSummary();
 
 $page_title = 'SmS Sales';
 $breadcrumbs = [
-    ['label' => 'SmS', 'url' => url('admin/sms/index.php')],
+    ['label' => 'SmS', 'url' => url('admin/dashboard.php#sms-alerts')],
     ['label' => 'Sales', 'active' => true],
 ];
 

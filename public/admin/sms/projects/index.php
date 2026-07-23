@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../_init.php';
-
+sms_require_tables($pdo);
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_alerts'])) {
     $r = $sms->runProjectAlerts();
     sms_flash('success', 'Project alerts: ' . $r['due'] . ' due soon, ' . $r['followups'] . ' follow-ups today.');
@@ -19,7 +19,7 @@ $projects = $sms->listProjects($search ?: null, $status);
 
 $page_title = 'SmS Projects';
 $breadcrumbs = [
-    ['label' => 'SmS', 'url' => url('admin/sms/index.php')],
+    ['label' => 'SmS', 'url' => url('admin/dashboard.php#sms-alerts')],
     ['label' => 'Projects', 'active' => true],
 ];
 

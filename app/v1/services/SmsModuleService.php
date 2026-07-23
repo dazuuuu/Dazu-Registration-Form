@@ -21,19 +21,36 @@ class SmsModuleService
         return round(max(0, $cost - $paid), 2);
     }
 
+    public static function isInstalled(PDO $pdo): bool
+    {
+        try {
+            $pdo->query('SELECT 1 FROM sms_students LIMIT 1');
+            return true;
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
     public function log(string $type, string $description, ?string $entityType = null, ?int $entityId = null): void
     {
-        $stmt = $this->pdo->prepare(
-            'INSERT INTO sms_activity (activity_type, entity_type, entity_id, description, actor_id)
-             VALUES (:t, :et, :eid, :d, :aid)'
-        );
-        $stmt->execute([
-            ':t' => $type,
-            ':et' => $entityType,
-            ':eid' => $entityId,
-            ':d' => mb_substr($description, 0, 500),
-            ':aid' => $this->actorId ?: null,
-        ]);
+        if (!self::isInstalled($this->pdo)) {
+            return;
+        }
+        try {
+            $stmt = $this->pdo->prepare(
+                'INSERT INTO sms_activity (activity_type, entity_type, entity_id, description, actor_id)
+                 VALUES (:t, :et, :eid, :d, :aid)'
+            );
+            $stmt->execute([
+                ':t' => $type,
+                ':et' => $entityType,
+                ':eid' => $entityId,
+                ':d' => mb_substr($description, 0, 500),
+                ':aid' => $this->actorId ?: null,
+            ]);
+        } catch (Throwable $e) {
+            error_log('[SmsModule] log failed: ' . $e->getMessage());
+        }
     }
 
     public function recentActivity(int $limit = 25): array
@@ -52,6 +69,14 @@ class SmsModuleService
 
     public function dashboardStats(): array
     {
+        if (!self::isInstalled($this->pdo)) {
+            return [
+                'students' => 0, 'prospects' => 0, 'openProspects' => 0, 'projects' => 0, 'activeProjects' => 0,
+                'stuFin' => ['cost' => 0, 'paid' => 0], 'prjFin' => ['cost' => 0, 'paid' => 0],
+                'stuArrears' => 0, 'salesStudents' => 0, 'salesProjects' => 0, 'dueSoon' => [], 'meetings' => [],
+            ];
+        }
+
         $students = (int) $this->pdo->query('SELECT COUNT(*) FROM sms_students')->fetchColumn();
         $prospects = (int) $this->pdo->query('SELECT COUNT(*) FROM sms_prospects')->fetchColumn();
         $openProspects = (int) $this->pdo->query("SELECT COUNT(*) FROM sms_prospects WHERE status = 'open'")->fetchColumn();
@@ -85,6 +110,82 @@ class SmsModuleService
             'students', 'prospects', 'openProspects', 'projects', 'activeProjects',
             'stuFin', 'prjFin', 'stuArrears', 'salesStudents', 'salesProjects', 'dueSoon', 'meetings'
         );
+    }
+
+    /** Compact alerts for the main admin dashboard. */
+    public function dashboardAlerts(): array
+    {
+        if (!self::isInstalled($this->pdo)) {
+            return ['installed' => false, 'summary' => [], 'alerts' => []];
+        }
+
+        $summary = [
+            'students' => (int) $this->pdo->query('SELECT COUNT(*) FROM sms_students')->fetchColumn(),
+            'arrears' => (int) $this->pdo->query('SELECT COUNT(*) FROM sms_students WHERE cost > paid')->fetchColumn(),
+            'prospects_open' => (int) $this->pdo->query("SELECT COUNT(*) FROM sms_prospects WHERE status = 'open'")->fetchColumn(),
+            'prospects_due' => (int) $this->pdo->query("SELECT COUNT(*) FROM sms_prospects WHERE status = 'open' AND follow_up_date IS NOT NULL AND follow_up_date <= CURDATE()")->fetchColumn(),
+            'projects_active' => (int) $this->pdo->query("SELECT COUNT(*) FROM sms_projects WHERE status IN ('active','in_progress')")->fetchColumn(),
+            'projects_due' => (int) $this->pdo->query(
+                "SELECT COUNT(*) FROM sms_projects WHERE status IN ('active','in_progress')
+                 AND due_date IS NOT NULL AND due_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY)"
+            )->fetchColumn(),
+            'collected' => (float) $this->pdo->query('SELECT COALESCE(SUM(amount),0) FROM sms_sales')->fetchColumn(),
+            'outstanding' => (float) $this->pdo->query('SELECT COALESCE(SUM(cost - paid),0) FROM sms_students WHERE cost > paid')->fetchColumn(),
+        ];
+
+        $alerts = [];
+
+        $students = $this->pdo->query(
+            'SELECT s.id, s.name, s.cost, s.paid, c.title AS course_title FROM sms_students s
+             LEFT JOIN courses c ON c.id = s.course_id
+             WHERE s.cost > s.paid ORDER BY (s.cost - s.paid) DESC LIMIT 8'
+        )->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($students as $row) {
+            $bal = self::balance((float) $row['cost'], (float) $row['paid']);
+            $alerts[] = [
+                'kind' => 'student',
+                'severity' => 'danger',
+                'title' => $row['name'],
+                'detail' => ($row['course_title'] ?? 'No course') . ' · Balance KES ' . number_format($bal, 2),
+                'path' => 'admin/sms/students/view.php?id=' . (int) $row['id'],
+            ];
+        }
+
+        $prospects = $this->pdo->query(
+            "SELECT id, name, follow_up_date, intake_or_course FROM sms_prospects
+             WHERE status = 'open' AND follow_up_date IS NOT NULL
+               AND follow_up_date <= DATE_ADD(CURDATE(), INTERVAL 2 DAY)
+             ORDER BY follow_up_date ASC LIMIT 6"
+        )->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($prospects as $row) {
+            $overdue = $row['follow_up_date'] < date('Y-m-d');
+            $alerts[] = [
+                'kind' => 'prospect',
+                'severity' => $overdue ? 'danger' : 'warning',
+                'title' => $row['name'],
+                'detail' => ($overdue ? 'Follow-up overdue' : 'Follow-up due') . ' · ' . ($row['intake_or_course'] ?? '—'),
+                'path' => 'admin/sms/prospects/form.php?id=' . (int) $row['id'],
+            ];
+        }
+
+        $projects = $this->pdo->query(
+            "SELECT id, title, due_date, client_name FROM sms_projects
+             WHERE status IN ('active','in_progress') AND due_date IS NOT NULL
+               AND due_date <= DATE_ADD(CURDATE(), INTERVAL 3 DAY)
+             ORDER BY due_date ASC LIMIT 6"
+        )->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($projects as $row) {
+            $overdue = $row['due_date'] < date('Y-m-d');
+            $alerts[] = [
+                'kind' => 'project',
+                'severity' => $overdue ? 'danger' : 'warning',
+                'title' => $row['title'],
+                'detail' => ($row['client_name'] ?? 'Client') . ' · Due ' . $row['due_date'],
+                'path' => 'admin/sms/projects/view.php?id=' . (int) $row['id'],
+            ];
+        }
+
+        return ['installed' => true, 'summary' => $summary, 'alerts' => $alerts];
     }
 
     // ─── Students ────────────────────────────────────────────────
