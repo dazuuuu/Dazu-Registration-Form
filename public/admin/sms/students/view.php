@@ -15,6 +15,15 @@ if (isset($_GET['delete']) && $_GET['delete'] === '1') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['resend_credentials'])) {
+        $result = $sms->resendStudentCredentials($id);
+        if (!empty($result['ok'])) {
+            sms_flash('success', 'Login details reset and emailed to ' . htmlspecialchars($result['email'] ?? $student['email']) . '. The student must set a new password on first login.');
+        } else {
+            sms_flash('error', $result['error'] ?? 'Could not resend login details.');
+        }
+        sms_redirect('admin/sms/students/view.php?id=' . $id);
+    }
     if (isset($_POST['regenerate_receipt'])) {
         $rid = (int) $_POST['receipt_id'];
         $sms->regenerateReceipt($rid);
@@ -50,7 +59,14 @@ ob_start();
     <h4 class="mb-1"><?= htmlspecialchars($student['name']) ?></h4>
     <small class="text-muted"><?= htmlspecialchars($student['course_title'] ?? '') ?> · <?= htmlspecialchars($student['status']) ?><?php if (!empty($student['registration_no'])): ?> · <?= htmlspecialchars($student['registration_no']) ?><?php endif; ?></small>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex gap-2 flex-wrap">
+    <?php if (!empty($student['email']) && !empty($student['registration_id'])): ?>
+    <form method="post" class="d-inline" onsubmit="return confirm('Reset this student\'s password and email new login details? They will be required to choose a new password on first login.');">
+      <button type="submit" name="resend_credentials" value="1" class="btn btn-sm btn-outline-secondary">
+        <i class="fas fa-envelope me-1"></i>Resend login details
+      </button>
+    </form>
+    <?php endif; ?>
     <a href="<?= url('admin/sms/students/form.php?id='.$id) ?>" class="btn btn-sm btn-primary">Edit</a>
     <a href="<?= url('admin/sms/students/view.php?id='.$id.'&delete=1') ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this student?')">Delete</a>
   </div>
@@ -62,6 +78,27 @@ ob_start();
   <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Balance</div><div class="fw-bold text-danger"><?= sms_money($balance) ?></div></div></div></div>
   <div class="col-md-3"><div class="card shadow-sm"><div class="card-body"><div class="text-muted small">Parent</div><div class="small"><?= htmlspecialchars($student['parent_email'] ?? '—') ?><br><?= htmlspecialchars($student['parent_phone'] ?? '') ?></div></div></div></div>
 </div>
+
+<?php if (!empty($student['registration_id'])): ?>
+<div class="card shadow-sm mb-4">
+  <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <div class="text-muted small">Portal account</div>
+      <div class="small">
+        <strong>Login email:</strong> <?= htmlspecialchars($student['email'] ?? '—') ?><br>
+        <strong>Username:</strong> <?= htmlspecialchars($student['registration_no'] ?? '—') ?>
+      </div>
+    </div>
+    <?php if (!empty($student['email'])): ?>
+    <form method="post" onsubmit="return confirm('Reset this student\'s password and email new login details? They will be required to choose a new password on first login.');">
+      <button type="submit" name="resend_credentials" value="1" class="btn btn-sm btn-outline-primary">
+        <i class="fas fa-key me-1"></i>Resend login details
+      </button>
+    </form>
+    <?php endif; ?>
+  </div>
+</div>
+<?php endif; ?>
 
 <div class="row g-3">
   <div class="col-lg-6"><div class="card shadow-sm"><div class="card-header fw-semibold">Payment history</div><div class="table-responsive">

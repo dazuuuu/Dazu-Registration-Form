@@ -35,8 +35,13 @@ class StudentController {
         $tempPassword = bin2hex(random_bytes(8));
         $hash = password_hash($tempPassword, PASSWORD_DEFAULT);
 
-        $stmt = $this->db->prepare("UPDATE users SET password_hash = :hash, is_active = 1, account_status = 'active' WHERE id = :uid");
-        $stmt->execute([':hash' => $hash, ':uid' => $reg['user_id']]);
+        $stmt = $this->db->prepare("UPDATE users SET password_hash = :hash, is_active = 1, account_status = 'active', must_change_password = 1 WHERE id = :uid");
+        try {
+            $stmt->execute([':hash' => $hash, ':uid' => $reg['user_id']]);
+        } catch (\PDOException $e) {
+            $stmt = $this->db->prepare("UPDATE users SET password_hash = :hash, is_active = 1, account_status = 'active' WHERE id = :uid");
+            $stmt->execute([':hash' => $hash, ':uid' => $reg['user_id']]);
+        }
 
         $this->studentModel->markCredentialsSent($registrationId);
 

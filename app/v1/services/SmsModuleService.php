@@ -503,6 +503,71 @@ class SmsModuleService
         return $ok;
     }
 
+    /**
+     * Reset portal password and email fresh login credentials to the student.
+     *
+     * @return array{ok:bool, error?:string, email?:string}
+     */
+    public function resendStudentCredentials(int $id): array
+    {
+        $student = $this->getStudent($id);
+        if (!$student) {
+            return ['ok' => false, 'error' => 'Student not found.'];
+        }
+
+        $email = trim($student['email'] ?? '');
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'error' => 'Student has no valid email address on file.'];
+        }
+
+        $registrationId = (int) ($student['registration_id'] ?? 0);
+        $userId = (int) ($student['user_id'] ?? $student['reg_user_id'] ?? 0);
+        if ($registrationId <= 0 || $userId <= 0) {
+            return ['ok' => false, 'error' => 'This student has no linked portal account.'];
+        }
+
+        $regNo = trim($student['registration_no'] ?? '');
+        if ($regNo === '') {
+            $stmt = $this->pdo->prepare('SELECT registration_no FROM registrations WHERE id = :id LIMIT 1');
+            $stmt->execute([':id' => $registrationId]);
+            $regNo = trim((string) $stmt->fetchColumn());
+        }
+        if ($regNo === '') {
+            return ['ok' => false, 'error' => 'Registration number not found for this student.'];
+        }
+
+        $tempPassword = bin2hex(random_bytes(8));
+        $hash = password_hash($tempPassword, PASSWORD_DEFAULT);
+        try {
+            $this->pdo->prepare(
+                'UPDATE users SET password_hash = :hash, is_active = 1, account_status = \'active\', must_change_password = 1 WHERE id = :uid'
+            )->execute([':hash' => $hash, ':uid' => $userId]);
+        } catch (PDOException $e) {
+            $this->pdo->prepare(
+                'UPDATE users SET password_hash = :hash, is_active = 1, account_status = \'active\' WHERE id = :uid'
+            )->execute([':hash' => $hash, ':uid' => $userId]);
+        }
+
+        $notifier = new StudentNotifier($this->pdo, null, true);
+        $result = $notifier->sendCredentials([
+            'email' => $email,
+            'full_name' => $student['name'],
+            'registration_no' => $regNo,
+            'course_title' => $student['course_title'] ?? '',
+        ], $tempPassword);
+
+        if (empty($result['ok'])) {
+            return [
+                'ok' => false,
+                'error' => 'Password was reset but the email could not be sent. ' . ($result['message'] ?? 'Check SMTP settings.'),
+            ];
+        }
+
+        $this->log('credentials_resent', 'Resent login credentials to ' . $email, 'student', $id);
+
+        return ['ok' => true, 'email' => $email];
+    }
+
     public function studentPayments(int $studentId): array
     {
         $stmt = $this->pdo->prepare(
