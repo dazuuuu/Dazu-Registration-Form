@@ -58,98 +58,54 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
     <link rel="stylesheet" href="../assets/css/auth.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
-    <style>
-        /* Admin variant: deeper, more "secure" brand panel */
-        .auth-brand.is-admin{ background:linear-gradient(135deg, #0D1F0D 0%, #1B5E20 55%, #2E7D32 130%); }
-    </style>
 </head>
-<body class="auth-body">
+<body class="wp-auth-body">
 
-<div class="auth-wrap">
+<div class="wp-auth-wrap">
 
-    <!-- Brand panel (admin variant) -->
-    <aside class="auth-brand is-admin">
-        <div class="auth-brand-inner">
-            <a class="auth-logo" href="<?php echo url('/'); ?>" aria-label="Dazu Hub Institute — Home">
-                <?php if ($logoExists): ?>
-                    <img src="<?php echo $logoPath; ?>" alt="Dazu Hub Institute logo" class="brand-logo">
-                <?php else: ?>
-                    <svg class="brand-mark" width="30" height="30" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <rect width="12" height="12" fill="currentColor"/>
-                        <rect x="16" width="12" height="12" fill="currentColor" opacity=".45"/>
-                        <rect y="16" width="12" height="12" fill="currentColor" opacity=".45"/>
-                        <rect x="16" y="16" width="12" height="12" fill="currentColor"/>
-                    </svg>
-                <?php endif; ?>
-                <span class="brand-name">Dazu Hub</span>
-            </a>
+    <a class="wp-auth-logo" href="<?php echo url('/'); ?>" aria-label="Dazu Hub Institute — Home">
+        <?php if ($logoExists): ?>
+            <img src="<?php echo $logoPath; ?>" alt="Dazu Hub Institute logo">
+        <?php else: ?>
+            <span class="wp-auth-logo-mark"><i class="fas fa-user-shield"></i></span>
+        <?php endif; ?>
+        <span class="wp-auth-logo-name">Dazu Hub</span>
+    </a>
 
-            <h1>Administrator <span>access</span>.</h1>
-            <p class="lead">A restricted area for managing students, tutors, courses, payments, and content.</p>
+    <div class="wp-auth-card">
+        <?php if ($error): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <?php echo htmlspecialchars($error); ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        <?php endif; ?>
 
-            <ul class="auth-points">
-                <li><i class="fas fa-lock"></i> Restricted to admin accounts only</li>
-                <li><i class="fas fa-shield-halved"></i> Secure, session-based authentication</li>
-                <li><i class="fas fa-clock-rotate-left"></i> Sign-in attempts are recorded</li>
-            </ul>
-        </div>
-        <p class="auth-brand-foot">&copy; <?php echo date('Y'); ?> Dazu Hub Institute. Authorised personnel only.</p>
-    </aside>
+        <form method="POST" novalidate>
+            <div class="wp-auth-field">
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="admin@example.com"
+                       value="<?php echo htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required>
+            </div>
 
-    <!-- Form panel -->
-    <main class="auth-form">
-        <div class="auth-form-top">
-            <a href="<?php echo url('/'); ?>" class="auth-back"><i class="fas fa-arrow-left"></i> Back to home</a>
-        </div>
+            <div class="wp-auth-field">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+            </div>
 
-        <div class="auth-form-body">
-            <div class="auth-mark"><i class="fas fa-user-shield"></i></div>
-            <h2>Admin portal</h2>
-            <p class="sub">Secure administrator access.</p>
+            <div class="wp-auth-row">
+                <a href="<?php echo url('forgot-password'); ?>" class="wp-auth-forgot">Forgot password?</a>
+            </div>
 
-            <?php if ($error): ?>
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <i class="fas fa-exclamation-circle me-2"></i>
-                    <?php echo htmlspecialchars($error); ?>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            <?php endif; ?>
+            <button type="submit" class="wp-auth-submit">
+                <i class="fas fa-user-shield"></i> Sign in as admin
+            </button>
+        </form>
+    </div>
 
-            <form method="POST" novalidate>
-                <div class="auth-field">
-                    <label for="email">Email</label>
-                    <div class="auth-input">
-                        <i class="fas fa-envelope"></i>
-                        <input type="email" id="email" name="email" placeholder="admin@example.com"
-                               value="<?php echo htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" required>
-                    </div>
-                </div>
-
-                <div class="auth-field">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label for="password">Password</label>
-                        <a href="<?php echo url('forgot-password'); ?>" class="small text-decoration-none">Forgot password?</a>
-                    </div>
-                    <div class="auth-input">
-                        <i class="fas fa-lock"></i>
-                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
-                    </div>
-                </div>
-
-                <button type="submit" class="auth-submit">
-                    <i class="fas fa-user-shield"></i> Sign in as admin
-                </button>
-            </form>
-
-            <hr class="auth-divider">
-
-            <p class="auth-portal">
-                <a href="<?php echo url('auth/login.php'); ?>"><i class="fas fa-arrow-left me-1"></i> Back to user login</a>
-            </p>
-        </div>
-    </main>
-
+    <p class="wp-auth-back">
+        <a href="<?php echo url('auth/login.php'); ?>"><i class="fas fa-arrow-left me-1"></i> Back to user login</a>
+    </p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

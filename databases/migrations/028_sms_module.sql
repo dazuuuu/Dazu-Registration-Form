@@ -1,3 +1,4 @@
+-- Active: 1784479981582@@127.0.0.1@3306@registration_system
 -- SmS module — student management, prospects, client projects, finance & sales
 USE registration_system;
 
