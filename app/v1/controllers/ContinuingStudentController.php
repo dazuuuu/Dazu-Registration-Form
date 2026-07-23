@@ -10,6 +10,7 @@ use Models\RegistrationModel;
 use Models\StudentModel;
 
 require_once __DIR__ . '/StudentController.php';
+require_once __DIR__ . '/../helpers/course_duration.php';
 
 class ContinuingStudentController {
 

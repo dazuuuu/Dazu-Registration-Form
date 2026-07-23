@@ -237,6 +237,42 @@ class CourseModel {
     }
 
     /**
+     * Admin course browser — search text, category, and active status.
+     */
+    public function listFiltered(?string $search = null, ?int $categoryId = null, ?string $status = 'all'): array
+    {
+        $sql = "SELECT c.*, cc.name AS category_name, cc.slug AS category_slug, cc.icon_path AS category_icon
+                FROM courses c
+                LEFT JOIN course_categories cc ON cc.id = c.category_id
+                WHERE 1=1";
+        $params = [];
+
+        if ($status === 'active') {
+            $sql .= ' AND c.is_active = 1';
+        } elseif ($status === 'inactive') {
+            $sql .= ' AND c.is_active = 0';
+        }
+
+        if ($categoryId === 0) {
+            $sql .= ' AND c.category_id IS NULL';
+        } elseif ($categoryId !== null && $categoryId > 0) {
+            $sql .= ' AND c.category_id = :category_id';
+            $params[':category_id'] = $categoryId;
+        }
+
+        if ($search !== null && $search !== '') {
+            $sql .= ' AND (c.title LIKE :q OR c.abbreviation LIKE :q OR c.description LIKE :q
+                      OR c.overview LIKE :q OR cc.name LIKE :q)';
+            $params[':q'] = '%' . $search . '%';
+        }
+
+        $sql .= ' ORDER BY c.title ASC';
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Atomically claims the next sequence number for a course (e.g. 1 -> "01").
      * Must run inside the same DB transaction as the registration approval that uses it,
      * so two admins approving simultaneously can never receive the same number.
