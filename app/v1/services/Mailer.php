@@ -87,4 +87,49 @@ class Mailer {
             return ['ok' => false, 'message' => $e->getMessage()];
         }
     }
+
+    /**
+     * @return array{ok:bool, message:string}
+     */
+    public function sendWithAttachment(string $toEmail, string $toName, string $subject, string $htmlBody, string $filePath, string $fileName): array {
+        if (array_key_exists('enabled', $this->cfg) && empty($this->cfg['enabled'])) {
+            return ['ok' => true, 'message' => 'skipped', 'skipped' => true];
+        }
+
+        self::loadPhpMailer();
+
+        if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
+            return ['ok' => false, 'message' => 'PHPMailer is not installed.'];
+        }
+        if (!is_file($filePath)) {
+            return $this->send($toEmail, $toName, $subject, $htmlBody);
+        }
+
+        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+        try {
+            if (($this->cfg['transport'] ?? 'smtp') === 'smtp') {
+                $mail->isSMTP();
+                $mail->Host = $this->cfg['host'] ?? '';
+                $mail->Port = (int) ($this->cfg['port'] ?? 587);
+                $mail->SMTPAuth = true;
+                $mail->Username = $this->cfg['username'] ?? '';
+                $mail->Password = $this->cfg['password'] ?? '';
+                $enc = $this->cfg['encryption'] ?? 'tls';
+                if ($enc) $mail->SMTPSecure = $enc;
+            }
+
+            $mail->setFrom($this->cfg['from_email'] ?? 'no-reply@example.com', $this->cfg['from_name'] ?? 'Store');
+            $mail->addAddress($toEmail, $toName);
+            $mail->addAttachment($filePath, $fileName);
+            $mail->isHTML(true);
+            $mail->Subject = $subject;
+            $mail->Body = $htmlBody;
+            $mail->AltBody = trim(preg_replace('/\s+/', ' ', strip_tags($htmlBody)));
+            $mail->send();
+            return ['ok' => true, 'message' => 'sent'];
+        } catch (Throwable $e) {
+            error_log('[mailer] ' . $e->getMessage());
+            return ['ok' => false, 'message' => $e->getMessage()];
+        }
+    }
 }

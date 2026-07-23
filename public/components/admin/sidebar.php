@@ -24,8 +24,20 @@ function isSystemActive($current_dir) {
 
 // Existing public-site content pages, now grouped under "Website Content"
 function isWebsiteActive($current_dir) {
+    if (isSmsActive()) {
+        return false;
+    }
     return in_array($current_dir, ['orders', 'enquiries', 'projects', 'services', 'blogs', 'gallery', 'testimonials'], true)
         || isStoreActive($current_dir);
+}
+
+// SmS module (admin/sms/*)
+function isSmsActive() {
+    return strpos($_SERVER['PHP_SELF'] ?? '', '/admin/sms/') !== false;
+}
+
+function isSmsSection($section) {
+    return strpos($_SERVER['PHP_SELF'] ?? '', '/admin/sms/' . $section) !== false;
 }
 ?>
 <button class="admin-sidebar-toggle" id="adminSidebarToggle" aria-label="Toggle Sidebar">
@@ -95,6 +107,50 @@ function isWebsiteActive($current_dir) {
                            class="nav-link <?php echo $current_dir == 'payments' ? 'active' : ''; ?>">
                             <i class="fas fa-money-bill-wave"></i>
                             <span>Payments</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SmS MODULE -->
+            <div class="nav-item">
+                <a href="#smsMenu" class="nav-link <?php echo isSmsActive() ? 'active' : ''; ?>"
+                   data-bs-toggle="collapse" role="button" aria-expanded="<?php echo isSmsActive() ? 'true' : 'false'; ?>">
+                    <i class="fas fa-sms"></i>
+                    <span>SmS</span>
+                    <i class="fas fa-chevron-down ms-auto" style="font-size: 12px;"></i>
+                </a>
+                <div class="collapse <?php echo isSmsActive() ? 'show' : ''; ?>" id="smsMenu">
+                    <div class="ps-4 mt-2">
+                        <a href="<?php echo url('admin/sms/index.php'); ?>"
+                           class="nav-link <?php echo isSmsActive() && !isSmsSection('students') && !isSmsSection('prospects') && !isSmsSection('projects') && !isSmsSection('finance') && !isSmsSection('sales') ? 'active' : ''; ?>">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                        <a href="<?php echo url('admin/sms/students/index.php'); ?>"
+                           class="nav-link <?php echo isSmsSection('students') ? 'active' : ''; ?>">
+                            <i class="fas fa-user-graduate"></i>
+                            <span>Students</span>
+                        </a>
+                        <a href="<?php echo url('admin/sms/prospects/index.php'); ?>"
+                           class="nav-link <?php echo isSmsSection('prospects') ? 'active' : ''; ?>">
+                            <i class="fas fa-user-clock"></i>
+                            <span>Prospects</span>
+                        </a>
+                        <a href="<?php echo url('admin/sms/projects/index.php'); ?>"
+                           class="nav-link <?php echo isSmsSection('projects') ? 'active' : ''; ?>">
+                            <i class="fas fa-briefcase"></i>
+                            <span>Projects</span>
+                        </a>
+                        <a href="<?php echo url('admin/sms/finance/index.php'); ?>"
+                           class="nav-link <?php echo isSmsSection('finance') ? 'active' : ''; ?>">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Finance</span>
+                        </a>
+                        <a href="<?php echo url('admin/sms/sales/index.php'); ?>"
+                           class="nav-link <?php echo isSmsSection('sales') ? 'active' : ''; ?>">
+                            <i class="fas fa-cash-register"></i>
+                            <span>Sales</span>
                         </a>
                     </div>
                 </div>
@@ -610,7 +666,7 @@ function isWebsiteActive($current_dir) {
 <script>
 // Persist collapse state per menu group in localStorage
 document.addEventListener('DOMContentLoaded', function() {
-    var groups = ['systemMenu', 'websiteMenu', 'storeMenu'];
+    var groups = ['systemMenu', 'smsMenu', 'websiteMenu', 'storeMenu'];
     groups.forEach(function (id) {
         var link = document.querySelector('a[href="#' + id + '"]');
         var menu = document.getElementById(id);
