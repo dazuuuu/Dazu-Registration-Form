@@ -246,22 +246,50 @@ class SmsModuleService
         return $row;
     }
 
+    /** Human-readable study period from all course duration fields. */
+    public static function courseStudySummary(?array $course): string
+    {
+        if (!$course) {
+            return '';
+        }
+        $bits = [];
+        $mo = (int) ($course['duration_months'] ?? 0);
+        if ($mo > 0) {
+            $bits[] = $mo . ' month' . ($mo === 1 ? '' : 's');
+        }
+        $wk = (int) ($course['weeks_of_study'] ?? 0);
+        if ($wk > 0) {
+            $bits[] = $wk . ' week' . ($wk === 1 ? '' : 's');
+        }
+        $hrs = (int) ($course['hours_of_study'] ?? 0);
+        if ($hrs > 0) {
+            $bits[] = $hrs . ' hour' . ($hrs === 1 ? '' : 's');
+        }
+        $sched = trim((string) ($course['study_schedule'] ?? ''));
+        if ($sched !== '') {
+            $bits[] = $sched;
+        }
+        return implode(' · ', $bits);
+    }
+
+    /** Primary billing/scaling unit for enrollment cost (weeks → hours → months). */
     public static function courseDurationMeta(?array $course): array
     {
         if (!$course) {
             return ['unit' => 'months', 'value' => 1, 'label' => '1 month', 'fee' => 0.0];
         }
         $fee = (float) ($course['course_fee'] ?? 0);
+        $summary = self::courseStudySummary($course);
         if (!empty($course['weeks_of_study'])) {
             $v = (int) $course['weeks_of_study'];
-            return ['unit' => 'weeks', 'value' => $v, 'label' => $v . ' week' . ($v === 1 ? '' : 's'), 'fee' => $fee];
+            return ['unit' => 'weeks', 'value' => $v, 'label' => $summary ?: ($v . ' week' . ($v === 1 ? '' : 's')), 'fee' => $fee];
         }
         if (!empty($course['hours_of_study'])) {
             $v = (int) $course['hours_of_study'];
-            return ['unit' => 'hours', 'value' => $v, 'label' => $v . ' hour' . ($v === 1 ? '' : 's'), 'fee' => $fee];
+            return ['unit' => 'hours', 'value' => $v, 'label' => $summary ?: ($v . ' hour' . ($v === 1 ? '' : 's')), 'fee' => $fee];
         }
         $v = max(1, (int) ($course['duration_months'] ?? 1));
-        return ['unit' => 'months', 'value' => $v, 'label' => $v . ' month' . ($v === 1 ? '' : 's'), 'fee' => $fee];
+        return ['unit' => 'months', 'value' => $v, 'label' => $summary ?: ($v . ' month' . ($v === 1 ? '' : 's')), 'fee' => $fee];
     }
 
     public function coursePricingCatalog(): array
@@ -269,13 +297,19 @@ class SmsModuleService
         $catalog = [];
         foreach ($this->courses() as $course) {
             $meta = self::courseDurationMeta($course);
+            $summary = self::courseStudySummary($course);
             $catalog[] = [
                 'id' => (int) $course['id'],
                 'title' => $course['title'],
                 'fee' => $meta['fee'],
+                'duration_months' => (int) ($course['duration_months'] ?? 0),
+                'weeks_of_study' => (int) ($course['weeks_of_study'] ?? 0),
+                'hours_of_study' => (int) ($course['hours_of_study'] ?? 0),
+                'study_schedule' => trim((string) ($course['study_schedule'] ?? '')),
+                'duration_summary' => $summary,
                 'duration_unit' => $meta['unit'],
                 'duration_value' => $meta['value'],
-                'duration_label' => $meta['label'],
+                'duration_label' => $summary ?: $meta['label'],
             ];
         }
         return $catalog;
@@ -305,9 +339,16 @@ class SmsModuleService
             $cost = round((float) ($data['cost'] ?? $baseFee), 2);
         }
 
+        $fullSummary = $course ? self::courseStudySummary($course) : '';
+        $primaryLabel = self::formatDurationLabel($unit, $value);
+        $atDefault = abs($value - (float) $meta['value']) < 0.0001 && $unit === $meta['unit'];
+        $duration = $atDefault && $fullSummary !== ''
+            ? $fullSummary
+            : ($primaryLabel ?: trim($data['duration'] ?? '') ?: ($fullSummary ?: $meta['label']));
+
         return [
             'cost' => $cost,
-            'duration' => self::formatDurationLabel($unit, $value) ?: trim($data['duration'] ?? '') ?: $meta['label'],
+            'duration' => $duration,
         ];
     }
 
@@ -322,6 +363,9 @@ class SmsModuleService
         }
         if ($unit === 'hours') {
             return $v . ' hour' . ($v === 1 ? '' : 's');
+        }
+        if ($unit === 'days') {
+            return $v . ' day' . ($v === 1 ? '' : 's');
         }
         return $v . ' month' . ($v === 1 ? '' : 's');
     }

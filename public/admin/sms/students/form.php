@@ -47,14 +47,15 @@ ob_start();
       <select name="course_id" id="courseSelect" class="form-select" required>
         <option value="">— Select course —</option>
         <?php foreach ($courses as $c): ?>
-        <option value="<?= (int)$c['id'] ?>" <?= (int)($student['course_id'] ?? 0) === (int)$c['id'] ? 'selected' : '' ?>><?= htmlspecialchars($c['title']) ?> — <?= sms_money($c['fee']) ?></option>
+        <option value="<?= (int)$c['id'] ?>" <?= (int)($student['course_id'] ?? 0) === (int)$c['id'] ? 'selected' : '' ?>><?= htmlspecialchars($c['title']) ?> — <?= sms_money($c['fee']) ?><?php if (!empty($c['duration_summary'])): ?> · <?= htmlspecialchars($c['duration_summary']) ?><?php endif; ?></option>
         <?php endforeach; ?>
       </select>
+      <div id="courseStudySummary" class="form-text text-muted mt-1" style="display:none;"></div>
     </div>
     <div class="col-md-3">
-      <label class="form-label">Duration <span id="durationUnitLabel" class="text-muted small">(weeks)</span></label>
+      <label class="form-label">Enrollment <span id="durationUnitLabel" class="text-muted small">(months)</span></label>
       <input type="number" min="1" step="1" name="duration_value" id="durationValue" class="form-control" value="<?= htmlspecialchars($student['duration_value'] ?? ($selectedCourse['duration_value'] ?? '')) ?>">
-      <input type="hidden" name="duration_unit" id="durationUnit" value="<?= htmlspecialchars($student['duration_unit'] ?? ($selectedCourse['duration_unit'] ?? 'weeks')) ?>">
+      <input type="hidden" name="duration_unit" id="durationUnit" value="<?= htmlspecialchars($student['duration_unit'] ?? ($selectedCourse['duration_unit'] ?? 'months')) ?>">
       <input type="hidden" name="base_duration_value" id="baseDurationValue" value="<?= htmlspecialchars($student['base_duration_value'] ?? ($selectedCourse['duration_value'] ?? '')) ?>">
       <input type="hidden" name="base_course_fee" id="baseCourseFee" value="<?= htmlspecialchars($student['base_course_fee'] ?? ($selectedCourse['fee'] ?? '')) ?>">
       <input type="hidden" name="duration" id="durationLabel" value="<?= htmlspecialchars($student['duration'] ?? '') ?>">
@@ -89,16 +90,33 @@ ob_start();
   const costField = document.getElementById('costField');
   const durationLabel = document.getElementById('durationLabel');
 
+  const courseStudySummary = document.getElementById('courseStudySummary');
+
   function unitLabel(unit) {
-    return unit === 'hours' ? 'hours' : (unit === 'months' ? 'months' : 'weeks');
+    if (unit === 'hours') return 'hours';
+    if (unit === 'weeks') return 'weeks';
+    if (unit === 'days') return 'days';
+    return 'months';
+  }
+
+  function studySummaryText(c) {
+    if (!c) return '';
+    if (c.duration_summary) return c.duration_summary;
+    const bits = [];
+    if (c.duration_months > 0) bits.push(c.duration_months + ' month' + (c.duration_months === 1 ? '' : 's'));
+    if (c.weeks_of_study > 0) bits.push(c.weeks_of_study + ' week' + (c.weeks_of_study === 1 ? '' : 's'));
+    if (c.hours_of_study > 0) bits.push(c.hours_of_study + ' hour' + (c.hours_of_study === 1 ? '' : 's'));
+    if (c.study_schedule) bits.push(c.study_schedule);
+    return bits.join(' · ');
   }
 
   function formatDuration(unit, value) {
     const v = parseInt(value, 10);
     if (!v) return '';
     if (unit === 'hours') return v + ' hour' + (v === 1 ? '' : 's');
-    if (unit === 'months') return v + ' month' + (v === 1 ? '' : 's');
-    return v + ' week' + (v === 1 ? '' : 's');
+    if (unit === 'weeks') return v + ' week' + (v === 1 ? '' : 's');
+    if (unit === 'days') return v + ' day' + (v === 1 ? '' : 's');
+    return v + ' month' + (v === 1 ? '' : 's');
   }
 
   function recalcCost() {
@@ -108,12 +126,21 @@ ob_start();
     if (baseVal > 0 && val > 0) {
       costField.value = (Math.round(baseFee * (val / baseVal) * 100) / 100).toFixed(2);
     }
-    durationLabel.value = formatDuration(durationUnit.value, val);
+    const c = byId[String(courseSelect.value)];
+    const summary = studySummaryText(c);
+    const primary = formatDuration(durationUnit.value, val);
+    durationLabel.value = (val === parseFloat(c?.duration_value) && summary) ? summary : primary;
   }
 
   function applyCourse(id) {
     const c = byId[String(id)];
-    if (!c) return;
+    if (!c) {
+      if (courseStudySummary) {
+        courseStudySummary.style.display = 'none';
+        courseStudySummary.textContent = '';
+      }
+      return;
+    }
     durationUnit.value = c.duration_unit;
     durationUnitLabel.textContent = '(' + unitLabel(c.duration_unit) + ')';
     durationValue.value = c.duration_value;
@@ -121,16 +148,25 @@ ob_start();
     baseCourseFee.value = c.fee;
     costField.value = parseFloat(c.fee).toFixed(2);
     durationLabel.value = c.duration_label;
+    const summary = studySummaryText(c);
+    if (courseStudySummary) {
+      if (summary) {
+        courseStudySummary.style.display = 'block';
+        courseStudySummary.innerHTML = '<strong>Course study period:</strong> ' + summary;
+      } else {
+        courseStudySummary.style.display = 'none';
+        courseStudySummary.textContent = '';
+      }
+    }
   }
 
   courseSelect.addEventListener('change', function () { applyCourse(this.value); });
   durationValue.addEventListener('input', recalcCost);
 
   if (courseSelect.value) {
+    applyCourse(courseSelect.value);
     const c = byId[String(courseSelect.value)];
     if (c) {
-      durationUnit.value = durationUnit.value || c.duration_unit;
-      durationUnitLabel.textContent = '(' + unitLabel(durationUnit.value) + ')';
       if (!baseDurationValue.value) baseDurationValue.value = c.duration_value;
       if (!baseCourseFee.value) baseCourseFee.value = c.fee;
       recalcCost();
