@@ -11,10 +11,15 @@ $messages = [];
 $errors = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration'])) {
-    $sqlFile = dirname(__DIR__, 3) . '/databases/migrations/028_sms_module.sql';
-    if (!is_file($sqlFile)) {
-        $errors[] = 'Migration file not found: databases/migrations/028_sms_module.sql';
-    } else {
+    $migrationFiles = [
+        dirname(__DIR__, 3) . '/databases/migrations/028_sms_module.sql',
+        dirname(__DIR__, 3) . '/databases/migrations/029_sms_must_change_password.sql',
+    ];
+    foreach ($migrationFiles as $sqlFile) {
+        if (!is_file($sqlFile)) {
+            $errors[] = 'Migration file not found: ' . basename($sqlFile);
+            continue;
+        }
         $sql = file_get_contents($sqlFile);
         $sql = preg_replace('/^\s*USE\s+[^;]+;\s*/mi', '', $sql);
         $buffer = '';
@@ -39,17 +44,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['run_migration'])) {
                 $pdo->exec($statement);
                 if (preg_match('/CREATE TABLE(?: IF NOT EXISTS)?\s+`?(\w+)`?/i', $statement, $m)) {
                     $messages[] = 'Created/verified table: ' . $m[1];
+                } elseif (stripos($statement, 'ALTER TABLE') !== false) {
+                    $messages[] = 'Applied: ' . basename($sqlFile);
                 }
             } catch (PDOException $e) {
-                $errors[] = $e->getMessage();
+                if (stripos($e->getMessage(), 'Duplicate column') === false) {
+                    $errors[] = basename($sqlFile) . ': ' . $e->getMessage();
+                }
             }
         }
+    }
 
-        if (empty($errors) && SmsModuleService::isInstalled($pdo)) {
-            $sms->log('migration', 'SmS tables migration 028 applied', 'system', null);
-            sms_flash('success', 'SmS tables created successfully.');
-            sms_redirect('admin/dashboard.php#sms-alerts');
-        }
+    if (empty($errors) && SmsModuleService::isInstalled($pdo)) {
+        $sms->log('migration', 'SmS migrations applied', 'system', null);
+        sms_flash('success', 'SmS database setup completed.');
+        sms_redirect('admin/dashboard.php#sms-alerts');
     }
 }
 
@@ -69,7 +78,7 @@ ob_start();
 ?>
 <div class="card shadow-sm"><div class="card-body">
   <h4 class="mb-3">SmS module database setup</h4>
-  <p class="text-muted">Run migration <code>028_sms_module.sql</code> once to create all SmS tables.</p>
+  <p class="text-muted">Runs migrations <code>028</code> (SmS tables) and <code>029</code> (first-login password flag).</p>
 
   <h6 class="mt-4">Table status</h6>
   <ul class="list-group mb-4">
@@ -102,9 +111,6 @@ ob_start();
     </button>
     <a href="<?= url('admin/dashboard.php#sms-alerts') ?>" class="btn btn-link">Back to dashboard</a>
   </form>
-
-  <hr>
-  <p class="small text-muted mb-0">Alternative: import <code>databases/migrations/028_sms_module.sql</code> in phpMyAdmin.</p>
 </div></div>
 <?php
 $content = ob_get_clean();

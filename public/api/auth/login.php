@@ -31,6 +31,15 @@ SessionModel::set('role', $user['role_name']);
 SessionModel::set('role_id', (int) $user['role_id']);
 SessionModel::set('logged_in', true);
 
+if (!empty($user['must_change_password'])) {
+    json_response([
+        'success' => true,
+        'message' => 'Password change required',
+        'must_change_password' => true,
+        'redirect' => url('auth/change_password.php'),
+    ]);
+}
+
 $redirect = match ($user['role_name']) {
     'superadmin', 'admin' => url('admin/dashboard.php'),
     'student' => url('student'),

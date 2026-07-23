@@ -220,9 +220,95 @@ class SmsModuleService
         return $row ?: null;
     }
 
+    public static function courseDurationMeta(?array $course): array
+    {
+        if (!$course) {
+            return ['unit' => 'months', 'value' => 1, 'label' => '1 month', 'fee' => 0.0];
+        }
+        $fee = (float) ($course['course_fee'] ?? 0);
+        if (!empty($course['weeks_of_study'])) {
+            $v = (int) $course['weeks_of_study'];
+            return ['unit' => 'weeks', 'value' => $v, 'label' => $v . ' week' . ($v === 1 ? '' : 's'), 'fee' => $fee];
+        }
+        if (!empty($course['hours_of_study'])) {
+            $v = (int) $course['hours_of_study'];
+            return ['unit' => 'hours', 'value' => $v, 'label' => $v . ' hour' . ($v === 1 ? '' : 's'), 'fee' => $fee];
+        }
+        $v = max(1, (int) ($course['duration_months'] ?? 1));
+        return ['unit' => 'months', 'value' => $v, 'label' => $v . ' month' . ($v === 1 ? '' : 's'), 'fee' => $fee];
+    }
+
+    public function coursePricingCatalog(): array
+    {
+        $catalog = [];
+        foreach ($this->courses() as $course) {
+            $meta = self::courseDurationMeta($course);
+            $catalog[] = [
+                'id' => (int) $course['id'],
+                'title' => $course['title'],
+                'fee' => $meta['fee'],
+                'duration_unit' => $meta['unit'],
+                'duration_value' => $meta['value'],
+                'duration_label' => $meta['label'],
+            ];
+        }
+        return $catalog;
+    }
+
+    private function resolveStudentCostDuration(array $data, ?array $existing = null): array
+    {
+        $courseId = (int) ($data['course_id'] ?? $existing['course_id'] ?? 0);
+        $cm = new \Models\CourseModel($this->pdo);
+        $course = $courseId ? $cm->getById($courseId) : null;
+        $meta = self::courseDurationMeta($course);
+
+        $unit = $data['duration_unit'] ?? $meta['unit'];
+        $value = (float) ($data['duration_value'] ?? $meta['value']);
+        if ($value <= 0) {
+            $value = (float) $meta['value'];
+        }
+        $baseValue = (float) ($data['base_duration_value'] ?? $meta['value']);
+        $baseFee = (float) ($data['base_course_fee'] ?? $meta['fee']);
+        if ($baseFee <= 0 && $course) {
+            $baseFee = (float) $course['course_fee'];
+        }
+
+        if ($baseValue > 0 && $value > 0 && abs($value - $baseValue) > 0.0001) {
+            $cost = round($baseFee * ($value / $baseValue), 2);
+        } else {
+            $cost = round((float) ($data['cost'] ?? $baseFee), 2);
+        }
+
+        return [
+            'cost' => $cost,
+            'duration' => self::formatDurationLabel($unit, $value) ?: trim($data['duration'] ?? '') ?: $meta['label'],
+        ];
+    }
+
+    private static function formatDurationLabel(string $unit, float $value): string
+    {
+        $v = (int) round($value);
+        if ($v <= 0) {
+            return '';
+        }
+        if ($unit === 'weeks') {
+            return $v . ' week' . ($v === 1 ? '' : 's');
+        }
+        if ($unit === 'hours') {
+            return $v . ' hour' . ($v === 1 ? '' : 's');
+        }
+        return $v . ' month' . ($v === 1 ? '' : 's');
+    }
+
     public function createStudent(array $data): array
     {
-        $cost = round((float) ($data['cost'] ?? 0), 2);
+        $email = trim($data['email'] ?? '');
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'error' => 'A valid student email is required to create the portal account.'];
+        }
+
+        $pricing = $this->resolveStudentCostDuration($data);
+        $cost = $pricing['cost'];
         $paid = round((float) ($data['paid'] ?? 0), 2);
         if ($paid > $cost) {
             return ['ok' => false, 'error' => 'Paid amount cannot exceed cost.'];
@@ -234,10 +320,10 @@ class SmsModuleService
         );
         $stmt->execute([
             ':name' => trim($data['name']),
-            ':email' => trim($data['email'] ?? '') ?: null,
+            ':email' => $email,
             ':phone' => trim($data['phone'] ?? '') ?: null,
             ':cid' => !empty($data['course_id']) ? (int) $data['course_id'] : null,
-            ':dur' => trim($data['duration'] ?? '') ?: null,
+            ':dur' => $pricing['duration'] ?: null,
             ':sd' => $data['start_date'] ?: null,
             ':pp' => trim($data['parent_phone'] ?? '') ?: null,
             ':pe' => trim($data['parent_email'] ?? '') ?: null,
@@ -271,7 +357,8 @@ class SmsModuleService
             return ['ok' => false, 'error' => 'Student not found.'];
         }
 
-        $cost = round((float) ($data['cost'] ?? $existing['cost']), 2);
+        $pricing = $this->resolveStudentCostDuration($data, $existing);
+        $cost = $pricing['cost'];
         $newPaid = round((float) ($data['paid'] ?? $existing['paid']), 2);
         $oldPaid = (float) $existing['paid'];
         if ($newPaid > $cost) {
@@ -288,7 +375,7 @@ class SmsModuleService
             ':email' => trim($data['email'] ?? '') ?: null,
             ':phone' => trim($data['phone'] ?? '') ?: null,
             ':cid' => !empty($data['course_id']) ? (int) $data['course_id'] : null,
-            ':dur' => trim($data['duration'] ?? '') ?: null,
+            ':dur' => $pricing['duration'] ?: null,
             ':sd' => $data['start_date'] ?: null,
             ':pp' => trim($data['parent_phone'] ?? '') ?: null,
             ':pe' => trim($data['parent_email'] ?? '') ?: null,
@@ -440,31 +527,65 @@ class SmsModuleService
 
     private function companyInfo(): array
     {
-        require_once __DIR__ . '/../helpers/site_contact.php';
-        $c = site_contact_settings();
-        return ['name' => $c['site_name'] ?? 'Dazu Hub Institute', 'phone' => $c['contact_phone'] ?? '+254 750 116600'];
+        require_once __DIR__ . '/../helpers/receipt_settings.php';
+        return sms_receipt_settings();
+    }
+
+    private function receiptLogoTag(array $co): string
+    {
+        $logo = sms_receipt_logo_absolute($co['logo_path'] ?? '');
+        if (!$logo || !is_file($logo)) {
+            return '';
+        }
+        $mime = mime_content_type($logo) ?: 'image/png';
+        $b64 = base64_encode((string) file_get_contents($logo));
+        return '<img src="data:' . $mime . ';base64,' . $b64 . '" alt="Logo" style="max-height:56px;max-width:180px;margin-bottom:10px;">';
     }
 
     private function receiptHtml(array $student, string $receiptNo, string $type, float $delta, float $cost, float $paid, float $balance): string
     {
         $co = $this->companyInfo();
-        $typeLabel = strtoupper($type);
+        $typeLabel = strtoupper($type === 'arrears' ? 'FEE ARREARS NOTICE' : 'OFFICIAL RECEIPT');
+        $logo = $this->receiptLogoTag($co);
+        $addr = array_filter([$co['location'] ?? '', $co['pobox'] ? 'P.O. Box ' . $co['pobox'] : '']);
         $html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' . htmlspecialchars($receiptNo) . '</title>
-        <style>body{font-family:DejaVu Sans,Arial,sans-serif;padding:40px;color:#111}h1{color:#15A24A;margin:0 0 8px}
-        table{width:100%;border-collapse:collapse;margin-top:20px}td,th{border:1px solid #ddd;padding:8px;text-align:left}
-        th{background:#f8fafc;width:35%}</style></head><body>
-        <h1>' . htmlspecialchars($co['name']) . '</h1>
-        <p>' . htmlspecialchars($co['phone']) . '</p>
-        <h2>' . $typeLabel . ' — ' . htmlspecialchars($receiptNo) . '</h2>
-        <table><tr><th>Student</th><td>' . htmlspecialchars($student['name']) . '</td></tr>
-        <tr><th>Course</th><td>' . htmlspecialchars($student['course_title'] ?? '—') . '</td></tr>
-        <tr><th>Cost</th><td>KES ' . number_format($cost, 2) . '</td></tr>
-        <tr><th>Paid (total)</th><td>KES ' . number_format($paid, 2) . '</td></tr>
-        <tr><th>Balance</th><td>KES ' . number_format($balance, 2) . '</td></tr>';
-        if ($delta > 0) {
-            $html .= '<tr><th>This payment</th><td>KES ' . number_format($delta, 2) . '</td></tr>';
+        <style>
+        body{font-family:DejaVu Sans,Arial,sans-serif;margin:0;padding:36px;color:#111;background:#fff}
+        .wrap{max-width:720px;margin:0 auto;border:1px solid #111;padding:28px}
+        .head{text-align:center;border-bottom:2px solid #111;padding-bottom:16px;margin-bottom:20px}
+        .head h1{font-size:20px;margin:8px 0 4px;letter-spacing:.04em;text-transform:uppercase}
+        .head p{margin:2px 0;font-size:12px;color:#333}
+        .doc-title{text-align:center;font-size:15px;font-weight:bold;margin:18px 0 14px;letter-spacing:.08em}
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        td,th{border:1px solid #111;padding:9px 10px;text-align:left}
+        th{width:34%;background:#f5f5f5;font-weight:700}
+        .amount{font-weight:700}
+        .footer{margin-top:24px;padding-top:14px;border-top:1px solid #111;font-size:11px;color:#333;text-align:center}
+        </style></head><body><div class="wrap">
+        <div class="head">' . $logo . '
+        <h1>' . htmlspecialchars($co['company_name'] ?? 'Dazu Hub Institute') . '</h1>';
+        if (!empty($co['phone'])) {
+            $html .= '<p>' . htmlspecialchars($co['phone']) . '</p>';
         }
-        $html .= '</table><p style="margin-top:30px;color:#666;font-size:12px">Generated ' . date('Y-m-d H:i') . '</p></body></html>';
+        if ($addr) {
+            $html .= '<p>' . htmlspecialchars(implode(' · ', $addr)) . '</p>';
+        }
+        $html .= '</div>
+        <div class="doc-title">' . htmlspecialchars($typeLabel) . '</div>
+        <p style="font-size:12px;margin:0 0 14px;"><strong>Receipt No:</strong> ' . htmlspecialchars($receiptNo) . ' &nbsp;·&nbsp; <strong>Date:</strong> ' . date('d M Y H:i') . '</p>
+        <table>
+        <tr><th>Student</th><td>' . htmlspecialchars($student['name']) . '</td></tr>
+        <tr><th>Course</th><td>' . htmlspecialchars($student['course_title'] ?? '—') . '</td></tr>
+        <tr><th>Duration</th><td>' . htmlspecialchars($student['duration'] ?? '—') . '</td></tr>
+        <tr><th>Total course cost</th><td class="amount">KES ' . number_format($cost, 2) . '</td></tr>
+        <tr><th>Total paid</th><td class="amount">KES ' . number_format($paid, 2) . '</td></tr>
+        <tr><th>Balance</th><td class="amount">KES ' . number_format($balance, 2) . '</td></tr>';
+        if ($delta > 0) {
+            $html .= '<tr><th>This payment</th><td class="amount">KES ' . number_format($delta, 2) . '</td></tr>';
+        }
+        $html .= '</table>
+        <div class="footer">' . htmlspecialchars($co['footer'] ?? 'Thank you for your payment.') . '</div>
+        </div></body></html>';
         return $html;
     }
 
@@ -538,10 +659,17 @@ class SmsModuleService
         $username = 'SMS' . $student['id'] . '-' . substr(md5($student['email']), 0, 6);
         $tempPassword = bin2hex(random_bytes(8));
         $hash = password_hash($tempPassword, PASSWORD_DEFAULT);
-        $this->pdo->prepare(
-            'INSERT INTO users (username, email, password_hash, role_id, is_active, email_verified, account_status)
-             VALUES (:u, :e, :h, :r, 1, 1, \'active\')'
-        )->execute([':u' => $username, ':e' => $student['email'], ':h' => $hash, ':r' => $roleId]);
+        try {
+            $this->pdo->prepare(
+                'INSERT INTO users (username, email, password_hash, role_id, is_active, email_verified, account_status, must_change_password)
+                 VALUES (:u, :e, :h, :r, 1, 1, \'active\', 1)'
+            )->execute([':u' => $username, ':e' => $student['email'], ':h' => $hash, ':r' => $roleId]);
+        } catch (PDOException $e) {
+            $this->pdo->prepare(
+                'INSERT INTO users (username, email, password_hash, role_id, is_active, email_verified, account_status)
+                 VALUES (:u, :e, :h, :r, 1, 1, \'active\')'
+            )->execute([':u' => $username, ':e' => $student['email'], ':h' => $hash, ':r' => $roleId]);
+        }
         $userId = (int) $this->pdo->lastInsertId();
         $parts = explode(' ', trim($student['name']), 2);
         $this->pdo->prepare('INSERT INTO user_profiles (user_id, first_name, last_name, phone) VALUES (:u,:f,:l,:p)')

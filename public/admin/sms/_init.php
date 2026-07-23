@@ -7,7 +7,6 @@ require_once __DIR__ . '/../../../app/v1/services/SmsModuleService.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
 
 use Models\Connection;
-use Models\SessionModel;
 
 Middleware::requireAdmin();
 

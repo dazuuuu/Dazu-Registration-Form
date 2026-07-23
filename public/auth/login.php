@@ -45,6 +45,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role_id'] = $user['role_id'];
             $_SESSION['logged_in'] = true;
 
+            if (!empty($user['must_change_password'])) {
+                redirect(url('auth/change_password.php'));
+            }
+
             if ($user['role_id'] <= 2) {
                 redirect(url('admin/dashboard.php'));
             } elseif ($user['role_name'] === 'student') {

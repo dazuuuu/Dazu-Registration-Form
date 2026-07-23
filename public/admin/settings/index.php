@@ -186,6 +186,15 @@ unset($_SESSION['flash']);
       <a class="btn" href="edit.php?section=contact"><i class="fa-solid fa-pen"></i> Edit contact</a>
     </div>
 
+    <div class="card">
+      <div class="card-top">
+        <div class="card-icon ic-logo"><i class="fa-solid fa-receipt"></i></div>
+        <div><h3>SmS Receipts</h3><span>Logo, address, footer for PDF receipts</span></div>
+      </div>
+      <p style="font-size:.85rem;color:#5b6472;margin:0;">Customize the professional black &amp; white receipt layout used when onboarding SmS students.</p>
+      <a class="btn" href="edit.php?section=receipt"><i class="fa-solid fa-pen"></i> Edit receipts</a>
+    </div>
+
   </div>
 </div>
 

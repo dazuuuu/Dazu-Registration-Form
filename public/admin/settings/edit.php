@@ -25,10 +25,11 @@ $DIRS = [
     'logo'    => ['abs' => $PUBLIC . '/assets/images/branding', 'web' => 'assets/images/branding'],
     'hero'    => ['abs' => $PUBLIC . '/uploads/hero',           'web' => 'uploads/hero'],
     'headers' => ['abs' => $PUBLIC . '/uploads/headers',        'web' => 'uploads/headers'],
+    'receipt' => ['abs' => $PUBLIC . '/uploads/receipts',       'web' => 'uploads/receipts'],
 ];
 
 $section = $_GET['section'] ?? 'logo';
-if (!in_array($section, ['logo', 'hero', 'headers', 'contact'], true)) {
+if (!in_array($section, ['logo', 'hero', 'headers', 'contact', 'receipt'], true)) {
     $section = 'logo';
 }
 
@@ -161,6 +162,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect_back('contact', 'success', 'Contact & map settings saved.');
     }
 
+    if ($action === 'save_receipt') {
+        $keys = [
+            'sms_receipt_company_name' => trim($_POST['receipt_company_name'] ?? ''),
+            'sms_receipt_phone' => trim($_POST['receipt_phone'] ?? ''),
+            'sms_receipt_location' => trim($_POST['receipt_location'] ?? ''),
+            'sms_receipt_pobox' => trim($_POST['receipt_pobox'] ?? ''),
+            'sms_receipt_footer' => trim($_POST['receipt_footer'] ?? ''),
+        ];
+        foreach ($keys as $key => $val) {
+            $settings->set($key, $val);
+        }
+        if (!empty($_FILES['receipt_logo']['name'])) {
+            if (!is_dir($DIRS['receipt']['abs'])) {
+                mkdir($DIRS['receipt']['abs'], 0755, true);
+            }
+            $res = upload_image($_FILES['receipt_logo'], $DIRS['receipt']['abs'], $DIRS['receipt']['web'], ['png', 'jpg', 'jpeg', 'webp']);
+            if (!$res['ok']) {
+                redirect_back('receipt', 'error', $res['error']);
+            }
+            safe_unlink($settings->get('sms_receipt_logo_path'), $PUBLIC);
+            $settings->set('sms_receipt_logo_path', $res['path']);
+        }
+        redirect_back('receipt', 'success', 'Receipt settings saved.');
+    }
+
     redirect_back($section, 'error', 'Unknown action.');
 }
 
@@ -176,7 +202,7 @@ $logoUrl     = settings_asset_url($settings->get('logo_path'));
 $heroSlides  = $settings->getHeroSlides(false);
 $pageHeaders = $settings->getAllPageHeaders();
 
-$titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners', 'contact' => 'Contact & Map'];
+$titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners', 'contact' => 'Contact & Map', 'receipt' => 'Receipts'];
 $contactPhone = $settings->get('contact_phone', '+254 750 116 600');
 $contactEmail = $settings->get('contact_email', 'info@dazuaihub.com');
 $contactAddress = $settings->get('contact_address', 'Witeithie House, Room 529, Thika Town');
@@ -186,6 +212,12 @@ $contactMapLink = $settings->get('contact_map_link', '');
 $contactMapTitle = $settings->get('contact_map_title', 'Witeithie House, Thika');
 $contactMapSubtitle = $settings->get('contact_map_subtitle', 'Room 529 (5th Floor)');
 $contactMapBlurb = $settings->get('contact_map_blurb', 'Located directly within Thika Town, near principal transport stages, making daily commutes seamless for local students.');
+$receiptCompany = $settings->get('sms_receipt_company_name', $siteName);
+$receiptPhone = $settings->get('sms_receipt_phone', $contactPhone);
+$receiptLocation = $settings->get('sms_receipt_location', $contactAddress);
+$receiptPobox = $settings->get('sms_receipt_pobox', '');
+$receiptFooter = $settings->get('sms_receipt_footer', 'Thank you for your payment. Please retain this receipt for your records.');
+$receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: $settings->get('logo_path'));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -266,6 +298,7 @@ $contactMapBlurb = $settings->get('contact_map_blurb', 'Located directly within 
     <a class="tab <?php echo $section === 'hero' ? 'active' : ''; ?>"    href="edit.php?section=hero"><i class="fa-solid fa-images"></i> Hero</a>
     <a class="tab <?php echo $section === 'headers' ? 'active' : ''; ?>" href="edit.php?section=headers"><i class="fa-solid fa-heading"></i> Page banners</a>
     <a class="tab <?php echo $section === 'contact' ? 'active' : ''; ?>" href="edit.php?section=contact"><i class="fa-solid fa-map-location-dot"></i> Contact &amp; map</a>
+    <a class="tab <?php echo $section === 'receipt' ? 'active' : ''; ?>" href="edit.php?section=receipt"><i class="fa-solid fa-receipt"></i> Receipts</a>
   </div>
 
   <?php if ($flash): ?>
@@ -494,6 +527,56 @@ $contactMapBlurb = $settings->get('contact_map_blurb', 'Located directly within 
       </div>
       <div class="divider"></div>
       <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save contact settings</button>
+    </form>
+  <?php endif; ?>
+
+  <?php if ($section === 'receipt'): ?>
+    <form class="panel" method="POST" enctype="multipart/form-data">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="action" value="save_receipt">
+      <h2>SmS receipt layout</h2>
+      <p class="hint">Professional black &amp; white receipts for SmS student payments. Logo, address and footer appear on generated PDF receipts.</p>
+
+      <div class="logo-preview" style="background:#fff;border:1px solid #111;">
+        <?php if ($receiptLogoUrl): ?>
+          <img src="<?php echo htmlspecialchars($receiptLogoUrl); ?>" alt="Receipt logo">
+        <?php else: ?>
+          <span class="muted">No receipt logo — site logo will be used if set</span>
+        <?php endif; ?>
+      </div>
+
+      <div class="field">
+        <label>Receipt logo (optional)</label>
+        <div class="file-drop">
+          <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
+          <input type="file" name="receipt_logo" accept="image/png,image/jpeg,image/webp">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Company / institute name</label>
+        <input type="text" name="receipt_company_name" value="<?php echo htmlspecialchars($receiptCompany); ?>">
+      </div>
+      <div class="row">
+        <div class="field" style="margin:0;">
+          <label>Phone</label>
+          <input type="text" name="receipt_phone" value="<?php echo htmlspecialchars($receiptPhone); ?>">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>P.O. Box</label>
+          <input type="text" name="receipt_pobox" value="<?php echo htmlspecialchars($receiptPobox); ?>">
+        </div>
+      </div>
+      <div class="field">
+        <label>Location / address</label>
+        <input type="text" name="receipt_location" value="<?php echo htmlspecialchars($receiptLocation); ?>">
+      </div>
+      <div class="field">
+        <label>Receipt footer note</label>
+        <textarea name="receipt_footer" rows="3"><?php echo htmlspecialchars($receiptFooter); ?></textarea>
+      </div>
+      <div class="divider"></div>
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save receipt settings</button>
     </form>
   <?php endif; ?>
 
