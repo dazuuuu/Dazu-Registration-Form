@@ -30,13 +30,14 @@ ob_start();
 </form>
 <div class="card shadow-sm"><div class="table-responsive">
 <table class="table table-hover mb-0">
-  <thead class="table-light"><tr><th>Name</th><th>Course</th><th>Cost</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead>
+  <thead class="table-light"><tr><th>Name</th><th>Reg. No.</th><th>Course</th><th>Cost</th><th>Paid</th><th>Balance</th><th>Status</th><th></th></tr></thead>
   <tbody>
   <?php foreach ($students as $s):
     $bal = SmsModuleService::balance((float)$s['cost'], (float)$s['paid']);
   ?>
     <tr>
       <td><strong><?= htmlspecialchars($s['name']) ?></strong><br><small class="text-muted"><?= htmlspecialchars($s['email'] ?? '') ?></small></td>
+      <td><small class="text-muted"><?= htmlspecialchars($s['registration_no'] ?? '—') ?></small></td>
       <td><?= htmlspecialchars($s['course_title'] ?? '—') ?></td>
       <td><?= sms_money((float)$s['cost']) ?></td>
       <td><?= sms_money((float)$s['paid']) ?></td>

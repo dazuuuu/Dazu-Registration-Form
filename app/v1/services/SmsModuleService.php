@@ -4,6 +4,7 @@
 require_once __DIR__ . '/Mailer.php';
 require_once __DIR__ . '/StudentNotifier.php';
 require_once __DIR__ . '/../models/CourseModel.php';
+require_once __DIR__ . '/../controllers/ManualOnboardController.php';
 
 class SmsModuleService
 {
@@ -192,32 +193,57 @@ class SmsModuleService
 
     public function listStudents(?string $search = null, ?string $status = null): array
     {
-        $sql = 'SELECT s.*, c.title AS course_title FROM sms_students s
-                LEFT JOIN courses c ON c.id = s.course_id WHERE 1=1';
+        $sql = 'SELECT s.*, c.title AS course_title, r.registration_no, r.full_name AS reg_full_name,
+                       r.email AS reg_email, r.phone AS reg_phone, r.user_id AS reg_user_id
+                FROM sms_students s
+                LEFT JOIN registrations r ON r.id = s.registration_id
+                LEFT JOIN courses c ON c.id = COALESCE(s.course_id, r.course_id) WHERE 1=1';
         $params = [];
         if ($status && $status !== 'all') {
             $sql .= ' AND s.status = :st';
             $params[':st'] = $status;
         }
         if ($search) {
-            $sql .= ' AND (s.name LIKE :q OR s.email LIKE :q OR s.phone LIKE :q OR c.title LIKE :q)';
+            $sql .= ' AND (s.name LIKE :q OR s.email LIKE :q OR s.phone LIKE :q OR c.title LIKE :q
+                      OR r.full_name LIKE :q OR r.email LIKE :q OR r.registration_no LIKE :q)';
             $params[':q'] = '%' . $search . '%';
         }
         $sql .= ' ORDER BY s.updated_at DESC';
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return array_map([$this, 'normalizeStudentRow'], $rows);
     }
 
     public function getStudent(int $id): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT s.*, c.title AS course_title FROM sms_students s
-             LEFT JOIN courses c ON c.id = s.course_id WHERE s.id = :id'
+            'SELECT s.*, c.title AS course_title, r.registration_no, r.full_name AS reg_full_name,
+                    r.email AS reg_email, r.phone AS reg_phone, r.user_id AS reg_user_id
+             FROM sms_students s
+             LEFT JOIN registrations r ON r.id = s.registration_id
+             LEFT JOIN courses c ON c.id = COALESCE(s.course_id, r.course_id) WHERE s.id = :id'
         );
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $row ?: null;
+        return $row ? $this->normalizeStudentRow($row) : null;
+    }
+
+    private function normalizeStudentRow(array $row): array
+    {
+        if (!empty($row['reg_full_name'])) {
+            $row['name'] = $row['reg_full_name'];
+        }
+        if (!empty($row['reg_email'])) {
+            $row['email'] = $row['reg_email'];
+        }
+        if (!empty($row['reg_phone'])) {
+            $row['phone'] = $row['reg_phone'];
+        }
+        if (!empty($row['reg_user_id']) && empty($row['user_id'])) {
+            $row['user_id'] = $row['reg_user_id'];
+        }
+        return $row;
     }
 
     public static function courseDurationMeta(?array $course): array
@@ -302,9 +328,20 @@ class SmsModuleService
 
     public function createStudent(array $data): array
     {
-        $email = trim($data['email'] ?? '');
+        $email = strtolower(trim($data['email'] ?? ''));
+        $phone = trim($data['phone'] ?? '');
+        $name = trim($data['name'] ?? '');
+        if ($name === '') {
+            return ['ok' => false, 'error' => 'Student name is required.'];
+        }
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return ['ok' => false, 'error' => 'A valid student email is required to create the portal account.'];
+        }
+        if ($phone === '') {
+            return ['ok' => false, 'error' => 'Phone number is required to create the student account.'];
+        }
+        if (empty($data['course_id'])) {
+            return ['ok' => false, 'error' => 'Please select a course.'];
         }
 
         $pricing = $this->resolveStudentCostDuration($data);
@@ -314,15 +351,49 @@ class SmsModuleService
             return ['ok' => false, 'error' => 'Paid amount cannot exceed cost.'];
         }
 
+        $onboardPayload = [
+            'full_name'               => $name,
+            'email'                   => $email,
+            'phone'                   => $phone,
+            'course_id'               => (int) $data['course_id'],
+            'study_mode'              => 'online',
+            'payment_plan'            => $paid >= $cost && $cost > 0 ? 'full' : 'monthly',
+            'current_learning_month'  => 1,
+            'installments_paid'       => 0,
+            'amount_paid_prior'       => $paid,
+            'registration_fee_waived' => true,
+            'portal_locked'           => false,
+            'fee_balance_note'        => trim($data['notes'] ?? ''),
+            'fee_status'              => $paid >= $cost && $cost > 0 ? 'paid_in_full' : ($paid > 0 ? 'partial' : 'current'),
+            'payment_reference'       => 'SmS enrollment',
+            'must_change_password'    => true,
+        ];
+
+        $onboard = new \Controllers\ManualOnboardController();
+        $onboardResult = $onboard->onboardNew($onboardPayload, $this->actorId);
+        if (empty($onboardResult['ok'])) {
+            return ['ok' => false, 'error' => $onboardResult['error'] ?? 'Failed to create student account.'];
+        }
+
+        $registrationId = (int) $onboardResult['registration_id'];
+        $uidStmt = $this->pdo->prepare('SELECT user_id FROM registrations WHERE id = :id LIMIT 1');
+        $uidStmt->execute([':id' => $registrationId]);
+        $userId = (int) $uidStmt->fetchColumn();
+
+        if ($cost > 0) {
+            $this->pdo->prepare('UPDATE registrations SET course_fee = :fee WHERE id = :id')
+                ->execute([':fee' => $cost, ':id' => $registrationId]);
+        }
+
         $stmt = $this->pdo->prepare(
-            'INSERT INTO sms_students (name, email, phone, course_id, duration, start_date, parent_phone, parent_email, cost, paid, status, notes)
-             VALUES (:name, :email, :phone, :cid, :dur, :sd, :pp, :pe, :cost, :paid, :st, :notes)'
+            'INSERT INTO sms_students (name, email, phone, course_id, duration, start_date, parent_phone, parent_email, cost, paid, status, notes, user_id, registration_id)
+             VALUES (:name, :email, :phone, :cid, :dur, :sd, :pp, :pe, :cost, :paid, :st, :notes, :uid, :rid)'
         );
         $stmt->execute([
-            ':name' => trim($data['name']),
+            ':name' => $name,
             ':email' => $email,
-            ':phone' => trim($data['phone'] ?? '') ?: null,
-            ':cid' => !empty($data['course_id']) ? (int) $data['course_id'] : null,
+            ':phone' => $phone,
+            ':cid' => (int) $data['course_id'],
             ':dur' => $pricing['duration'] ?: null,
             ':sd' => $data['start_date'] ?: null,
             ':pp' => trim($data['parent_phone'] ?? '') ?: null,
@@ -331,12 +402,16 @@ class SmsModuleService
             ':paid' => $paid,
             ':st' => $data['status'] ?? 'active',
             ':notes' => trim($data['notes'] ?? '') ?: null,
+            ':uid' => $userId ?: null,
+            ':rid' => $registrationId,
         ]);
         $id = (int) $this->pdo->lastInsertId();
 
         $student = $this->getStudent($id);
-        $this->provisionStudentAccount($student);
-        $student = $this->getStudent($id);
+        $this->studentCredentials = [
+            'temp_password' => $onboardResult['temp_password'],
+            'username' => $onboardResult['reg_no'],
+        ];
 
         $receipt = $this->generateReceipt($student, $paid > 0 ? $paid : 0);
         if ($paid > 0) {
@@ -345,9 +420,9 @@ class SmsModuleService
         }
 
         $this->emailStudentOnboarding($student, $receipt);
-        $this->log('student_created', 'Created student ' . $student['name'], 'student', $id);
+        $this->log('student_created', 'Created student ' . $student['name'] . ' (' . $onboardResult['reg_no'] . ')', 'student', $id);
 
-        return ['ok' => true, 'id' => $id];
+        return ['ok' => true, 'id' => $id, 'registration_id' => $registrationId, 'reg_no' => $onboardResult['reg_no']];
     }
 
     public function updateStudent(int $id, array $data): array
@@ -385,6 +460,19 @@ class SmsModuleService
             ':notes' => trim($data['notes'] ?? '') ?: null,
             ':id' => $id,
         ]);
+
+        if (!empty($existing['registration_id'])) {
+            $this->pdo->prepare(
+                'UPDATE registrations SET full_name = :name, email = :email, phone = :phone, course_fee = :fee, course_id = :cid WHERE id = :id'
+            )->execute([
+                ':name' => trim($data['name']),
+                ':email' => trim($data['email'] ?? '') ?: null,
+                ':phone' => trim($data['phone'] ?? '') ?: null,
+                ':fee' => $cost,
+                ':cid' => !empty($data['course_id']) ? (int) $data['course_id'] : null,
+                ':id' => (int) $existing['registration_id'],
+            ]);
+        }
 
         $student = $this->getStudent($id);
         $delta = round($newPaid - $oldPaid, 2);
@@ -685,15 +773,19 @@ class SmsModuleService
     private function emailStudentOnboarding(array $student, array $receipt): void
     {
         if (!empty($this->studentCredentials['temp_password']) && !empty($student['email'])) {
-            $notifier = new StudentNotifier($this->pdo);
+            $notifier = new StudentNotifier($this->pdo, null, true);
             $reg = [
                 'email' => $student['email'],
                 'full_name' => $student['name'],
-                'registration_no' => $this->studentCredentials['username'] ?? ('SMS-' . $student['id']),
+                'registration_no' => $this->studentCredentials['username'] ?? ($student['registration_no'] ?? ('SMS-' . $student['id'])),
                 'course_title' => $student['course_title'] ?? '',
             ];
-            $notifier->sendCredentials($reg, $this->studentCredentials['temp_password']);
-            $this->log('credentials_emailed', 'Emailed login credentials to ' . $student['email'], 'student', (int) $student['id']);
+            $result = $notifier->sendCredentials($reg, $this->studentCredentials['temp_password']);
+            if (!empty($result['ok'])) {
+                $this->log('credentials_emailed', 'Emailed login credentials to ' . $student['email'], 'student', (int) $student['id']);
+            } else {
+                error_log('[SmsModule] credentials email failed for ' . $student['email'] . ': ' . ($result['message'] ?? 'unknown'));
+            }
         }
         $this->emailReceipt($student, $receipt, true);
         if (!empty($student['parent_email'])) {

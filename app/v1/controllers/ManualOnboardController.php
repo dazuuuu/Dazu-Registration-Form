@@ -82,16 +82,31 @@ class ManualOnboardController {
                 throw new \RuntimeException("'student' role not found.");
             }
 
-            $stmt = $this->db->prepare(
-                "INSERT INTO users (username, email, password_hash, role_id, is_active, email_verified, account_status)
-                 VALUES (:username, :email, :hash, :role_id, 1, 1, 'active')"
-            );
-            $stmt->execute([
-                ':username' => $regNo,
-                ':email'    => $email,
-                ':hash'     => $hash,
-                ':role_id'  => $studentRoleId,
-            ]);
+            $mustChangePassword = !empty($data['must_change_password']) ? 1 : 0;
+            try {
+                $stmt = $this->db->prepare(
+                    "INSERT INTO users (username, email, password_hash, role_id, is_active, email_verified, account_status, must_change_password)
+                     VALUES (:username, :email, :hash, :role_id, 1, 1, 'active', :mcp)"
+                );
+                $stmt->execute([
+                    ':username' => $regNo,
+                    ':email'    => $email,
+                    ':hash'     => $hash,
+                    ':role_id'  => $studentRoleId,
+                    ':mcp'      => $mustChangePassword,
+                ]);
+            } catch (\PDOException $e) {
+                $stmt = $this->db->prepare(
+                    "INSERT INTO users (username, email, password_hash, role_id, is_active, email_verified, account_status)
+                     VALUES (:username, :email, :hash, :role_id, 1, 1, 'active')"
+                );
+                $stmt->execute([
+                    ':username' => $regNo,
+                    ':email'    => $email,
+                    ':hash'     => $hash,
+                    ':role_id'  => $studentRoleId,
+                ]);
+            }
             $userId = (int) $this->db->lastInsertId();
 
             $nameParts = explode(' ', $fullName, 2);

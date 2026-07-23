@@ -17,9 +17,9 @@ function isStoreActive($current_dir) {
     return $current_dir == 'store' || $current_dir == 'categories' || $current_dir == 'products';
 }
 
-// New System group: registration, students, courses, tutors, payments
+// New System group: registration, courses, tutors, payments
 function isSystemActive($current_dir) {
-    return in_array($current_dir, ['registrations', 'students', 'courses', 'tutors', 'payments', 'resources'], true);
+    return in_array($current_dir, ['registrations', 'courses', 'tutors', 'payments', 'resources'], true);
 }
 
 // Existing public-site content pages, now grouped under "Website Content"
@@ -87,16 +87,6 @@ function isSmsSection($section) {
                             <i class="fas fa-user-clock"></i>
                             <span>Pending Approvals</span>
                             <span class="registrations-badge" id="registrationsBadge" style="display:none;">0</span>
-                        </a>
-                        <a href="<?php echo url('admin/students/index.php'); ?>"
-                           class="nav-link <?php echo $current_dir == 'students' ? 'active' : ''; ?>">
-                            <i class="fas fa-user-graduate"></i>
-                            <span>Students</span>
-                        </a>
-                        <a href="<?php echo url('admin/students/onboard.php'); ?>"
-                           class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'onboard.php' ? 'active' : ''; ?>">
-                            <i class="fas fa-user-plus"></i>
-                            <span>Onboard Student</span>
                         </a>
                         <a href="<?php echo url('admin/courses/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'courses' ? 'active' : ''; ?>">

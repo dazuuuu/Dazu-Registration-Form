@@ -766,7 +766,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
     window.ADMIN_TERMINAL_ROUTES = <?php echo json_encode([
         'dashboard' => url('admin/dashboard.php'),
         'registrations' => url('admin/registrations/index.php?status=pending'),
-        'students' => url('admin/students/index.php'),
+        'students' => url('admin/sms/students/index.php'),
         'courses' => url('admin/courses/index.php'),
         'tutors' => url('admin/tutors/index.php'),
         'payments' => url('admin/payments/index.php'),

@@ -48,7 +48,7 @@ ob_start();
 <div class="d-flex justify-content-between mb-3">
   <div>
     <h4 class="mb-1"><?= htmlspecialchars($student['name']) ?></h4>
-    <small class="text-muted"><?= htmlspecialchars($student['course_title'] ?? '') ?> · <?= htmlspecialchars($student['status']) ?></small>
+    <small class="text-muted"><?= htmlspecialchars($student['course_title'] ?? '') ?> · <?= htmlspecialchars($student['status']) ?><?php if (!empty($student['registration_no'])): ?> · <?= htmlspecialchars($student['registration_no']) ?><?php endif; ?></small>
   </div>
   <div class="d-flex gap-2">
     <a href="<?= url('admin/sms/students/form.php?id='.$id) ?>" class="btn btn-sm btn-primary">Edit</a>

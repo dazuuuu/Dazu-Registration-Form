@@ -38,11 +38,11 @@ ob_start();
 ?>
 <div class="card shadow-sm"><div class="card-body">
   <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
-  <?php if (!$id): ?><p class="text-muted small">On create: portal account + login email (temp password, must change on first login) and receipt are sent automatically. Parent details are optional.</p><?php endif; ?>
+  <?php if (!$id): ?><p class="text-muted small">On create: a portal account is created in the main student system, login credentials are emailed (temp password — must change on first login), and a receipt is sent. Parent details are optional.</p><?php endif; ?>
   <form method="post" class="row g-3" id="smsStudentForm">
     <div class="col-md-6"><label class="form-label">Name *</label><input name="name" required class="form-control" value="<?= htmlspecialchars($student['name'] ?? '') ?>"></div>
     <div class="col-md-6"><label class="form-label">Email *</label><input type="email" name="email" required class="form-control" value="<?= htmlspecialchars($student['email'] ?? '') ?>" <?= $id ? '' : 'required' ?>></div>
-    <div class="col-md-4"><label class="form-label">Phone</label><input name="phone" class="form-control" value="<?= htmlspecialchars($student['phone'] ?? '') ?>"></div>
+    <div class="col-md-4"><label class="form-label">Phone *</label><input name="phone" required class="form-control" value="<?= htmlspecialchars($student['phone'] ?? '') ?>"></div>
     <div class="col-md-8"><label class="form-label">Course *</label>
       <select name="course_id" id="courseSelect" class="form-select" required>
         <option value="">— Select course —</option>

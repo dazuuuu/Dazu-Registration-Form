@@ -11,14 +11,20 @@ class StudentNotifier {
     private $companyName;
     private $loginUrl;
 
-    public function __construct($pdo, ?Mailer $mailer = null) {
+    public function __construct($pdo, ?Mailer $mailer = null, bool $forceEnabled = false) {
         if (!function_exists('url')) {
             require_once __DIR__ . '/../config/paths.php';
         }
         $this->loginUrl = url('auth/login.php');
         $this->pdo = $pdo;
         $this->mailCfg = require __DIR__ . '/../config/mail.php';
-        $this->enabled = !empty($this->mailCfg['enabled']);
+        if ($forceEnabled) {
+            $this->mailCfg['enabled'] = true;
+        }
+        $this->enabled = !empty($this->mailCfg['enabled'])
+            || !empty($this->mailCfg['enquiry_mail_enabled'])
+            || !empty($this->mailCfg['password_reset_enabled'])
+            || $forceEnabled;
         $this->mailer = $this->enabled ? ($mailer ?? null) : null;
         $this->companyName = $this->mailCfg['from_name'] ?? 'Dazu Hub Institute';
 
@@ -57,10 +63,14 @@ class StudentNotifier {
 
     private function send(string $email, string $name, string $event, array $data): array {
         if (!$this->enabled) {
-            return ['ok' => true, 'message' => 'skipped', 'skipped' => true];
+            error_log('[StudentNotifier] mail skipped — SMTP not enabled for ' . $event);
+            return ['ok' => false, 'message' => 'mail disabled', 'skipped' => true];
         }
         [$subject, $html] = StudentEmailTemplate::render($event, $data);
-        $result = $this->mailer()->send($email, $name, $subject, $html);
+        $sendCfg = $this->mailCfg;
+        $sendCfg['enabled'] = true;
+        $mailer = $this->mailer ?? new Mailer($sendCfg);
+        $result = $mailer->send($email, $name, $subject, $html);
         if (!$result['ok']) {
             error_log('[StudentNotifier] ' . $event . ' to ' . $email . ': ' . $result['message']);
         }
