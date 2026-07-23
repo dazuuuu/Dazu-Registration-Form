@@ -505,17 +505,19 @@ class SmsModuleService
 
     /**
      * Reset portal password and email fresh login credentials to the student.
+     * Creates or links a portal account first when missing (legacy SmS records).
      *
      * @return array{ok:bool, error?:string, email?:string}
      */
     public function resendStudentCredentials(int $id): array
     {
-        $student = $this->getStudent($id);
-        if (!$student) {
-            return ['ok' => false, 'error' => 'Student not found.'];
+        $linked = $this->ensurePortalAccountForStudent($id);
+        if (empty($linked['ok'])) {
+            return $linked;
         }
 
-        $email = trim($student['email'] ?? '');
+        $student = $linked['student'];
+        $email = strtolower(trim($student['email'] ?? ''));
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return ['ok' => false, 'error' => 'Student has no valid email address on file.'];
         }
@@ -523,7 +525,7 @@ class SmsModuleService
         $registrationId = (int) ($student['registration_id'] ?? 0);
         $userId = (int) ($student['user_id'] ?? $student['reg_user_id'] ?? 0);
         if ($registrationId <= 0 || $userId <= 0) {
-            return ['ok' => false, 'error' => 'This student has no linked portal account.'];
+            return ['ok' => false, 'error' => 'Could not resolve a portal account for this student.'];
         }
 
         $regNo = trim($student['registration_no'] ?? '');
@@ -533,19 +535,29 @@ class SmsModuleService
             $regNo = trim((string) $stmt->fetchColumn());
         }
         if ($regNo === '') {
-            return ['ok' => false, 'error' => 'Registration number not found for this student.'];
+            $stmt = $this->pdo->prepare('SELECT username FROM users WHERE id = :id LIMIT 1');
+            $stmt->execute([':id' => $userId]);
+            $regNo = trim((string) $stmt->fetchColumn());
+        }
+        if ($regNo === '') {
+            return ['ok' => false, 'error' => 'Login username not found for this student.'];
         }
 
-        $tempPassword = bin2hex(random_bytes(8));
-        $hash = password_hash($tempPassword, PASSWORD_DEFAULT);
-        try {
-            $this->pdo->prepare(
-                'UPDATE users SET password_hash = :hash, is_active = 1, account_status = \'active\', must_change_password = 1 WHERE id = :uid'
-            )->execute([':hash' => $hash, ':uid' => $userId]);
-        } catch (PDOException $e) {
-            $this->pdo->prepare(
-                'UPDATE users SET password_hash = :hash, is_active = 1, account_status = \'active\' WHERE id = :uid'
-            )->execute([':hash' => $hash, ':uid' => $userId]);
+        $tempPassword = !empty($linked['temp_password'])
+            ? $linked['temp_password']
+            : bin2hex(random_bytes(8));
+
+        if (empty($linked['temp_password'])) {
+            $hash = password_hash($tempPassword, PASSWORD_DEFAULT);
+            try {
+                $this->pdo->prepare(
+                    'UPDATE users SET password_hash = :hash, is_active = 1, account_status = \'active\', must_change_password = 1 WHERE id = :uid'
+                )->execute([':hash' => $hash, ':uid' => $userId]);
+            } catch (PDOException $e) {
+                $this->pdo->prepare(
+                    'UPDATE users SET password_hash = :hash, is_active = 1, account_status = \'active\' WHERE id = :uid'
+                )->execute([':hash' => $hash, ':uid' => $userId]);
+            }
         }
 
         $notifier = new StudentNotifier($this->pdo, null, true);
@@ -566,6 +578,200 @@ class SmsModuleService
         $this->log('credentials_resent', 'Resent login credentials to ' . $email, 'student', $id);
 
         return ['ok' => true, 'email' => $email];
+    }
+
+    /**
+     * Link or create the main-system portal account for an SmS student record.
+     *
+     * @return array{ok:bool, error?:string, student?:array, temp_password?:string, created?:bool}
+     */
+    private function ensurePortalAccountForStudent(int $smsStudentId): array
+    {
+        $student = $this->getStudent($smsStudentId);
+        if (!$student) {
+            return ['ok' => false, 'error' => 'Student not found.'];
+        }
+
+        $email = strtolower(trim($student['email'] ?? ''));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'error' => 'Add a valid email address on the student profile first.'];
+        }
+
+        $registrationId = (int) ($student['registration_id'] ?? 0);
+        $userId = (int) ($student['user_id'] ?? $student['reg_user_id'] ?? 0);
+        if ($registrationId > 0 && $userId > 0) {
+            return ['ok' => true, 'student' => $student];
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT id, user_id, registration_no FROM registrations
+             WHERE email = :email AND status = 'approved' ORDER BY id DESC LIMIT 1"
+        );
+        $stmt->execute([':email' => $email]);
+        $reg = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($reg && !empty($reg['user_id'])) {
+            $this->linkSmsStudentPortal($smsStudentId, (int) $reg['id'], (int) $reg['user_id']);
+            return ['ok' => true, 'student' => $this->getStudent($smsStudentId)];
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT u.id, u.username FROM users u
+             INNER JOIN roles r ON r.id = u.role_id AND r.role_name = 'student'
+             WHERE u.email = :email LIMIT 1"
+        );
+        $stmt->execute([':email' => $email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($user) {
+            $userId = (int) $user['id'];
+            $stmt = $this->pdo->prepare(
+                "SELECT id, user_id, registration_no FROM registrations
+                 WHERE user_id = :uid AND status = 'approved' ORDER BY id DESC LIMIT 1"
+            );
+            $stmt->execute([':uid' => $userId]);
+            $reg = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($reg) {
+                $this->linkSmsStudentPortal($smsStudentId, (int) $reg['id'], $userId);
+                return ['ok' => true, 'student' => $this->getStudent($smsStudentId)];
+            }
+
+            $created = $this->createRegistrationForExistingUser($student, $userId);
+            if (empty($created['ok'])) {
+                return $created;
+            }
+            $this->linkSmsStudentPortal($smsStudentId, (int) $created['registration_id'], $userId);
+            return ['ok' => true, 'student' => $this->getStudent($smsStudentId)];
+        }
+
+        if (empty($student['course_id'])) {
+            return ['ok' => false, 'error' => 'Assign a course to this student before sending account details.'];
+        }
+        if (trim($student['phone'] ?? '') === '') {
+            return ['ok' => false, 'error' => 'Add a phone number before sending account details.'];
+        }
+
+        $paid = (float) ($student['paid'] ?? 0);
+        $cost = (float) ($student['cost'] ?? 0);
+        $onboard = new \Controllers\ManualOnboardController();
+        $result = $onboard->onboardNew([
+            'full_name'               => $student['name'],
+            'email'                   => $email,
+            'phone'                   => $student['phone'],
+            'course_id'               => (int) $student['course_id'],
+            'study_mode'              => 'online',
+            'payment_plan'            => $paid >= $cost && $cost > 0 ? 'full' : 'monthly',
+            'current_learning_month'  => 1,
+            'installments_paid'       => 0,
+            'amount_paid_prior'       => 0,
+            'registration_fee_waived' => true,
+            'portal_locked'           => false,
+            'fee_balance_note'        => trim($student['notes'] ?? ''),
+            'fee_status'              => 'current',
+            'payment_reference'       => 'SmS account provision',
+            'must_change_password'    => true,
+        ], $this->actorId);
+
+        if (empty($result['ok'])) {
+            return ['ok' => false, 'error' => $result['error'] ?? 'Could not create portal account.'];
+        }
+
+        $uidStmt = $this->pdo->prepare('SELECT user_id FROM registrations WHERE id = :id LIMIT 1');
+        $uidStmt->execute([':id' => $result['registration_id']]);
+        $newUserId = (int) $uidStmt->fetchColumn();
+        $this->linkSmsStudentPortal($smsStudentId, (int) $result['registration_id'], $newUserId);
+
+        if ($cost > 0) {
+            $this->pdo->prepare('UPDATE registrations SET course_fee = :fee WHERE id = :id')
+                ->execute([':fee' => $cost, ':id' => $result['registration_id']]);
+        }
+
+        return [
+            'ok' => true,
+            'student' => $this->getStudent($smsStudentId),
+            'temp_password' => $result['temp_password'],
+            'created' => true,
+        ];
+    }
+
+    private function linkSmsStudentPortal(int $smsStudentId, int $registrationId, int $userId): void
+    {
+        $this->pdo->prepare(
+            'UPDATE sms_students SET registration_id = :rid, user_id = :uid WHERE id = :id'
+        )->execute([':rid' => $registrationId, ':uid' => $userId, ':id' => $smsStudentId]);
+    }
+
+    /**
+     * @return array{ok:bool, error?:string, registration_id?:int}
+     */
+    private function createRegistrationForExistingUser(array $student, int $userId): array
+    {
+        $courseId = (int) ($student['course_id'] ?? 0);
+        if ($courseId <= 0) {
+            return ['ok' => false, 'error' => 'Assign a course to this student before sending account details.'];
+        }
+
+        $cm = new \Models\CourseModel($this->pdo);
+        $course = $cm->getById($courseId);
+        if (!$course || empty($course['is_active'])) {
+            return ['ok' => false, 'error' => 'Selected course is not available.'];
+        }
+
+        $resolvedAdmin = resolve_valid_user_id($this->pdo, $this->actorId, true);
+        if ($resolvedAdmin === null) {
+            return ['ok' => false, 'error' => 'No valid admin account found.'];
+        }
+
+        try {
+            $this->pdo->beginTransaction();
+            $seq = $cm->claimNextSequence($courseId);
+            $regNo = sprintf('DH-%s%02d/%s', $course['abbreviation'], $seq, date('Y'));
+            $cost = (float) ($student['cost'] ?? $course['course_fee']);
+            $paid = (float) ($student['paid'] ?? 0);
+
+            $stmt = $this->pdo->prepare(
+                "INSERT INTO registrations
+                 (registration_no, full_name, email, phone, course_id, study_mode, id_document_path,
+                  registration_fee, course_fee, payment_plan, installment_count, installment_amount,
+                  payment_reference, possible_returning_student, enrollment_type, current_learning_month,
+                  fee_balance_note, fee_status, registration_fee_waived, installments_paid,
+                  status, reviewed_by, reviewed_at, user_id, portal_locked)
+                 VALUES
+                 (:reg_no, :full_name, :email, :phone, :course_id, 'online', 'admin/sms-provision',
+                  0, :course_fee, :plan, 1, :course_fee,
+                  'SmS account provision', 0, 'continuing', 1, :fee_note, :fee_status, 1, 0,
+                  'approved', :admin, NOW(), :user_id, 0)"
+            );
+            $stmt->execute([
+                ':reg_no'      => $regNo,
+                ':full_name'   => $student['name'],
+                ':email'       => strtolower(trim($student['email'] ?? '')),
+                ':phone'       => trim($student['phone'] ?? '') ?: 'N/A',
+                ':course_id'   => $courseId,
+                ':course_fee'  => $cost,
+                ':plan'        => $paid >= $cost && $cost > 0 ? 'full' : 'monthly',
+                ':fee_note'    => trim($student['notes'] ?? '') ?: null,
+                ':fee_status'  => $paid >= $cost && $cost > 0 ? 'paid_in_full' : ($paid > 0 ? 'partial' : 'current'),
+                ':admin'       => $resolvedAdmin,
+                ':user_id'     => $userId,
+            ]);
+            $registrationId = (int) $this->pdo->lastInsertId();
+
+            $stmt = $this->pdo->prepare('UPDATE users SET username = :u WHERE id = :id AND username LIKE \'SMS%\'');
+            $stmt->execute([':u' => $regNo, ':id' => $userId]);
+
+            $this->pdo->commit();
+
+            require_once __DIR__ . '/../models/ProgressModel.php';
+            $progress = new \Models\ProgressModel($this->pdo);
+            $progress->initializeForRegistration($registrationId, $courseId, 1);
+
+            return ['ok' => true, 'registration_id' => $registrationId];
+        } catch (Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log('[SmsModule] createRegistrationForExistingUser: ' . $e->getMessage());
+            return ['ok' => false, 'error' => 'Could not link portal account: ' . $e->getMessage()];
+        }
     }
 
     public function studentPayments(int $studentId): array
