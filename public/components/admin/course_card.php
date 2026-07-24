@@ -3,9 +3,10 @@
 if (!isset($course)) {
     return;
 }
-$cover = !empty($course['cover_image'])
-    ? settings_asset_url($course['cover_image'])
-    : url('assets/images/courses/default-course.jpg');
+if (!function_exists('dazu_course_image_url')) {
+    require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
+}
+$cover = dazu_course_image_url($course);
 $durLabel = function_exists('course_study_summary') ? course_study_summary($course) : '';
 $isActive = !empty($course['is_active']);
 ?>

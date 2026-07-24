@@ -19,14 +19,14 @@ $duration = $months > 0 ? $months . ' Month' . ($months === 1 ? '' : 's') : 'Fle
 $abbr = strtoupper(trim($course['abbreviation'] ?? ''));
 $cardId = (int) ($course['id'] ?? 0);
 ?>
-<article class="dazu-course-card group relative bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col justify-between h-full cursor-pointer hover:border-[#15A24A] transition-all duration-300 select-none shadow-sm"
+<article class="dazu-course-card group relative bg-white border border-[#f0f0f0] rounded-xl overflow-hidden flex flex-col justify-between h-full cursor-pointer hover:border-[#D4AF37] transition-all duration-300 select-none shadow-sm"
          onclick="window.location.href='<?php echo htmlspecialchars($applyUrl); ?>'">
   <div class="relative h-44 w-full overflow-hidden bg-slate-100">
     <img src="<?php echo htmlspecialchars($img); ?>" alt="<?php echo $title; ?>"
          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
          referrerpolicy="no-referrer" loading="lazy">
-    <span class="absolute top-3 left-3 text-[10px] font-bold text-white bg-[#15A24A] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm"><?php echo $category; ?></span>
-    <div class="absolute bottom-3 right-3 p-2 bg-white/90 backdrop-blur-sm text-[#15A24A] border border-green-100 rounded-lg shadow-sm">
+    <span class="absolute top-3 left-3 text-[10px] font-bold text-white bg-[#228B22] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm"><?php echo $category; ?></span>
+    <div class="absolute bottom-3 right-3 p-2 bg-white/90 backdrop-blur-sm text-[#D4AF37] border border-[#FFE9C8] rounded-lg shadow-sm">
       <?php echo dazu_course_icon_svg($abbr); ?>
     </div>
   </div>

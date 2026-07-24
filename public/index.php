@@ -28,7 +28,7 @@ $textTestimonials = $testimonialData['text'];
 $videoTestimonials = $testimonialData['video'];
 
 ob_start();
-include __DIR__ . '/components/public/dazu_hero.php';
+include __DIR__ . '/components/public/bonfire_hero.php';
 include __DIR__ . '/components/public/dazu_stats_bar.php';
 include __DIR__ . '/components/public/dazu_popular_courses.php';
 include __DIR__ . '/components/public/dazu_campus_section.php';

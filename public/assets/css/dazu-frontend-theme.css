@@ -1,5 +1,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
+/* Bonfire UI uses Poppins/Quicksand from bonfire-theme.css */
+.bonfire-ui h1,
+.bonfire-ui h2,
+.bonfire-ui h3,
+.bonfire-ui h4,
+.bonfire-ui .font-display,
+.bonfire-ui .font-heroic {
+  font-family: "Poppins", ui-sans-serif, system-ui, sans-serif !important;
+  letter-spacing: 0;
+}
+
+.bonfire-ui body,
+.bonfire-ui p,
+.bonfire-ui span,
+.bonfire-ui a,
+.bonfire-ui button,
+.bonfire-ui label,
+.bonfire-ui input,
+.bonfire-ui textarea,
+.bonfire-ui select,
+.bonfire-ui li {
+  font-family: "Quicksand", ui-sans-serif, system-ui, sans-serif;
+}
+
 h1, h2, h3, h4, .font-display, .font-heroic {
   font-family: "Nunito", ui-sans-serif, system-ui, sans-serif !important;
   letter-spacing: 0.01em;

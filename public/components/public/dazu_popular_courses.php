@@ -38,11 +38,10 @@ $showSearch = false;   // the homepage section is a showcase, not a search page
 <section class="py-24 bg-white" id="popular-courses">
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="max-w-xl mx-auto space-y-3 mb-10 text-center">
-      <h2 class="text-3xl font-extrabold tracking-tight text-slate-950 relative inline-block pb-3">
+      <h2 class="bf-section-title text-3xl font-extrabold tracking-tight text-[#111111]" style="font-family:'Poppins',sans-serif;">
         Our Courses
-        <span class="absolute bottom-0 left-1/4 right-1/4 h-[3px] bg-[#15A24A] rounded-full"></span>
       </h2>
-      <p class="text-slate-400 text-xs font-semibold uppercase tracking-widest pt-2">
+      <p class="text-[#888] text-xs font-semibold uppercase tracking-widest pt-2" style="font-family:'Quicksand',sans-serif;">
         Explore Our Top Technology Certification Tracks
       </p>
     </div>

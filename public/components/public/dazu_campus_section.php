@@ -1,12 +1,12 @@
 <?php
 /** Physical campus — ported from Dazu-frontend Home.tsx */
 ?>
-<section class="py-24 bg-slate-50 border-t border-slate-100" id="campus">
+<section class="py-24 bg-[#F8F6F1] border-t border-[#e1e1e1]" id="campus">
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
       <div class="lg:col-span-6 space-y-6">
-        <span class="text-[#15A24A] text-xs font-extrabold uppercase tracking-widest px-3 py-1 bg-green-50 border border-green-100 rounded-full inline-block">Physical Campus Environment</span>
-        <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-950">Our Physical Lab in Thika Town</h2>
+        <span class="text-[#D4AF37] text-xs font-extrabold uppercase tracking-widest px-3 py-1 bg-[#FFE9C8] border border-[#D4AF37]/30 rounded-full inline-block" style="font-family:'Poppins',sans-serif;">Physical Campus Environment</span>
+        <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-[#0A4322]" style="font-family:'Poppins',sans-serif;">Our Physical Lab in Thika Town</h2>
         <p class="text-slate-500 text-sm font-medium leading-relaxed">
           Step into <strong>Room 529</strong>, our modern, fully-equipped development space located in the heart of Thika Town. Meet other passionate coders, work under professional mentorship, and access our elite local server infrastructure.
         </p>
@@ -17,14 +17,14 @@
             'Interactive presentation screens for weekly group code reviews & presentation sessions.',
           ] as $item): ?>
             <div class="flex items-start gap-2 text-slate-700 text-sm font-semibold">
-              <svg class="h-5 w-5 text-[#15A24A] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <svg class="h-5 w-5 text-[#228B22] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               <span><?php echo htmlspecialchars($item); ?></span>
             </div>
           <?php endforeach; ?>
         </div>
         <div class="pt-4 flex gap-4">
           <a href="<?php echo url('about'); ?>" class="px-6 py-3 text-xs font-bold bg-white hover:bg-slate-100 border border-slate-200 text-slate-800 rounded-md transition-colors">Explore Campus Tour</a>
-          <a href="<?php echo url('contact'); ?>" class="px-6 py-3 text-xs font-bold text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-md transition-colors">Visit Room 529</a>
+          <a href="<?php echo url('contact'); ?>" class="bf-btn bf-btn--primary px-6 py-3 text-xs">Visit Room 529</a>
         </div>
       </div>
 

@@ -25,10 +25,10 @@ $gradients = [
 
     <!-- Video Testimonials -->
     <div class="text-center mb-16">
-      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-green-50 border border-green-100 rounded-full inline-block">Alumni Experience</span>
-      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 tracking-tight flex items-center justify-center gap-2.5 mt-4">
-        <span class="inline-block p-1.5 bg-green-50 text-[#15A24A] rounded-lg border border-green-100">
-          <svg class="h-5 w-5 fill-[#15A24A]" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+      <span class="text-[#D4AF37] text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-[#FFE9C8] border border-[#D4AF37]/30 rounded-full inline-block" style="font-family:'Poppins',sans-serif;">Alumni Experience</span>
+      <h2 class="text-3xl md:text-4xl font-extrabold text-[#0A4322] tracking-tight flex items-center justify-center gap-2.5 mt-4" style="font-family:'Poppins',sans-serif;">
+        <span class="inline-block p-1.5 bg-[#FFE9C8] text-[#D4AF37] rounded-lg border border-[#D4AF37]/30">
+          <svg class="h-5 w-5 fill-[#D4AF37]" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </span>
         Video Testimonials
       </h2>
