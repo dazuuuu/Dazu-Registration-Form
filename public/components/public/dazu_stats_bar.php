@@ -1,5 +1,5 @@
-<?php /** Stats bar — ported from Dazu-frontend Home.tsx */ ?>
-<section class="bg-slate-50 border-y border-slate-100 py-12" id="dazu-stats">
+<?php /** Stats bar — Bonfire Adventures counter style */ ?>
+<section class="bg-[#F8F6F1] border-y border-[#e1e1e1] py-12" id="dazu-stats">
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
       <?php
@@ -11,10 +11,10 @@
       ];
       foreach ($stats as $i => $stat): ?>
         <div class="space-y-1">
-          <span class="block text-4xl font-extrabold text-slate-950">
+          <span class="block text-4xl font-extrabold text-[#0A4322]" style="font-family:'Poppins',sans-serif;">
             <span class="dazu-counter" data-target="<?php echo (int) $stat['target']; ?>">0</span>+
           </span>
-          <span class="text-[10px] uppercase tracking-widest font-bold text-slate-400"><?php echo htmlspecialchars($stat['label']); ?></span>
+          <span class="text-[10px] uppercase tracking-widest font-bold text-[#888]" style="font-family:'Quicksand',sans-serif;"><?php echo htmlspecialchars($stat['label']); ?></span>
         </div>
       <?php endforeach; ?>
     </div>

@@ -6,17 +6,10 @@ if (!function_exists('url')) {
     require_once __DIR__ . '/../../../app/v1/config/paths.php';
 }
 require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
+require_once __DIR__ . '/../../../app/v1/helpers/bonfire_theme.php';
 
 /**
  * Cache-busted asset URL.
- *
- * asset() emits a bare, unversioned URL. sw.js caches every .css/.js and served
- * them cache-first with no expiry, so a deployed change never reached anyone who
- * had already loaded the page. Appending the file's mtime changes the URL on every
- * deploy, which misses both the HTTP cache and the service worker cache key
- * (caches.match() includes the query string), so the new file is always fetched.
- *
- * This works even for visitors still running the old service worker.
  */
 if (!function_exists('dazu_asset_v')) {
     function dazu_asset_v(string $path): string
@@ -26,6 +19,9 @@ if (!function_exists('dazu_asset_v')) {
         return $ver ? asset($path) . '?v=' . $ver : asset($path);
     }
 }
+
+$isHome = dazu_nav_active('home');
+$favicon = bonfire_asset_v('favicon.webp');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,14 +30,19 @@ if (!function_exists('dazu_asset_v')) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?php echo htmlspecialchars($page_title ?? 'Dazu hub Institute'); ?></title>
   <meta name="description" content="<?php echo htmlspecialchars($page_description ?? 'Practical tech training in Thika Town — software, cybersecurity, data analytics and AI.'); ?>">
-  <link rel="icon" type="image/jpeg" href="https://i.ibb.co/fzfZFtGc/223025.jpg">
+  <link rel="icon" type="image/webp" href="<?php echo htmlspecialchars($favicon, ENT_QUOTES); ?>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="<?php echo htmlspecialchars(dazu_tailwind_css()); ?>">
   <link rel="stylesheet" href="<?php echo dazu_asset_v('css/dazu-frontend-theme.css'); ?>">
+  <link rel="stylesheet" href="<?php echo dazu_asset_v('css/bonfire-theme.css'); ?>">
   <style>svg.dazu-icon{width:1.25rem;height:1.25rem;flex-shrink:0;max-width:100%}</style>
   <?php if (!empty($extra_head)) echo $extra_head; ?>
 </head>
-<body class="bg-white text-slate-900 font-sans antialiased selection:bg-green-100 selection:text-green-800">
-<?php include __DIR__ . '/../../components/public/dazu_navbar.php'; ?>
+<body class="bonfire-ui bg-white text-slate-900 font-sans antialiased selection:bg-green-100 selection:text-green-800">
+<?php if (!$isHome): ?>
+  <?php include __DIR__ . '/../../components/public/dazu_navbar.php'; ?>
+<?php endif; ?>
 <main class="flex-1">
   <?php echo $content ?? ''; ?>
 </main>

@@ -84,8 +84,8 @@ ob_start();
 <div class="bg-white min-h-screen py-16">
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 space-y-10">
     <div class="max-w-2xl">
-      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-green-50 border border-green-100 rounded-full">Practical Certifications</span>
-      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mt-4">Our Technology Courses</h1>
+      <span class="text-[#D4AF37] text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-[#FFE9C8] border border-[#D4AF37]/30 rounded-full" style="font-family:'Poppins',sans-serif;">Practical Certifications</span>
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-[#0A4322] mt-4" style="font-family:'Poppins',sans-serif;">Our Technology Courses</h1>
       <p class="text-slate-600 font-medium leading-relaxed mt-3">Every track we run is listed below. Search or filter by category, then open a course to view details and apply online.</p>
     </div>
 

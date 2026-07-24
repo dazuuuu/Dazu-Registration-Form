@@ -1,0 +1,209 @@
+/**
+ * Bonfire Adventures UI theme overlay
+ * Source: https://github.com/Muigai-Kiongo/bonfireadventures.com
+ * Elementor kit 7798 design tokens adapted for Dazu Registration System
+ */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Quicksand:wght@400;600&display=swap');
+
+:root {
+  --bf-gold: #D4AF37;
+  --bf-gold-hover: #b8972e;
+  --bf-forest: #0A4322;
+  --bf-green: #228B22;
+  --bf-green-hover: #1a6b1a;
+  --bf-orange: #D37A1F;
+  --bf-cream: #F8F6F1;
+  --bf-warm: #FFE9C8;
+  --bf-text: #444444;
+  --bf-dark: #111111;
+  --bf-white: #FFFFFF;
+  --bf-light: #F7F7F7;
+}
+
+/* Typography — Bonfire uses Poppins headings, Quicksand body */
+body.bonfire-ui,
+.bonfire-ui body {
+  font-family: 'Quicksand', ui-sans-serif, system-ui, sans-serif;
+  color: var(--bf-text);
+}
+
+.bonfire-ui h1,
+.bonfire-ui h2,
+.bonfire-ui h3,
+.bonfire-ui h4,
+.bonfire-ui h5,
+.bonfire-ui h6,
+.bonfire-ui .font-display {
+  font-family: 'Poppins', ui-sans-serif, system-ui, sans-serif !important;
+  letter-spacing: 0;
+}
+
+/* Map legacy Dazu green Tailwind classes to Bonfire palette */
+.bonfire-ui .text-\[\#15A24A\],
+.bonfire-ui .text-\[\#22C55E\] { color: var(--bf-gold) !important; }
+.bonfire-ui .bg-\[\#15A24A\],
+.bonfire-ui .bg-\[\#22C55E\] { background-color: var(--bf-green) !important; }
+.bonfire-ui .hover\:bg-\[\#128a3e\]:hover,
+.bonfire-ui .hover\:bg-\[\#15A24A\]:hover { background-color: var(--bf-orange) !important; }
+.bonfire-ui .hover\:text-\[\#15A24A\]:hover,
+.bonfire-ui .hover\:text-\[\#128a3e\]:hover { color: var(--bf-gold) !important; }
+.bonfire-ui .border-\[\#15A24A\] { border-color: var(--bf-gold) !important; }
+.bonfire-ui .hover\:border-\[\#15A24A\]:hover { border-color: var(--bf-gold) !important; }
+.bonfire-ui .group:hover .group-hover\:text-\[\#15A24A\] { color: var(--bf-gold) !important; }
+.bonfire-ui .bg-green-50\/50 { background-color: rgba(212, 175, 55, 0.08) !important; }
+.bonfire-ui .text-green-500,
+.bonfire-ui .hover\:text-green-500:hover { color: var(--bf-gold) !important; }
+.bonfire-ui .hover\:bg-green-600:hover { background-color: var(--bf-green) !important; }
+.bonfire-ui .selection\:bg-green-100::selection,
+.bonfire-ui ::selection {
+  background-color: var(--bf-warm);
+  color: var(--bf-forest);
+}
+
+/* Bonfire pill buttons */
+.bf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.75rem;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 50px;
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+.bf-btn--primary {
+  background-color: var(--bf-green);
+  color: var(--bf-white);
+}
+.bf-btn--primary:hover {
+  background-color: var(--bf-orange);
+  color: var(--bf-white);
+}
+.bf-btn--gold {
+  background-color: var(--bf-gold);
+  color: var(--bf-white);
+}
+.bf-btn--gold:hover {
+  background-color: var(--bf-gold-hover);
+}
+.bf-btn--outline {
+  background: transparent;
+  color: var(--bf-white);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+}
+.bf-btn--outline:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--bf-gold);
+  color: var(--bf-gold);
+}
+
+/* Bonfire card hover (from custom-hero.css) */
+.bonfire-ui .dazu-course-card {
+  border-radius: 12px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.bonfire-ui .dazu-course-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+  border-color: var(--bf-gold) !important;
+}
+
+/* Section headings with gold underline */
+.bf-section-title {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 800;
+  color: var(--bf-dark);
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.75rem;
+}
+.bf-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 25%;
+  right: 25%;
+  height: 3px;
+  background: var(--bf-gold);
+  border-radius: 2px;
+}
+
+/* Stats counter gold accent */
+.bonfire-ui #dazu-stats .dazu-counter {
+  color: var(--bf-forest);
+}
+.bonfire-ui #dazu-stats .text-slate-950 {
+  color: var(--bf-forest) !important;
+}
+
+/* CTA section — forest green with gold accents */
+.bonfire-ui .bf-cta-panel {
+  background: linear-gradient(135deg, var(--bf-forest) 0%, #0d5a2d 100%);
+  border-radius: 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+.bonfire-ui .bf-cta-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('../bonfire/footer-bg.webp') center/cover no-repeat;
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+/* Form inputs — Bonfire Elementor kit style */
+.bonfire-ui input[type="text"],
+.bonfire-ui input[type="email"],
+.bonfire-ui input[type="tel"],
+.bonfire-ui input[type="password"],
+.bonfire-ui input[type="date"],
+.bonfire-ui select,
+.bonfire-ui textarea {
+  font-family: 'Quicksand', sans-serif;
+  border: 2px solid rgba(2, 1, 1, 0.06);
+  border-radius: 5px;
+  padding: 12px 20px;
+}
+.bonfire-ui input:focus,
+.bonfire-ui select:focus,
+.bonfire-ui textarea:focus {
+  outline: none;
+  border-color: var(--bf-green);
+  box-shadow: 0 0 0 3px rgba(34, 139, 34, 0.15);
+}
+
+/* WhatsApp float button */
+.bf-whatsapp-float {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 999;
+  width: 3.5rem;
+  height: 3.5rem;
+  background: #25D366;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(37, 211, 102, 0.4);
+  transition: transform 0.2s ease;
+  text-decoration: none;
+}
+.bf-whatsapp-float:hover {
+  transform: scale(1.08);
+  color: #fff;
+}
+.bf-whatsapp-float svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
