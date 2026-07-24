@@ -2,7 +2,10 @@
 Options +FollowSymLinks -MultiViews
 RewriteEngine On
 
-# Pretty URLs (internal rewrite — no risky redirects)
+# Pentagon static HTML + PHP backend (cPanel / Ampps)
+# Real files (index.html, contact-us/, wp-content/, etc.) are served first.
+
+# PHP app pretty URLs (admin, auth, courses PHP pages)
 RewriteRule ^login/?$ auth/login.php [L]
 RewriteRule ^forgot-password/?$ auth/forgot_password.php [L]
 RewriteRule ^reset-password/?$ auth/reset_password.php [L]
@@ -14,13 +17,23 @@ RewriteRule ^contact/?$ contact/index.php [L]
 RewriteRule ^projects/?$ projects/index.php [L]
 RewriteRule ^blog/?$ blogs/index.php [L]
 
-# Real files and folders (css, images, api, admin, etc.)
+# API — always PHP
+RewriteRule ^api/ - [L]
+
+# Existing files and directories (HTML, CSS, images, admin/, etc.)
 RewriteCond %{REQUEST_FILENAME} -f [OR]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^ - [L]
 
-# Homepage
+# Homepage: prefer Pentagon index.html, fall back to PHP
+DirectoryIndex index.html index.php
+RewriteRule ^$ index.html [L]
 RewriteRule ^ index.php [L]
 </IfModule>
 
-DirectoryIndex index.php
+# Block direct access to app source if deployed inside web root
+<IfModule mod_authz_core.c>
+  <If "%{REQUEST_URI} =~ m#^/app/#">
+    Require all denied
+  </If>
+</IfModule>
