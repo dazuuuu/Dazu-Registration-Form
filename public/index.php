@@ -34,5 +34,6 @@ include __DIR__ . '/components/public/dazu_popular_courses.php';
 include __DIR__ . '/components/public/dazu_campus_section.php';
 include __DIR__ . '/components/public/dazu_testimonials_section.php';
 include __DIR__ . '/components/public/dazu_cta_section.php';
+include __DIR__ . '/components/public/dazu_newsletter_section.php';
 $content = ob_get_clean();
 require __DIR__ . '/templates/public/dazu_layout.php';

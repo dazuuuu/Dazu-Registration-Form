@@ -54,6 +54,33 @@ class EnquiryNotifier
     }
 
     /**
+     * Sends a "we received your message" confirmation to the person who
+     * submitted the enquiry (only if they gave a real email address).
+     */
+    public function notifySubmitter(array $enquiry, int $enquiryId): array
+    {
+        $submitterEmail = trim((string) ($enquiry['_reply_to_email'] ?? ''));
+        if ($submitterEmail === '' || !filter_var($submitterEmail, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => true, 'message' => 'skipped', 'skipped' => true];
+        }
+
+        $name = trim((string) ($enquiry['name'] ?? '')) ?: 'there';
+        $message = trim((string) ($enquiry['message'] ?? ''));
+        $esc = static fn (string $value): string => htmlspecialchars($value, ENT_QUOTES, 'UTF-8');
+
+        $subject = "We've received your message — {$this->companyName}";
+        $html = '<p>Hi ' . $esc($name) . ',</p>'
+            . '<p>Thanks for reaching out to <strong>' . $esc($this->companyName) . '</strong>. '
+            . 'We have received your enquiry (#' . $enquiryId . ') and our team will get back to you within 24 hours.</p>'
+            . '<div style="background:#f1f6f5;border-radius:8px;padding:16px;margin:16px 0;">'
+            . '<strong>Your message:</strong><br>' . nl2br($esc($message))
+            . '</div>'
+            . '<p style="font-size:12px;color:#666;">If you didn\'t submit this enquiry, you can safely ignore this email.</p>';
+
+        return $this->mailer->send($submitterEmail, $name, $subject, $html);
+    }
+
+    /**
      * Admin recipients for SmS reminder notifications.
      *
      * @return array<int, array{email:string, name:string}>

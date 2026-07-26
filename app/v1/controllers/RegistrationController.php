@@ -11,6 +11,7 @@ use Models\SessionModel;
 require_once __DIR__ . '/../models/StudentModel.php';
 require_once __DIR__ . '/../models/ProgressModel.php';
 require_once __DIR__ . '/StudentController.php';
+require_once __DIR__ . '/../services/StudentNotifier.php';
 
 class RegistrationController {
 
@@ -130,6 +131,8 @@ class RegistrationController {
             $progressModel = new \Models\ProgressModel($pdo);
             $progressModel->initializeForRegistration($registrationId, (int) $approvedReg['course_id']);
 
+            $this->sendApprovedEmail($approvedReg, $tempPassword, $registrationId);
+
             return [
                 'ok'            => true,
                 'reg_no'        => $regNo,
@@ -167,7 +170,33 @@ class RegistrationController {
         );
         $stmt->execute([':reason' => trim($reason), ':admin' => $adminId, ':id' => $registrationId]);
 
+        $this->sendRejectedEmail($reg, $reason, $registrationId);
+
         return ['ok' => true];
+    }
+
+    private function sendApprovedEmail(array $reg, string $tempPassword, int $registrationId): void {
+        try {
+            $notifier = new \StudentNotifier($this->db, null, true);
+            $result = $notifier->sendRegistrationApproved($reg, $tempPassword);
+            if (empty($result['ok'])) {
+                error_log("[RegistrationController::approve] Approval email failed for #{$registrationId}: " . ($result['message'] ?? 'Unknown error'));
+            }
+        } catch (\Throwable $e) {
+            error_log("[RegistrationController::approve] Approval email error for #{$registrationId}: " . $e->getMessage());
+        }
+    }
+
+    private function sendRejectedEmail(array $reg, string $reason, int $registrationId): void {
+        try {
+            $notifier = new \StudentNotifier($this->db, null, true);
+            $result = $notifier->sendRegistrationRejected($reg, $reason);
+            if (empty($result['ok'])) {
+                error_log("[RegistrationController::reject] Rejection email failed for #{$registrationId}: " . ($result['message'] ?? 'Unknown error'));
+            }
+        } catch (\Throwable $e) {
+            error_log("[RegistrationController::reject] Rejection email error for #{$registrationId}: " . $e->getMessage());
+        }
     }
 
     /**

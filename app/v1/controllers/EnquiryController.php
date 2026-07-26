@@ -67,10 +67,17 @@ class EnquiryController {
     private function sendNotificationEmail($data, $enquiryId) {
         try {
             $notifier = new EnquiryNotifier($this->enquiryModel->getConnection());
+
             $result = $notifier->notifyAdmin($data, (int) $enquiryId);
             if (empty($result['ok'])) {
                 error_log("[enquiry] Email notification failed for #{$enquiryId}: " . ($result['message'] ?? 'Unknown error'));
             }
+
+            $submitterResult = $notifier->notifySubmitter($data, (int) $enquiryId);
+            if (empty($submitterResult['ok'])) {
+                error_log("[enquiry] Submitter confirmation failed for #{$enquiryId}: " . ($submitterResult['message'] ?? 'Unknown error'));
+            }
+
             return !empty($result['ok']);
         } catch (Throwable $e) {
             error_log("[enquiry] Email notification error for #{$enquiryId}: " . $e->getMessage());

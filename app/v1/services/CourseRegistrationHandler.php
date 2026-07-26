@@ -56,9 +56,26 @@ class CourseRegistrationHandler
         }
 
         $reg = $this->regModel->getById($result['id']);
-        // Confirmation emails disabled — admin follows up manually.
+        $this->sendReceivedEmail($reg, (int) $result['id']);
 
         return $result;
+    }
+
+    private function sendReceivedEmail(?array $reg, int $registrationId): void
+    {
+        if (!$reg) {
+            return;
+        }
+        try {
+            require_once __DIR__ . '/StudentNotifier.php';
+            $notifier = new \StudentNotifier($this->pdo, null, true);
+            $result = $notifier->sendRegistrationReceived($reg);
+            if (empty($result['ok'])) {
+                error_log("[registration] Confirmation email failed for #{$registrationId}: " . ($result['message'] ?? 'Unknown error'));
+            }
+        } catch (\Throwable $e) {
+            error_log("[registration] Confirmation email error for #{$registrationId}: " . $e->getMessage());
+        }
     }
 
     /**

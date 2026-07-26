@@ -31,7 +31,7 @@ $role = $_SESSION['role'] ?? '';
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="flex items-center justify-between h-20">
       <a href="<?php echo url('/'); ?>" class="flex items-center gap-2 group focus:outline-none" id="nav-logo">
-        <img src="https://i.ibb.co/fzfZFtGc/223025.jpg" alt="Dazu Hub Logo" class="h-14 w-14 rounded-lg object-cover shrink-0 transition-transform duration-300 group-hover:scale-105" referrerpolicy="no-referrer">
+        <img src="<?php echo asset('images/logo/logo.png'); ?>" alt="Dazu Hub Logo" class="h-14 w-14 rounded-lg object-cover shrink-0 transition-transform duration-300 group-hover:scale-105">
         <div class="text-left leading-none">
           <div class="text-2xl font-extrabold text-slate-950 tracking-tight">Dazu<span class="text-[#22C55E] ml-1">hub</span></div>
           <div class="text-[10px] text-slate-500 font-extrabold tracking-tight mt-1">Institute</div>
