@@ -12,7 +12,7 @@ if (!function_exists('site_contact_settings')) {
         $defaults = [
             'contact_phone' => site_phone_display(),
             'contact_phone_tel' => site_phone_tel(),
-            'contact_email' => 'info@dazuaihub.com',
+            'contact_email' => 'admin@dazuhub.com',
             'contact_address' => 'Witeithie House, Room 529, Thika Town',
             'contact_hours' => 'Monday - Saturday: 8:00 AM - 5:00 PM',
             'contact_map_embed' => '',

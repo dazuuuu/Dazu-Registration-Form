@@ -24,7 +24,7 @@ class EnquiryNotifier
     public function notifyAdmin(array $enquiry, int $enquiryId): array
     {
         $settings = new SettingModel($this->pdo);
-        $recipient = trim((string) $settings->get('contact_email', 'info@dazuaihub.com'));
+        $recipient = trim((string) $settings->get('contact_email', 'admin@dazuhub.com'));
         if (!filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
             error_log("[enquiry] Notification skipped for enquiry #{$enquiryId}: invalid contact_email setting.");
             return ['ok' => false, 'message' => 'Invalid admin notification email'];

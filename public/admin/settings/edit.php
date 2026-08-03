@@ -204,7 +204,7 @@ $pageHeaders = $settings->getAllPageHeaders();
 
 $titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners', 'contact' => 'Contact & Map', 'receipt' => 'Receipts'];
 $contactPhone = $settings->get('contact_phone', '+254 750 116 600');
-$contactEmail = $settings->get('contact_email', 'info@dazuaihub.com');
+$contactEmail = $settings->get('contact_email', 'admin@dazuhub.com');
 $contactAddress = $settings->get('contact_address', 'Witeithie House, Room 529, Thika Town');
 $contactHours = $settings->get('contact_hours', 'Monday - Saturday: 8:00 AM - 5:00 PM');
 $contactMapEmbed = $settings->get('contact_map_embed', '');
