@@ -4,10 +4,12 @@ if (!isset($course)) return;
 require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
 $category = dazu_course_category($course['abbreviation'] ?? '');
 $syllabus = dazu_course_syllabus($course);
+$requirements = dazu_course_requirements($course);
 $months = (int) ($course['duration_months'] ?? 0);
 $weeks = (int) ($course['weeks_of_study'] ?? 0);
 $hours = (int) ($course['hours_of_study'] ?? 0);
 $schedule = trim((string) ($course['study_schedule'] ?? ''));
+$isFree = !empty($course['is_free']);
 $fee = number_format((float) ($course['course_fee'] ?? 0));
 ?>
 <div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-8" id="learn">
@@ -39,9 +41,9 @@ $fee = number_format((float) ($course['course_fee'] ?? 0));
       </div>
       <div class="p-3 bg-slate-50 border border-slate-200/60 rounded-xl">
         <span class="block text-slate-400 uppercase tracking-widest text-[9px] font-extrabold mb-1">Tuition Fee</span>
-        <span class="text-xs font-bold text-slate-900 flex items-center gap-1">
+        <span class="text-xs font-bold <?php echo $isFree ? 'text-green-600' : 'text-slate-900'; ?> flex items-center gap-1">
           <svg class="h-3.5 w-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-          KES <?php echo $fee; ?>
+          <?php echo $isFree ? 'FREE' : 'KES ' . $fee; ?>
         </span>
       </div>
       <?php if ($weeks > 0): ?>
@@ -80,6 +82,18 @@ $fee = number_format((float) ($course['course_fee'] ?? 0));
           <div class="flex items-start gap-2 text-xs font-medium text-slate-700">
             <svg class="h-3.5 w-3.5 text-[#15A24A] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span><?php echo htmlspecialchars(is_string($item) ? $item : (string) $item); ?></span>
+          </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+
+    <div>
+      <span class="block text-slate-400 uppercase tracking-widest text-[9px] font-extrabold mb-2">Requirements</span>
+      <div class="space-y-1.5">
+        <?php foreach ($requirements as $item): ?>
+          <div class="flex items-start gap-2 text-xs font-medium text-slate-700">
+            <svg class="h-3.5 w-3.5 text-[#15A24A] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span><?php echo htmlspecialchars($item); ?></span>
           </div>
         <?php endforeach; ?>
       </div>

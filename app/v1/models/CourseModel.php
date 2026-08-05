@@ -23,10 +23,12 @@ class CourseModel {
 
         $categoryId = !empty($data['category_id']) ? (int) $data['category_id'] : null;
         $dur = $this->durationFields($data);
+        $isFree = !empty($data['is_free']);
+        $fee = $isFree ? 0.0 : (float) $data['course_fee'];
 
         try {
-            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, description, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, is_active, created_by)
-                    VALUES (:title, :abbreviation, :category_id, :cover_image, :description, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :course_fee, 1, :created_by)";
+            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, description, requirements, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, is_free, is_active, created_by)
+                    VALUES (:title, :abbreviation, :category_id, :cover_image, :description, :requirements, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :course_fee, :is_free, 1, :created_by)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':title'            => trim($data['title']),
@@ -34,16 +36,23 @@ class CourseModel {
                 ':category_id'      => $categoryId,
                 ':cover_image'      => $data['cover_image'] ?? null,
                 ':description'      => $data['description'] ?? '',
+                ':requirements'     => trim($data['requirements'] ?? ''),
                 ':overview'         => $data['overview'] ?? '',
                 ':duration_months'  => $dur['duration_months'],
                 ':weeks_of_study'   => $dur['weeks_of_study'],
                 ':days_of_study'    => $dur['days_of_study'],
                 ':hours_of_study'   => $dur['hours_of_study'],
                 ':study_schedule'   => $dur['study_schedule'],
-                ':course_fee'       => (float) $data['course_fee'],
+                ':course_fee'       => $fee,
+                ':is_free'          => $isFree ? 1 : 0,
                 ':created_by'       => $this->resolveCreatedBy($createdBy),
             ]);
         } catch (\PDOException $e) {
+            $missingNewCols = stripos($e->getMessage(), 'requirements') !== false
+                || stripos($e->getMessage(), 'is_free') !== false;
+            if ($missingNewCols) {
+                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/migrations/033_course_requirements_and_free_flag.sql, then retry.'];
+            }
             $missingStudyCols = stripos($e->getMessage(), 'weeks_of_study') !== false
                 || stripos($e->getMessage(), 'days_of_study') !== false
                 || stripos($e->getMessage(), 'hours_of_study') !== false
@@ -63,7 +72,7 @@ class CourseModel {
                     ':days_of_study'    => $dur['days_of_study'],
                     ':hours_of_study'   => $dur['hours_of_study'],
                     ':study_schedule'   => $dur['study_schedule'],
-                    ':course_fee'       => (float) $data['course_fee'],
+                    ':course_fee'       => $fee,
                     ':created_by'       => $this->resolveCreatedBy($createdBy),
                 ]);
             } elseif ($missingStudyCols) {
@@ -81,7 +90,7 @@ class CourseModel {
                     ':description'      => $data['description'] ?? '',
                     ':overview'         => $data['overview'] ?? '',
                     ':duration_months'  => max(1, $dur['duration_months'] ?: course_effective_months($dur)),
-                    ':course_fee'       => (float) $data['course_fee'],
+                    ':course_fee'       => $fee,
                     ':created_by'       => $this->resolveCreatedBy($createdBy),
                 ]);
             } else {
@@ -108,22 +117,28 @@ class CourseModel {
             ? (!empty($data['category_id']) ? (int) $data['category_id'] : null)
             : null;
 
+        $isFree = !empty($data['is_free']);
+        $fee = $isFree ? 0.0 : (float) $data['course_fee'];
+
         $fields = "title = :title, abbreviation = :abbreviation, category_id = :category_id, description = :description,
-                   overview = :overview, duration_months = :duration_months, weeks_of_study = :weeks_of_study,
-                   days_of_study = :days_of_study, hours_of_study = :hours_of_study, study_schedule = :study_schedule, course_fee = :course_fee";
+                   requirements = :requirements, overview = :overview, duration_months = :duration_months, weeks_of_study = :weeks_of_study,
+                   days_of_study = :days_of_study, hours_of_study = :hours_of_study, study_schedule = :study_schedule, course_fee = :course_fee,
+                   is_free = :is_free";
         $dur = $this->durationFields($data);
         $params = [
             ':title'           => trim($data['title']),
             ':abbreviation'    => $abbr,
             ':category_id'     => $categoryId,
             ':description'     => $data['description'] ?? '',
+            ':requirements'    => trim($data['requirements'] ?? ''),
             ':overview'        => $data['overview'] ?? '',
             ':duration_months' => $dur['duration_months'],
             ':weeks_of_study'  => $dur['weeks_of_study'],
             ':days_of_study'   => $dur['days_of_study'],
             ':hours_of_study'  => $dur['hours_of_study'],
             ':study_schedule'  => $dur['study_schedule'],
-            ':course_fee'      => (float) $data['course_fee'],
+            ':course_fee'      => $fee,
+            ':is_free'         => $isFree ? 1 : 0,
             ':id'              => $id,
         ];
 
@@ -137,6 +152,11 @@ class CourseModel {
         try {
             $stmt->execute($params);
         } catch (\PDOException $e) {
+            $missingNewCols = stripos($e->getMessage(), 'requirements') !== false
+                || stripos($e->getMessage(), 'is_free') !== false;
+            if ($missingNewCols) {
+                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/migrations/033_course_requirements_and_free_flag.sql, then retry.'];
+            }
             $missingStudyCols = stripos($e->getMessage(), 'weeks_of_study') !== false
                 || stripos($e->getMessage(), 'days_of_study') !== false
                 || stripos($e->getMessage(), 'hours_of_study') !== false
@@ -152,7 +172,8 @@ class CourseModel {
                 // rather than fatal, run databases/migrations/022_add_course_study_duration.sql and
                 // databases/migrations/024_add_course_study_schedule.sql to fix properly.
                 $fields = "title = :title, abbreviation = :abbreviation, category_id = :category_id, description = :description,
-                           overview = :overview, duration_months = :duration_months, course_fee = :course_fee";
+                           requirements = :requirements, overview = :overview, duration_months = :duration_months, course_fee = :course_fee,
+                           is_free = :is_free";
                 unset($params[':weeks_of_study'], $params[':days_of_study'], $params[':hours_of_study'], $params[':study_schedule']);
                 $params[':duration_months'] = max(1, (int) $params[':duration_months'] ?: course_effective_months(array_merge($data, $dur)));
                 if (!empty($data['cover_image'])) {
@@ -219,6 +240,27 @@ class CourseModel {
         } catch (\PDOException $e) {
             $sql = "SELECT * FROM courses" . ($activeOnly ? " WHERE is_active = 1" : "") . " ORDER BY title ASC";
             return $this->db->query($sql)->fetchAll();
+        }
+    }
+
+    /**
+     * Free-course listing for public/courses/free.php. Degrades to an empty list
+     * (not an error) if is_free hasn't been migrated yet — this is just a listing,
+     * no data loss risk in silently showing nothing.
+     */
+    public function getFree(bool $activeOnly = true): array {
+        try {
+            $sql = "SELECT c.*, cc.name AS category_name, cc.slug AS category_slug, cc.icon_path AS category_icon
+                    FROM courses c
+                    LEFT JOIN course_categories cc ON cc.id = c.category_id
+                    WHERE c.is_free = 1";
+            if ($activeOnly) {
+                $sql .= " AND c.is_active = 1";
+            }
+            $sql .= " ORDER BY c.title ASC";
+            return $this->db->query($sql)->fetchAll();
+        } catch (\PDOException $e) {
+            return [];
         }
     }
 
@@ -302,9 +344,11 @@ class CourseModel {
             return $err;
         }
 
-        $fee = (float) ($data['course_fee'] ?? 0);
-        if ($fee <= 0) {
-            return 'Course fee must be greater than zero.';
+        if (empty($data['is_free'])) {
+            $fee = (float) ($data['course_fee'] ?? 0);
+            if ($fee <= 0) {
+                return 'Course fee must be greater than zero.';
+            }
         }
         return null;
     }

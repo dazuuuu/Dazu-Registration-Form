@@ -38,6 +38,40 @@ if (!function_exists('dazu_hero_image_url')) {
     }
 }
 
+if (!function_exists('dazu_hero_video_url')) {
+    /**
+     * Resolve a hero video from public/assets/videos/hero/.
+     *
+     * Same drop-in convention as dazu_hero_image_url(): pass the base name
+     * without an extension ("hero-2") and mp4/webm are picked up automatically.
+     * Returns one <source> entry per file found, mtime-versioned so sw.js never
+     * serves a stale clip. Empty array when nothing is there yet, so the caller
+     * can fall back to the still image instead of rendering a broken player.
+     *
+     * @param string $base File name without extension.
+     * @return array<int, array{url: string, type: string}>
+     */
+    function dazu_hero_video_url(string $base): array
+    {
+        $base = trim($base);
+        if ($base === '' || !preg_match('/^[A-Za-z0-9._-]+$/', $base) || str_contains($base, '..')) {
+            return [];
+        }
+
+        $sources = [];
+        foreach (['mp4' => 'video/mp4', 'webm' => 'video/webm'] as $ext => $mime) {
+            $rel  = 'videos/hero/' . $base . '.' . $ext;
+            $file = public_path('assets/' . $rel);
+            if (is_file($file)) {
+                $ver = @filemtime($file);
+                $sources[] = ['url' => asset($rel) . ($ver ? '?v=' . $ver : ''), 'type' => $mime];
+            }
+        }
+
+        return $sources;
+    }
+}
+
 if (!function_exists('dazu_hero_stats')) {
     /**
      * Real counts for the hero's floating cards.

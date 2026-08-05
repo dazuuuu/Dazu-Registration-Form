@@ -23,7 +23,7 @@ try {
 }
 
 $error = null;
-$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'overview' => '', 'duration_months' => '', 'weeks_of_study' => '', 'days_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'course_fee' => '', 'category_id' => ''];
+$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'requirements' => '', 'overview' => '', 'duration_months' => '', 'weeks_of_study' => '', 'days_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'course_fee' => '', 'is_free' => '', 'category_id' => ''];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
@@ -51,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'abbreviation'    => $_POST['abbreviation'] ?? '',
                 'category_id'     => $_POST['category_id'] ?? null,
                 'description'     => $_POST['description'] ?? '',
+                'requirements'    => $_POST['requirements'] ?? '',
                 'overview'        => $_POST['overview'] ?? '',
                 'duration_months' => $_POST['duration_months'] ?? 0,
                 'weeks_of_study'  => $_POST['weeks_of_study'] ?? null,
@@ -58,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'hours_of_study'  => $_POST['hours_of_study'] ?? null,
                 'study_schedule'  => $_POST['study_schedule'] ?? null,
                 'course_fee'      => $_POST['course_fee'] ?? 0,
+                'is_free'         => !empty($_POST['is_free']),
                 'cover_image'     => $coverPath,
             ], SessionModel::get('user_id'));
 
@@ -151,8 +153,15 @@ ob_start();
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Course Fee (KSh)</label>
-                    <input type="number" name="course_fee" class="form-control" min="1" step="1" required
+                    <input type="number" name="course_fee" id="courseFeeInput" class="form-control" min="1" step="1"
+                           <?php echo !empty($old['is_free']) ? '' : 'required'; ?>
+                           <?php echo !empty($old['is_free']) ? 'disabled' : ''; ?>
                            value="<?php echo htmlspecialchars($old['course_fee'] ?? ''); ?>">
+                    <div class="form-check mt-2">
+                        <input type="checkbox" name="is_free" value="1" id="isFreeCheck" class="form-check-input"
+                               <?php echo !empty($old['is_free']) ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="isFreeCheck">This course is free — students sign up instantly with no payment or admin review.</label>
+                    </div>
                 </div>
 
                 <div class="col-12">
@@ -168,7 +177,27 @@ ob_start();
                     <label class="form-label">Full Description</label>
                     <textarea name="description" class="form-control" rows="6"><?php echo htmlspecialchars($old['description']); ?></textarea>
                 </div>
+                <div class="col-12">
+                    <label class="form-label">Requirements <span class="text-muted small">(one per line, optional)</span></label>
+                    <textarea name="requirements" class="form-control" rows="3" placeholder="e.g.&#10;A laptop&#10;A good and stable internet connection"><?php echo htmlspecialchars($old['requirements'] ?? ''); ?></textarea>
+                    <small class="text-muted">Leave blank to show the default: "A laptop" and "A good and stable internet connection".</small>
+                </div>
             </div>
+
+            <script>
+            (function () {
+                var check = document.getElementById('isFreeCheck');
+                var fee = document.getElementById('courseFeeInput');
+                if (!check || !fee) return;
+                function sync() {
+                    fee.disabled = check.checked;
+                    fee.required = !check.checked;
+                    if (check.checked) fee.value = '';
+                }
+                check.addEventListener('change', sync);
+                sync();
+            })();
+            </script>
 
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Save Course</button>

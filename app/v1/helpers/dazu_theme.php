@@ -139,6 +139,28 @@ if (!function_exists('dazu_course_syllabus')) {
     }
 }
 
+if (!function_exists('dazu_course_requirements')) {
+    /**
+     * What a student needs before starting the course. Admin-editable free text
+     * (one requirement per line, courses.requirements); falls back to a sensible
+     * default when blank so the sidebar never renders an empty section.
+     */
+    function dazu_course_requirements(array $course): array
+    {
+        $raw = strip_tags($course['requirements'] ?? '');
+        if ($raw !== '') {
+            $lines = array_filter(array_map('trim', preg_split('/\r\n|\r|\n/', $raw)));
+            if ($lines) {
+                return array_values($lines);
+            }
+        }
+        return [
+            'A laptop',
+            'A good and stable internet connection',
+        ];
+    }
+}
+
 if (!function_exists('dazu_course_icon_svg')) {
     /** Lucide-style SVG icon for course card overlay (ported from Dazu-frontend) */
     function dazu_course_icon_svg(string $abbrev): string

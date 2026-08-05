@@ -141,6 +141,28 @@ class StudentEmailTemplate {
                     ),
                 ];
 
+            case 'course_updated':
+                $courseUrl = $data['course_url'] ?? '';
+                $cover = $data['cover_image_url'] ?? '';
+                return [
+                    'Course update: ' . ($data['course_title'] ?? ''),
+                    self::layout(
+                        'Course Update',
+                        '<p>Hi ' . self::e($data['full_name'] ?? '') . ',</p>'
+                        . '<p>A course has just been updated on <strong>' . self::e($data['company_name'] ?? '') . '</strong>:</p>'
+                        . ($cover !== ''
+                            ? '<img src="' . self::e($cover) . '" alt="" style="width:100%;max-height:220px;object-fit:cover;border-radius:8px;margin:12px 0;">'
+                            : '')
+                        . '<h3 style="margin:8px 0 4px;color:#0D9488;">' . self::e($data['course_title'] ?? '') . '</h3>'
+                        . '<p style="color:#444;">' . nl2br(self::e($data['course_overview'] ?? '')) . '</p>'
+                        . ($courseUrl !== ''
+                            ? '<p style="text-align:center;margin:24px 0;">'
+                                . '<a href="' . self::e($courseUrl) . '" style="background:#15A24A;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;">View Course</a>'
+                                . '</p>'
+                            : '')
+                    ),
+                ];
+
             default:
                 return ['Notification', self::layout('Notification', '<p>You have a new notification.</p>')];
         }

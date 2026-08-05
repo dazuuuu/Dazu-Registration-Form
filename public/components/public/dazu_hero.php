@@ -6,12 +6,16 @@
  * (jpg/jpeg/png/webp/avif all work). Missing files fall back to the bundled
  * student photo, so the page never renders a broken image.
  *
+ * Slide 2 plays a video instead of a still image — drop hero-2.mp4 and/or
+ * hero-2.webm into public/assets/videos/hero/. Until a file is there it
+ * falls back to the hero-2 picture, so nothing ever renders broken.
+ *
  * Optional: $heroStats (from dazu_hero_stats($pdo)) for the floating cards.
  */
 require_once __DIR__ . '/dazu_hero_helpers.php';
 
 $heroFallback = is_file(public_path('assets/app/hero.png'))
-    ? asset('app/hero_student_1783619555973-Dfwss1g9.jpg')
+    ? asset('app/hero.png')
     : 'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=900&q=80';
 
 $heroStats = $heroStats ?? ['courses' => 0, 'students' => 0];
@@ -28,7 +32,9 @@ $heroCards = array_values(array_filter([
         'pos'   => 'top',
     ],
     [
-        'value' => (int) ($heroStats['students'] ?? 0),
+        // Fixed at 100+ rather than the live (still-small) approved count —
+        // requested so the banner doesn't undersell with "1+ Students".
+        'value' => 100,
         'label' => 'Active Students',
         'tone'  => 'green',
         'pos'   => 'bottom',
@@ -38,9 +44,9 @@ $heroCards = array_values(array_filter([
 $heroSlides = [
     [
         'eyebrow'  => 'Future-Proof Your Career',
-        'accent'   => 'Master AI & Analytics',      // green
-        'title'    => 'Lead The Industry Growth',   // navy
-        'text'     => 'Empower your business or professional career with advanced Python, Data Analytics and automated generative AI content pipelines.',
+        'accent'   => 'Master Tech Skills',                     // green
+        'title'    => 'with Real-World Projects.', // navy
+        'text'     => 'Master Web & Software Development, Python, Data Analytics, and Cybersecurity with industry-focused training and hands-on experience.',
         'image'    => 'hero-1',
         'imageAlt' => 'Student working on data analytics and design at Dazu hub Institute',
         'cta1'     => ['label' => 'Get Started', 'url' => url('apply/index.php')],
@@ -48,11 +54,12 @@ $heroSlides = [
     ],
     [
         'eyebrow'  => 'Online E-Learning Course',
-        'accent'   => 'Online Education',
-        'title'    => 'Feels Like Real Classroom',
-        'text'     => 'Practical, hands-on physical labs in Thika Town paired with direct industry mentorship to fast-track your tech career.',
+        'accent'   => 'Learn & Build.',
+        'title'    => 'AI & Digital Skills for Everyone',
+        'text'     => 'Build practical skills in AI, technology, and professional short courses designed for today\'s job market.',
         'image'    => 'hero-2',
         'imageAlt' => 'Dazu hub Institute student with a laptop',
+        'video'    => 'hero-2', // public/assets/videos/hero/hero-2.mp4|webm — falls back to the image above until added
         'cta1'     => ['label' => 'Get Started', 'url' => url('apply/index.php')],
         'cta2'     => ['label' => 'Our Courses', 'url' => url('courses/index.php')],
     ],
@@ -169,7 +176,8 @@ $heroSlides = [
   background: #f1f5f9;
   overflow: hidden;
 }
-.dazu-hero__ring img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.dazu-hero__ring img,
+.dazu-hero__ring video { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* dotted decoration */
 .dazu-hero__deco {
@@ -244,6 +252,7 @@ $heroSlides = [
     <div id="dazu-hero-slides">
       <?php foreach ($heroSlides as $i => $slide):
           $img = dazu_hero_image_url($slide['image'], $heroFallback);
+          $videoSources = !empty($slide['video']) ? dazu_hero_video_url($slide['video']) : [];
       ?>
         <div class="dazu-hero__panel" data-slide="<?php echo $i; ?>"
              role="group" aria-roledescription="slide"
@@ -286,11 +295,22 @@ $heroSlides = [
             <span class="dazu-hero__deco dazu-hero__deco--br" aria-hidden="true"></span>
 
             <div class="dazu-hero__ring">
-              <img src="<?php echo htmlspecialchars($img, ENT_QUOTES); ?>"
-                   alt="<?php echo htmlspecialchars($slide['imageAlt']); ?>"
-                   width="840" height="840"
-                   <?php echo $i === 0 ? 'fetchpriority="high"' : 'loading="lazy"'; ?>
-                   decoding="async" referrerpolicy="no-referrer">
+              <?php if ($videoSources): ?>
+                <video poster="<?php echo htmlspecialchars($img, ENT_QUOTES); ?>"
+                       width="840" height="840"
+                       autoplay muted loop playsinline preload="none"
+                       aria-label="<?php echo htmlspecialchars($slide['imageAlt']); ?>">
+                  <?php foreach ($videoSources as $source): ?>
+                    <source src="<?php echo htmlspecialchars($source['url'], ENT_QUOTES); ?>" type="<?php echo htmlspecialchars($source['type']); ?>">
+                  <?php endforeach; ?>
+                </video>
+              <?php else: ?>
+                <img src="<?php echo htmlspecialchars($img, ENT_QUOTES); ?>"
+                     alt="<?php echo htmlspecialchars($slide['imageAlt']); ?>"
+                     width="840" height="840"
+                     <?php echo $i === 0 ? 'fetchpriority="high"' : 'loading="lazy"'; ?>
+                     decoding="async" referrerpolicy="no-referrer">
+              <?php endif; ?>
             </div>
 
             <?php foreach ($heroCards as $card): ?>
@@ -348,7 +368,12 @@ $heroSlides = [
 
   function show(n) {
     cur = (n + total) % total;
-    panels.forEach(function (p, i) { p.hidden = (i !== cur); });
+    panels.forEach(function (p, i) {
+      p.hidden = (i !== cur);
+      var v = p.querySelector('video');
+      if (!v) return;
+      if (i === cur) { v.play().catch(function () {}); } else { v.pause(); }
+    });
     dots.forEach(function (d, i) {
       d.classList.toggle('is-active', i === cur);
       d.setAttribute('aria-current', i === cur ? 'true' : 'false');

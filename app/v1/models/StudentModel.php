@@ -9,6 +9,21 @@ class StudentModel {
         $this->db = $pdo;
     }
 
+    /**
+     * Every account with the student role — used for broadcast notifications
+     * (e.g. course-update emails), not the registrations-based "approved" list above.
+     */
+    public function listAllStudentAccounts(): array {
+        $stmt = $this->db->query(
+            "SELECT u.id, u.email, u.username, up.first_name, up.last_name
+             FROM users u
+             JOIN roles r ON r.id = u.role_id
+             LEFT JOIN user_profiles up ON up.user_id = u.id
+             WHERE r.role_name = 'student' AND u.is_active = 1"
+        );
+        return $stmt->fetchAll();
+    }
+
     public function listApproved(): array {
         $stmt = $this->db->query(
             "SELECT r.*, c.title AS course_title, c.abbreviation,

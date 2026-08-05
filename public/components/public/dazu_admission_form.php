@@ -26,6 +26,7 @@ $reg_error = $reg_error ?? null;
 $referrer = $referrer ?? null;
 $allowCourseChange = $allowCourseChange ?? false;
 $courseChoices = $courseChoices ?? [];
+$isFree = !empty($course['is_free']);
 // Nothing to switch between unless there are at least two options.
 $showCourseSelect = $allowCourseChange && count($courseChoices) > 1;
 $payment = payment_credentials();
@@ -39,16 +40,24 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
 <?php if ($reg_success): ?>
 <div class="bg-green-50 border border-green-200 text-green-800 rounded-2xl p-8 text-center space-y-4">
   <svg class="h-12 w-12 text-green-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-  <h2 class="text-xl font-extrabold">Application Received!</h2>
-  <p class="text-sm text-green-700 max-w-md mx-auto">Our team will verify your M-Pesa payment and contact you within 24 hours. You can also reach us on WhatsApp at 0750 116 600.</p>
+  <h2 class="text-xl font-extrabold"><?php echo $isFree ? 'Account Created!' : 'Application Received!'; ?></h2>
+  <p class="text-sm text-green-700 max-w-md mx-auto">
+    <?php echo $isFree
+        ? 'Check your email for your student portal login details — you can start studying right away.'
+        : 'Our team will verify your M-Pesa payment and contact you within 24 hours. You can also reach us on WhatsApp at 0750 116 600.'; ?>
+  </p>
   <a href="<?php echo url('/'); ?>" class="inline-block px-6 py-3 bg-green-600 text-white text-xs font-extrabold uppercase tracking-wider rounded-xl">Back to Home</a>
 </div>
 <?php else: ?>
 
 <div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-10">
   <div class="border-b border-slate-100 pb-6 mb-8">
-    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-950 tracking-tight">Admission Application Form</h1>
-    <p class="text-slate-500 text-xs font-medium mt-1">Fill in all required fields to reserve your slot and verify your intake.</p>
+    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-950 tracking-tight"><?php echo $isFree ? 'Reserve Your Free Seat' : 'Admission Application Form'; ?></h1>
+    <p class="text-slate-500 text-xs font-medium mt-1">
+      <?php echo $isFree
+          ? 'This course is free — fill in your details and your account is created instantly, no payment required.'
+          : 'Fill in all required fields to reserve your slot and verify your intake.'; ?>
+    </p>
   </div>
 
   <?php if ($reg_error): ?>
@@ -66,6 +75,13 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
     <input type="hidden" name="dh_register" value="1">
     <?php if (!$showCourseSelect): ?>
     <input type="hidden" name="course_id" value="<?php echo (int) $course['id']; ?>">
+    <?php endif; ?>
+    <?php if ($isFree): ?>
+    <!-- Free course: the real Payment Plan select / M-Pesa textarea below are kept in the DOM
+         (just hidden) so the page script's early-return guard on #FeeBox doesn't break unrelated
+         functionality, and disabled so only these sentinel values are submitted. -->
+    <input type="hidden" name="payment_plan" value="full">
+    <input type="hidden" name="payment_reference" value="FREE COURSE - NO PAYMENT REQUIRED">
     <?php endif; ?>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -138,9 +154,9 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
           </label>
         </div>
       </div>
-      <div class="space-y-2">
+      <div class="space-y-2" <?php echo $isFree ? 'hidden' : ''; ?>>
         <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500">Payment Plan *</label>
-        <select name="payment_plan" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600">
+        <select name="payment_plan" <?php echo $isFree ? 'disabled' : ''; ?> class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600">
           <option value="monthly" <?php echo $paymentPlan === 'monthly' ? 'selected' : ''; ?>>Monthly installments</option>
           <option value="3months" <?php echo $paymentPlan === '3months' ? 'selected' : ''; ?>>3-month plan</option>
           <option value="full" <?php echo $paymentPlan === 'full' ? 'selected' : ''; ?>>Full payment</option>
@@ -148,7 +164,7 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
       </div>
     </div>
 
-    <div class="p-5 bg-green-50 border border-green-200 rounded-2xl space-y-4">
+    <div class="p-5 bg-green-50 border border-green-200 rounded-2xl space-y-4" <?php echo $isFree ? 'hidden' : ''; ?>>
       <div class="flex items-center gap-2 border-b border-green-100 pb-3">
         <svg class="h-5 w-5 text-[#15A24A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
         <span class="text-xs font-extrabold text-green-950 uppercase tracking-wider">M-Pesa Admission Fee Payment Details</span>
@@ -179,9 +195,9 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
       </p>
     </div>
 
-    <div class="space-y-1.5">
+    <div class="space-y-1.5" <?php echo $isFree ? 'hidden' : ''; ?>>
       <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500" for="<?php echo $pfx; ?>_mpesa">Paste M-Pesa / Payment Message *</label>
-      <textarea id="<?php echo $pfx; ?>_mpesa" name="payment_reference" required rows="4"
+      <textarea id="<?php echo $pfx; ?>_mpesa" name="payment_reference" <?php echo $isFree ? 'disabled' : 'required'; ?> rows="4"
                 placeholder="Paste your full payment confirmation SMS here..."
                 class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white"><?php echo htmlspecialchars($_POST['payment_reference'] ?? ''); ?></textarea>
     </div>
@@ -198,7 +214,7 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
 
     <button type="submit" id="<?php echo $pfx; ?>SubmitBtn"
             class="w-full py-4 text-xs font-extrabold uppercase tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-xl transition-colors">
-      Submit Application
+      <?php echo $isFree ? 'Create My Free Account' : 'Submit Application'; ?>
     </button>
   </form>
 </div>
@@ -257,7 +273,11 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
     }
 
     function restore(data) {
+      // Free courses submit fixed sentinel payment_plan/payment_reference values (see hidden
+      // inputs above) — never let a stale draft from a previously-viewed paid course overwrite them.
+      var isFreeNow = <?php echo $isFree ? 'true' : 'false'; ?>;
       Object.keys(data).forEach(function (n) {
+        if (isFreeNow && (n === 'payment_plan' || n === 'payment_reference')) return;
         var val = data[n];
         if (val === '' || val == null) return;
         var radios = form.querySelectorAll('input[type="radio"][name="' + n + '"]');

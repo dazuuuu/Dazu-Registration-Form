@@ -113,6 +113,85 @@ class Mailer {
     }
 
     /**
+     * Send the same shared logo/branding to many recipients over ONE SMTP connection
+     * (SMTPKeepAlive) instead of send()'s one-handshake-per-call. A broadcast to hundreds
+     * of students would otherwise mean hundreds of sequential TCP+TLS+AUTH round trips —
+     * this is the cheap fix for that without standing up a queue.
+     *
+     * One bad address never aborts the batch — each recipient is wrapped in its own
+     * try/catch and just counted as failed.
+     *
+     * @param array<int, array{to_email:string, to_name?:string, subject:string, html:string}> $messages
+     * @return array{sent:int, failed:int}
+     */
+    public function sendBatch(array $messages): array {
+        if (array_key_exists('enabled', $this->cfg) && empty($this->cfg['enabled'])) {
+            return ['sent' => 0, 'failed' => 0];
+        }
+        if (empty($messages)) {
+            return ['sent' => 0, 'failed' => 0];
+        }
+
+        self::loadPhpMailer();
+        if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
+            error_log('[mailer:batch] PHPMailer is not installed.');
+            return ['sent' => 0, 'failed' => count($messages)];
+        }
+
+        $sent = 0;
+        $failed = 0;
+        $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+
+        try {
+            if (($this->cfg['transport'] ?? 'smtp') === 'smtp') {
+                $mail->isSMTP();
+                $mail->Host = $this->cfg['host'] ?? '';
+                $mail->Port = (int) ($this->cfg['port'] ?? 587);
+                $mail->SMTPAuth = true;
+                $mail->Username = $this->cfg['username'] ?? '';
+                $mail->Password = str_replace(' ', '', $this->cfg['password'] ?? '');
+                $enc = $this->cfg['encryption'] ?? 'tls';
+                if ($enc) $mail->SMTPSecure = $enc;
+                $mail->SMTPKeepAlive = true;
+            }
+            $mail->setFrom($this->cfg['from_email'] ?? 'no-reply@example.com', $this->cfg['from_name'] ?? 'Store');
+            $mail->isHTML(true);
+
+            $logo = $this->cfg['logo_path'] ?? '';
+
+            foreach ($messages as $msg) {
+                $toEmail = $msg['to_email'] ?? '';
+                if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+                    $failed++;
+                    continue;
+                }
+                try {
+                    $mail->clearAddresses();
+                    $mail->clearAttachments(); // also clears embedded images, so the logo below doesn't duplicate/collide across iterations
+                    $mail->addAddress($toEmail, $msg['to_name'] ?? '');
+                    if ($logo && is_file($logo)) {
+                        $mail->addEmbeddedImage($logo, 'ismanlogo', 'logo.png');
+                    }
+                    $mail->Subject = $msg['subject'] ?? '';
+                    $mail->Body = $msg['html'] ?? '';
+                    $mail->AltBody = trim(preg_replace('/\s+/', ' ', strip_tags($msg['html'] ?? '')));
+                    $mail->send();
+                    $sent++;
+                } catch (Throwable $e) {
+                    error_log('[mailer:batch] ' . $toEmail . ': ' . $e->getMessage());
+                    $failed++;
+                }
+            }
+        } finally {
+            if (!empty($mail->SMTPKeepAlive)) {
+                $mail->smtpClose();
+            }
+        }
+
+        return ['sent' => $sent, 'failed' => $failed];
+    }
+
+    /**
      * @return array{ok:bool, message:string}
      */
     public function sendWithAttachment(string $toEmail, string $toName, string $subject, string $htmlBody, string $filePath, string $fileName): array {

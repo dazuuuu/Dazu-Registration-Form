@@ -35,9 +35,14 @@ class RegistrationController {
      * 6. Link user_id back on registrations row, set status=approved, store reg no
      * 7. Commit — if anything fails, rollback and return error
      *
+     * @param bool $isSystemApproval true for a code-driven approval with no reviewing admin (e.g.
+     *        free-course instant self-serve signup) — suppresses the "session id was invalid"
+     *        log line (expected here, not a bug) and records reviewed_by as NULL rather than
+     *        attributing the approval to whichever admin resolve_valid_user_id() falls back to,
+     *        so a future audit view can't misread a self-serve signup as manually approved.
      * @return array{ok:bool, error?:string, reg_no?:string, user_id?:int}
      */
-    public function approve(int $registrationId, bool $waiveRegFee, int $reviewedBy): array {
+    public function approve(int $registrationId, bool $waiveRegFee, int $reviewedBy, bool $isSystemApproval = false): array {
         $reg = $this->regModel->getById($registrationId);
         if (!$reg) return ['ok' => false, 'error' => 'Registration not found.'];
         if ($reg['status'] !== 'pending') return ['ok' => false, 'error' => 'This registration has already been reviewed.'];
@@ -47,7 +52,7 @@ class RegistrationController {
         if ($adminId === null) {
             return ['ok' => false, 'error' => 'No valid admin account found. Log out, log in again, then retry approval.'];
         }
-        if ($adminId !== $reviewedBy) {
+        if (!$isSystemApproval && $adminId !== $reviewedBy) {
             error_log("[RegistrationController::approve] Session user_id {$reviewedBy} invalid; using user_id {$adminId}");
         }
 
@@ -113,7 +118,7 @@ class RegistrationController {
                 ':reg_no' => $regNo,
                 ':uid'    => $userId,
                 ':waived' => $waiveRegFee ? 1 : 0,
-                ':admin'  => $adminId,
+                ':admin'  => $isSystemApproval ? null : $adminId,
                 ':id'     => $registrationId,
             ]);
 

@@ -10,6 +10,7 @@ $months = (int) ($course['duration_months'] ?? 0);
 $weeks = (int) ($course['weeks_of_study'] ?? 0);
 $hours = (int) ($course['hours_of_study'] ?? 0);
 $schedule = trim((string) ($course['study_schedule'] ?? ''));
+$isFree = !empty($course['is_free']);
 $fee = number_format((float) ($course['course_fee'] ?? 0));
 $title = htmlspecialchars($course['title'] ?? '');
 $overview = htmlspecialchars($course['overview'] ?? $course['description'] ?? '');
@@ -26,6 +27,9 @@ $cardId = (int) ($course['id'] ?? 0);
          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
          referrerpolicy="no-referrer" loading="lazy">
     <span class="absolute top-3 left-3 text-[10px] font-bold text-white bg-[#15A24A] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm"><?php echo $category; ?></span>
+    <?php if ($isFree): ?>
+      <span class="absolute top-3 right-3 text-[10px] font-bold text-white bg-rose-500 px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">Free</span>
+    <?php endif; ?>
     <div class="absolute bottom-3 right-3 p-2 bg-white/90 backdrop-blur-sm text-[#15A24A] border border-green-100 rounded-lg shadow-sm">
       <?php echo dazu_course_icon_svg($abbr); ?>
     </div>
@@ -68,7 +72,7 @@ $cardId = (int) ($course['id'] ?? 0);
     <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
       <div>
         <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tuition Fee</span>
-        <span class="text-[#15A24A] font-extrabold text-sm sm:text-base">Ksh <?php echo $fee; ?></span>
+        <span class="text-[#15A24A] font-extrabold text-sm sm:text-base"><?php echo $isFree ? 'FREE' : 'Ksh ' . $fee; ?></span>
       </div>
       <a href="<?php echo htmlspecialchars($applyUrl); ?>"
          onclick="event.stopPropagation();"

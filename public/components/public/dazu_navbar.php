@@ -9,7 +9,10 @@ require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
 
 $menuItems = [
     ['name' => 'HOME', 'href' => url('/'), 'key' => 'home'],
-    ['name' => 'COURSES', 'href' => url('courses'), 'key' => 'courses'],
+    ['name' => 'COURSES', 'href' => url('courses'), 'key' => 'courses', 'submenu' => [
+        ['name' => 'All Courses', 'href' => url('courses')],
+        ['name' => 'Free Courses', 'href' => url('courses/free.php')],
+    ]],
     ['name' => 'ABOUT', 'href' => url('about'), 'key' => 'about'],
     ['name' => 'PROJECTS', 'href' => url('projects'), 'key' => 'projects'],
     ['name' => 'BLOGS', 'href' => url('blog'), 'key' => 'blog'],
@@ -19,6 +22,44 @@ $menuItems = [
 $isLoggedIn = !empty($_SESSION['logged_in']);
 $role = $_SESSION['role'] ?? '';
 ?>
+<style>
+/* Nav submenu ("Courses" -> All / Free) — hand-authored rather than Tailwind utilities:
+   the shipped CSS is a precompiled/purged build, so classes not already scanned elsewhere
+   (e.g. group-hover:) would silently no-op. Inline here for the same reason dazu_hero.php
+   inlines its CSS: sw.js caches every .css file, so this can't go stale on deploy. */
+.dazu-nav-item-has-sub { position: relative; }
+.dazu-nav-caret {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.1rem; height: 1.1rem; margin-left: .2rem;
+  background: none; border: 0; padding: 0; cursor: pointer; color: inherit; vertical-align: -2px;
+}
+.dazu-nav-caret svg { width: .65rem; height: .65rem; transition: transform .15s ease; }
+.dazu-nav-item-has-sub.dazu-nav-open .dazu-nav-caret svg { transform: rotate(180deg); }
+.dazu-nav-submenu {
+  position: absolute; top: calc(100% + .6rem); left: 0; min-width: 170px;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+  box-shadow: 0 14px 34px -12px rgba(15,23,42,.18); padding: .4rem;
+  opacity: 0; visibility: hidden; transform: translateY(-6px);
+  transition: opacity .15s ease, transform .15s ease, visibility .15s;
+  z-index: 60;
+}
+.dazu-nav-item-has-sub:hover .dazu-nav-submenu,
+.dazu-nav-item-has-sub:focus-within .dazu-nav-submenu,
+.dazu-nav-item-has-sub.dazu-nav-open .dazu-nav-submenu {
+  opacity: 1; visibility: visible; transform: translateY(0);
+}
+.dazu-nav-submenu a {
+  display: block; padding: .55rem .75rem; border-radius: 7px;
+  font-size: .78rem; font-weight: 700; color: #334155; text-decoration: none; white-space: nowrap;
+}
+.dazu-nav-submenu a:hover { background: #f0fdf4; color: #15A24A; }
+.dazu-mobile-submenu { margin: .1rem 0 .5rem 1rem; display: flex; flex-direction: column; gap: .1rem; }
+.dazu-mobile-submenu a {
+  display: block; padding: .5rem .75rem; font-size: .7rem; font-weight: 700;
+  color: #64748b; text-decoration: none; border-radius: 8px;
+}
+.dazu-mobile-submenu a:hover { background: #f8fafc; color: #15A24A; }
+</style>
 <nav class="sticky top-0 z-50 w-full bg-white border-b border-slate-100 font-sans">
   <div class="bg-[#0F172A] border-b border-slate-800 py-2">
     <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 flex items-center justify-end gap-2 text-white text-[11px] font-bold">
@@ -40,11 +81,25 @@ $role = $_SESSION['role'] ?? '';
 
       <div class="hidden lg:flex items-center gap-8">
         <?php foreach ($menuItems as $item): ?>
-          <?php $active = dazu_nav_active($item['key']); ?>
-          <a href="<?php echo $item['href']; ?>" class="relative py-2 text-xs font-bold tracking-widest transition-colors hover:text-[#22C55E] <?php echo $active ? 'text-slate-900' : 'text-slate-700'; ?>">
-            <?php echo htmlspecialchars($item['name']); ?>
-            <?php if ($active): ?><span class="absolute bottom-0 left-0 right-0 h-[2px] bg-[#22C55E] rounded-full"></span><?php endif; ?>
-          </a>
+          <?php $active = dazu_nav_active($item['key']); $sub = $item['submenu'] ?? []; ?>
+          <?php if ($sub): ?>
+            <div class="dazu-nav-item-has-sub">
+              <a href="<?php echo $item['href']; ?>" class="relative py-2 text-xs font-bold tracking-widest transition-colors hover:text-[#22C55E] <?php echo $active ? 'text-slate-900' : 'text-slate-700'; ?>">
+                <?php echo htmlspecialchars($item['name']); ?>
+                <?php if ($active): ?><span class="absolute bottom-0 left-0 right-0 h-[2px] bg-[#22C55E] rounded-full"></span><?php endif; ?>
+              </a><button type="button" class="dazu-nav-caret" aria-expanded="false" aria-label="Show <?php echo htmlspecialchars($item['name']); ?> submenu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+              <div class="dazu-nav-submenu">
+                <?php foreach ($sub as $s): ?>
+                  <a href="<?php echo $s['href']; ?>"><?php echo htmlspecialchars($s['name']); ?></a>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          <?php else: ?>
+            <a href="<?php echo $item['href']; ?>" class="relative py-2 text-xs font-bold tracking-widest transition-colors hover:text-[#22C55E] <?php echo $active ? 'text-slate-900' : 'text-slate-700'; ?>">
+              <?php echo htmlspecialchars($item['name']); ?>
+              <?php if ($active): ?><span class="absolute bottom-0 left-0 right-0 h-[2px] bg-[#22C55E] rounded-full"></span><?php endif; ?>
+            </a>
+          <?php endif; ?>
         <?php endforeach; ?>
       </div>
 
@@ -77,6 +132,13 @@ $role = $_SESSION['role'] ?? '';
         <a href="<?php echo $item['href']; ?>" class="block px-4 py-3 text-xs font-bold tracking-wider rounded-xl <?php echo dazu_nav_active($item['key']) ? 'text-[#22C55E] bg-green-50/50' : 'text-slate-700 hover:bg-slate-50'; ?>">
           <?php echo htmlspecialchars($item['name']); ?>
         </a>
+        <?php if (!empty($item['submenu'])): ?>
+          <div class="dazu-mobile-submenu">
+            <?php foreach ($item['submenu'] as $s): ?>
+              <a href="<?php echo $s['href']; ?>">↳ <?php echo htmlspecialchars($s['name']); ?></a>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
       <?php endforeach; ?>
       <div class="pt-4 border-t border-slate-100 flex flex-col gap-3">
         <a href="<?php echo url('apply/index.php'); ?>" class="w-full py-3 text-center text-xs font-extrabold tracking-widest text-white bg-[#15A24A] rounded-md uppercase">APPLY</a>
@@ -90,5 +152,28 @@ $role = $_SESSION['role'] ?? '';
   var btn = document.getElementById('dazu-mobile-toggle');
   var menu = document.getElementById('dazu-mobile-menu');
   if (btn && menu) btn.addEventListener('click', function(){ menu.classList.toggle('hidden'); });
+})();
+(function(){
+  // Caret click toggles the submenu explicitly — needed for touch, where :hover never
+  // reliably fires. The "COURSES" link itself is untouched and still navigates normally.
+  var carets = document.querySelectorAll('.dazu-nav-caret');
+  carets.forEach(function (caret) {
+    caret.addEventListener('click', function (e) {
+      e.preventDefault();
+      var wrap = caret.closest('.dazu-nav-item-has-sub');
+      if (!wrap) return;
+      var open = wrap.classList.toggle('dazu-nav-open');
+      caret.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  });
+  document.addEventListener('click', function (e) {
+    document.querySelectorAll('.dazu-nav-item-has-sub.dazu-nav-open').forEach(function (wrap) {
+      if (!wrap.contains(e.target)) {
+        wrap.classList.remove('dazu-nav-open');
+        var c = wrap.querySelector('.dazu-nav-caret');
+        if (c) c.setAttribute('aria-expanded', 'false');
+      }
+    });
+  });
 })();
 </script>

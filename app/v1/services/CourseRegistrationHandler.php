@@ -55,10 +55,32 @@ class CourseRegistrationHandler
             return $result;
         }
 
+        if (!empty($course['is_free'])) {
+            // Free course: instant self-serve — skip the "received, awaiting approval" email
+            // and approve immediately instead of leaving it for an admin. On any failure this
+            // just leaves the registration 'pending', same queue paid courses already use.
+            $this->autoApproveFree((int) $result['id']);
+            return $result;
+        }
+
         $reg = $this->regModel->getById($result['id']);
         $this->sendReceivedEmail($reg, (int) $result['id']);
 
         return $result;
+    }
+
+    private function autoApproveFree(int $registrationId): void
+    {
+        try {
+            require_once __DIR__ . '/../controllers/RegistrationController.php';
+            $controller = new \Controllers\RegistrationController();
+            $approval = $controller->approve($registrationId, true, 0, true);
+            if (empty($approval['ok'])) {
+                error_log("[registration] Free-course auto-approval failed for #{$registrationId}: " . ($approval['error'] ?? 'Unknown error'));
+            }
+        } catch (\Throwable $e) {
+            error_log("[registration] Free-course auto-approval error for #{$registrationId}: " . $e->getMessage());
+        }
     }
 
     private function sendReceivedEmail(?array $reg, int $registrationId): void
