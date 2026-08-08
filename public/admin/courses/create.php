@@ -23,7 +23,7 @@ try {
 }
 
 $error = null;
-$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'requirements' => '', 'overview' => '', 'duration_months' => '', 'weeks_of_study' => '', 'days_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'course_fee' => '', 'is_free' => '', 'category_id' => ''];
+$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'requirements' => '', 'overview' => '', 'duration_months' => '', 'weeks_of_study' => '', 'days_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'course_fee' => '', 'category_id' => ''];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'hours_of_study'  => $_POST['hours_of_study'] ?? null,
                 'study_schedule'  => $_POST['study_schedule'] ?? null,
                 'course_fee'      => $_POST['course_fee'] ?? 0,
-                'is_free'         => !empty($_POST['is_free']),
+                'is_free'         => false,
                 'cover_image'     => $coverPath,
             ], SessionModel::get('user_id'));
 
@@ -84,7 +84,10 @@ ob_start();
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Add Course</h5>
-        <a href="<?php echo url('admin/courses/categories.php'); ?>" class="btn btn-sm btn-outline-secondary">Manage Categories</a>
+        <div class="d-flex gap-2">
+            <a href="<?php echo url('admin/free-courses/create.php'); ?>" class="btn btn-sm btn-outline-success">Add Free Course instead</a>
+            <a href="<?php echo url('admin/courses/categories.php'); ?>" class="btn btn-sm btn-outline-secondary">Manage Categories</a>
+        </div>
     </div>
     <div class="card-body">
         <?php if ($error): ?>
@@ -124,26 +127,26 @@ ob_start();
 
                 <div class="col-12">
                     <label class="form-label">Study duration</label>
-                    <p class="text-muted small mb-2">Enter <strong>at least one</strong> — a course can be hours only (e.g. 1 hr), days only (e.g. 2 days), weeks only, or months only.</p>
+                    <p class="text-muted small mb-2">Enter <strong>at least one</strong> — a course can be hours only (e.g. 1 hr), days only (e.g. 2 days), weeks only, or months only. Leave a field blank if it does not apply.</p>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Hours of study</label>
-                    <input type="number" name="hours_of_study" class="form-control" min="0" step="1"
+                    <input type="number" name="hours_of_study" class="form-control" min="1" step="1"
                            placeholder="e.g. 1" value="<?php echo htmlspecialchars($old['hours_of_study'] ?? ''); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Days of study</label>
-                    <input type="number" name="days_of_study" class="form-control" min="0" step="1"
+                    <input type="number" name="days_of_study" class="form-control" min="1" step="1"
                            placeholder="e.g. 2" value="<?php echo htmlspecialchars($old['days_of_study'] ?? ''); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Weeks of study</label>
-                    <input type="number" name="weeks_of_study" class="form-control" min="0" step="1"
+                    <input type="number" name="weeks_of_study" class="form-control" min="1" step="1"
                            placeholder="Optional" value="<?php echo htmlspecialchars($old['weeks_of_study'] ?? ''); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Months of study</label>
-                    <input type="number" name="duration_months" class="form-control" min="0" max="36" step="1"
+                    <input type="number" name="duration_months" class="form-control" min="1" max="36" step="1"
                            placeholder="e.g. 6" value="<?php echo htmlspecialchars($old['duration_months'] ?? ''); ?>">
                 </div>
                 <div class="col-md-6">
@@ -153,15 +156,9 @@ ob_start();
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Course Fee (KSh)</label>
-                    <input type="number" name="course_fee" id="courseFeeInput" class="form-control" min="1" step="1"
-                           <?php echo !empty($old['is_free']) ? '' : 'required'; ?>
-                           <?php echo !empty($old['is_free']) ? 'disabled' : ''; ?>
+                    <input type="number" name="course_fee" class="form-control" min="1" step="1" required
                            value="<?php echo htmlspecialchars($old['course_fee'] ?? ''); ?>">
-                    <div class="form-check mt-2">
-                        <input type="checkbox" name="is_free" value="1" id="isFreeCheck" class="form-check-input"
-                               <?php echo !empty($old['is_free']) ? 'checked' : ''; ?>>
-                        <label class="form-check-label" for="isFreeCheck">This course is free — students sign up instantly with no payment or admin review.</label>
-                    </div>
+                    <small class="text-muted">Need a free course instead? Use <a href="<?php echo url('admin/free-courses/create.php'); ?>">Add Free Course</a>.</small>
                 </div>
 
                 <div class="col-12">
@@ -183,21 +180,6 @@ ob_start();
                     <small class="text-muted">Leave blank to show the default: "A laptop" and "A good and stable internet connection".</small>
                 </div>
             </div>
-
-            <script>
-            (function () {
-                var check = document.getElementById('isFreeCheck');
-                var fee = document.getElementById('courseFeeInput');
-                if (!check || !fee) return;
-                function sync() {
-                    fee.disabled = check.checked;
-                    fee.required = !check.checked;
-                    if (check.checked) fee.value = '';
-                }
-                check.addEventListener('change', sync);
-                sync();
-            })();
-            </script>
 
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Save Course</button>

@@ -21,8 +21,10 @@ class StudentEmailTemplate {
                         . 'We have received your application for <strong>' . self::e($data['course_title']) . '</strong>.</p>'
                         . '<div style="background:#f1f6f5;border-radius:8px;padding:16px;margin:16px 0;">'
                         . '<strong>What happens next?</strong><br>'
-                        . 'Our team will verify your payment reference and review your documents. '
-                        . 'You will receive another email once your registration is approved or if we need more information.'
+                        . (!empty($data['is_free'])
+                            ? 'This course is free — our team will review your application and documents.'
+                            : 'Our team will verify your payment reference and review your documents.')
+                        . ' You will receive another email once your registration is approved or if we need more information.'
                         . '</div>'
                         . self::courseBlock($data)
                     ),

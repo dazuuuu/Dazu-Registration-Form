@@ -11,6 +11,7 @@ $hours = (int) ($course['hours_of_study'] ?? 0);
 $schedule = trim((string) ($course['study_schedule'] ?? ''));
 $isFree = !empty($course['is_free']);
 $fee = number_format((float) ($course['course_fee'] ?? 0));
+$enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => null];
 ?>
 <div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-8" id="learn">
   <span class="text-green-600 text-[10px] uppercase tracking-widest font-extrabold px-2.5 py-1 bg-green-50 border border-green-200 rounded-full inline-block mb-4">Selected Program Details</span>
@@ -73,6 +74,15 @@ $fee = number_format((float) ($course['course_fee'] ?? 0));
         </span>
       </div>
       <?php endif; ?>
+      <?php if (!empty($enrollWindow['label'])): ?>
+      <div class="p-3 bg-slate-50 border border-slate-200/60 rounded-xl col-span-2">
+        <span class="block text-slate-400 uppercase tracking-widest text-[9px] font-extrabold mb-1">Application Window</span>
+        <span class="text-xs font-bold text-slate-900 flex items-center gap-1">
+          <svg class="h-3.5 w-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          <?php echo htmlspecialchars($enrollWindow['label']); ?>
+        </span>
+      </div>
+      <?php endif; ?>
     </div>
 
     <div>
@@ -99,10 +109,6 @@ $fee = number_format((float) ($course['course_fee'] ?? 0));
       </div>
     </div>
 
-    <div class="p-3 bg-green-50/60 border border-green-100 rounded-xl text-[11px] font-medium text-green-800 leading-normal flex items-start gap-2">
-      <svg class="h-3.5 w-3.5 text-green-700 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-      <div><strong>Campus Location:</strong> Witeithie House, Room 529, Thika Town, or via interactive virtual setups.</div>
-    </div>
   </div>
 </div>
 

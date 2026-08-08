@@ -27,7 +27,11 @@ function course_duration_has_any(array $data): bool
 function course_duration_validate_message(array $data): ?string
 {
     if (!course_duration_has_any($data)) {
-        return 'Enter at least one study duration: hours, days, weeks, or months.';
+        // A literal 0 is treated the same as blank (a course can't be "0 hours long"),
+        // which is easy to trip over — the admin forms now set min="1" on these fields
+        // so 0 can't be typed in the first place, but this message covers anyone who
+        // bypasses that (an old cached page, a direct API call, etc).
+        return 'Enter at least one study duration: hours, days, weeks, or months — a value of 0 doesn\'t count, leave the field blank instead.';
     }
     foreach (['duration_months' => 36, 'weeks_of_study' => 520, 'days_of_study' => 3650, 'hours_of_study' => 8760] as $field => $max) {
         if (($data[$field] ?? '') === '' || $data[$field] === null) {

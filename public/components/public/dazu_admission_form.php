@@ -40,10 +40,10 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
 <?php if ($reg_success): ?>
 <div class="bg-green-50 border border-green-200 text-green-800 rounded-2xl p-8 text-center space-y-4">
   <svg class="h-12 w-12 text-green-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-  <h2 class="text-xl font-extrabold"><?php echo $isFree ? 'Account Created!' : 'Application Received!'; ?></h2>
+  <h2 class="text-xl font-extrabold">Application Received!</h2>
   <p class="text-sm text-green-700 max-w-md mx-auto">
     <?php echo $isFree
-        ? 'Check your email for your student portal login details — you can start studying right away.'
+        ? 'Our team will review your application and get back to you within 24 hours. You can also reach us on WhatsApp at 0750 116 600.'
         : 'Our team will verify your M-Pesa payment and contact you within 24 hours. You can also reach us on WhatsApp at 0750 116 600.'; ?>
   </p>
   <a href="<?php echo url('/'); ?>" class="inline-block px-6 py-3 bg-green-600 text-white text-xs font-extrabold uppercase tracking-wider rounded-xl">Back to Home</a>
@@ -52,10 +52,10 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
 
 <div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-10">
   <div class="border-b border-slate-100 pb-6 mb-8">
-    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-950 tracking-tight"><?php echo $isFree ? 'Reserve Your Free Seat' : 'Admission Application Form'; ?></h1>
+    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-950 tracking-tight"><?php echo $isFree ? 'Apply For This Free Course' : 'Admission Application Form'; ?></h1>
     <p class="text-slate-500 text-xs font-medium mt-1">
       <?php echo $isFree
-          ? 'This course is free — fill in your details and your account is created instantly, no payment required.'
+          ? 'This course is free — no payment required. Tell us why you\'d be a great fit and our team will review your application.'
           : 'Fill in all required fields to reserve your slot and verify your intake.'; ?>
     </p>
   </div>
@@ -202,6 +202,15 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
                 class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white"><?php echo htmlspecialchars($_POST['payment_reference'] ?? ''); ?></textarea>
     </div>
 
+    <?php if ($isFree): ?>
+    <div class="space-y-1.5">
+      <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500" for="<?php echo $pfx; ?>_reason">Why should you be selected for this free course? *</label>
+      <textarea id="<?php echo $pfx; ?>_reason" name="free_course_reason" required rows="4"
+                placeholder="Tell us about your goals and why this free course matters to you..."
+                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white"><?php echo htmlspecialchars($_POST['free_course_reason'] ?? ''); ?></textarea>
+    </div>
+    <?php endif; ?>
+
     <div class="space-y-2 pt-4 border-t border-slate-100">
       <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500">National ID / Result Slip (PDF, max 5 MB) *</label>
       <label class="flex flex-col items-center justify-center p-6 bg-slate-50 border border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-green-600 transition-colors min-h-[120px]"
@@ -214,7 +223,7 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
 
     <button type="submit" id="<?php echo $pfx; ?>SubmitBtn"
             class="w-full py-4 text-xs font-extrabold uppercase tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-xl transition-colors">
-      <?php echo $isFree ? 'Create My Free Account' : 'Submit Application'; ?>
+      <?php echo $isFree ? 'Submit Free Application' : 'Submit Application'; ?>
     </button>
   </form>
 </div>

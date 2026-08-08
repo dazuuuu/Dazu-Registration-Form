@@ -31,8 +31,16 @@ if (!function_exists('dazu_nav_active')) {
             return $self === 'index.php' && !preg_match('#/(admin|students|tutor|auth|store|api)/#', $uri);
         }
 
+        // Both live under /courses/, so 'courses' must not also light up on the free-courses
+        // page (str_contains alone would match both — only one nav item should be active).
+        if ($segment === 'free-courses') {
+            return str_contains($uri, '/courses/free.php');
+        }
+        if ($segment === 'courses') {
+            return str_contains($uri, '/courses') && !str_contains($uri, '/courses/free.php');
+        }
+
         $map = [
-            'courses' => '/courses',
             'about' => '/about',
             'projects' => '/projects',
             'blog' => '/blogs',
@@ -334,6 +342,39 @@ if (!function_exists('dazu_load_popular_courses_section')) {
         }
 
         return ['categories' => $categories, 'courses' => $courses];
+    }
+}
+
+if (!function_exists('dazu_course_enrollment_window')) {
+    /**
+     * Formats a free course's optional start_date/end_date (see migration
+     * 035_add_course_dates_and_free_toggle.sql) for display on the course card
+     * and details sidebar. Returns null pieces when a date isn't set.
+     *
+     * @return array{start:?string, end:?string, label:?string, closed:bool}
+     */
+    function dazu_course_enrollment_window(array $course): array
+    {
+        $startRaw = trim((string) ($course['start_date'] ?? ''));
+        $endRaw = trim((string) ($course['end_date'] ?? ''));
+        $start = $startRaw !== '' ? date('M j, Y', strtotime($startRaw)) : null;
+        $end = $endRaw !== '' ? date('M j, Y', strtotime($endRaw)) : null;
+
+        $label = null;
+        if ($start && $end) {
+            $label = $start . ' – ' . $end;
+        } elseif ($start) {
+            $label = 'Starts ' . $start;
+        } elseif ($end) {
+            $label = 'Closes ' . $end;
+        }
+
+        return [
+            'start' => $start,
+            'end' => $end,
+            'label' => $label,
+            'closed' => $endRaw !== '' && strtotime($endRaw) < strtotime('today'),
+        ];
     }
 }
 

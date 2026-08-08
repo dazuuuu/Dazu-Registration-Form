@@ -25,10 +25,11 @@ class CourseModel {
         $dur = $this->durationFields($data);
         $isFree = !empty($data['is_free']);
         $fee = $isFree ? 0.0 : (float) $data['course_fee'];
+        $dates = $this->dateFields($data);
 
         try {
-            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, description, requirements, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, is_free, is_active, created_by)
-                    VALUES (:title, :abbreviation, :category_id, :cover_image, :description, :requirements, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :course_fee, :is_free, 1, :created_by)";
+            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, description, requirements, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, is_free, start_date, end_date, is_active, created_by)
+                    VALUES (:title, :abbreviation, :category_id, :cover_image, :description, :requirements, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :course_fee, :is_free, :start_date, :end_date, 1, :created_by)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':title'            => trim($data['title']),
@@ -45,9 +46,16 @@ class CourseModel {
                 ':study_schedule'   => $dur['study_schedule'],
                 ':course_fee'       => $fee,
                 ':is_free'          => $isFree ? 1 : 0,
+                ':start_date'       => $dates['start_date'],
+                ':end_date'         => $dates['end_date'],
                 ':created_by'       => $this->resolveCreatedBy($createdBy),
             ]);
         } catch (\PDOException $e) {
+            $missingDateCols = stripos($e->getMessage(), 'start_date') !== false
+                || stripos($e->getMessage(), 'end_date') !== false;
+            if ($missingDateCols) {
+                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/migrations/035_add_course_dates_and_free_toggle.sql, then retry.'];
+            }
             $missingNewCols = stripos($e->getMessage(), 'requirements') !== false
                 || stripos($e->getMessage(), 'is_free') !== false;
             if ($missingNewCols) {
@@ -119,11 +127,12 @@ class CourseModel {
 
         $isFree = !empty($data['is_free']);
         $fee = $isFree ? 0.0 : (float) $data['course_fee'];
+        $dates = $this->dateFields($data);
 
         $fields = "title = :title, abbreviation = :abbreviation, category_id = :category_id, description = :description,
                    requirements = :requirements, overview = :overview, duration_months = :duration_months, weeks_of_study = :weeks_of_study,
                    days_of_study = :days_of_study, hours_of_study = :hours_of_study, study_schedule = :study_schedule, course_fee = :course_fee,
-                   is_free = :is_free";
+                   is_free = :is_free, start_date = :start_date, end_date = :end_date";
         $dur = $this->durationFields($data);
         $params = [
             ':title'           => trim($data['title']),
@@ -139,6 +148,8 @@ class CourseModel {
             ':study_schedule'  => $dur['study_schedule'],
             ':course_fee'      => $fee,
             ':is_free'         => $isFree ? 1 : 0,
+            ':start_date'      => $dates['start_date'],
+            ':end_date'        => $dates['end_date'],
             ':id'              => $id,
         ];
 
@@ -152,6 +163,11 @@ class CourseModel {
         try {
             $stmt->execute($params);
         } catch (\PDOException $e) {
+            $missingDateCols = stripos($e->getMessage(), 'start_date') !== false
+                || stripos($e->getMessage(), 'end_date') !== false;
+            if ($missingDateCols) {
+                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/migrations/035_add_course_dates_and_free_toggle.sql, then retry.'];
+            }
             $missingNewCols = stripos($e->getMessage(), 'requirements') !== false
                 || stripos($e->getMessage(), 'is_free') !== false;
             if ($missingNewCols) {
@@ -247,20 +263,38 @@ class CourseModel {
      * Free-course listing for public/courses/free.php. Degrades to an empty list
      * (not an error) if is_free hasn't been migrated yet — this is just a listing,
      * no data loss risk in silently showing nothing.
+     *
+     * A course whose end_date (migration 035_add_course_dates_and_free_toggle.sql)
+     * has passed is excluded here — that's the "auto-removal", no cleanup job needed.
      */
     public function getFree(bool $activeOnly = true): array {
         try {
             $sql = "SELECT c.*, cc.name AS category_name, cc.slug AS category_slug, cc.icon_path AS category_icon
                     FROM courses c
                     LEFT JOIN course_categories cc ON cc.id = c.category_id
-                    WHERE c.is_free = 1";
+                    WHERE c.is_free = 1
+                    AND (c.end_date IS NULL OR c.end_date >= CURDATE())";
             if ($activeOnly) {
                 $sql .= " AND c.is_active = 1";
             }
             $sql .= " ORDER BY c.title ASC";
             return $this->db->query($sql)->fetchAll();
         } catch (\PDOException $e) {
-            return [];
+            // Missing end_date column (not yet migrated) or is_free itself missing —
+            // fall back to the unfiltered free listing rather than erroring the page.
+            try {
+                $sql = "SELECT c.*, cc.name AS category_name, cc.slug AS category_slug, cc.icon_path AS category_icon
+                        FROM courses c
+                        LEFT JOIN course_categories cc ON cc.id = c.category_id
+                        WHERE c.is_free = 1";
+                if ($activeOnly) {
+                    $sql .= " AND c.is_active = 1";
+                }
+                $sql .= " ORDER BY c.title ASC";
+                return $this->db->query($sql)->fetchAll();
+            } catch (\PDOException $e2) {
+                return [];
+            }
         }
     }
 
@@ -279,9 +313,13 @@ class CourseModel {
     }
 
     /**
-     * Admin course browser — search text, category, and active status.
+     * Admin course browser — search text, category, active status, and free/paid.
+     *
+     * @param bool|null $isFree null = don't filter (paid+free), true = free only, false = paid only.
+     *        admin/courses/index.php and admin/free-courses/index.php are kept as fully separate
+     *        listings/forms (not one page with a toggle), so this is how each scopes itself.
      */
-    public function listFiltered(?string $search = null, ?int $categoryId = null, ?string $status = 'all'): array
+    public function listFiltered(?string $search = null, ?int $categoryId = null, ?string $status = 'all', ?bool $isFree = null): array
     {
         $sql = "SELECT c.*, cc.name AS category_name, cc.slug AS category_slug, cc.icon_path AS category_icon
                 FROM courses c
@@ -293,6 +331,11 @@ class CourseModel {
             $sql .= ' AND c.is_active = 1';
         } elseif ($status === 'inactive') {
             $sql .= ' AND c.is_active = 0';
+        }
+
+        if ($isFree !== null) {
+            $sql .= ' AND c.is_free = :is_free';
+            $params[':is_free'] = $isFree ? 1 : 0;
         }
 
         if ($categoryId === 0) {
@@ -350,6 +393,11 @@ class CourseModel {
                 return 'Course fee must be greater than zero.';
             }
         }
+
+        $dates = $this->dateFields($data);
+        if ($dates['start_date'] && $dates['end_date'] && $dates['end_date'] < $dates['start_date']) {
+            return 'End date must be on or after the start date.';
+        }
         return null;
     }
 
@@ -357,6 +405,17 @@ class CourseModel {
     {
         require_once __DIR__ . '/../helpers/course_duration.php';
         return course_normalize_duration_input($data);
+    }
+
+    /** Blank strings from an untouched date input become NULL, not '' (invalid DATE). */
+    private function dateFields(array $data): array
+    {
+        $start = trim((string) ($data['start_date'] ?? ''));
+        $end = trim((string) ($data['end_date'] ?? ''));
+        return [
+            'start_date' => $start !== '' ? $start : null,
+            'end_date'   => $end !== '' ? $end : null,
+        ];
     }
 
     /** Use NULL when session user id is missing or not in users (common after DB reset). */

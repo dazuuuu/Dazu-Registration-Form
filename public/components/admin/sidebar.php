@@ -19,7 +19,13 @@ function isStoreActive($current_dir) {
 
 // New System group: registration, courses, tutors, payments
 function isSystemActive($current_dir) {
-    return in_array($current_dir, ['registrations', 'courses', 'tutors', 'payments', 'resources'], true);
+    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'payments', 'resources'], true);
+}
+
+// Courses sub-section: paid (admin/courses) and free (admin/free-courses) are fully
+// separate listings/forms, not one page with a toggle — see CourseModel::listFiltered().
+function isCoursesGroupActive($current_dir) {
+    return in_array($current_dir, ['courses', 'free-courses'], true);
 }
 
 // Existing public-site content pages, now grouped under "Website Content"
@@ -88,11 +94,29 @@ function isSmsSection($section) {
                             <span>Pending Approvals</span>
                             <span class="registrations-badge" id="registrationsBadge" style="display:none;">0</span>
                         </a>
-                        <a href="<?php echo url('admin/courses/index.php'); ?>"
-                           class="nav-link <?php echo $current_dir == 'courses' ? 'active' : ''; ?>">
-                            <i class="fas fa-book"></i>
-                            <span>Courses</span>
-                        </a>
+                        <!-- COURSES SUB-SECTION: paid and free are separate listings/forms -->
+                        <div class="nav-item">
+                            <a href="#coursesMenu" class="nav-link <?php echo isCoursesGroupActive($current_dir) ? 'active' : ''; ?>"
+                               data-bs-toggle="collapse" role="button" aria-expanded="<?php echo isCoursesGroupActive($current_dir) ? 'true' : 'false'; ?>">
+                                <i class="fas fa-book"></i>
+                                <span>Courses</span>
+                                <i class="fas fa-chevron-down ms-auto" style="font-size: 12px;"></i>
+                            </a>
+                            <div class="collapse <?php echo isCoursesGroupActive($current_dir) ? 'show' : ''; ?>" id="coursesMenu">
+                                <div class="ps-4 mt-2">
+                                    <a href="<?php echo url('admin/courses/index.php'); ?>"
+                                       class="nav-link <?php echo $current_dir == 'courses' ? 'active' : ''; ?>">
+                                        <i class="fas fa-book"></i>
+                                        <span>Courses</span>
+                                    </a>
+                                    <a href="<?php echo url('admin/free-courses/index.php'); ?>"
+                                       class="nav-link <?php echo $current_dir == 'free-courses' ? 'active' : ''; ?>">
+                                        <i class="fas fa-gift"></i>
+                                        <span>Free Courses</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                         <a href="<?php echo url('admin/tutors/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'tutors' ? 'active' : ''; ?>">
                             <i class="fas fa-chalkboard-teacher"></i>
@@ -666,7 +690,7 @@ function isSmsSection($section) {
 <script>
 // Persist collapse state per menu group in localStorage
 document.addEventListener('DOMContentLoaded', function() {
-    var groups = ['systemMenu', 'smsMenu', 'websiteMenu', 'storeMenu'];
+    var groups = ['systemMenu', 'coursesMenu', 'smsMenu', 'websiteMenu', 'storeMenu'];
     groups.forEach(function (id) {
         var link = document.querySelector('a[href="#' + id + '"]');
         var menu = document.getElementById(id);

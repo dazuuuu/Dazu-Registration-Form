@@ -1,11 +1,12 @@
 <?php
 // public/courses/free.php — same layout as courses/index.php, filtered to is_free courses.
 $page_title = 'Free Courses — Dazu hub Institute';
-$page_description = 'Free technology courses at Dazu hub Institute — create your account instantly, no payment required.';
+$page_description = 'Free technology courses at Dazu hub Institute — no payment required, just apply.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
 require_once __DIR__ . '/../../app/v1/helpers/course_catalog.php';
+require_once __DIR__ . '/../../app/v1/helpers/free_courses.php';
 require_once __DIR__ . '/../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../app/v1/models/CourseCategoryModel.php';
@@ -19,7 +20,12 @@ $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
 $categoryModel = new CourseCategoryModel($pdo);
 
-$courses = array_map('course_catalog_enrich', $courseModel->getFree(true));
+// Admin closed the section from Admin → Free Courses — same switch that hides the
+// nav link (dazu_free_courses_enabled()); a direct link here shows a closed notice
+// instead of the listing rather than a broken/empty grid.
+$sectionEnabled = dazu_free_courses_enabled();
+
+$courses = $sectionEnabled ? array_map('course_catalog_enrich', $courseModel->getFree(true)) : [];
 
 try {
     $courseCategories = $categoryModel->getAll(true);
@@ -76,8 +82,15 @@ ob_start();
     <div class="max-w-2xl">
       <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-green-50 border border-green-100 rounded-full">100% Free</span>
       <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mt-4">Free Courses</h1>
-      <p class="text-slate-600 font-medium leading-relaxed mt-3">Start learning today — create your account instantly, no payment or admin approval required. Search or filter by category, then open a course to sign up.</p>
+      <p class="text-slate-600 font-medium leading-relaxed mt-3">No payment required — tell us why you'd be a great fit and apply for free. Search or filter by category, then open a course to apply.</p>
     </div>
+
+    <?php if (!$sectionEnabled): ?>
+      <div class="text-center py-24 border border-dashed border-slate-200 rounded-2xl bg-slate-50">
+        <h3 class="text-lg font-bold text-slate-900">Free courses are currently closed</h3>
+        <p class="text-slate-500 text-sm mt-1">We're not accepting free-course applications right now. Check back soon, or browse our <a href="<?php echo url('courses/index.php'); ?>" class="text-green-600 font-bold">full course list</a>.</p>
+      </div>
+    <?php else: ?>
 
     <?php if (!empty($courseCategories)): ?>
       <?php
@@ -116,6 +129,8 @@ ob_start();
         <p data-empty-message>Nothing here yet.</p>
         <button type="button" data-empty-reset>Clear filters</button>
       </div>
+    <?php endif; ?>
+
     <?php endif; ?>
   </div>
 </div>

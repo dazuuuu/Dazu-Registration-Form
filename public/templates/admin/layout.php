@@ -768,6 +768,7 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
         'registrations' => url('admin/registrations/index.php?status=pending'),
         'students' => url('admin/sms/students/index.php'),
         'courses' => url('admin/courses/index.php'),
+        'free-courses' => url('admin/free-courses/index.php'),
         'tutors' => url('admin/tutors/index.php'),
         'payments' => url('admin/payments/index.php'),
         'orders' => url('admin/orders/index.php'),

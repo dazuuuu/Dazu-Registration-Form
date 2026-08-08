@@ -55,7 +55,9 @@ try {
     $categories = [];
 }
 
-$allCourses = $courseModel->getAll(false);
+// Paid courses only — free courses have their own separate listing/forms under
+// admin/free-courses/, not a checkbox on this page.
+$allCourses = $courseModel->listFiltered(null, null, 'all', false);
 $categoryCounts = ['all' => count($allCourses), 'uncategorized' => 0];
 foreach ($categories as $cat) {
     $categoryCounts[(int) $cat['id']] = 0;
@@ -69,7 +71,7 @@ foreach ($allCourses as $c) {
     }
 }
 
-$courses = $courseModel->listFiltered($search !== '' ? $search : null, $categoryId, $status);
+$courses = $courseModel->listFiltered($search !== '' ? $search : null, $categoryId, $status, false);
 
 $page_title = 'Courses';
 $breadcrumbs = [['label' => 'Courses', 'active' => true]];
@@ -112,8 +114,11 @@ ob_start();
 </style>
 
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-  <h5 class="mb-0"><i class="fas fa-book me-2"></i>Courses</h5>
+  <h5 class="mb-0"><i class="fas fa-book me-2"></i>Courses <span class="text-muted small fw-normal">(paid)</span></h5>
   <div class="d-flex gap-2">
+    <a href="<?php echo url('admin/free-courses/index.php'); ?>" class="btn btn-outline-success btn-sm">
+      <i class="fas fa-gift me-1"></i> Free Courses
+    </a>
     <a href="<?php echo url('admin/courses/categories.php'); ?>" class="btn btn-outline-secondary btn-sm">
       <i class="fas fa-folder me-1"></i> Categories
     </a>

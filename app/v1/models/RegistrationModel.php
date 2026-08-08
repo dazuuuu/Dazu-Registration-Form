@@ -72,11 +72,21 @@ class RegistrationModel {
         if (!CourseModel::isShareable($course)) {
             return ['ok' => false, 'error' => 'Selected course is not available.'];
         }
+        $isFree = !empty($course['is_free']);
 
-        foreach (['full_name', 'email', 'phone', 'study_mode', 'payment_plan', 'id_document_path', 'payment_reference'] as $f) {
+        foreach (['full_name', 'email', 'phone', 'study_mode', 'payment_plan', 'id_document_path'] as $f) {
             if (empty($data[$f])) {
                 return ['ok' => false, 'error' => 'All required fields must be filled in.'];
             }
+        }
+        // Free courses skip payment but must explain why they should be selected instead;
+        // paid courses keep the M-Pesa payment reference requirement.
+        if ($isFree) {
+            if (empty(trim($data['free_course_reason'] ?? ''))) {
+                return ['ok' => false, 'error' => 'Please tell us why you should be selected for this free course.'];
+            }
+        } elseif (empty($data['payment_reference'])) {
+            return ['ok' => false, 'error' => 'All required fields must be filled in.'];
         }
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
             return ['ok' => false, 'error' => 'A valid email address is required.'];
@@ -106,7 +116,8 @@ class RegistrationModel {
             ':payment_plan'       => $data['payment_plan'],
             ':installment_count'  => $installments['count'],
             ':installment_amount' => $installments['amount'],
-            ':payment_reference'  => trim($data['payment_reference']),
+            ':payment_reference'  => trim($data['payment_reference'] ?? ''),
+            ':free_course_reason' => $isFree ? trim($data['free_course_reason']) : null,
             ':returning'          => $returning ? 1 : 0,
         ];
 
@@ -114,24 +125,38 @@ class RegistrationModel {
             $sql = "INSERT INTO registrations
                     (full_name, email, phone, course_id, study_mode, id_document_path,
                      registration_fee, course_fee, payment_plan, installment_count, installment_amount,
-                     payment_reference, referral_registration_no, possible_returning_student)
+                     payment_reference, free_course_reason, referral_registration_no, possible_returning_student)
                     VALUES
                     (:full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
                      :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
-                     :payment_reference, :referral, :returning)";
+                     :payment_reference, :free_course_reason, :referral, :returning)";
             $params[':referral'] = $referralNo;
             $this->db->prepare($sql)->execute($params);
         } catch (\PDOException $e) {
-            if ($referralNo !== null && str_contains($e->getMessage(), 'referral_registration_no')) {
+            $missingReason = stripos($e->getMessage(), 'free_course_reason') !== false;
+            if ($missingReason) {
+                // DB not yet migrated (missing free_course_reason) — save without it rather
+                // than fatal, run databases/migrations/034_add_free_course_reason.sql to fix.
+                unset($params[':free_course_reason']);
                 $sql = "INSERT INTO registrations
                         (full_name, email, phone, course_id, study_mode, id_document_path,
                          registration_fee, course_fee, payment_plan, installment_count, installment_amount,
-                         payment_reference, possible_returning_student)
+                         payment_reference, referral_registration_no, possible_returning_student)
                         VALUES
                         (:full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
                          :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
-                         :payment_reference, :returning)";
+                         :payment_reference, :referral, :returning)";
+                $this->db->prepare($sql)->execute($params);
+            } elseif ($referralNo !== null && str_contains($e->getMessage(), 'referral_registration_no')) {
                 unset($params[':referral']);
+                $sql = "INSERT INTO registrations
+                        (full_name, email, phone, course_id, study_mode, id_document_path,
+                         registration_fee, course_fee, payment_plan, installment_count, installment_amount,
+                         payment_reference, free_course_reason, possible_returning_student)
+                        VALUES
+                        (:full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
+                         :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
+                         :payment_reference, :free_course_reason, :returning)";
                 $this->db->prepare($sql)->execute($params);
             } else {
                 throw $e;
@@ -142,11 +167,21 @@ class RegistrationModel {
     }
 
     public function getById(int $id): ?array {
-        $stmt = $this->db->prepare(
-            "SELECT r.*, c.title AS course_title, c.abbreviation, c.duration_months
-             FROM registrations r JOIN courses c ON r.course_id = c.id WHERE r.id = :id"
-        );
-        $stmt->execute([':id' => $id]);
+        try {
+            $stmt = $this->db->prepare(
+                "SELECT r.*, c.title AS course_title, c.abbreviation, c.duration_months, c.is_free
+                 FROM registrations r JOIN courses c ON r.course_id = c.id WHERE r.id = :id"
+            );
+            $stmt->execute([':id' => $id]);
+        } catch (\PDOException $e) {
+            // DB not yet migrated (missing courses.is_free) — fall back rather than fatal,
+            // run databases/migrations/033_course_requirements_and_free_flag.sql to fix.
+            $stmt = $this->db->prepare(
+                "SELECT r.*, c.title AS course_title, c.abbreviation, c.duration_months
+                 FROM registrations r JOIN courses c ON r.course_id = c.id WHERE r.id = :id"
+            );
+            $stmt->execute([':id' => $id]);
+        }
         $row = $stmt->fetch();
         return $row ?: null;
     }

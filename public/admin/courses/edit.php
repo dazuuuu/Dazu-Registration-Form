@@ -29,6 +29,12 @@ if (!$course) {
     header('Location: ' . url('admin/courses/index.php'));
     exit();
 }
+// Free and paid courses are separate admin pages, not one form with a toggle —
+// send a free course here (e.g. an old bookmark) to its own edit page instead.
+if (!empty($course['is_free'])) {
+    header('Location: ' . url('admin/free-courses/edit.php?id=' . $id));
+    exit();
+}
 
 $error = null;
 
@@ -65,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'hours_of_study'  => $_POST['hours_of_study'] ?? null,
                 'study_schedule'  => $_POST['study_schedule'] ?? null,
                 'course_fee'      => $_POST['course_fee'] ?? 0,
-                'is_free'         => !empty($_POST['is_free']),
+                'is_free'         => false,
                 'cover_image'     => $coverPath,
             ]);
 
@@ -148,26 +154,26 @@ ob_start();
 
                 <div class="col-12">
                     <label class="form-label">Study duration</label>
-                    <p class="text-muted small mb-2">Enter <strong>at least one</strong> — hours only, days only, weeks only, or months only are all valid.</p>
+                    <p class="text-muted small mb-2">Enter <strong>at least one</strong> — hours only, days only, weeks only, or months only are all valid. Leave a field blank if it does not apply.</p>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Hours of study</label>
-                    <input type="number" name="hours_of_study" class="form-control" min="0" step="1"
+                    <input type="number" name="hours_of_study" class="form-control" min="1" step="1"
                            placeholder="e.g. 1" value="<?php echo htmlspecialchars($course['hours_of_study'] ?? ''); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Days of study</label>
-                    <input type="number" name="days_of_study" class="form-control" min="0" step="1"
+                    <input type="number" name="days_of_study" class="form-control" min="1" step="1"
                            placeholder="e.g. 2" value="<?php echo htmlspecialchars($course['days_of_study'] ?? ''); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Weeks of study</label>
-                    <input type="number" name="weeks_of_study" class="form-control" min="0" step="1"
+                    <input type="number" name="weeks_of_study" class="form-control" min="1" step="1"
                            placeholder="Optional" value="<?php echo htmlspecialchars($course['weeks_of_study'] ?? ''); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label">Months of study</label>
-                    <input type="number" name="duration_months" class="form-control" min="0" max="36" step="1"
+                    <input type="number" name="duration_months" class="form-control" min="1" max="36" step="1"
                            placeholder="e.g. 6" value="<?php echo htmlspecialchars((int)$course['duration_months'] > 0 ? $course['duration_months'] : ''); ?>">
                 </div>
                 <div class="col-md-6">
@@ -177,15 +183,8 @@ ob_start();
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Course Fee (KSh)</label>
-                    <input type="number" name="course_fee" id="courseFeeInput" class="form-control" min="1" step="1"
-                           <?php echo !empty($course['is_free']) ? '' : 'required'; ?>
-                           <?php echo !empty($course['is_free']) ? 'disabled' : ''; ?>
+                    <input type="number" name="course_fee" class="form-control" min="1" step="1" required
                            value="<?php echo htmlspecialchars($course['course_fee']); ?>">
-                    <div class="form-check mt-2">
-                        <input type="checkbox" name="is_free" value="1" id="isFreeCheck" class="form-check-input"
-                               <?php echo !empty($course['is_free']) ? 'checked' : ''; ?>>
-                        <label class="form-check-label" for="isFreeCheck">This course is free — students sign up instantly with no payment or admin review.</label>
-                    </div>
                 </div>
 
                 <div class="col-12">
@@ -214,21 +213,6 @@ ob_start();
                     <small class="text-muted">Leave blank to show the default: "A laptop" and "A good and stable internet connection".</small>
                 </div>
             </div>
-
-            <script>
-            (function () {
-                var check = document.getElementById('isFreeCheck');
-                var fee = document.getElementById('courseFeeInput');
-                if (!check || !fee) return;
-                function sync() {
-                    fee.disabled = check.checked;
-                    fee.required = !check.checked;
-                    if (check.checked) fee.value = '';
-                }
-                check.addEventListener('change', sync);
-                sync();
-            })();
-            </script>
 
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Update Course</button>

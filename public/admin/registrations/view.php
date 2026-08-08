@@ -312,6 +312,19 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
             </div>
         </div>
 
+        <?php if (!empty($reg['is_free'])): ?>
+        <!-- Why they should be selected (free courses skip payment) -->
+        <div class="card mb-4">
+            <div class="card-header fw-semibold"><i class="fas fa-star text-warning me-1"></i> Why They Should Be Selected</div>
+            <div class="card-body">
+                <?php if (!empty($reg['free_course_reason'])): ?>
+                    <p class="mb-0" style="white-space:pre-wrap;"><?php echo htmlspecialchars($reg['free_course_reason']); ?></p>
+                <?php else: ?>
+                    <span class="text-muted">No answer on record.</span>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php else: ?>
         <!-- Payment reference -->
         <div class="card mb-4">
             <div class="card-header fw-semibold">Payment Reference (Student-Submitted)</div>
@@ -323,6 +336,7 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
                 <small class="text-muted">Cross-check this against the NCBA statement before approving.</small>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- Uploaded document -->
         <div class="card mb-4">

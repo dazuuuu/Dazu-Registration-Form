@@ -12,6 +12,7 @@ $hours = (int) ($course['hours_of_study'] ?? 0);
 $schedule = trim((string) ($course['study_schedule'] ?? ''));
 $isFree = !empty($course['is_free']);
 $fee = number_format((float) ($course['course_fee'] ?? 0));
+$enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => null];
 $title = htmlspecialchars($course['title'] ?? '');
 $overview = htmlspecialchars($course['overview'] ?? $course['description'] ?? '');
 $category = htmlspecialchars($course['category_name'] ?? dazu_course_category($course['abbreviation'] ?? ''));
@@ -65,6 +66,12 @@ $cardId = (int) ($course['id'] ?? 0);
               <?php echo htmlspecialchars($schedule); ?>
             </span>
           <?php endif; ?>
+        </div>
+      <?php endif; ?>
+      <?php if (!empty($enrollWindow['label'])): ?>
+        <div class="flex items-center gap-1.5 text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-full px-2.5 py-1 w-fit">
+          <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          <?php echo htmlspecialchars($enrollWindow['label']); ?>
         </div>
       <?php endif; ?>
     </div>
