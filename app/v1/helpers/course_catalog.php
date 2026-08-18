@@ -73,7 +73,21 @@ if (!function_exists('course_catalog_for_display')) {
      */
     function course_catalog_for_display(\Models\CourseModel $courseModel): array
     {
-        $live = $courseModel->getAll(true);
+        $live = [];
+        try {
+            // Same listing the admin grid uses (minus the paid/free split), so a
+            // course that is Active in admin is not replaced by the demo catalog.
+            $live = $courseModel->listFiltered(null, null, 'active', null);
+        } catch (Throwable $e) {
+            $live = [];
+        }
+        if ($live === []) {
+            try {
+                $live = $courseModel->getAll(true);
+            } catch (Throwable $e) {
+                $live = [];
+            }
+        }
         if (!empty($live)) {
             $out = [];
             foreach ($live as $c) {
@@ -82,7 +96,11 @@ if (!function_exists('course_catalog_for_display')) {
             return [$out, false];
         }
 
-        $all = $courseModel->getAll(false);
+        try {
+            $all = $courseModel->getAll(false);
+        } catch (Throwable $e) {
+            $all = [];
+        }
         if (!empty($all)) {
             $out = [];
             foreach ($all as $c) {
@@ -91,6 +109,8 @@ if (!function_exists('course_catalog_for_display')) {
             return [$out, false];
         }
 
-        return [course_catalog_static(), true];
+        // Empty database — do not show the four hardcoded marketing tracks.
+        // Those hid newly posted courses whenever the live query returned nothing.
+        return [[], false];
     }
 }

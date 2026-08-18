@@ -10,7 +10,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/free_courses.php';
 
 $menuItems = [
     ['name' => 'HOME', 'href' => url('/'), 'key' => 'home'],
-    ['name' => 'COURSES', 'href' => url('courses'), 'key' => 'courses'],
+    ['name' => 'COURSES', 'href' => url('courses/index.php'), 'key' => 'courses'],
     ['name' => 'FREE COURSES', 'href' => url('courses/free.php'), 'key' => 'free-courses'],
     ['name' => 'ABOUT', 'href' => url('about'), 'key' => 'about'],
     ['name' => 'PROJECTS', 'href' => url('projects'), 'key' => 'projects'],
