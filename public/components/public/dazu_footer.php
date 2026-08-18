@@ -42,10 +42,10 @@ $year = date('Y');
       <div class="space-y-6">
         <h4 class="text-sm uppercase tracking-widest font-bold text-white">Courses</h4>
         <ul class="space-y-3 text-sm">
-          <li><a href="<?php echo url('courses'); ?>" class="hover:text-green-500 transition-colors duration-200">Software Development</a></li>
-          <li><a href="<?php echo url('courses'); ?>" class="hover:text-green-500 transition-colors duration-200">Artificial Intelligence</a></li>
-          <li><a href="<?php echo url('courses'); ?>" class="hover:text-green-500 transition-colors duration-200">Cybersecurity &amp; Networks</a></li>
-          <li><a href="<?php echo url('courses'); ?>" class="hover:text-green-500 transition-colors duration-200">Creative Graphics &amp; Design</a></li>
+          <li><a href="<?php echo url('courses/index.php'); ?>" class="hover:text-green-500 transition-colors duration-200">Software Development</a></li>
+          <li><a href="<?php echo url('courses/index.php'); ?>" class="hover:text-green-500 transition-colors duration-200">Artificial Intelligence</a></li>
+          <li><a href="<?php echo url('courses/index.php'); ?>" class="hover:text-green-500 transition-colors duration-200">Cybersecurity &amp; Networks</a></li>
+          <li><a href="<?php echo url('courses/index.php'); ?>" class="hover:text-green-500 transition-colors duration-200">Creative Graphics &amp; Design</a></li>
         </ul>
       </div>
       <div class="space-y-6 col-span-2 md:col-span-1">

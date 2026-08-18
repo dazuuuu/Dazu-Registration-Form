@@ -31,33 +31,12 @@ try {
     $courseCategories = [];
 }
 
-if (empty($courseCategories)) {
-    $courseCategories = dazu_fallback_course_categories();
-}
+[$courseCategories, $courses] = dazu_prepare_public_course_listing($courseCategories, $courses);
 
 foreach ($courses as &$course) {
-    $course['_display_category_id'] = dazu_resolve_course_category_id($course, $courseCategories);
-}
-unset($course);
-
-// Keep the chip on the card consistent with the tab the card is filed under.
-// CourseModel joins category_name off courses.category_id, which is NULL on some
-// rows; dazu_resolve_course_category_id() then files those by abbreviation, so
-// the chip and the tab disagree without this.
-$categoryNamesById = [];
-foreach ($courseCategories as $cat) {
-    $categoryNamesById[(int) $cat['id']] = (string) $cat['name'];
-}
-foreach ($courses as &$course) {
-    $resolvedId = (int) ($course['_display_category_id'] ?? 0);
-    if (isset($categoryNamesById[$resolvedId])) {
-        $course['category_name'] = $categoryNamesById[$resolvedId];
-    }
     $course['_search_blob'] = dazu_course_search_blob($course);
 }
 unset($course);
-
-$courseCategories = dazu_recount_course_categories($courseCategories, $courses);
 
 $totalCourseCount = count($courses);
 

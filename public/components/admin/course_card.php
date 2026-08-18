@@ -5,7 +5,7 @@ if (!isset($course)) {
 }
 $cover = !empty($course['cover_image'])
     ? settings_asset_url($course['cover_image'])
-    : url('assets/images/courses/default-course.jpg');
+    : 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=600&q=80';
 $durLabel = function_exists('course_study_summary') ? course_study_summary($course) : '';
 $isActive = !empty($course['is_active']);
 $isFree = !empty($course['is_free']);

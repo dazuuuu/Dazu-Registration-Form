@@ -352,9 +352,35 @@ class CourseModel {
         }
 
         $sql .= ' ORDER BY c.title ASC';
-        $stmt = $this->db->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        try {
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute($params);
+            return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\PDOException $e) {
+            $sql = 'SELECT * FROM courses WHERE 1=1';
+            $fallbackParams = [];
+            if ($status === 'active') {
+                $sql .= ' AND is_active = 1';
+            } elseif ($status === 'inactive') {
+                $sql .= ' AND is_active = 0';
+            }
+            if ($isFree !== null) {
+                $sql .= ' AND is_free = :is_free';
+                $fallbackParams[':is_free'] = $isFree ? 1 : 0;
+            }
+            if ($search !== null && $search !== '') {
+                $sql .= ' AND (title LIKE :q OR abbreviation LIKE :q OR description LIKE :q OR overview LIKE :q)';
+                $fallbackParams[':q'] = '%' . $search . '%';
+            }
+            $sql .= ' ORDER BY title ASC';
+            try {
+                $stmt = $this->db->prepare($sql);
+                $stmt->execute($fallbackParams);
+                return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            } catch (\PDOException $e2) {
+                return $this->getAll($status === 'active');
+            }
+        }
     }
 
     /**

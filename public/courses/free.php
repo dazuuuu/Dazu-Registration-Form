@@ -33,31 +33,12 @@ try {
     $courseCategories = [];
 }
 
-if (empty($courseCategories)) {
-    $courseCategories = dazu_fallback_course_categories();
-}
+[$courseCategories, $courses] = dazu_prepare_public_course_listing($courseCategories, $courses);
 
 foreach ($courses as &$course) {
-    $course['_display_category_id'] = dazu_resolve_course_category_id($course, $courseCategories);
-}
-unset($course);
-
-// Keep the chip on the card consistent with the tab the card is filed under — see the
-// matching comment in courses/index.php for why this re-mapping is needed.
-$categoryNamesById = [];
-foreach ($courseCategories as $cat) {
-    $categoryNamesById[(int) $cat['id']] = (string) $cat['name'];
-}
-foreach ($courses as &$course) {
-    $resolvedId = (int) ($course['_display_category_id'] ?? 0);
-    if (isset($categoryNamesById[$resolvedId])) {
-        $course['category_name'] = $categoryNamesById[$resolvedId];
-    }
     $course['_search_blob'] = dazu_course_search_blob($course);
 }
 unset($course);
-
-$courseCategories = dazu_recount_course_categories($courseCategories, $courses);
 
 $totalCourseCount = count($courses);
 

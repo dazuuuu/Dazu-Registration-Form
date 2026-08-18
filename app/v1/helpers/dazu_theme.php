@@ -280,6 +280,14 @@ if (!function_exists('dazu_abbr_category_slug_map')) {
     }
 }
 
+if (!function_exists('dazu_uncategorized_category_id')) {
+    /** Stable positive id for courses with no category (0 is reserved for "All"). */
+    function dazu_uncategorized_category_id(): int
+    {
+        return 1000001;
+    }
+}
+
 if (!function_exists('dazu_resolve_course_category_id')) {
     function dazu_resolve_course_category_id(array $course, ?array $categories = null): int
     {
@@ -288,8 +296,9 @@ if (!function_exists('dazu_resolve_course_category_id')) {
         }
 
         $abbr = strtoupper(trim($course['abbreviation'] ?? ''));
-        if ($categories) {
-            $slug = dazu_abbr_category_slug_map()[$abbr] ?? 'web-development';
+        $slugMap = dazu_abbr_category_slug_map();
+        if ($abbr !== '' && isset($slugMap[$abbr]) && $categories) {
+            $slug = $slugMap[$abbr];
             foreach ($categories as $cat) {
                 if (($cat['slug'] ?? '') === $slug) {
                     return (int) $cat['id'];
@@ -298,7 +307,65 @@ if (!function_exists('dazu_resolve_course_category_id')) {
         }
 
         $map = dazu_abbr_category_map();
-        return (int) ($map[$abbr] ?? 1);
+        if ($abbr !== '' && isset($map[$abbr]) && $categories) {
+            $want = (int) $map[$abbr];
+            foreach ($categories as $cat) {
+                if ((int) ($cat['id'] ?? 0) === $want) {
+                    return $want;
+                }
+            }
+        }
+
+        return dazu_uncategorized_category_id();
+    }
+}
+
+if (!function_exists('dazu_prepare_public_course_listing')) {
+    /**
+     * Resolve display categories, keep uncategorized courses visible, and
+     * sync card chips with the tab they sit under.
+     *
+     * @return array{0: array, 1: array} categories, courses
+     */
+    function dazu_prepare_public_course_listing(array $categories, array $courses): array
+    {
+        foreach ($courses as &$course) {
+            $course['_display_category_id'] = dazu_resolve_course_category_id($course, $categories);
+        }
+        unset($course);
+
+        $uncatId = dazu_uncategorized_category_id();
+        $uncatCount = 0;
+        foreach ($courses as $course) {
+            if ((int) ($course['_display_category_id'] ?? 0) === $uncatId) {
+                $uncatCount++;
+            }
+        }
+        if ($uncatCount > 0) {
+            $categories[] = [
+                'id' => $uncatId,
+                'name' => 'Uncategorized',
+                'slug' => 'uncategorized',
+                'icon_path' => null,
+                'course_count' => $uncatCount,
+            ];
+        }
+
+        $categories = dazu_recount_course_categories($categories, $courses);
+
+        $categoryNamesById = [];
+        foreach ($categories as $cat) {
+            $categoryNamesById[(int) $cat['id']] = (string) $cat['name'];
+        }
+        foreach ($courses as &$course) {
+            $resolvedId = (int) ($course['_display_category_id'] ?? 0);
+            if (isset($categoryNamesById[$resolvedId])) {
+                $course['category_name'] = $categoryNamesById[$resolvedId];
+            }
+        }
+        unset($course);
+
+        return [$categories, $courses];
     }
 }
 
@@ -318,28 +385,18 @@ if (!function_exists('dazu_load_popular_courses_section')) {
         }
 
         [$courses] = dazu_load_courses($courseModel);
-        $courses = array_values(array_filter($courses, static fn($c) => !empty($c['is_active']) || (int)($c['id'] ?? 0) === 0));
-
-        if (empty($categories)) {
-            $categories = dazu_fallback_course_categories();
-        }
-
-        foreach ($courses as &$course) {
-            $course['_display_category_id'] = dazu_resolve_course_category_id($course, $categories);
-        }
-        unset($course);
-
-        $categories = dazu_recount_course_categories($categories, $courses);
-
-        if (empty($categories) && !empty($courses)) {
-            $categories = dazu_fallback_course_categories();
-            $categories[0]['course_count'] = count($courses);
-            $categories = [$categories[0]];
-            foreach ($courses as &$course) {
-                $course['_display_category_id'] = (int) $categories[0]['id'];
+        $courses = array_values(array_filter($courses, static function ($c) {
+            $id = (int) ($c['id'] ?? 0);
+            if ($id <= 0) {
+                return false;
             }
-            unset($course);
-        }
+            if (!array_key_exists('is_active', $c)) {
+                return true;
+            }
+            return !empty($c['is_active']);
+        }));
+
+        [$categories, $courses] = dazu_prepare_public_course_listing($categories, $courses);
 
         return ['categories' => $categories, 'courses' => $courses];
     }
