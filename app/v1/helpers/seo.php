@@ -30,19 +30,18 @@ if (!function_exists('seo_image_url')) {
         if ($path === '' || $path === 'null') {
             return null;
         }
-        if (preg_match('#^https?://#i', $path)) {
-            return $path;
-        }
-        if (function_exists('settings_asset_url')) {
+        if (!preg_match('#^https?://#i', $path) && function_exists('settings_asset_url')) {
             $resolved = settings_asset_url($path);
             if (is_string($resolved) && $resolved !== '') {
                 $path = $resolved;
             }
         }
-        if (preg_match('#^https?://#i', $path)) {
-            return $path;
+        if (!preg_match('#^https?://#i', $path)) {
+            $path = course_share_absolute_url($path);
+        } elseif (course_share_request_is_https()) {
+            $path = (string) preg_replace('#^http://#i', 'https://', $path);
         }
-        return course_share_absolute_url($path);
+        return $path;
     }
 }
 
@@ -61,16 +60,67 @@ if (!function_exists('seo_head_tags')) {
         };
 
         return
-            '<meta property="og:site_name" content="Dazu hub Institute">' . "\n"
+            '<link rel="canonical" href="' . $e($url) . '">' . "\n"
+            . '<meta property="og:site_name" content="Dazu hub Institute">' . "\n"
             . '<meta property="og:type" content="website">' . "\n"
             . '<meta property="og:title" content="' . $e($title) . '">' . "\n"
             . '<meta property="og:description" content="' . $e($description) . '">' . "\n"
             . '<meta property="og:url" content="' . $e($url) . '">' . "\n"
             . '<meta property="og:image" content="' . $e($image) . '">' . "\n"
+            . '<meta property="og:image:url" content="' . $e($image) . '">' . "\n"
+            . '<meta property="og:image:secure_url" content="' . $e($image) . '">' . "\n"
             . '<meta property="og:image:alt" content="' . $e($title) . '">' . "\n"
+            . '<meta property="og:image:width" content="1200">' . "\n"
+            . '<meta property="og:image:height" content="630">' . "\n"
             . '<meta name="twitter:card" content="summary_large_image">' . "\n"
             . '<meta name="twitter:title" content="' . $e($title) . '">' . "\n"
             . '<meta name="twitter:description" content="' . $e($description) . '">' . "\n"
-            . '<meta name="twitter:image" content="' . $e($image) . '">' . "\n";
+            . '<meta name="twitter:image" content="' . $e($image) . '">' . "\n"
+            . '<link rel="image_src" href="' . $e($image) . '">' . "\n"
+            . '<meta itemprop="image" content="' . $e($image) . '">' . "\n";
+    }
+}
+
+if (!function_exists('seo_is_social_crawler')) {
+    function seo_is_social_crawler(): bool
+    {
+        $ua = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
+        if ($ua === '') {
+            return false;
+        }
+        return (bool) preg_match(
+            '/facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Slackbot|LinkedInBot|Pinterest|Discordbot|Iframely|Googlebot|bingbot|Applebot/i',
+            $ua
+        );
+    }
+}
+
+if (!function_exists('seo_emit_course_share_preview')) {
+    /** Minimal HTML for WhatsApp/Facebook crawlers so the preview card always has cover + title + description. */
+    function seo_emit_course_share_preview(array $course, string $url): void
+    {
+        $title = trim((string) ($course['title'] ?? 'Dazu hub Institute')) . ' — Dazu hub Institute';
+        $description = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($course['overview'] ?? $course['description'] ?? ''))));
+        if ($description === '') {
+            $description = 'Apply for this course at Dazu hub Institute, Thika Town.';
+        }
+        if (function_exists('mb_strimwidth')) {
+            $description = mb_strimwidth($description, 0, 180, '…');
+        }
+        $image = course_og_image_url($course);
+        $e = static function (string $v): string {
+            return htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+        };
+        header('Content-Type: text/html; charset=UTF-8');
+        echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+            . '<title>' . $e($title) . '</title>'
+            . '<meta name="description" content="' . $e($description) . '">'
+            . seo_head_tags($title, $description, $image, $url)
+            . '</head><body>'
+            . '<h1>' . $e((string) ($course['title'] ?? 'Course')) . '</h1>'
+            . '<p>' . $e($description) . '</p>'
+            . '<img src="' . $e($image) . '" alt="' . $e((string) ($course['title'] ?? 'Course')) . '" width="1200" height="630">'
+            . '</body></html>';
+        exit;
     }
 }

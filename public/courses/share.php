@@ -48,11 +48,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$page_title = htmlspecialchars($course['title']) . ' — Register | Dazu hub Institute';
+$page_title = ($course['title'] ?? 'Course') . ' — Register | Dazu hub Institute';
 $share_url = course_share_url((int) $course['id'], $referralNo);
 $share_title = 'Join me at Dazu hub — ' . $course['title'];
-$og_image = dazu_course_image_url($course);
+$og_image = course_og_image_url($course);
+$og_url = $share_url;
 $page_description = mb_strimwidth(strip_tags($course['overview'] ?? $course['description'] ?? ''), 0, 160, '…');
+
+require_once __DIR__ . '/../../app/v1/helpers/seo.php';
+if (seo_is_social_crawler() && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    seo_emit_course_share_preview($course, $og_url);
+}
 
 ob_start();
 ?>
