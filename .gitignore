@@ -146,6 +146,7 @@ yarn-error.log*
 
 /storage/sms/receipts/
 /storage/sms/
+/storage/setup.lock
 
 # ========================================
 
