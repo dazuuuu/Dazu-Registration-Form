@@ -93,8 +93,8 @@ class Mailer {
                 $mail->addReplyTo($replyToEmail, $replyToName ?? '');
             }
 
-            // Embed the logo so it shows without a public image URL: reference cid:ismanlogo.
-            $logo = $this->cfg['logo_path'] ?? '';
+            // Embed the admin branding logo (Settings → Branding). cid:ismanlogo
+            $logo = $this->resolveLogoPath();
             if ($logo && is_file($logo)) {
                 $mail->addEmbeddedImage($logo, 'ismanlogo', 'logo.png');
             }
@@ -157,7 +157,7 @@ class Mailer {
             $mail->setFrom($this->cfg['from_email'] ?? 'no-reply@example.com', $this->cfg['from_name'] ?? 'Store');
             $mail->isHTML(true);
 
-            $logo = $this->cfg['logo_path'] ?? '';
+            $logo = $this->resolveLogoPath();
 
             foreach ($messages as $msg) {
                 $toEmail = $msg['to_email'] ?? '';
@@ -223,6 +223,10 @@ class Mailer {
 
             $mail->setFrom($this->cfg['from_email'] ?? 'no-reply@example.com', $this->cfg['from_name'] ?? 'Store');
             $mail->addAddress($toEmail, $toName);
+            $logo = $this->resolveLogoPath();
+            if ($logo && is_file($logo)) {
+                $mail->addEmbeddedImage($logo, 'ismanlogo', 'logo.png');
+            }
             $mail->addAttachment($filePath, $fileName);
             $mail->isHTML(true);
             $mail->Subject = $subject;
@@ -234,5 +238,19 @@ class Mailer {
             error_log('[mailer] ' . $e->getMessage());
             return ['ok' => false, 'message' => $e->getMessage()];
         }
+    }
+
+    private function resolveLogoPath(): string
+    {
+        require_once __DIR__ . '/../helpers/site_logo.php';
+        $fromSettings = site_logo_absolute_path();
+        if ($fromSettings && is_file($fromSettings)) {
+            return $fromSettings;
+        }
+        $configured = (string) ($this->cfg['logo_path'] ?? '');
+        if ($configured !== '' && is_file($configured)) {
+            return $configured;
+        }
+        return '';
     }
 }

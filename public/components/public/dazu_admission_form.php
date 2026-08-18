@@ -185,7 +185,10 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
       </div>
       <?php $fee_compact = false; include __DIR__ . '/dazu_course_fee_breakdown.php'; ?>
       <div class="bg-white border border-green-100 rounded-xl p-4 text-xs space-y-2" id="<?php echo $pfx; ?>FeeBox"
-           data-fee="<?php echo $fee; ?>" data-months="<?php echo $mo; ?>">
+           data-fee="<?php echo htmlspecialchars((string) course_fee_for_mode($course, $studyMode)); ?>"
+           data-fee-online="<?php echo htmlspecialchars((string) course_fee_for_mode($course, 'online')); ?>"
+           data-fee-physical="<?php echo htmlspecialchars((string) course_fee_for_mode($course, 'physical')); ?>"
+           data-months="<?php echo $mo; ?>">
         <div class="flex justify-between"><span>Registration fee</span><strong id="<?php echo $pfx; ?>RegFee">KES <?php echo number_format($quote['registration_fee']); ?></strong></div>
         <div class="flex justify-between"><span>First installment</span><strong id="<?php echo $pfx; ?>InstAmt">KES <?php echo number_format($quote['installment_amount']); ?></strong></div>
         <div class="flex justify-between font-extrabold text-green-800 border-t border-green-100 pt-2"><span>Pay now</span><span id="<?php echo $pfx; ?>Total">KES <?php echo number_format($quote['total_due_now']); ?></span></div>
@@ -234,7 +237,8 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
   var pfx = <?php echo json_encode($pfx); ?>;
   var box = document.getElementById(pfx + 'FeeBox');
   if (!box) return;
-  var fee = parseFloat(box.getAttribute('data-fee')) || 0;
+  var feeOnline = parseFloat(box.getAttribute('data-fee-online')) || parseFloat(box.getAttribute('data-fee')) || 0;
+  var feePhysical = parseFloat(box.getAttribute('data-fee-physical')) || feeOnline;
   var mo = parseInt(box.getAttribute('data-months'), 10) || 1;
   function el(id){ return document.getElementById(pfx + id); }
   function fmt(n){ return 'KES ' + Math.round(n).toLocaleString(); }
@@ -244,6 +248,7 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
     var sel = document.querySelector('#'+pfx+'Form select[name="payment_plan"]');
     if (sel) plan = sel.value;
     document.querySelectorAll('#'+pfx+'Form input[name="study_mode"]').forEach(function(r){ if(r.checked) mode=r.value; });
+    var fee = mode === 'physical' ? feePhysical : feeOnline;
     var reg = mode === 'physical' ? 1500 : 1000;
     var count = plan === 'monthly' ? Math.max(1, mo) : (plan === '3months' ? 3 : 1);
     var inst = fee / count;

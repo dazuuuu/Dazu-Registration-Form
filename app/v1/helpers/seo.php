@@ -2,11 +2,12 @@
 // Open Graph / Twitter preview images for public pages.
 
 require_once __DIR__ . '/course_share.php';
+require_once __DIR__ . '/site_logo.php';
 
 if (!function_exists('seo_default_image')) {
     function seo_default_image(): string
     {
-        return 'https://i.ibb.co/fzfZFtGc/223025.jpg';
+        return site_logo_url('https://i.ibb.co/fzfZFtGc/223025.jpg');
     }
 }
 

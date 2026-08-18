@@ -1,7 +1,8 @@
 <?php
 // public/components/public/footer.php — Dazu Hub Institute
 $year = date('Y');
-$logoPath = url('assets/images/logo/logo.png');
+require_once __DIR__ . '/../../../app/v1/helpers/site_logo.php';
+$logoPath = site_logo_url(url('assets/images/logo/logo.png'));
 ?>
 <footer class="dh-footer">
     <div class="dh-footer-top">

@@ -3,10 +3,9 @@
 // Generates HTML payment receipts for course fee payments.
 
 require_once __DIR__ . '/../helpers/currency.php';
+require_once __DIR__ . '/../helpers/site_logo.php';
 
 class ReceiptGenerator {
-
-  private const LOGO_URL = 'https://i.ibb.co/fzfZFtGc/223025.jpg';
 
     /**
      * @param array $reg   Registration row with course_title
@@ -18,10 +17,11 @@ class ReceiptGenerator {
         $totalOwed = self::totalOwed($reg);
         $balance = max(0, $totalOwed - $totalPaid);
         $receiptNo = $payment['receipt_no'] ?? ('RCP-PENDING');
+        $logo = site_logo_url();
 
         $html = '<div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;">'
             . '<div style="background:#fff;color:#0f172a;padding:20px 24px;text-align:center;border-bottom:3px solid #15A24A;">'
-            . '<img src="' . self::LOGO_URL . '" alt="' . self::e($companyName) . '" style="width:56px;height:56px;border-radius:8px;object-fit:cover;margin-bottom:8px;">'
+            . '<img src="' . htmlspecialchars($logo) . '" alt="' . self::e($companyName) . '" style="max-height:56px;max-width:160px;object-fit:contain;margin-bottom:8px;">'
             . '<h1 style="margin:0;font-size:20px;color:#15A24A;">' . self::e($companyName) . '</h1>'
             . '<p style="margin:8px 0 0;opacity:0.85;font-size:14px;color:#475569;">Official Payment Receipt</p>'
             . '</div>'

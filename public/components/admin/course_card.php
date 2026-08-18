@@ -54,10 +54,14 @@ $editUrl = url('admin/' . ($isFree ? 'free-courses' : 'courses') . '/edit.php?id
         <?php
         if (!$isFree) {
             require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
-            $adminFeeItems = course_fee_structure_items($course);
-            if ($adminFeeItems) {
-                echo '<ul class="list-unstyled small mb-0 mt-1">';
-                foreach ($adminFeeItems as $item) {
+            $adminModes = course_fee_structure_all($course);
+            foreach (['online' => 'Online', 'physical' => 'Physical'] as $mode => $label) {
+                if (empty($adminModes[$mode])) {
+                    continue;
+                }
+                echo '<div class="small text-muted mt-1">' . htmlspecialchars($label) . '</div>';
+                echo '<ul class="list-unstyled small mb-0">';
+                foreach ($adminModes[$mode] as $item) {
                     echo '<li class="d-flex justify-content-between gap-2"><span>' . htmlspecialchars($item['label']) . '</span><span>KSh ' . number_format($item['amount']) . '</span></li>';
                 }
                 echo '</ul>';

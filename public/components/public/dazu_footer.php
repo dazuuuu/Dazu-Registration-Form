@@ -2,14 +2,16 @@
 if (!function_exists('url')) {
     require_once __DIR__ . '/../../../app/v1/config/paths.php';
 }
+require_once __DIR__ . '/../../../app/v1/helpers/site_logo.php';
 $year = date('Y');
+$footerLogo = site_logo_url();
 ?>
 <footer class="bg-slate-950 text-slate-400 border-t border-slate-900 pt-16 pb-12">
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-12 mb-16">
       <div class="space-y-6 col-span-2 md:col-span-1">
         <a href="<?php echo url('/'); ?>" class="flex items-center gap-2 group">
-          <img src="https://i.ibb.co/fzfZFtGc/223025.jpg" alt="Dazu Hub Logo" class="h-12 w-12 rounded-lg object-cover shrink-0 transition-transform duration-300 group-hover:scale-105" referrerpolicy="no-referrer">
+          <img src="<?php echo htmlspecialchars($footerLogo); ?>" alt="Dazu Hub Logo" class="h-12 w-12 rounded-lg object-cover shrink-0 transition-transform duration-300 group-hover:scale-105" referrerpolicy="no-referrer">
           <div class="leading-none">
             <div class="text-xl font-extrabold text-white tracking-tight">Dazu<span class="text-[#22C55E] ml-1">hub</span></div>
             <div class="text-[10px] text-slate-400 font-extrabold tracking-tight mt-1">Institute</div>

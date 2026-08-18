@@ -45,7 +45,7 @@ if (!function_exists('dazu_asset_v')) {
         $og_image ?? null
     );
   ?>
-  <link rel="icon" type="image/jpeg" href="https://i.ibb.co/fzfZFtGc/223025.jpg">
+  <link rel="icon" type="image/jpeg" href="<?php echo htmlspecialchars(site_logo_url()); ?>">
   <link rel="stylesheet" href="<?php echo htmlspecialchars(dazu_tailwind_css()); ?>">
   <link rel="stylesheet" href="<?php echo dazu_asset_v('css/dazu-frontend-theme.css'); ?>">
   <style>svg.dazu-icon{width:1.25rem;height:1.25rem;flex-shrink:0;max-width:100%}</style>

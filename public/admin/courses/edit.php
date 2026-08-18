@@ -44,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Security check failed, please try again.';
     } else {
         $coverPath = null;
+        $brochurePath = null;
 
         if (!empty($_FILES['cover_image']['name'])) {
             $upload = upload_image(
@@ -58,9 +59,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if (!$error && !empty($_FILES['brochure']['name'])) {
+            $brochure = upload_pdf(
+                $_FILES['brochure'],
+                __DIR__ . '/../../uploads/courses/brochures',
+                'uploads/courses/brochures'
+            );
+            if (!$brochure['ok']) {
+                $error = $brochure['error'];
+            } else {
+                $brochurePath = $brochure['path'];
+            }
+        }
+
         if (!$error) {
-            $feeItems = course_fee_structure_from_post($_POST);
-            $feeTotal = course_fee_structure_total($feeItems);
+            $feeModes = course_fee_structure_modes_from_post($_POST);
+            $feeTotal = course_fee_structure_catalog_total($feeModes, $_POST['course_fee'] ?? 0);
             $result = $courseModel->update($id, [
                 'title'           => $_POST['title'] ?? '',
                 'abbreviation'    => $_POST['abbreviation'] ?? '',
@@ -74,9 +88,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'hours_of_study'  => $_POST['hours_of_study'] ?? null,
                 'study_schedule'  => $_POST['study_schedule'] ?? null,
                 'course_fee'      => $feeTotal > 0 ? $feeTotal : ($_POST['course_fee'] ?? 0),
-                'fee_structure_items' => $feeItems,
+                'fee_structure_modes' => $feeModes,
                 'is_free'         => false,
                 'cover_image'     => $coverPath,
+                'brochure_path'   => $brochurePath,
             ]);
 
             if ($result['ok']) {
@@ -193,15 +208,15 @@ ob_start();
                 </div>
 
                 <?php
-                $fee_items = $_SERVER['REQUEST_METHOD'] === 'POST'
-                    ? course_fee_structure_from_post($_POST)
-                    : course_fee_structure_items($course);
+                $fee_modes = $_SERVER['REQUEST_METHOD'] === 'POST'
+                    ? course_fee_structure_modes_from_post($_POST)
+                    : course_fee_structure_all($course);
                 include __DIR__ . '/../../components/admin/course_fee_structure_fields.php';
                 ?>
                 <?php if ((int) $course['id'] > 0): ?>
                     <div class="col-12">
                         <a href="<?php echo htmlspecialchars(course_fee_structure_download_url((int) $course['id'], true)); ?>" class="btn btn-sm btn-outline-success">
-                            <i class="fas fa-download me-1"></i> Download fee structure
+                            <i class="fas fa-download me-1"></i> Download fee structure (PDF)
                         </a>
                     </div>
                 <?php endif; ?>
@@ -216,6 +231,18 @@ ob_start();
                     <?php endif; ?>
                     <input type="file" name="cover_image" class="form-control" accept="image/jpeg,image/png,image/webp">
                     <small class="text-muted">Leave blank to keep the current image.</small>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Course brochure (PDF)</label>
+                    <?php if (!empty($course['brochure_path'])): ?>
+                        <div class="mb-2">
+                            <a href="<?php echo htmlspecialchars(settings_asset_url($course['brochure_path'])); ?>" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">
+                                Current brochure
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                    <input type="file" name="brochure" class="form-control" accept="application/pdf">
+                    <small class="text-muted">Leave blank to keep the current brochure.</small>
                 </div>
 
                 <div class="col-12">

@@ -25,15 +25,16 @@ try {
 
 $error = null;
 $old = ['title' => '', 'abbreviation' => '', 'description' => '', 'requirements' => '', 'overview' => '', 'duration_months' => '', 'weeks_of_study' => '', 'days_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'course_fee' => '', 'category_id' => ''];
-$fee_items = [];
+$fee_modes = ['online' => [], 'physical' => []];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         $error = 'Security check failed, please try again.';
     } else {
         $old = $_POST;
-        $fee_items = course_fee_structure_from_post($_POST);
+        $fee_modes = course_fee_structure_modes_from_post($_POST);
         $coverPath = null;
+        $brochurePath = null;
 
         if (!empty($_FILES['cover_image']['name'])) {
             $upload = upload_image(
@@ -48,9 +49,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if (!$error && !empty($_FILES['brochure']['name'])) {
+            $brochure = upload_pdf(
+                $_FILES['brochure'],
+                __DIR__ . '/../../uploads/courses/brochures',
+                'uploads/courses/brochures'
+            );
+            if (!$brochure['ok']) {
+                $error = $brochure['error'];
+            } else {
+                $brochurePath = $brochure['path'];
+            }
+        }
+
         if (!$error) {
-            $fee_items = course_fee_structure_from_post($_POST);
-            $feeTotal = course_fee_structure_total($fee_items);
+            $feeTotal = course_fee_structure_catalog_total($fee_modes, $_POST['course_fee'] ?? 0);
             $result = $courseModel->create([
                 'title'           => $_POST['title'] ?? '',
                 'abbreviation'    => $_POST['abbreviation'] ?? '',
@@ -64,9 +77,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'hours_of_study'  => $_POST['hours_of_study'] ?? null,
                 'study_schedule'  => $_POST['study_schedule'] ?? null,
                 'course_fee'      => $feeTotal > 0 ? $feeTotal : ($_POST['course_fee'] ?? 0),
-                'fee_structure_items' => $fee_items,
+                'fee_structure_modes' => $fee_modes,
                 'is_free'         => false,
                 'cover_image'     => $coverPath,
+                'brochure_path'   => $brochurePath,
             ], SessionModel::get('user_id'));
 
             if ($result['ok']) {
@@ -172,6 +186,11 @@ ob_start();
                 <div class="col-12">
                     <label class="form-label">Cover Image</label>
                     <input type="file" name="cover_image" class="form-control" accept="image/jpeg,image/png,image/webp">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Course brochure (PDF)</label>
+                    <input type="file" name="brochure" class="form-control" accept="application/pdf">
+                    <small class="text-muted">Optional. Students can download this from the course page.</small>
                 </div>
 
                 <div class="col-12">

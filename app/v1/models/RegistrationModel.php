@@ -98,7 +98,9 @@ class RegistrationModel {
             return ['ok' => false, 'error' => 'Invalid payment plan.'];
         }
 
-        $installments = self::calculateInstallments((float) $course['course_fee'], $data['payment_plan'], (int) $course['duration_months']);
+        require_once __DIR__ . '/../helpers/course_fee_structure.php';
+        $courseFee = course_fee_for_mode($course, $data['study_mode'] ?? 'online');
+        $installments = self::calculateInstallments($courseFee, $data['payment_plan'], (int) $course['duration_months']);
         $regFee = self::registrationFeeFor($data['study_mode']);
         $returning = $this->findPossibleReturningStudent($data['email'], $data['phone']);
 
@@ -112,7 +114,7 @@ class RegistrationModel {
             ':study_mode'         => $data['study_mode'],
             ':id_document_path'   => $data['id_document_path'],
             ':registration_fee'   => $regFee,
-            ':course_fee'         => $course['course_fee'],
+            ':course_fee'         => $courseFee,
             ':payment_plan'       => $data['payment_plan'],
             ':installment_count'  => $installments['count'],
             ':installment_amount' => $installments['amount'],

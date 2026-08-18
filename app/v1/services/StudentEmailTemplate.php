@@ -198,10 +198,9 @@ class StudentEmailTemplate {
 
     private static function layout(string $heading, string $bodyHtml): string {
         $company = 'Dazu Hub Institute';
-        $logoUrl = 'https://i.ibb.co/fzfZFtGc/223025.jpg';
         return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">'
             . '<div style="text-align:center;padding:24px 0;border-bottom:1px solid #eee;">'
-            . '<img src="' . $logoUrl . '" alt="' . self::e($company) . '" style="width:56px;height:56px;border-radius:8px;object-fit:cover;margin-bottom:8px;">'
+            . '<img src="cid:ismanlogo" alt="' . self::e($company) . '" style="max-height:64px;max-width:180px;object-fit:contain;margin-bottom:8px;">'
             . '<div style="font-size:18px;font-weight:bold;color:#15A24A;">' . self::e($company) . '</div>'
             . '</div>'
             . '<div style="padding:24px;">'

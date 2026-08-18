@@ -34,6 +34,7 @@ class AuthEmailTemplate {
     private static function layout(string $heading, string $body): string {
         return '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">'
             . '<div style="text-align:center;padding:24px 0;border-bottom:1px solid #eee;">'
+            . '<img src="cid:ismanlogo" alt="Dazu Hub Institute" style="max-height:56px;max-width:180px;object-fit:contain;"><br>'
             . '<strong style="font-size:20px;color:#15A24A;">Dazu Hub Institute</strong></div>'
             . '<div style="padding:24px;"><h2 style="color:#15A24A;">' . self::e($heading) . '</h2>' . $body . '</div>'
             . '<div style="padding:16px 24px;border-top:1px solid #eee;color:#888;font-size:12px;text-align:center;">'

@@ -381,7 +381,8 @@ if (!function_exists('dazu_course_enrollment_window')) {
 if (!function_exists('dazu_fee_quote')) {
     function dazu_fee_quote(array $course, string $studyMode = 'online', string $paymentPlan = 'monthly'): array
     {
-        $fee = (float) ($course['course_fee'] ?? 0);
+        require_once __DIR__ . '/course_fee_structure.php';
+        $fee = course_fee_for_mode($course, $studyMode);
         $mo = max(1, (int) ($course['duration_months'] ?? 1));
         $regFee = $studyMode === 'physical' ? 1500 : 1000;
         $count = match ($paymentPlan) {
@@ -394,6 +395,7 @@ if (!function_exists('dazu_fee_quote')) {
             'registration_fee' => $regFee,
             'installment_amount' => $inst,
             'total_due_now' => $regFee + $inst,
+            'course_fee' => $fee,
         ];
     }
 }
