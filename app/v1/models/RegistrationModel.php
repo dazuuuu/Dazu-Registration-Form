@@ -74,62 +74,71 @@ class RegistrationModel {
         }
         $isFree = !empty($course['is_free']);
 
-        foreach (['full_name', 'email', 'phone', 'study_mode', 'payment_plan', 'id_document_path'] as $f) {
-            if (empty($data[$f])) {
-                return ['ok' => false, 'error' => 'All required fields must be filled in.'];
-            }
+        $fullName = trim((string) ($data['full_name'] ?? ''));
+        $email = strtolower(trim((string) ($data['email'] ?? '')));
+        $phone = trim((string) ($data['phone'] ?? ''));
+        if ($phone === '') {
+            $phone = 'N/A';
         }
-        // Free courses skip payment but must explain why they should be selected instead;
-        // paid courses keep the M-Pesa payment reference requirement.
-        if ($isFree) {
-            if (empty(trim($data['free_course_reason'] ?? ''))) {
-                return ['ok' => false, 'error' => 'Please tell us why you should be selected for this free course.'];
-            }
-        } elseif (empty($data['payment_reference'])) {
-            return ['ok' => false, 'error' => 'All required fields must be filled in.'];
+        $studyMode = $data['study_mode'] ?? 'online';
+        $paymentPlan = $data['payment_plan'] ?? 'monthly';
+        if (!in_array($paymentPlan, ['monthly', '3months', 'full'], true)) {
+            $paymentPlan = 'monthly';
         }
-        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
+        $idDoc = trim((string) ($data['id_document_path'] ?? ''));
+        if ($idDoc === '') {
+            $idDoc = 'public/enrolment';
+        }
+        $paymentRef = trim((string) ($data['payment_reference'] ?? ''));
+        if ($paymentRef === '') {
+            $paymentRef = 'Public enrolment — payment to follow';
+        }
+
+        if ($fullName === '' || $email === '') {
+            return ['ok' => false, 'error' => 'Name and email are required.'];
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return ['ok' => false, 'error' => 'A valid email address is required.'];
         }
-        if (!in_array($data['study_mode'], ['physical', 'online'], true)) {
-            return ['ok' => false, 'error' => 'Invalid study mode.'];
-        }
-        if (!in_array($data['payment_plan'], ['monthly', '3months', 'full'], true)) {
-            return ['ok' => false, 'error' => 'Invalid payment plan.'];
+        if (!in_array($studyMode, ['physical', 'online'], true)) {
+            return ['ok' => false, 'error' => 'Choose online or physical classes.'];
         }
 
         require_once __DIR__ . '/../helpers/course_fee_structure.php';
-        $courseFee = course_fee_for_mode($course, $data['study_mode'] ?? 'online');
-        $installments = self::calculateInstallments($courseFee, $data['payment_plan'], (int) $course['duration_months']);
-        $regFee = self::registrationFeeFor($data['study_mode']);
-        $returning = $this->findPossibleReturningStudent($data['email'], $data['phone']);
-
+        require_once __DIR__ . '/../helpers/registration_number.php';
+        $courseFee = course_fee_for_mode($course, $studyMode);
+        $installments = self::calculateInstallments($courseFee, $paymentPlan, (int) $course['duration_months']);
+        $regFee = self::registrationFeeFor($studyMode);
+        $returning = $phone === 'N/A' ? null : $this->findPossibleReturningStudent($email, $phone);
         $referralNo = !empty($data['referral_registration_no']) ? trim($data['referral_registration_no']) : null;
+        $locked = registration_number_lock($this->db);
+        $regNo = registration_number_next($this->db);
 
         $params = [
-            ':full_name'          => trim($data['full_name']),
-            ':email'              => strtolower(trim($data['email'])),
-            ':phone'              => trim($data['phone']),
+            ':reg_no'             => $regNo,
+            ':full_name'          => $fullName,
+            ':email'              => $email,
+            ':phone'              => $phone,
             ':course_id'          => $course['id'],
-            ':study_mode'         => $data['study_mode'],
-            ':id_document_path'   => $data['id_document_path'],
+            ':study_mode'         => $studyMode,
+            ':id_document_path'   => $idDoc,
             ':registration_fee'   => $regFee,
             ':course_fee'         => $courseFee,
-            ':payment_plan'       => $data['payment_plan'],
+            ':payment_plan'       => $paymentPlan,
             ':installment_count'  => $installments['count'],
             ':installment_amount' => $installments['amount'],
-            ':payment_reference'  => trim($data['payment_reference'] ?? ''),
-            ':free_course_reason' => $isFree ? trim($data['free_course_reason']) : null,
+            ':payment_reference'  => $paymentRef,
+            ':free_course_reason' => $isFree ? trim((string) ($data['free_course_reason'] ?? '')) ?: null : null,
             ':returning'          => $returning ? 1 : 0,
         ];
 
         try {
             $sql = "INSERT INTO registrations
-                    (full_name, email, phone, course_id, study_mode, id_document_path,
+                    (registration_no, full_name, email, phone, course_id, study_mode, id_document_path,
                      registration_fee, course_fee, payment_plan, installment_count, installment_amount,
                      payment_reference, free_course_reason, referral_registration_no, possible_returning_student)
                     VALUES
-                    (:full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
+                    (:reg_no, :full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
                      :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
                      :payment_reference, :free_course_reason, :referral, :returning)";
             $params[':referral'] = $referralNo;
@@ -137,35 +146,37 @@ class RegistrationModel {
         } catch (\PDOException $e) {
             $missingReason = stripos($e->getMessage(), 'free_course_reason') !== false;
             if ($missingReason) {
-                // DB not yet migrated (missing free_course_reason) — save without it rather
-                // than fatal, run databases/migrations/034_add_free_course_reason.sql to fix.
                 unset($params[':free_course_reason']);
                 $sql = "INSERT INTO registrations
-                        (full_name, email, phone, course_id, study_mode, id_document_path,
+                        (registration_no, full_name, email, phone, course_id, study_mode, id_document_path,
                          registration_fee, course_fee, payment_plan, installment_count, installment_amount,
                          payment_reference, referral_registration_no, possible_returning_student)
                         VALUES
-                        (:full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
+                        (:reg_no, :full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
                          :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
                          :payment_reference, :referral, :returning)";
                 $this->db->prepare($sql)->execute($params);
             } elseif ($referralNo !== null && str_contains($e->getMessage(), 'referral_registration_no')) {
                 unset($params[':referral']);
                 $sql = "INSERT INTO registrations
-                        (full_name, email, phone, course_id, study_mode, id_document_path,
+                        (registration_no, full_name, email, phone, course_id, study_mode, id_document_path,
                          registration_fee, course_fee, payment_plan, installment_count, installment_amount,
                          payment_reference, free_course_reason, possible_returning_student)
                         VALUES
-                        (:full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
+                        (:reg_no, :full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
                          :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
                          :payment_reference, :free_course_reason, :returning)";
                 $this->db->prepare($sql)->execute($params);
             } else {
                 throw $e;
             }
+        } finally {
+            if ($locked) {
+                registration_number_unlock($this->db);
+            }
         }
 
-        return ['ok' => true, 'id' => (int) $this->db->lastInsertId()];
+        return ['ok' => true, 'id' => (int) $this->db->lastInsertId(), 'registration_no' => $regNo];
     }
 
     public function getById(int $id): ?array {

@@ -390,9 +390,14 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
                     <?php endif; ?>
 
                     <p class="text-muted small mb-3">
-                        On approval, a student account is created and a registration number is issued
-                        (<strong>DH-<?php echo htmlspecialchars($reg['abbreviation']); ?>XX/<?php echo date('Y'); ?></strong>).
-                        You will get the temporary password to copy or send via WhatsApp — no email is sent.
+                        <?php if (!empty($reg['registration_no'])): ?>
+                            This enrolment already has registration number
+                            <strong><?php echo htmlspecialchars($reg['registration_no']); ?></strong>.
+                            Approval creates the student portal account and keeps that number.
+                        <?php else: ?>
+                            On approval, a student account is created and the next registration number is issued
+                            (starting from <strong>DH050/<?php echo date('y'); ?></strong>).
+                        <?php endif; ?>
                     </p>
 
                     <button type="submit" class="btn btn-success w-100"

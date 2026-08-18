@@ -5,6 +5,7 @@ require_once __DIR__ . '/Mailer.php';
 require_once __DIR__ . '/StudentNotifier.php';
 require_once __DIR__ . '/../models/CourseModel.php';
 require_once __DIR__ . '/../controllers/ManualOnboardController.php';
+require_once __DIR__ . '/../helpers/registration_number.php';
 
 class SmsModuleService
 {
@@ -742,8 +743,8 @@ class SmsModuleService
 
         try {
             $this->pdo->beginTransaction();
-            $seq = $cm->claimNextSequence($courseId);
-            $regNo = sprintf('DH-%s%02d/%s', $course['abbreviation'], $seq, date('Y'));
+            registration_number_lock($this->pdo);
+            $regNo = registration_number_next($this->pdo);
             $cost = (float) ($student['cost'] ?? $course['course_fee']);
             $paid = (float) ($student['paid'] ?? 0);
 
@@ -791,6 +792,8 @@ class SmsModuleService
             }
             error_log('[SmsModule] createRegistrationForExistingUser: ' . $e->getMessage());
             return ['ok' => false, 'error' => 'Could not link portal account: ' . $e->getMessage()];
+        } finally {
+            registration_number_unlock($this->pdo);
         }
     }
 

@@ -17,7 +17,6 @@ $compact = !empty($fee_compact);
 $courseId = (int) ($course['id'] ?? 0);
 $downloadUrl = $courseId > 0 ? course_fee_structure_download_url($courseId, true) : '';
 $viewUrl = $courseId > 0 ? course_fee_structure_download_url($courseId, false) : '';
-$brochureUrl = course_brochure_url($course);
 
 $renderList = static function (array $items, bool $compact): void {
     foreach ($items as $item) {
@@ -54,10 +53,6 @@ $renderList = static function (array $items, bool $compact): void {
         <a href="<?php echo htmlspecialchars($downloadUrl); ?>" onclick="event.stopPropagation();"
            class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#15A24A] hover:underline">Download fees (PDF)</a>
       <?php endif; ?>
-      <?php if ($brochureUrl): ?>
-        <a href="<?php echo htmlspecialchars($brochureUrl); ?>" onclick="event.stopPropagation();"
-           class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#15A24A] hover:underline">Brochure</a>
-      <?php endif; ?>
     </div>
   </div>
 <?php else: ?>
@@ -85,10 +80,6 @@ $renderList = static function (array $items, bool $compact): void {
       <?php if ($viewUrl !== ''): ?>
         <a href="<?php echo htmlspecialchars($viewUrl); ?>"
            class="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500 hover:text-slate-800 hover:underline">View</a>
-      <?php endif; ?>
-      <?php if ($brochureUrl): ?>
-        <a href="<?php echo htmlspecialchars($brochureUrl); ?>"
-           class="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-[#15A24A] hover:underline">Download brochure</a>
       <?php endif; ?>
     </div>
   </div>

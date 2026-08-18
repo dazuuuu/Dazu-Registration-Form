@@ -91,6 +91,7 @@ $cardId = (int) ($course['id'] ?? 0);
         </a>
       </div>
       <?php if (!$isFree): $fee_compact = true; include __DIR__ . '/dazu_course_fee_breakdown.php'; endif; ?>
+      <?php $brochure_compact = true; include __DIR__ . '/dazu_course_brochure_cta.php'; ?>
     </div>
   </div>
 </article>

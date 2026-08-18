@@ -74,6 +74,7 @@ $allowCourseChange = true;
 
 $reg_success = false;
 $reg_error = null;
+$issued_reg_no = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($courseChangeError !== null) {
@@ -83,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = $handler->process($_POST, $_FILES, $course, null);
         if ($result['ok']) {
             $reg_success = true;
+            $issued_reg_no = $result['registration_no'] ?? '';
         } else {
             $reg_error = $result['error'] ?? 'Registration failed.';
         }

@@ -12,20 +12,22 @@ class StudentEmailTemplate {
     public static function render(string $event, array $data): array {
         switch ($event) {
             case 'registration_received':
+                $regNo = trim((string) ($data['registration_no'] ?? ''));
                 return [
-                    'Registration received — awaiting approval',
+                    'You are enrolled — ' . ($data['company_name'] ?? 'Dazu Hub Institute'),
                     self::layout(
-                        'Application Received',
+                        'Enrolment confirmed',
                         '<p>Hi ' . self::e($data['full_name']) . ',</p>'
-                        . '<p>Thank you for registering at <strong>' . self::e($data['company_name']) . '</strong>. '
-                        . 'We have received your application for <strong>' . self::e($data['course_title']) . '</strong>.</p>'
-                        . '<div style="background:#f1f6f5;border-radius:8px;padding:16px;margin:16px 0;">'
-                        . '<strong>What happens next?</strong><br>'
-                        . (!empty($data['is_free'])
-                            ? 'This course is free — our team will review your application and documents.'
-                            : 'Our team will verify your payment reference and review your documents.')
-                        . ' You will receive another email once your registration is approved or if we need more information.'
-                        . '</div>'
+                        . '<p>Thank you for enrolling at <strong>' . self::e($data['company_name']) . '</strong>. '
+                        . 'We have saved your place on <strong>' . self::e($data['course_title']) . '</strong>.</p>'
+                        . ($regNo !== ''
+                            ? '<div style="background:#f1f6f5;border-radius:8px;padding:16px;margin:16px 0;">'
+                                . '<strong>Your registration number</strong><br>'
+                                . '<span style="font-size:22px;font-weight:bold;letter-spacing:0.04em;color:#15A24A;">'
+                                . self::e($regNo) . '</span>'
+                                . '</div>'
+                            : '')
+                        . '<p>Keep this number for payments and student records. Our team will follow up with next steps.</p>'
                         . self::courseBlock($data)
                     ),
                 ];
@@ -182,9 +184,9 @@ class StudentEmailTemplate {
 
     private static function courseBlock(array $data): string {
         return '<table style="width:100%;font-size:14px;margin:16px 0;border-collapse:collapse;">'
+            . '<tr><td style="padding:6px 0;color:#666;">Registration no.</td><td style="text-align:right;"><strong>' . self::e($data['registration_no'] ?? '') . '</strong></td></tr>'
             . '<tr><td style="padding:6px 0;color:#666;">Course</td><td style="text-align:right;"><strong>' . self::e($data['course_title'] ?? '') . '</strong></td></tr>'
-            . '<tr><td style="padding:6px 0;color:#666;">Study Mode</td><td style="text-align:right;">' . self::e(ucfirst($data['study_mode'] ?? '')) . '</td></tr>'
-            . '<tr><td style="padding:6px 0;color:#666;">Payment Plan</td><td style="text-align:right;">' . self::e($data['payment_plan'] ?? '') . '</td></tr>'
+            . '<tr><td style="padding:6px 0;color:#666;">Study Mode</td><td style="text-align:right;">' . self::e(($data['study_mode'] ?? '') === 'physical' ? 'Physical' : 'Online') . '</td></tr>'
             . '</table>';
     }
 
