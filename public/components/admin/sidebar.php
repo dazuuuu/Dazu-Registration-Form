@@ -72,11 +72,20 @@ function isSmsSection($section) {
     <div class="sidebar-nav">
         <div class="nav flex-column">
             <!-- Dashboard -->
-            <a href="<?php echo url('admin/dashboard.php'); ?>" 
+            <a href="<?php echo url('admin/dashboard.php'); ?>"
                class="nav-link <?php echo $current_page == 'dashboard.php' ? 'active' : ''; ?>">
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Dashboard</span>
             </a>
+
+            <?php if (!empty($pending_migration_count)): ?>
+            <a href="<?php echo url('admin/system/updates.php'); ?>"
+               class="nav-link <?php echo $current_dir == 'system' ? 'active' : ''; ?>">
+                <i class="fas fa-download"></i>
+                <span>System Update</span>
+                <span class="updates-badge"><?php echo (int) $pending_migration_count; ?></span>
+            </a>
+            <?php endif; ?>
 
             <!-- SYSTEM SECTION: registration, courses, students, tutors, payments -->
             <div class="nav-item">
@@ -487,7 +496,8 @@ function isSmsSection($section) {
 
 /* Orders attention badge */
 .admin-sidebar .orders-badge,
-.admin-sidebar .enquiries-badge {
+.admin-sidebar .enquiries-badge,
+.admin-sidebar .updates-badge {
     margin-left: auto;
     min-width: 20px;
     height: 20px;

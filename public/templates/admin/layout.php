@@ -10,6 +10,17 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
     header('Location: ' . url('auth/login.php'));
     exit();
 }
+
+$pending_migration_count = 0;
+$pending_migration_error = null;
+if (isset($pdo)) {
+    try {
+        require_once __DIR__ . '/../../../app/v1/services/MigrationService.php';
+        $pending_migration_count = (new MigrationService($pdo))->pendingCount();
+    } catch (Throwable $e) {
+        $pending_migration_error = $e->getMessage();
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -641,6 +652,24 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             <?php endif; ?>
+
+            <?php if ($pending_migration_count > 0): ?>
+                <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2" role="alert">
+                    <div>
+                        <i class="fas fa-download me-2"></i>
+                        <strong>System update available.</strong>
+                        <?php echo number_format($pending_migration_count); ?> database migration<?php echo $pending_migration_count === 1 ? '' : 's'; ?> pending.
+                    </div>
+                    <a class="btn btn-sm btn-warning" href="<?php echo url('admin/system/updates.php'); ?>">
+                        <i class="fas fa-database me-1"></i> Update now
+                    </a>
+                </div>
+            <?php elseif ($pending_migration_error): ?>
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Could not check system updates: <?php echo htmlspecialchars($pending_migration_error); ?>
+                </div>
+            <?php endif; ?>
             
             <!-- Page Content -->
             <?php echo $content; ?>
@@ -782,6 +811,8 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
         'store-categories' => url('admin/store/categories/index.php'),
         'store' => url('admin/store/products/index.php'),
         'settings' => url('admin/settings/index.php'),
+        'updates' => url('admin/system/updates.php'),
+        'update' => url('admin/system/updates.php'),
         'profile' => url('profile/admin/'),
         'logout' => url('auth/logout.php'),
     ], JSON_UNESCAPED_SLASHES); ?>;
