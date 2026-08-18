@@ -4,6 +4,7 @@ $page_description = 'Contact Dazu hub Institute — tuition, study plans, campus
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
+require_once __DIR__ . '/../components/public/dazu_hero_helpers.php';
 require_once __DIR__ . '/../../app/v1/helpers/site_contact.php';
 require_once __DIR__ . '/../../app/v1/controllers/EnquiryController.php';
 
@@ -184,4 +185,10 @@ ob_start();
 </div>
 <?php
 $content = ob_get_clean();
+$og_image = dazu_hero_image_url(
+    'hero-1',
+    is_file(public_path('assets/app/hero.png'))
+        ? asset('app/hero.png')
+        : 'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=1200&q=80'
+);
 require __DIR__ . '/../templates/public/dazu_layout.php';

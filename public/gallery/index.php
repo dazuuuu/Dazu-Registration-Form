@@ -693,5 +693,14 @@ ob_start();
 <?php
 $content = ob_get_clean();
 $use_home_navbar = false;
+foreach ($items as $gItem) {
+    if (($gItem['media_type'] ?? 'image') === 'video') {
+        continue;
+    }
+    if (!empty($gItem['file_path'])) {
+        $og_image = $gItem['file_path'];
+        break;
+    }
+}
 require_once __DIR__ . '/../templates/public/layout.php';
 ?>

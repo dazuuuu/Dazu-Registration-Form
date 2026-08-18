@@ -326,4 +326,22 @@ $extra_js = <<<'HTML'
 HTML;
 
 $content = ob_get_clean();
+
+if (empty($og_image) && !empty($teamMembers)) {
+    foreach ($teamMembers as $t) {
+        if (!empty($t['photo_path'])) {
+            $og_image = url($t['photo_path']);
+            break;
+        }
+    }
+}
+if (empty($og_image) && !empty($galleryItems)) {
+    foreach ($galleryItems as $g) {
+        if (!empty($g['file_path'])) {
+            $og_image = $g['file_path'];
+            break;
+        }
+    }
+}
+
 require __DIR__ . '/../templates/public/dazu_layout.php';

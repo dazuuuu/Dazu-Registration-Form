@@ -62,6 +62,7 @@ function dazu_project_vimeo_id($url) {
 $coverImg = !empty($project['cover_image'])
     ? dazu_project_media_url($project['cover_image'])
     : 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80';
+$og_image = $coverImg;
 
 ob_start();
 ?>

@@ -85,6 +85,8 @@ $enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => n
       <?php endif; ?>
     </div>
 
+    <?php $fee_compact = false; include __DIR__ . '/dazu_course_fee_breakdown.php'; ?>
+
     <div>
       <span class="block text-slate-400 uppercase tracking-widest text-[9px] font-extrabold mb-2">What you will learn</span>
       <div class="space-y-1.5 max-h-[220px] overflow-y-auto pr-1">

@@ -139,4 +139,10 @@ ob_start();
 </div>
 <?php
 $content = ob_get_clean();
+foreach ($articles as $article) {
+    if (!empty($article['image'])) {
+        $og_image = $article['image'];
+        break;
+    }
+}
 require __DIR__ . '/../templates/public/dazu_layout.php';

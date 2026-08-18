@@ -350,5 +350,8 @@ function updateCartCount() {
 <?php
 $content = ob_get_clean();
 $use_home_navbar = false;
+if (!empty($product['featured_image'])) {
+    $og_image = $product['featured_image'];
+}
 require_once __DIR__ . '/../templates/public/layout.php';
 ?>

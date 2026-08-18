@@ -136,4 +136,11 @@ ob_start();
 </div>
 <?php
 $content = ob_get_clean();
+foreach ($courses as $ogCourse) {
+    $img = trim((string) ($ogCourse['cover_image'] ?? $ogCourse['card_image'] ?? ''));
+    if ($img !== '' && $img !== 'null') {
+        $og_image = dazu_course_image_url($ogCourse);
+        break;
+    }
+}
 require __DIR__ . '/../templates/public/dazu_layout.php';

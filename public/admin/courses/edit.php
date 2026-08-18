@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseCategoryModel.php';
+require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -58,6 +59,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!$error) {
+            $feeItems = course_fee_structure_from_post($_POST);
+            $feeTotal = course_fee_structure_total($feeItems);
             $result = $courseModel->update($id, [
                 'title'           => $_POST['title'] ?? '',
                 'abbreviation'    => $_POST['abbreviation'] ?? '',
@@ -70,7 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'days_of_study'   => $_POST['days_of_study'] ?? null,
                 'hours_of_study'  => $_POST['hours_of_study'] ?? null,
                 'study_schedule'  => $_POST['study_schedule'] ?? null,
-                'course_fee'      => $_POST['course_fee'] ?? 0,
+                'course_fee'      => $feeTotal > 0 ? $feeTotal : ($_POST['course_fee'] ?? 0),
+                'fee_structure_items' => $feeItems,
                 'is_free'         => false,
                 'cover_image'     => $coverPath,
             ]);
@@ -185,7 +189,22 @@ ob_start();
                     <label class="form-label">Course Fee (KSh)</label>
                     <input type="number" name="course_fee" class="form-control" min="1" step="1" required
                            value="<?php echo htmlspecialchars($course['course_fee']); ?>">
+                    <small class="text-muted">Filled automatically from the fee structure total when line items are entered.</small>
                 </div>
+
+                <?php
+                $fee_items = $_SERVER['REQUEST_METHOD'] === 'POST'
+                    ? course_fee_structure_from_post($_POST)
+                    : course_fee_structure_items($course);
+                include __DIR__ . '/../../components/admin/course_fee_structure_fields.php';
+                ?>
+                <?php if ((int) $course['id'] > 0): ?>
+                    <div class="col-12">
+                        <a href="<?php echo htmlspecialchars(course_fee_structure_download_url((int) $course['id'], true)); ?>" class="btn btn-sm btn-outline-success">
+                            <i class="fas fa-download me-1"></i> Download fee structure
+                        </a>
+                    </div>
+                <?php endif; ?>
 
                 <div class="col-12">
                     <label class="form-label">Cover Image</label>

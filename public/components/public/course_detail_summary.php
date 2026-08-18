@@ -41,6 +41,7 @@ $icon = $icons[strtoupper($course['abbreviation'] ?? '')] ?? '📚';
             <span class="cds-fee-amt">KSh <?php echo number_format($fee); ?></span>
             <span class="cds-fee-sub">from KSh <?php echo number_format($fee / $mo); ?>/month</span>
         </div>
+        <?php $fee_compact = false; include __DIR__ . '/dazu_course_fee_breakdown.php'; ?>
         <?php if (!empty($course['overview'])): ?>
             <p class="cds-overview"><?php echo nl2br(htmlspecialchars($course['overview'])); ?></p>
         <?php endif; ?>

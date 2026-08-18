@@ -156,4 +156,10 @@ ob_start();
 
 <?php
 $content = ob_get_clean();
+foreach ($projects as $ogProject) {
+    if (!empty($ogProject['cover_image'])) {
+        $og_image = $ogProject['cover_image'];
+        break;
+    }
+}
 require __DIR__ . '/../templates/public/dazu_layout.php';

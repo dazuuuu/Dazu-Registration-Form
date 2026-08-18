@@ -57,6 +57,7 @@ if (!course_is_shareable($course)) {
 
 $page_title = htmlspecialchars($course['title']) . ' — Apply | Dazu hub Institute';
 $page_description = mb_strimwidth(strip_tags($course['overview'] ?? ''), 0, 160, '…');
+$og_image = dazu_course_image_url($course);
 
 // Courses offered in the Course Choice select. getAll(true) and course_is_shareable()
 // use the same is_active === 1 rule, so the current course is always among them.

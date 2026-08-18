@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseCategoryModel.php';
+require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -24,12 +25,14 @@ try {
 
 $error = null;
 $old = ['title' => '', 'abbreviation' => '', 'description' => '', 'requirements' => '', 'overview' => '', 'duration_months' => '', 'weeks_of_study' => '', 'days_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'course_fee' => '', 'category_id' => ''];
+$fee_items = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         $error = 'Security check failed, please try again.';
     } else {
         $old = $_POST;
+        $fee_items = course_fee_structure_from_post($_POST);
         $coverPath = null;
 
         if (!empty($_FILES['cover_image']['name'])) {
@@ -46,6 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         if (!$error) {
+            $fee_items = course_fee_structure_from_post($_POST);
+            $feeTotal = course_fee_structure_total($fee_items);
             $result = $courseModel->create([
                 'title'           => $_POST['title'] ?? '',
                 'abbreviation'    => $_POST['abbreviation'] ?? '',
@@ -58,7 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'days_of_study'   => $_POST['days_of_study'] ?? null,
                 'hours_of_study'  => $_POST['hours_of_study'] ?? null,
                 'study_schedule'  => $_POST['study_schedule'] ?? null,
-                'course_fee'      => $_POST['course_fee'] ?? 0,
+                'course_fee'      => $feeTotal > 0 ? $feeTotal : ($_POST['course_fee'] ?? 0),
+                'fee_structure_items' => $fee_items,
                 'is_free'         => false,
                 'cover_image'     => $coverPath,
             ], SessionModel::get('user_id'));
@@ -158,8 +164,10 @@ ob_start();
                     <label class="form-label">Course Fee (KSh)</label>
                     <input type="number" name="course_fee" class="form-control" min="1" step="1" required
                            value="<?php echo htmlspecialchars($old['course_fee'] ?? ''); ?>">
-                    <small class="text-muted">Need a free course instead? Use <a href="<?php echo url('admin/free-courses/create.php'); ?>">Add Free Course</a>.</small>
+                    <small class="text-muted">Filled automatically from the fee structure total when line items are entered. Need a free course instead? Use <a href="<?php echo url('admin/free-courses/create.php'); ?>">Add Free Course</a>.</small>
                 </div>
+
+                <?php include __DIR__ . '/../../components/admin/course_fee_structure_fields.php'; ?>
 
                 <div class="col-12">
                     <label class="form-label">Cover Image</label>

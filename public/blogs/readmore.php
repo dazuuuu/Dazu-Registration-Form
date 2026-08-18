@@ -361,15 +361,11 @@ $extra_head = '';
 if (!empty($blog['meta_keywords'])) {
     $extra_head .= '<meta name="keywords" content="' . htmlspecialchars($blog['meta_keywords']) . '">' . "\n";
 }
-$extra_head .= '<meta property="og:title" content="' . htmlspecialchars($blog['title']) . '">' . "\n";
-$extra_head .= '<meta property="og:description" content="' . htmlspecialchars($page_description) . '">' . "\n";
 $extra_head .= '<meta property="og:type" content="article">' . "\n";
 if (!empty($blog['published_at'])) {
     $extra_head .= '<meta property="article:published_time" content="' . htmlspecialchars($blog['published_at']) . '">' . "\n";
 }
-if (!empty($blog['featured_image'])) {
-    $extra_head .= '<meta property="og:image" content="' . htmlspecialchars($blog['featured_image']) . '">' . "\n";
-}
+$og_image = $heroImage ?: ($blog['featured_image'] ?? null);
 
 $extra_js = <<<'HTML'
 <script>

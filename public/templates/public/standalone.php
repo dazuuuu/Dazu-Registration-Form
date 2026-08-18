@@ -13,11 +13,14 @@ $logoPath = url('assets/images/logo/logo.png');
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title><?php echo htmlspecialchars($page_title ?? 'Dazu Hub Institute'); ?></title>
 <meta name="description" content="<?php echo htmlspecialchars($page_description ?? ''); ?>">
-<?php if (!empty($og_image)): ?>
-<meta property="og:image" content="<?php echo htmlspecialchars($og_image); ?>">
-<?php endif; ?>
-<meta property="og:title" content="<?php echo htmlspecialchars($page_title ?? 'Dazu Hub Institute'); ?>">
-<meta property="og:description" content="<?php echo htmlspecialchars($page_description ?? ''); ?>">
+<?php
+require_once __DIR__ . '/../../../app/v1/helpers/seo.php';
+echo seo_head_tags(
+    (string) ($page_title ?? 'Dazu Hub Institute'),
+    (string) ($page_description ?? ''),
+    $og_image ?? null
+);
+?>
 <meta name="theme-color" content="#2E7D32">
 <link rel="manifest" href="<?php echo url('manifest.php'); ?>">
 <link rel="apple-touch-icon" href="<?php echo asset('icons/icon-192.png'); ?>">

@@ -183,6 +183,7 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
           <strong class="text-sm font-extrabold text-slate-900">Dazu hub</strong>
         </div>
       </div>
+      <?php $fee_compact = false; include __DIR__ . '/dazu_course_fee_breakdown.php'; ?>
       <div class="bg-white border border-green-100 rounded-xl p-4 text-xs space-y-2" id="<?php echo $pfx; ?>FeeBox"
            data-fee="<?php echo $fee; ?>" data-months="<?php echo $mo; ?>">
         <div class="flex justify-between"><span>Registration fee</span><strong id="<?php echo $pfx; ?>RegFee">KES <?php echo number_format($quote['registration_fee']); ?></strong></div>

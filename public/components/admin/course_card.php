@@ -51,6 +51,19 @@ $editUrl = url('admin/' . ($isFree ? 'free-courses' : 'courses') . '/edit.php?id
       <div>
         <div class="small text-muted">Fee</div>
         <div class="fw-bold text-success"><?= $isFree ? 'FREE' : 'KSh ' . number_format((float)($course['course_fee'] ?? 0), 0) ?></div>
+        <?php
+        if (!$isFree) {
+            require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
+            $adminFeeItems = course_fee_structure_items($course);
+            if ($adminFeeItems) {
+                echo '<ul class="list-unstyled small mb-0 mt-1">';
+                foreach ($adminFeeItems as $item) {
+                    echo '<li class="d-flex justify-content-between gap-2"><span>' . htmlspecialchars($item['label']) . '</span><span>KSh ' . number_format($item['amount']) . '</span></li>';
+                }
+                echo '</ul>';
+            }
+        }
+        ?>
       </div>
       <div class="text-end">
         <div class="small text-muted">Enrolled</div>

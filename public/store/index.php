@@ -751,5 +751,11 @@ updateCartCount();
 <?php
 $content = ob_get_clean();
 $use_home_navbar = false;
+foreach (array_merge($featured ?? [], $products ?? []) as $ogProduct) {
+    if (!empty($ogProduct['featured_image'])) {
+        $og_image = $ogProduct['featured_image'];
+        break;
+    }
+}
 require_once __DIR__ . '/../templates/public/layout.php';
 ?>

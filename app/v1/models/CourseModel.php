@@ -26,10 +26,11 @@ class CourseModel {
         $isFree = !empty($data['is_free']);
         $fee = $isFree ? 0.0 : (float) $data['course_fee'];
         $dates = $this->dateFields($data);
+        $feeStructure = $isFree ? null : $this->feeStructureValue($data);
 
         try {
-            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, description, requirements, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, is_free, start_date, end_date, is_active, created_by)
-                    VALUES (:title, :abbreviation, :category_id, :cover_image, :description, :requirements, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :course_fee, :is_free, :start_date, :end_date, 1, :created_by)";
+            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, description, requirements, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, fee_structure, is_free, start_date, end_date, is_active, created_by)
+                    VALUES (:title, :abbreviation, :category_id, :cover_image, :description, :requirements, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :course_fee, :fee_structure, :is_free, :start_date, :end_date, 1, :created_by)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':title'            => trim($data['title']),
@@ -45,6 +46,7 @@ class CourseModel {
                 ':hours_of_study'   => $dur['hours_of_study'],
                 ':study_schedule'   => $dur['study_schedule'],
                 ':course_fee'       => $fee,
+                ':fee_structure'    => $feeStructure,
                 ':is_free'          => $isFree ? 1 : 0,
                 ':start_date'       => $dates['start_date'],
                 ':end_date'         => $dates['end_date'],
@@ -65,6 +67,9 @@ class CourseModel {
                 || stripos($e->getMessage(), 'days_of_study') !== false
                 || stripos($e->getMessage(), 'hours_of_study') !== false
                 || stripos($e->getMessage(), 'study_schedule') !== false;
+            if (stripos($e->getMessage(), 'fee_structure') !== false) {
+                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/required_migrations/036_course_fee_structure.sql, then retry.'];
+            }
             if ($categoryId !== null && stripos($e->getMessage(), 'category_id') !== false) {
                 $sql = "INSERT INTO courses (title, abbreviation, cover_image, description, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, is_active, created_by)
                         VALUES (:title, :abbreviation, :cover_image, :description, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :course_fee, 1, :created_by)";
@@ -128,11 +133,12 @@ class CourseModel {
         $isFree = !empty($data['is_free']);
         $fee = $isFree ? 0.0 : (float) $data['course_fee'];
         $dates = $this->dateFields($data);
+        $feeStructure = $isFree ? null : $this->feeStructureValue($data);
 
         $fields = "title = :title, abbreviation = :abbreviation, category_id = :category_id, description = :description,
                    requirements = :requirements, overview = :overview, duration_months = :duration_months, weeks_of_study = :weeks_of_study,
                    days_of_study = :days_of_study, hours_of_study = :hours_of_study, study_schedule = :study_schedule, course_fee = :course_fee,
-                   is_free = :is_free, start_date = :start_date, end_date = :end_date";
+                   fee_structure = :fee_structure, is_free = :is_free, start_date = :start_date, end_date = :end_date";
         $dur = $this->durationFields($data);
         $params = [
             ':title'           => trim($data['title']),
@@ -147,6 +153,7 @@ class CourseModel {
             ':hours_of_study'  => $dur['hours_of_study'],
             ':study_schedule'  => $dur['study_schedule'],
             ':course_fee'      => $fee,
+            ':fee_structure'   => $feeStructure,
             ':is_free'         => $isFree ? 1 : 0,
             ':start_date'      => $dates['start_date'],
             ':end_date'        => $dates['end_date'],
@@ -177,6 +184,9 @@ class CourseModel {
                 || stripos($e->getMessage(), 'days_of_study') !== false
                 || stripos($e->getMessage(), 'hours_of_study') !== false
                 || stripos($e->getMessage(), 'study_schedule') !== false;
+            if (stripos($e->getMessage(), 'fee_structure') !== false) {
+                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/required_migrations/036_course_fee_structure.sql, then retry.'];
+            }
             if ($categoryId !== null && stripos($e->getMessage(), 'category_id') !== false) {
                 $fields = str_replace('category_id = :category_id, ', '', $fields);
                 unset($params[':category_id']);
@@ -392,6 +402,16 @@ class CourseModel {
             if ($fee <= 0) {
                 return 'Course fee must be greater than zero.';
             }
+            $items = $this->feeStructureItems($data);
+            if ($items) {
+                $sum = 0.0;
+                foreach ($items as $item) {
+                    $sum += (float) ($item['amount'] ?? 0);
+                }
+                if ($sum <= 0) {
+                    return 'Fee structure amounts must add up to more than zero.';
+                }
+            }
         }
 
         $dates = $this->dateFields($data);
@@ -405,6 +425,23 @@ class CourseModel {
     {
         require_once __DIR__ . '/../helpers/course_duration.php';
         return course_normalize_duration_input($data);
+    }
+
+    private function feeStructureItems(array $data): array
+    {
+        require_once __DIR__ . '/../helpers/course_fee_structure.php';
+        if (isset($data['fee_structure_items']) && is_array($data['fee_structure_items'])) {
+            return course_fee_structure_decode($data['fee_structure_items']);
+        }
+        if (array_key_exists('fee_structure', $data)) {
+            return course_fee_structure_decode($data['fee_structure']);
+        }
+        return [];
+    }
+
+    private function feeStructureValue(array $data): ?string
+    {
+        return course_fee_structure_encode($this->feeStructureItems($data));
     }
 
     /** Blank strings from an untouched date input become NULL, not '' (invalid DATE). */

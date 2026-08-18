@@ -76,18 +76,21 @@ $cardId = (int) ($course['id'] ?? 0);
       <?php endif; ?>
     </div>
 
-    <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
-      <div>
-        <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tuition Fee</span>
-        <span class="text-[#15A24A] font-extrabold text-sm sm:text-base"><?php echo $isFree ? 'FREE' : 'Ksh ' . $fee; ?></span>
+    <div class="pt-4 border-t border-slate-100 space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tuition Fee</span>
+          <span class="text-[#15A24A] font-extrabold text-sm sm:text-base"><?php echo $isFree ? 'FREE' : 'Ksh ' . $fee; ?></span>
+        </div>
+        <a href="<?php echo htmlspecialchars($applyUrl); ?>"
+           onclick="event.stopPropagation();"
+           class="px-4 py-2 bg-[#15A24A] hover:bg-[#128a3e] text-white text-xs font-bold rounded-lg transition-colors shadow-sm flex items-center gap-1"
+           id="course-apply-btn-<?php echo $cardId; ?>">
+          Apply Now
+          <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+        </a>
       </div>
-      <a href="<?php echo htmlspecialchars($applyUrl); ?>"
-         onclick="event.stopPropagation();"
-         class="px-4 py-2 bg-[#15A24A] hover:bg-[#128a3e] text-white text-xs font-bold rounded-lg transition-colors shadow-sm flex items-center gap-1"
-         id="course-apply-btn-<?php echo $cardId; ?>">
-        Apply Now
-        <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-      </a>
+      <?php if (!$isFree): $fee_compact = true; include __DIR__ . '/dazu_course_fee_breakdown.php'; endif; ?>
     </div>
   </div>
 </article>

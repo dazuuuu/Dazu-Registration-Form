@@ -36,4 +36,11 @@ include __DIR__ . '/components/public/dazu_testimonials_section.php';
 include __DIR__ . '/components/public/dazu_cta_section.php';
 include __DIR__ . '/components/public/dazu_newsletter_section.php';
 $content = ob_get_clean();
+require_once __DIR__ . '/components/public/dazu_hero_helpers.php';
+$og_image = dazu_hero_image_url(
+    'hero-1',
+    is_file(public_path('assets/app/hero.png'))
+        ? asset('app/hero.png')
+        : 'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=1200&q=80'
+);
 require __DIR__ . '/templates/public/dazu_layout.php';
