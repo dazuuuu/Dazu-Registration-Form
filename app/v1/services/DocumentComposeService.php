@@ -54,6 +54,179 @@ class DocumentComposeService
     }
 
     /**
+     * First enrollment registration number for a returning student (by SmS record or email).
+     */
+    public function findExistingRegistrationNo(?int $smsStudentId, ?string $email): ?string
+    {
+        if ($smsStudentId > 0) {
+            $stmt = $this->pdo->prepare(
+                'SELECT r.registration_no FROM sms_students s
+                 LEFT JOIN registrations r ON r.id = s.registration_id
+                 WHERE s.id = :id LIMIT 1'
+            );
+            $stmt->execute([':id' => $smsStudentId]);
+            $regNo = trim((string) ($stmt->fetchColumn() ?: ''));
+            if ($regNo !== '') {
+                return $regNo;
+            }
+        }
+
+        $email = strtolower(trim((string) $email));
+        if ($email === '') {
+            return null;
+        }
+
+        $stmt = $this->pdo->prepare(
+            "SELECT registration_no FROM registrations
+             WHERE LOWER(email) = :email AND status = 'approved'
+               AND registration_no IS NOT NULL AND registration_no != ''
+             ORDER BY COALESCE(reviewed_at, created_at) ASC, id ASC LIMIT 1"
+        );
+        $stmt->execute([':email' => $email]);
+        $regNo = trim((string) ($stmt->fetchColumn() ?: ''));
+
+        return $regNo !== '' ? $regNo : null;
+    }
+
+    /** Preview next number without consuming sequence (requires course). */
+    public function peekRegistrationNumber(int $courseId): ?string
+    {
+        require_once __DIR__ . '/../helpers/registration_number.php';
+        require_once __DIR__ . '/../models/CourseModel.php';
+
+        $course = (new \Models\CourseModel($this->pdo))->getById($courseId);
+        if (!$course || empty($course['abbreviation'])) {
+            return null;
+        }
+
+        $stmt = $this->pdo->prepare('SELECT last_sequence FROM courses WHERE id = :id');
+        $stmt->execute([':id' => $courseId]);
+        $current = (int) $stmt->fetchColumn();
+        $next = $current < 49 ? 50 : $current + 1;
+
+        return registration_number_format((string) $course['abbreviation'], $next);
+    }
+
+    /** Claim and return a new registration number (issues once in DB). */
+    public function claimRegistrationNumber(int $courseId): ?string
+    {
+        require_once __DIR__ . '/../helpers/registration_number.php';
+        require_once __DIR__ . '/../models/CourseModel.php';
+
+        $course = (new \Models\CourseModel($this->pdo))->getById($courseId);
+        if (!$course || empty($course['abbreviation'])) {
+            return null;
+        }
+
+        try {
+            $this->pdo->beginTransaction();
+            $seq = registration_number_claim($this->pdo, $courseId);
+            $this->pdo->commit();
+            return registration_number_format((string) $course['abbreviation'], $seq);
+        } catch (\Throwable $e) {
+            if ($this->pdo->inTransaction()) {
+                $this->pdo->rollBack();
+            }
+            error_log('[DocumentComposeService] claimRegistrationNumber: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * @return array{registration_no:string, is_new:bool, is_preview:bool, claimed:bool}
+     */
+    public function resolveRegistrationNumber(int $courseId, ?int $smsStudentId, ?string $email, bool $claimIfNew = false): array
+    {
+        $existing = $this->findExistingRegistrationNo($smsStudentId, $email);
+        if ($existing !== null) {
+            return [
+                'registration_no' => $existing,
+                'is_new'          => false,
+                'is_preview'      => false,
+                'claimed'         => false,
+            ];
+        }
+
+        if ($courseId <= 0) {
+            return ['registration_no' => '', 'is_new' => true, 'is_preview' => false, 'claimed' => false];
+        }
+
+        if ($claimIfNew) {
+            $claimed = $this->claimRegistrationNumber($courseId);
+            return [
+                'registration_no' => $claimed ?? '',
+                'is_new'          => true,
+                'is_preview'      => false,
+                'claimed'         => $claimed !== null,
+            ];
+        }
+
+        return [
+            'registration_no' => $this->peekRegistrationNumber($courseId) ?? '',
+            'is_new'          => true,
+            'is_preview'      => true,
+            'claimed'         => false,
+        ];
+    }
+
+    /**
+     * @param array<string, string> $ctx
+     * @return array<string, string>
+     */
+    public function normalizeContext(array $ctx): array
+    {
+        $mode = trim((string) ($ctx['study_mode'] ?? ''));
+        $ctx['study_mode'] = $mode === '' ? 'N/A' : ucfirst(strtolower($mode));
+
+        foreach (['recipient_name', 'registration_no', 'course_title', 'email', 'phone'] as $key) {
+            $ctx[$key] = trim((string) ($ctx[$key] ?? ''));
+        }
+
+        return $ctx;
+    }
+
+    /**
+     * Build compose context for the UI (JSON/API).
+     *
+     * @return array{ctx: array<string, string>, reg: array{registration_no:string, is_new:bool, is_preview:bool}}
+     */
+    public function buildComposeContext(
+        ?int $courseId,
+        ?int $smsStudentId = null,
+        ?int $prospectId = null,
+        ?string $email = null
+    ): array {
+        if ($smsStudentId > 0) {
+            $ctx = $this->contextFromSmsStudent($smsStudentId);
+        } elseif ($prospectId > 0) {
+            $ctx = $this->contextFromProspect($prospectId);
+        } else {
+            $ctx = $this->defaultContext($courseId ?: null);
+        }
+
+        if ($courseId > 0) {
+            $courseCtx = $this->defaultContext($courseId);
+            foreach (['course_title', 'fee_online', 'fee_physical'] as $key) {
+                if (($courseCtx[$key] ?? '') !== '') {
+                    $ctx[$key] = $courseCtx[$key];
+                }
+            }
+        }
+
+        $reg = $this->resolveRegistrationNumber(
+            (int) ($courseId ?: (int) ($ctx['course_id'] ?? 0)),
+            $smsStudentId,
+            $email ?? ($ctx['email'] ?? null),
+            false
+        );
+        if ($reg['registration_no'] !== '') {
+            $ctx['registration_no'] = $reg['registration_no'];
+        }
+
+        return ['ctx' => $this->normalizeContext($ctx), 'reg' => $reg];
+    }
+
+    /**
      * @return array<string, string>
      */
     public function defaultContext(?int $courseId = null): array
@@ -107,10 +280,22 @@ class DocumentComposeService
 
         $ctx = $this->defaultContext((int) ($student['course_id'] ?? 0));
         $ctx['recipient_name'] = (string) ($student['name'] ?? '');
-        $ctx['registration_no'] = (string) ($student['registration_no'] ?? '');
         $ctx['email'] = (string) ($student['email'] ?? '');
         $ctx['phone'] = (string) ($student['phone'] ?? '');
         $ctx['course_title'] = (string) ($student['course_title'] ?? $ctx['course_title']);
+        $ctx['course_id'] = (string) ((int) ($student['course_id'] ?? 0));
+
+        $existingReg = $this->findExistingRegistrationNo($smsStudentId, $ctx['email']);
+        $ctx['registration_no'] = $existingReg ?? (string) ($student['registration_no'] ?? '');
+
+        if (!empty($student['registration_id'])) {
+            $stmt = $this->pdo->prepare('SELECT study_mode FROM registrations WHERE id = :id LIMIT 1');
+            $stmt->execute([':id' => (int) $student['registration_id']]);
+            $mode = trim((string) ($stmt->fetchColumn() ?: ''));
+            if ($mode !== '') {
+                $ctx['study_mode'] = ucfirst($mode);
+            }
+        }
         $cost = (float) ($student['cost'] ?? 0);
         $paid = (float) ($student['paid'] ?? 0);
         $ctx['amount'] = $paid > 0 ? format_price($paid) : ($cost > 0 ? format_price($cost) : '');
@@ -172,20 +357,16 @@ class DocumentComposeService
         return $ctx;
     }
 
-    public function defaultBody(string $slug, array $ctx): string
+    public function bodyTemplate(string $slug): string
     {
-        $name = $ctx['recipient_name'] !== '' ? $ctx['recipient_name'] : '_________________________';
-        $course = $ctx['course_title'] !== '' ? $ctx['course_title'] : '_________________________';
-        $regNo = $ctx['registration_no'] !== '' ? $ctx['registration_no'] : '_________________________';
-
         switch ($slug) {
             case 'admission_letter':
                 return "Date: {date}\n\n"
-                    . "Dear {$name},\n\n"
+                    . "Dear {recipient_name},\n\n"
                     . "RE: LETTER OF ADMISSION\n\n"
-                    . "We are pleased to inform you that you have been provisionally admitted to {$course} at {institute_name}.\n\n"
-                    . "Registration Number: {$regNo}\n"
-                    . "Study Mode: " . ($ctx['study_mode'] !== '' ? $ctx['study_mode'] : '_________________________') . "\n\n"
+                    . "We are pleased to inform you that you have been provisionally admitted to {course_title} at {institute_name}.\n\n"
+                    . "Registration Number: {registration_no}\n"
+                    . "Study Mode: {study_mode}\n\n"
                     . "Please present this letter at the admissions office for verification, date confirmation, and official signing.\n\n"
                     . "Yours faithfully,\n\n"
                     . "_________________________\n"
@@ -194,11 +375,11 @@ class DocumentComposeService
 
             case 'application_letter':
                 return "Date: {date}\n\n"
-                    . "Dear {$name},\n\n"
+                    . "Dear {recipient_name},\n\n"
                     . "RE: APPLICATION FOR ENROLMENT\n\n"
-                    . "Thank you for submitting your application to study {$course} at {institute_name}. "
+                    . "Thank you for submitting your application to study {course_title} at {institute_name}. "
                     . "We confirm receipt of your application and supporting documents.\n\n"
-                    . "Reference: {$regNo}\n\n"
+                    . "Reference: {registration_no}\n\n"
                     . "Our admissions team will review your application and contact you regarding the outcome. "
                     . "If any additional information is required, we will reach you using the contact details on file.\n\n"
                     . "Yours faithfully,\n\n"
@@ -208,11 +389,11 @@ class DocumentComposeService
 
             case 'fee_structure':
                 return "Date: {date}\n\n"
-                    . "Dear {$name},\n\n"
-                    . "RE: FEE STRUCTURE — {$course}\n\n"
-                    . "Please find below the approved school fees for {$course} at {institute_name}:\n\n"
-                    . "Online classes: " . ($ctx['fee_online'] !== '' ? $ctx['fee_online'] : 'As advised') . "\n"
-                    . "Physical classes: " . ($ctx['fee_physical'] !== '' ? $ctx['fee_physical'] : 'As advised') . "\n\n"
+                    . "Dear {recipient_name},\n\n"
+                    . "RE: FEE STRUCTURE — {course_title}\n\n"
+                    . "Please find below the approved school fees for {course_title} at {institute_name}:\n\n"
+                    . "Online classes: {fee_online}\n"
+                    . "Physical classes: {fee_physical}\n\n"
                     . "Fees are subject to the institute's payment policy. Installment plans may be available upon request.\n\n"
                     . "For payment enquiries, contact the finance office.\n\n"
                     . "Yours faithfully,\n\n"
@@ -223,14 +404,11 @@ class DocumentComposeService
             case 'invoice':
                 return "Date: {date}\n\n"
                     . "Invoice No: {invoice_no}\n\n"
-                    . "Bill To:\n{$name}\n"
-                    . ($ctx['email'] !== '' ? $ctx['email'] . "\n" : '')
-                    . ($ctx['phone'] !== '' ? $ctx['phone'] . "\n" : '')
-                    . "\n"
-                    . "Description: Tuition — {$course}\n"
-                    . "Registration: {$regNo}\n\n"
-                    . "Amount Due: " . ($ctx['amount'] !== '' ? $ctx['amount'] : '_________________________') . "\n"
-                    . "Balance: " . ($ctx['balance'] !== '' ? $ctx['balance'] : '_________________________') . "\n\n"
+                    . "Bill To:\n{recipient_name}\n{email}\n{phone}\n\n"
+                    . "Description: Tuition — {course_title}\n"
+                    . "Registration: {registration_no}\n\n"
+                    . "Amount Due: {amount}\n"
+                    . "Balance: {balance}\n\n"
                     . "Payment is due within fourteen (14) days of this invoice date. "
                     . "Please quote the invoice number when making payment.\n\n"
                     . "Yours faithfully,\n\n"
@@ -241,11 +419,11 @@ class DocumentComposeService
             case 'receipt':
                 return "Date: {date}\n\n"
                     . "Receipt No: {receipt_no}\n\n"
-                    . "Received from: {$name}\n"
-                    . "Registration: {$regNo}\n"
-                    . "Course: {$course}\n\n"
-                    . "Amount Received: " . ($ctx['amount'] !== '' ? $ctx['amount'] : '_________________________') . "\n"
-                    . "Payment Reference: " . ($ctx['payment_reference'] !== '' ? $ctx['payment_reference'] : '_________________________') . "\n\n"
+                    . "Received from: {recipient_name}\n"
+                    . "Registration: {registration_no}\n"
+                    . "Course: {course_title}\n\n"
+                    . "Amount Received: {amount}\n"
+                    . "Payment Reference: {payment_reference}\n\n"
                     . "This receipt confirms payment received. Please retain for your records.\n\n"
                     . "Yours faithfully,\n\n"
                     . "_________________________\n"
@@ -253,8 +431,39 @@ class DocumentComposeService
                     . "{institute_name}";
 
             default:
-                return "Date: {date}\n\nDear {$name},\n\n[Your message here]\n\nYours faithfully,\n{institute_name}";
+                return "Date: {date}\n\nDear {recipient_name},\n\n[Your message here]\n\nYours faithfully,\n{institute_name}";
         }
+    }
+
+    public function defaultBody(string $slug, array $ctx): string
+    {
+        $ctx = $this->normalizeContext($ctx);
+        $ctx['recipient_name'] = $ctx['recipient_name'] !== '' ? $ctx['recipient_name'] : '_________________________';
+        $ctx['course_title'] = $ctx['course_title'] !== '' ? $ctx['course_title'] : '_________________________';
+        $ctx['registration_no'] = $ctx['registration_no'] !== '' ? $ctx['registration_no'] : '_________________________';
+        if ($ctx['fee_online'] === '') {
+            $ctx['fee_online'] = 'As advised';
+        }
+        if ($ctx['fee_physical'] === '') {
+            $ctx['fee_physical'] = 'As advised';
+        }
+        if ($ctx['amount'] === '') {
+            $ctx['amount'] = '_________________________';
+        }
+        if ($ctx['balance'] === '') {
+            $ctx['balance'] = '_________________________';
+        }
+        if ($ctx['payment_reference'] === '') {
+            $ctx['payment_reference'] = '_________________________';
+        }
+        if ($ctx['email'] === '') {
+            $ctx['email'] = '';
+        }
+        if ($ctx['phone'] === '') {
+            $ctx['phone'] = '';
+        }
+
+        return document_merge_placeholders($this->bodyTemplate($slug), $ctx);
     }
 
     /**
@@ -267,6 +476,7 @@ class DocumentComposeService
             return ['ok' => false, 'error' => 'Unknown template.'];
         }
 
+        $ctx = $this->normalizeContext($ctx);
         $mergedBody = document_merge_placeholders($bodyText, $ctx);
         $bodyHtml = document_body_to_html($mergedBody);
         $html = document_full_html_page($meta['title'], $bodyHtml);

@@ -27,10 +27,13 @@ if (!$docService->templateMeta($template)) {
 }
 
 $courseId = (int) ($_POST['course_id'] ?? 0);
+$smsStudentId = (int) ($_POST['sms_student_id'] ?? 0);
+$regIsNew = !empty($_POST['reg_is_new']);
+$regIsPreview = !empty($_POST['reg_is_preview']);
+
 $ctx = $docService->defaultContext($courseId ?: null);
 $ctx['recipient_name'] = trim((string) ($_POST['recipient_name'] ?? $ctx['recipient_name']));
 $ctx['email'] = trim((string) ($_POST['email'] ?? $ctx['email']));
-$ctx['registration_no'] = trim((string) ($_POST['registration_no'] ?? $ctx['registration_no']));
 $ctx['phone'] = trim((string) ($_POST['phone'] ?? $ctx['phone']));
 $ctx['study_mode'] = trim((string) ($_POST['study_mode'] ?? $ctx['study_mode']));
 $ctx['amount'] = trim((string) ($_POST['amount'] ?? $ctx['amount']));
@@ -38,6 +41,17 @@ $ctx['balance'] = trim((string) ($_POST['balance'] ?? $ctx['balance']));
 $ctx['payment_reference'] = trim((string) ($_POST['payment_reference'] ?? $ctx['payment_reference']));
 $ctx['invoice_no'] = trim((string) ($_POST['invoice_no'] ?? $ctx['invoice_no']));
 $ctx['receipt_no'] = trim((string) ($_POST['receipt_no'] ?? $ctx['receipt_no']));
+
+$claimReg = $regIsNew && ($regIsPreview || trim((string) ($_POST['registration_no'] ?? '')) === '');
+$regResolved = $docService->resolveRegistrationNumber(
+    $courseId,
+    $smsStudentId > 0 ? $smsStudentId : null,
+    $ctx['email'],
+    $claimReg && in_array($action, ['download', 'email', 'preview'], true)
+);
+$ctx['registration_no'] = $regResolved['registration_no'] !== ''
+    ? $regResolved['registration_no']
+    : trim((string) ($_POST['registration_no'] ?? ''));
 
 if ($courseId > 0) {
     require_once __DIR__ . '/../../../../app/v1/helpers/course_fee_structure.php';

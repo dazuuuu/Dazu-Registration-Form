@@ -17,23 +17,28 @@ $courseId = (int) ($_GET['course_id'] ?? 0);
 $smsStudentId = (int) ($_GET['sms_student_id'] ?? 0);
 $prospectId = (int) ($_GET['prospect_id'] ?? 0);
 
-$ctx = $docService->defaultContext($courseId ?: null);
-if ($smsStudentId > 0) {
-    $ctx = array_merge($ctx, $docService->contextFromSmsStudent($smsStudentId));
-} elseif ($prospectId > 0) {
-    $ctx = array_merge($ctx, $docService->contextFromProspect($prospectId));
-}
-
-$bodyDefault = document_merge_placeholders(
-    $docService->defaultBody($template, $ctx),
-    $ctx
+$built = $docService->buildComposeContext(
+    $courseId ?: null,
+    $smsStudentId ?: null,
+    $prospectId ?: null,
+    null
 );
+$ctx = $built['ctx'];
+$regMeta = $built['reg'];
+
+$bodyTemplate = $docService->bodyTemplate($template);
 $meta = $docService->templateMeta($template);
+$bodyDefault = $docService->defaultBody($template, $ctx);
 $subjectDefault = document_merge_placeholders($meta['subject'], $ctx);
 
 $students = $sms->listStudents();
 $prospects = $sms->listProspects(null, 'open');
 $courses = $sms->courses();
+
+$studyModeRaw = '';
+if (($ctx['study_mode'] ?? 'N/A') !== 'N/A') {
+    $studyModeRaw = $ctx['study_mode'];
+}
 
 $page_title = 'Compose — ' . $meta['label'];
 $breadcrumbs = [
@@ -47,6 +52,9 @@ ob_start();
 <form method="post" action="<?= url('admin/sms/documents/action.php') ?>" id="composeForm" target="_blank">
     <?php echo csrf_field(); ?>
     <input type="hidden" name="template" id="templateField" value="<?= htmlspecialchars($template) ?>">
+    <input type="hidden" name="sms_student_id" id="smsStudentIdField" value="<?= $smsStudentId > 0 ? (int) $smsStudentId : '' ?>">
+    <input type="hidden" name="reg_is_new" id="regIsNew" value="<?= !empty($regMeta['is_new']) ? '1' : '0' ?>">
+    <input type="hidden" name="reg_is_preview" id="regIsPreview" value="<?= !empty($regMeta['is_preview']) ? '1' : '0' ?>">
 
     <div class="row g-4">
         <div class="col-lg-4">
@@ -67,7 +75,7 @@ ob_start();
                     <div class="mb-3">
                         <label class="form-label">Fill from</label>
                         <select class="form-select" id="recipientSource">
-                            <option value="manual">Manual entry</option>
+                            <option value="manual" <?= $smsStudentId <= 0 && $prospectId <= 0 ? 'selected' : '' ?>>Manual entry</option>
                             <option value="student" <?= $smsStudentId > 0 ? 'selected' : '' ?>>SmS student</option>
                             <option value="prospect" <?= $prospectId > 0 ? 'selected' : '' ?>>Prospect</option>
                         </select>
@@ -97,29 +105,36 @@ ob_start();
                         </select>
                     </div>
 
-                    <div id="manualFields">
-                        <div class="mb-3">
-                            <label class="form-label">Recipient name</label>
-                            <input type="text" name="recipient_name" class="form-control" value="<?= htmlspecialchars($ctx['recipient_name']) ?>">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" name="email" class="form-control" value="<?= htmlspecialchars($ctx['email']) ?>" placeholder="For sending">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Registration no.</label>
-                            <input type="text" name="registration_no" class="form-control" value="<?= htmlspecialchars($ctx['registration_no']) ?>">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Phone</label>
-                            <input type="text" name="phone" class="form-control" value="<?= htmlspecialchars($ctx['phone']) ?>">
-                        </div>
+                    <div class="sync-field mb-3">
+                        <label class="form-label">Recipient name</label>
+                        <input type="text" name="recipient_name" id="recipientName" class="form-control sync-input" value="<?= htmlspecialchars($ctx['recipient_name']) ?>">
+                    </div>
+                    <div class="sync-field mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" id="recipientEmail" class="form-control sync-input" value="<?= htmlspecialchars($ctx['email']) ?>" placeholder="For sending">
+                    </div>
+                    <div class="sync-field mb-3">
+                        <label class="form-label">Registration no.</label>
+                        <input type="text" name="registration_no" id="registrationNo" class="form-control bg-light" value="<?= htmlspecialchars($ctx['registration_no']) ?>" readonly>
+                        <small class="text-muted" id="regNoHint">
+                            <?php if (!empty($regMeta['is_new']) && !empty($regMeta['is_preview'])): ?>
+                                Preview — new number issued when you download or email (select a course first).
+                            <?php elseif (!empty($regMeta['is_new']) === false && $ctx['registration_no'] !== ''): ?>
+                                Existing student — first enrollment number retained.
+                            <?php else: ?>
+                                Select a course to auto-generate DH/ABBR-0050/YY for new students.
+                            <?php endif; ?>
+                        </small>
+                    </div>
+                    <div class="sync-field mb-3">
+                        <label class="form-label">Phone</label>
+                        <input type="text" name="phone" id="recipientPhone" class="form-control sync-input" value="<?= htmlspecialchars($ctx['phone']) ?>">
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Course (for fee structure)</label>
-                        <select name="course_id" class="form-select" id="courseSelect">
-                            <option value="">— Optional —</option>
+                        <label class="form-label">Course</label>
+                        <select name="course_id" class="form-select sync-input" id="courseSelect">
+                            <option value="">— Select course —</option>
                             <?php foreach ($courses as $c): ?>
                             <option value="<?= (int) $c['id'] ?>" <?= $courseId === (int) $c['id'] ? 'selected' : '' ?>>
                                 <?= htmlspecialchars($c['title']) ?>
@@ -128,21 +143,32 @@ ob_start();
                         </select>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="sync-field mb-3">
                         <label class="form-label">Study mode</label>
-                        <input type="text" name="study_mode" class="form-control" value="<?= htmlspecialchars($ctx['study_mode']) ?>" placeholder="Online / Physical">
+                        <select name="study_mode" id="studyMode" class="form-select sync-input">
+                            <option value="" <?= $studyModeRaw === '' ? 'selected' : '' ?>>N/A (leave blank)</option>
+                            <option value="Online" <?= strcasecmp($studyModeRaw, 'Online') === 0 ? 'selected' : '' ?>>Online</option>
+                            <option value="Physical" <?= strcasecmp($studyModeRaw, 'Physical') === 0 ? 'selected' : '' ?>>Physical</option>
+                        </select>
                     </div>
 
-                    <div class="row g-2">
+                    <div class="row g-2 sync-field">
                         <div class="col-6">
                             <label class="form-label">Amount</label>
-                            <input type="text" name="amount" class="form-control" value="<?= htmlspecialchars($ctx['amount']) ?>">
+                            <input type="text" name="amount" id="amountField" class="form-control sync-input" value="<?= htmlspecialchars($ctx['amount']) ?>">
                         </div>
                         <div class="col-6">
                             <label class="form-label">Balance</label>
-                            <input type="text" name="balance" class="form-control" value="<?= htmlspecialchars($ctx['balance']) ?>">
+                            <input type="text" name="balance" id="balanceField" class="form-control sync-input" value="<?= htmlspecialchars($ctx['balance']) ?>">
                         </div>
                     </div>
+                    <input type="hidden" name="invoice_no" id="invoiceNo" value="<?= htmlspecialchars($ctx['invoice_no']) ?>">
+                    <input type="hidden" name="receipt_no" id="receiptNo" value="<?= htmlspecialchars($ctx['receipt_no']) ?>">
+                    <input type="hidden" name="payment_reference" id="paymentReference" value="<?= htmlspecialchars($ctx['payment_reference']) ?>">
+                    <input type="hidden" id="instituteName" value="<?= htmlspecialchars($ctx['institute_name']) ?>">
+                    <input type="hidden" id="feeOnline" value="<?= htmlspecialchars($ctx['fee_online']) ?>">
+                    <input type="hidden" id="feePhysical" value="<?= htmlspecialchars($ctx['fee_physical']) ?>">
+                    <input type="hidden" id="courseTitle" value="<?= htmlspecialchars($ctx['course_title']) ?>">
                 </div>
             </div>
 
@@ -155,7 +181,7 @@ ob_start();
                     <button type="submit" name="action" value="download" class="btn btn-dark">
                         <i class="fas fa-download me-1"></i> Download PDF
                     </button>
-                    <button type="submit" name="action" value="email" class="btn btn-primary" formaction="<?= url('admin/sms/documents/action.php') ?>" formtarget="_self">
+                    <button type="submit" name="action" value="email" class="btn btn-primary">
                         <i class="fas fa-paper-plane me-1"></i> Email to recipient
                     </button>
                     <a href="<?= url('admin/sms/documents/index.php') ?>" class="btn btn-link btn-sm text-muted">Back to templates</a>
@@ -167,22 +193,19 @@ ob_start();
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
                     <span>Document text</span>
-                    <small class="text-muted">Edit before preview / download / email</small>
+                    <small class="text-muted">Updates live as you edit fields on the left</small>
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label">Email subject</label>
-                        <input type="text" name="subject" class="form-control" value="<?= htmlspecialchars($subjectDefault) ?>">
+                        <input type="text" name="subject" id="subjectField" class="form-control" value="<?= htmlspecialchars($subjectDefault) ?>">
                     </div>
                     <div class="mb-2">
                         <label class="form-label">Body</label>
                         <textarea name="body" class="form-control font-monospace" rows="22" id="bodyField"><?= htmlspecialchars($bodyDefault) ?></textarea>
                     </div>
-                    <p class="small text-muted mb-0">
-                        Placeholders: <code>{date}</code> <code>{institute_name}</code> <code>{recipient_name}</code>
-                        <code>{registration_no}</code> <code>{course_title}</code> <code>{amount}</code>
-                        <code>{invoice_no}</code> <code>{receipt_no}</code>
-                    </p>
+                    <textarea id="bodyTemplate" class="d-none"><?= htmlspecialchars($bodyTemplate) ?></textarea>
+                    <textarea id="subjectTemplate" class="d-none"><?= htmlspecialchars($meta['subject']) ?></textarea>
                 </div>
             </div>
         </div>
@@ -191,54 +214,173 @@ ob_start();
 
 <script>
 (function () {
+    var contextUrl = <?= json_encode(url('admin/sms/documents/context.php')) ?>;
+    var composeUrl = <?= json_encode(url('admin/sms/documents/compose.php')) ?>;
+
     var templateSelect = document.getElementById('templateSelect');
     var templateField = document.getElementById('templateField');
     var recipientSource = document.getElementById('recipientSource');
     var studentPick = document.getElementById('studentPick');
     var prospectPick = document.getElementById('prospectPick');
-    var manualFields = document.getElementById('manualFields');
     var smsStudentSelect = document.getElementById('smsStudentSelect');
     var prospectSelect = document.getElementById('prospectSelect');
     var courseSelect = document.getElementById('courseSelect');
     var composeForm = document.getElementById('composeForm');
+    var bodyField = document.getElementById('bodyField');
+    var bodyTemplateEl = document.getElementById('bodyTemplate');
+    var subjectField = document.getElementById('subjectField');
+    var subjectTemplateEl = document.getElementById('subjectTemplate');
+    var regNoHint = document.getElementById('regNoHint');
+    var regIsNew = document.getElementById('regIsNew');
+    var regIsPreview = document.getElementById('regIsPreview');
+    var smsStudentIdField = document.getElementById('smsStudentIdField');
+    var fetchTimer = null;
 
-    function reloadWithParams() {
-        var params = new URLSearchParams();
-        params.set('template', templateSelect.value);
-        if (recipientSource.value === 'student' && smsStudentSelect.value) {
-            params.set('sms_student_id', smsStudentSelect.value);
-        } else if (recipientSource.value === 'prospect' && prospectSelect.value) {
-            params.set('prospect_id', prospectSelect.value);
-        }
-        if (courseSelect.value) {
-            params.set('course_id', courseSelect.value);
-        }
-        window.location = '<?= url('admin/sms/documents/compose.php') ?>?' + params.toString();
+    function displayVal(value, fallback) {
+        var v = (value || '').trim();
+        return v !== '' ? v : (fallback || '_________________________');
+    }
+
+    function studyModeVal() {
+        var v = (document.getElementById('studyMode').value || '').trim();
+        return v === '' ? 'N/A' : v;
+    }
+
+    function collectVars() {
+        return {
+            institute_name: document.getElementById('instituteName').value || '',
+            date: <?= json_encode(date('d F Y')) ?>,
+            recipient_name: displayVal(document.getElementById('recipientName').value),
+            registration_no: displayVal(document.getElementById('registrationNo').value),
+            course_title: displayVal(document.getElementById('courseTitle').value),
+            study_mode: studyModeVal(),
+            email: (document.getElementById('recipientEmail').value || '').trim(),
+            phone: (document.getElementById('recipientPhone').value || '').trim(),
+            fee_online: displayVal(document.getElementById('feeOnline').value, 'As advised'),
+            fee_physical: displayVal(document.getElementById('feePhysical').value, 'As advised'),
+            amount: displayVal(document.getElementById('amountField').value),
+            balance: displayVal(document.getElementById('balanceField').value),
+            payment_reference: displayVal(document.getElementById('paymentReference').value),
+            invoice_no: document.getElementById('invoiceNo').value || '',
+            receipt_no: document.getElementById('receiptNo').value || ''
+        };
+    }
+
+    function mergeTemplate(tpl, vars) {
+        var out = tpl;
+        Object.keys(vars).forEach(function (key) {
+            out = out.split('{' + key + '}').join(vars[key]);
+        });
+        return out.replace(/\{[a-z0-9_]+\}/gi, '');
+    }
+
+    function syncLetterFromFields() {
+        var vars = collectVars();
+        bodyField.value = mergeTemplate(bodyTemplateEl.value, vars);
+        subjectField.value = mergeTemplate(subjectTemplateEl.value, vars);
     }
 
     function syncRecipientUi() {
         var src = recipientSource.value;
         studentPick.classList.toggle('d-none', src !== 'student');
         prospectPick.classList.toggle('d-none', src !== 'prospect');
-        manualFields.classList.toggle('d-none', src !== 'manual');
+    }
+
+    function applyContext(data) {
+        if (!data || !data.ok) return;
+        var ctx = data.ctx || {};
+        document.getElementById('recipientName').value = ctx.recipient_name || '';
+        document.getElementById('recipientEmail').value = ctx.email || '';
+        document.getElementById('recipientPhone').value = ctx.phone || '';
+        document.getElementById('registrationNo').value = ctx.registration_no || '';
+        document.getElementById('amountField').value = ctx.amount || '';
+        document.getElementById('balanceField').value = ctx.balance || '';
+        document.getElementById('feeOnline').value = ctx.fee_online || '';
+        document.getElementById('feePhysical').value = ctx.fee_physical || '';
+        document.getElementById('courseTitle').value = ctx.course_title || '';
+        document.getElementById('invoiceNo').value = ctx.invoice_no || '';
+        document.getElementById('receiptNo').value = ctx.receipt_no || '';
+        document.getElementById('paymentReference').value = ctx.payment_reference || '';
+
+        var mode = (ctx.study_mode || 'N/A');
+        document.getElementById('studyMode').value = (mode === 'N/A' || mode === '') ? '' : mode;
+
+        if (data.body_template) bodyTemplateEl.value = data.body_template;
+        if (data.subject_template) subjectTemplateEl.value = data.subject_template;
+
+        if (data.reg) {
+            regIsNew.value = data.reg.is_new ? '1' : '0';
+            regIsPreview.value = data.reg.is_preview ? '1' : '0';
+            if (data.reg.is_new && data.reg.is_preview) {
+                regNoHint.textContent = 'Preview — this new number (from 0050) is issued once when you download or email.';
+            } else if (!data.reg.is_new && ctx.registration_no) {
+                regNoHint.textContent = 'Existing student — using their first enrollment registration number.';
+            } else if (!ctx.registration_no) {
+                regNoHint.textContent = 'Select a course to auto-generate DH/ABBR-0050/YY for new students.';
+            } else {
+                regNoHint.textContent = 'Registration number assigned.';
+            }
+        }
+
+        syncLetterFromFields();
+    }
+
+    function fetchContext() {
+        var params = new URLSearchParams();
+        params.set('template', templateField.value);
+        if (courseSelect.value) params.set('course_id', courseSelect.value);
+        if (recipientSource.value === 'student' && smsStudentSelect.value) {
+            params.set('sms_student_id', smsStudentSelect.value);
+            smsStudentIdField.value = smsStudentSelect.value;
+        } else {
+            smsStudentIdField.value = '';
+        }
+        if (recipientSource.value === 'prospect' && prospectSelect.value) {
+            params.set('prospect_id', prospectSelect.value);
+        }
+        var email = document.getElementById('recipientEmail').value.trim();
+        if (email) params.set('email', email);
+
+        fetch(contextUrl + '?' + params.toString(), { headers: { 'Accept': 'application/json' } })
+            .then(function (r) { return r.json(); })
+            .then(applyContext)
+            .catch(function () { syncLetterFromFields(); });
+    }
+
+    function scheduleFetch() {
+        clearTimeout(fetchTimer);
+        fetchTimer = setTimeout(fetchContext, 350);
     }
 
     templateSelect.addEventListener('change', function () {
-        templateField.value = templateSelect.value;
-        reloadWithParams();
+        var params = new URLSearchParams(window.location.search);
+        params.set('template', templateSelect.value);
+        window.location = composeUrl + '?' + params.toString();
     });
-    recipientSource.addEventListener('change', syncRecipientUi);
-    smsStudentSelect.addEventListener('change', reloadWithParams);
-    prospectSelect.addEventListener('change', reloadWithParams);
-    courseSelect.addEventListener('change', reloadWithParams);
+
+    recipientSource.addEventListener('change', function () {
+        syncRecipientUi();
+        scheduleFetch();
+    });
+    smsStudentSelect.addEventListener('change', scheduleFetch);
+    prospectSelect.addEventListener('change', scheduleFetch);
+    courseSelect.addEventListener('change', scheduleFetch);
+    document.getElementById('recipientEmail').addEventListener('change', scheduleFetch);
+
+    document.querySelectorAll('.sync-input').forEach(function (el) {
+        el.addEventListener('input', syncLetterFromFields);
+        el.addEventListener('change', function () {
+            if (el.id === 'courseSelect' || el.id === 'studyMode') {
+                scheduleFetch();
+            } else {
+                syncLetterFromFields();
+            }
+        });
+    });
 
     composeForm.addEventListener('submit', function (e) {
         var action = e.submitter && e.submitter.value;
-        if (action === 'email') {
-            composeForm.target = '_self';
-        } else {
-            composeForm.target = '_blank';
-        }
+        composeForm.target = (action === 'email') ? '_self' : '_blank';
     });
 
     syncRecipientUi();
