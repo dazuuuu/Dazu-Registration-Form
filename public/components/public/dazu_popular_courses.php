@@ -58,11 +58,11 @@ $showSearch = false;   // the homepage section is a showcase, not a search page
     <?php if (empty($popularCourses)): ?>
       <p class="text-slate-500 text-sm font-semibold py-8 text-center">No courses available yet. Add courses in the admin panel.</p>
     <?php else: ?>
-      <div id="dazu-home-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 text-left items-start mt-8">
+      <div id="dazu-home-courses-grid" class="dazu-courses-grid grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 text-left items-start mt-8">
         <?php foreach ($popularCourses as $course):
             $catId = (int) ($course['_display_category_id'] ?? 0);
-            // All (0) hides nothing, so the page is correct before JS runs.
             $hidden = ($activeCategoryId !== 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
+            $courseCardVariant = 'home';
         ?>
           <div class="dazu-course-list-item <?php echo $hidden; ?>"
                data-category-id="<?php echo $catId; ?>"
@@ -79,10 +79,10 @@ $showSearch = false;   // the homepage section is a showcase, not a search page
       </div>
     <?php endif; ?>
 
-    <div class="text-center mt-10">
+    <div class="text-center pt-10">
       <a href="<?php echo url('courses/index.php'); ?>"
-         class="inline-flex items-center justify-center gap-2 rounded-full px-8 py-4 bg-[#15A24A] hover:bg-[#128a3e] text-white text-xs font-extrabold uppercase tracking-widest shadow-lg shadow-green-200 transition-all hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-green-100">
-        View All Courses <span aria-hidden="true">&rarr;</span>
+         class="inline-flex items-center justify-center px-10 py-3.5 bg-[#15A24A] hover:bg-[#128a3e] text-white text-xs font-extrabold uppercase tracking-widest transition-colors">
+        View All Courses →
       </a>
     </div>
 
@@ -113,13 +113,6 @@ $showSearch = false;   // the homepage section is a showcase, not a search page
           </div>
         </div>
       <?php endforeach; ?>
-    </div>
-
-    <div class="hidden" aria-hidden="true">
-      <a href="<?php echo url('courses/index.php'); ?>"
-         class="inline-flex items-center justify-center px-10 py-3.5 bg-[#15A24A] hover:bg-[#128a3e] text-white text-xs font-extrabold uppercase tracking-widest transition-colors">
-        View All Courses →
-      </a>
     </div>
   </div>
 </section>

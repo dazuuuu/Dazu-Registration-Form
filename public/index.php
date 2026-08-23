@@ -34,7 +34,6 @@ include __DIR__ . '/components/public/dazu_popular_courses.php';
 include __DIR__ . '/components/public/dazu_campus_section.php';
 include __DIR__ . '/components/public/dazu_testimonials_section.php';
 include __DIR__ . '/components/public/dazu_cta_section.php';
-include __DIR__ . '/components/public/dazu_newsletter_section.php';
 $content = ob_get_clean();
 require_once __DIR__ . '/components/public/dazu_hero_helpers.php';
 $og_image = dazu_hero_image_url(
