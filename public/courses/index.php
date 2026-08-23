@@ -112,7 +112,6 @@ ob_start();
         <?php foreach ($courses as $course):
             $catId = (int) ($course['_display_category_id'] ?? 0);
             $hidden = ($activeCategoryId !== 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
-            $courseCardVariant = 'listing';
         ?>
           <div class="dazu-course-list-item <?php echo $hidden; ?>"
                data-category-id="<?php echo $catId; ?>"

@@ -1,0 +1,190 @@
+/**
+ * Copy-UI fallbacks — utilities missing from the prebuilt Tailwind bundle.
+ * Scoped overrides for hero, navbar, course cards, and apply page.
+ */
+
+/* ---- Brand arbitrary values ---- */
+.bg-\[\#15A24A\] { background-color: #15A24A !important; }
+.bg-\[\#128a3e\], .hover\:bg-\[\#128a3e\]:hover { background-color: #128a3e !important; }
+.bg-\[\#0F172A\] { background-color: #0F172A !important; }
+.bg-\[\#22C55E\] { background-color: #22C55E !important; }
+.text-\[\#15A24A\] { color: #15A24A !important; }
+.text-\[\#22C55E\] { color: #22C55E !important; }
+.border-\[\#15A24A\] { border-color: #15A24A !important; }
+.hover\:border-\[\#15A24A\]:hover { border-color: #15A24A !important; }
+.hover\:text-\[\#15A24A\]:hover { color: #15A24A !important; }
+.hover\:text-\[\#22C55E\]:hover { color: #22C55E !important; }
+.hover\:bg-\[\#15A24A\]\/5:hover { background-color: rgba(21, 162, 74, 0.05) !important; }
+
+/* ---- Typography ---- */
+.font-black { font-weight: 900 !important; }
+.text-\[7px\] { font-size: 7px !important; line-height: 1.2; }
+.text-\[8px\] { font-size: 8px !important; line-height: 1.2; }
+.text-\[9px\] { font-size: 9px !important; line-height: 1.3; }
+.text-\[10px\] { font-size: 10px !important; line-height: 1.4; }
+.text-\[11px\] { font-size: 11px !important; line-height: 1.4; }
+.border-slate-200\/60 { border-color: rgba(226, 232, 240, 0.6); }
+
+/* ---- Hero layout ---- */
+.min-h-\[85vh\] { min-height: 85vh; }
+.rounded-\[48px\] { border-radius: 48px; }
+.rounded-\[42px\] { border-radius: 42px; }
+.h-\[3px\] { height: 3px; }
+.leading-\[1\.15\] { line-height: 1.15; }
+.-rotate-6 { transform: rotate(-6deg); }
+.rotate-6 { transform: rotate(6deg); }
+.-translate-y-0\.5,
+.hover\:-translate-y-0\.5:hover { transform: translateY(-2px); }
+.bg-\[radial-gradient\(\#CBD5E1_2px\,transparent_2px\)\] {
+  background-image: radial-gradient(#CBD5E1 2px, transparent 2px);
+}
+.\[background-size\:12px_12px\] { background-size: 12px 12px; }
+.aspect-\[9\/16\] { aspect-ratio: 9 / 16; }
+.bg-slate-950\/90 { background-color: rgba(2, 6, 23, 0.9); }
+
+@media (min-width: 640px) {
+  .sm\:text-5xl { font-size: 3rem; line-height: 1.1; }
+  .sm\:h-48 { height: 12rem; }
+  .sm\:px-7 { padding-left: 1.75rem; padding-right: 1.75rem; }
+  .sm\:py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+  .sm\:text-xs { font-size: 0.75rem; line-height: 1rem; }
+  .sm\:gap-2 { gap: 0.5rem; }
+  .sm\:gap-5 { gap: 1.25rem; }
+  .sm\:w-\[360px\] { width: 360px; }
+  .sm\:h-\[360px\] { height: 360px; }
+}
+@media (min-width: 768px) {
+  .md\:text-6xl { font-size: 3.75rem; line-height: 1.1; }
+}
+@media (min-width: 1024px) {
+  .lg\:col-span-6 { grid-column: span 6 / span 6; }
+  .lg\:grid-cols-12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+}
+
+.w-\[280px\] { width: 280px; }
+.h-\[280px\] { height: 280px; }
+.bottom-\[-10px\] { bottom: -10px; }
+.border-white\/30 { border-color: rgba(255, 255, 255, 0.3); }
+.px-3\.5 { padding-left: 0.875rem; padding-right: 0.875rem; }
+@media (min-width: 640px) {
+  .sm\:gap-5 { gap: 1.25rem; }
+}
+
+/* Hero CTA buttons — ensure visible flex layout */
+#dazu-hero a[class*="bg-[#15A24A]"],
+#dazu-hero button[class*="border-[#15A24A]"],
+#dazu-hero a[class*="border-[#15A24A]"] {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 0.375rem;
+}
+#dazu-hero a[class*="bg-[#15A24A]"] {
+  background-color: #15A24A !important;
+  color: #fff !important;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+#dazu-hero a[class*="bg-[#15A24A]"]:hover { background-color: #128a3e !important; }
+#dazu-hero button[class*="border-[#15A24A]"],
+#dazu-hero a[class*="border-[#15A24A]"] {
+  border: 2px solid #15A24A !important;
+  color: #0f172a !important;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  background: transparent;
+}
+#dazu-hero button[class*="border-[#15A24A]"]:hover,
+#dazu-hero a[class*="border-[#15A24A]"]:hover {
+  background-color: rgba(21, 162, 74, 0.05) !important;
+}
+
+/* Hero green frame photo */
+#dazu-hero .relative.w-\[280px\] {
+  background-color: #15A24A;
+  border-radius: 48px;
+  transform: rotate(-6deg);
+}
+#dazu-hero .relative.w-\[280px\] > .absolute.inset-0.rounded-\[48px\] {
+  border-radius: 48px;
+  transform: rotate(6deg);
+  overflow: hidden;
+}
+
+/* Navbar link weight */
+nav.sticky a.relative.py-2 {
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+nav.sticky .text-2xl.font-extrabold {
+  font-weight: 800 !important;
+}
+nav.sticky .bg-\[\#15A24A\],
+nav.sticky a[class*="bg-[#15A24A]"] {
+  background-color: #15A24A !important;
+  color: #fff !important;
+  font-weight: 800;
+}
+nav.sticky a[class*="bg-[#15A24A]"]:hover {
+  background-color: #128a3e !important;
+}
+
+/* Course card Apply Now CTA */
+.dazu-course-card a[class*="bg-[#15A24A]"] {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: #15A24A !important;
+  color: #fff !important;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+}
+.dazu-course-card a[class*="bg-[#15A24A]"]:hover {
+  background-color: #128a3e !important;
+}
+
+/* Hero image hover */
+.group:hover .group-hover\:scale-105 { transform: scale(1.05); }
+.group-hover\:scale-105 { transition: transform 0.5s ease; }
+
+/* ---- Navbar ---- */
+nav.sticky .text-2xl { font-size: 1.5rem; line-height: 1.2; font-weight: 800; }
+nav.sticky .tracking-widest { letter-spacing: 0.1em; }
+
+/* ---- Course card listing buttons ---- */
+.dazu-course-card__actions {
+  display: flex;
+  gap: 0.375rem;
+  padding: 0 1.25rem 1.25rem;
+  width: 100%;
+}
+.dazu-course-card__actions a {
+  flex: 1;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-radius: 0.5rem;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color 0.2s, color 0.2s;
+}
+.dazu-course-card__actions .dazu-btn-apply {
+  background: #15A24A;
+  color: #fff;
+}
+.dazu-course-card__actions .dazu-btn-apply:hover { background: #128a3e; }
+.dazu-course-card__actions .dazu-btn-syllabus {
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+.dazu-course-card__actions .dazu-btn-syllabus:hover { background: #e2e8f0; }

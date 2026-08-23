@@ -51,7 +51,7 @@ $overviewVideoId = 'EUY5XaeDsCI';
               <span class="text-[#15A24A] font-extrabold text-sm tracking-wider uppercase"><?php echo htmlspecialchars($slide['badge']); ?></span>
               <span class="block h-[3px] w-12 bg-[#15A24A] mt-1 rounded-full"></span>
             </div>
-            <h1 class="text-2xl sm:text-5xl md:text-6xl font-extrabold text-slate-950 tracking-tight leading-[1.15]">
+            <h1 class="text-2xl sm:text-5xl md:text-6xl font-extrabold text-slate-950 tracking-tight leading-[1.15] font-sans">
               <span class="block"><?php echo htmlspecialchars($slide['title1']); ?></span>
               <span class="block text-[#15A24A]"><?php echo htmlspecialchars($slide['titleAccent']); ?></span>
             </h1>

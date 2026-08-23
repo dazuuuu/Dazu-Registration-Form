@@ -26,20 +26,26 @@ $isLoggedIn = !empty($_SESSION['logged_in']);
 $role = $_SESSION['role'] ?? '';
 
 $logoUrl = asset('images/logo/logo.png');
+$copyUiLogo = 'https://i.ibb.co/fzfZFtGc/223025.jpg';
 try {
-    if (!class_exists('Models\\SettingsModel')) {
-        require_once __DIR__ . '/../../../app/v1/models/SettingsModel.php';
+    if (!class_exists('SettingModel')) {
+        require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
     }
-    $settings = new \Models\SettingsModel();
+    if (!class_exists('Models\\Connection')) {
+        require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+    }
+    $pdo = \Models\Connection::getInstance()->getConnection();
+    $settings = new SettingModel($pdo);
     $storedLogo = trim((string) $settings->get('logo_path', ''));
     if ($storedLogo !== '') {
         $logoUrl = settings_asset_url($storedLogo);
+    } elseif (!is_file(public_path('images/logo/logo.png'))) {
+        $logoUrl = $copyUiLogo;
     }
 } catch (Throwable $e) {
-    // Fall back to bundled logo below.
-}
-if (!is_file(public_path('images/logo/logo.png')) && $logoUrl === asset('images/logo/logo.png')) {
-    $logoUrl = 'https://i.ibb.co/fzfZFtGc/223025.jpg';
+    if (!is_file(public_path('images/logo/logo.png'))) {
+        $logoUrl = $copyUiLogo;
+    }
 }
 
 $portalHref = url('auth/login.php');

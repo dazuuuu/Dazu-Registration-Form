@@ -1,13 +1,24 @@
 @import url('https://fonts.cdnfonts.com/css/nasalization');
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
 
-h1, h2, h3, h4, .font-display, .font-heroic {
-  font-family: "Nasalization Rg", "Nunito", ui-sans-serif, system-ui, sans-serif !important;
-  letter-spacing: 0.03em;
+/* Copy-UI body font — Fredoka */
+body, p, span, a, button, label, input, textarea, select, li, nav {
+  font-family: "Fredoka", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
 }
 
-body, p, span, a, button, label, input, textarea, select, li {
-  font-family: "Nunito", ui-sans-serif, system-ui, sans-serif;
+/* Section headings use display face */
+h2, h3, h4, .font-display, .font-heroic {
+  font-family: "Nasalization Rg", "Fredoka", "Plus Jakarta Sans", sans-serif !important;
+  letter-spacing: 0.02em;
+}
+
+/* Hero + navbar titles use Fredoka extrabold like the Vite Copy-UI */
+#dazu-hero h1,
+nav.sticky .text-2xl,
+nav.sticky a,
+nav.sticky button {
+  font-family: "Fredoka", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif !important;
+  letter-spacing: normal !important;
 }
 
 code, pre, .font-mono {
@@ -47,7 +58,6 @@ code, pre, .font-mono {
   color: #166534;
 }
 
-/* Video testimonial cards — fixed sizes (Tailwind arbitrary classes not in build) */
 #testimonials .dazu-vcard {
   width: 160px;
   flex-shrink: 0;
