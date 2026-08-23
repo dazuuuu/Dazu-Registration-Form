@@ -19,13 +19,27 @@ class StudentEmailTemplate {
                         '<p>Hi ' . self::e($data['full_name']) . ',</p>'
                         . '<p>Thank you for registering at <strong>' . self::e($data['company_name']) . '</strong>. '
                         . 'We have received your application for <strong>' . self::e($data['course_title']) . '</strong>.</p>'
+                        . (!empty($data['registration_no'])
+                            ? '<p><strong>Your registration number:</strong> ' . self::e($data['registration_no']) . '</p>'
+                            : '')
                         . '<div style="background:#f1f6f5;border-radius:8px;padding:16px;margin:16px 0;">'
                         . '<strong>What happens next?</strong><br>'
-                        . (!empty($data['is_free'])
-                            ? 'This course is free — our team will review your application and documents.'
-                            : 'Our team will verify your payment reference and review your documents.')
-                        . ' You will receive another email once your registration is approved or if we need more information.'
+                        . 'Our team will review your enrollment. Your admission letter is attached to this email when available.'
                         . '</div>'
+                        . self::courseBlock($data)
+                    ),
+                ];
+
+            case 'admission_letter':
+                return [
+                    'Your admission letter — ' . ($data['company_name'] ?? 'Dazu Hub Institute'),
+                    self::layout(
+                        'Admission Letter',
+                        '<p>Dear ' . self::e($data['full_name']) . ',</p>'
+                        . '<p>Thank you for enrolling in <strong>' . self::e($data['course_title'] ?? '') . '</strong> '
+                        . 'at <strong>' . self::e($data['company_name']) . '</strong>.</p>'
+                        . '<p>Your registration number is <strong>' . self::e($data['registration_no'] ?? '') . '</strong>.</p>'
+                        . '<p>Please find your provisional admission letter attached. Present it at the admissions office for date confirmation and official signing.</p>'
                         . self::courseBlock($data)
                     ),
                 ];

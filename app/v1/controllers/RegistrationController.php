@@ -61,10 +61,14 @@ class RegistrationController {
         try {
             $pdo->beginTransaction();
 
-            // Step 1: claim sequence atomically
-            $seq = $this->courseModel->claimNextSequence((int) $reg['course_id']);
-            $year = date('Y');
-            $regNo = sprintf('DH-%s%02d/%s', $reg['abbreviation'], $seq, $year);
+            // Step 1: use enrollment registration number if already assigned
+            if (!empty($reg['registration_no'])) {
+                $regNo = $reg['registration_no'];
+            } else {
+                $seq = $this->courseModel->claimNextSequence((int) $reg['course_id']);
+                require_once __DIR__ . '/../helpers/registration_number.php';
+                $regNo = registration_number_format((string) $reg['abbreviation'], max(50, $seq));
+            }
 
             // Step 2: create the user account — temporary password, student will be prompted to reset
             $tempPassword = bin2hex(random_bytes(8)); // 16-char hex; admin shares manually

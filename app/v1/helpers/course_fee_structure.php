@@ -202,8 +202,9 @@ if (!function_exists('course_fee_structure_render_pdf')) {
         } elseif (is_file(dirname(__DIR__, 2) . '/vendor/autoload.php')) {
             $autoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
         }
-        if ($autoload) {
-            require_once $autoload;
+        require_once __DIR__ . '/vendor_autoload.php';
+        if (!safe_composer_autoload()) {
+            return null;
         }
         if (!class_exists('Dompdf\\Dompdf')) {
             return null;

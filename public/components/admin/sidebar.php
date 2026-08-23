@@ -19,7 +19,7 @@ function isStoreActive($current_dir) {
 
 // New System group: registration, courses, tutors, payments
 function isSystemActive($current_dir) {
-    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'payments', 'resources'], true);
+    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'payments', 'resources', 'class-schedules', 'documents'], true);
 }
 
 // Courses sub-section: paid (admin/courses) and free (admin/free-courses) are fully
@@ -136,6 +136,16 @@ function isSmsSection($section) {
                            class="nav-link <?php echo $current_dir == 'payments' ? 'active' : ''; ?>">
                             <i class="fas fa-money-bill-wave"></i>
                             <span>Payments</span>
+                        </a>
+                        <a href="<?php echo url('admin/class-schedules/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'class-schedules' ? 'active' : ''; ?>">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Class Schedules</span>
+                        </a>
+                        <a href="<?php echo url('admin/documents/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'documents' ? 'active' : ''; ?>">
+                            <i class="fas fa-file-signature"></i>
+                            <span>Documents</span>
                         </a>
                         <a href="<?php echo url('admin/resources/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'resources' ? 'active' : ''; ?>">

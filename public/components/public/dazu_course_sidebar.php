@@ -3,6 +3,7 @@
 if (!isset($course)) return;
 require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
 require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
+require_once __DIR__ . '/../../../app/v1/helpers/class_schedule.php';
 $category = dazu_course_category($course['abbreviation'] ?? '');
 $syllabus = dazu_course_syllabus($course);
 $requirements = dazu_course_requirements($course);
@@ -88,6 +89,38 @@ $enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => n
 
     <?php $fee_compact = false; include __DIR__ . '/dazu_course_fee_breakdown.php'; ?>
     <?php include __DIR__ . '/dazu_course_brochure_cta.php'; ?>
+
+    <?php
+    $onlineSched = class_schedule_entries('online');
+    $physicalSched = class_schedule_entries('physical');
+    if ($onlineSched || $physicalSched):
+    ?>
+    <div>
+      <span class="block text-slate-400 uppercase tracking-widest text-[9px] font-extrabold mb-2">Class schedule</span>
+      <?php if ($onlineSched): ?>
+        <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Online</p>
+        <div class="border border-slate-200 rounded-xl overflow-hidden mb-3">
+          <?php foreach ($onlineSched as $row): ?>
+            <div class="px-3 py-2 text-xs font-medium text-slate-700 border-b border-slate-100 last:border-b-0">
+              <strong><?php echo htmlspecialchars($row['day_label']); ?></strong>
+              <span class="text-slate-500"> · <?php echo htmlspecialchars($row['time_label']); ?></span>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+      <?php if ($physicalSched): ?>
+        <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Physical</p>
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+          <?php foreach ($physicalSched as $row): ?>
+            <div class="px-3 py-2 text-xs font-medium text-slate-700 border-b border-slate-100 last:border-b-0">
+              <strong><?php echo htmlspecialchars($row['day_label']); ?></strong>
+              <span class="text-slate-500"> · <?php echo htmlspecialchars($row['time_label']); ?></span>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
 
     <div>
       <span class="block text-slate-400 uppercase tracking-widest text-[9px] font-extrabold mb-2">What you will learn</span>

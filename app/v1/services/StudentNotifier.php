@@ -81,6 +81,28 @@ class StudentNotifier {
         return $this->send($reg['email'], $reg['full_name'], 'registration_received', $this->baseData($reg));
     }
 
+    public function sendAdmissionLetter(array $reg, string $filePath, array $course = []): array
+    {
+        if (!$this->enabled) {
+            error_log('[StudentNotifier] admission letter mail skipped — SMTP not enabled');
+            return ['ok' => false, 'message' => 'mail disabled', 'skipped' => true];
+        }
+
+        $data = $this->baseData(array_merge($reg, $course));
+        [$subject, $html] = StudentEmailTemplate::render('admission_letter', $data);
+
+        $sendCfg = $this->mailCfg;
+        $sendCfg['enabled'] = true;
+        $mailer = $this->mailer ?? new Mailer($sendCfg);
+
+        if ($filePath !== '' && is_file($filePath)) {
+            $fileName = ($reg['registration_no'] ?? 'admission') . '-letter.html';
+            return $mailer->sendWithAttachment($reg['email'], $reg['full_name'], $subject, $html, $filePath, $fileName);
+        }
+
+        return $mailer->send($reg['email'], $reg['full_name'], $subject, $html);
+    }
+
     public function sendRegistrationApproved(array $reg, string $tempPassword): array {
         $data = $this->baseData($reg);
         $data['temp_password'] = $tempPassword;

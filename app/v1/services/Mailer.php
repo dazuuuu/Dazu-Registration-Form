@@ -35,7 +35,10 @@ class Mailer {
                 continue;
             }
             if (substr($path, -12) === 'autoload.php') {
-                require_once $path;
+                require_once __DIR__ . '/vendor_autoload.php';
+                if (!safe_composer_autoload()) {
+                    continue;
+                }
             } else {
                 $dir = dirname($path);
                 require_once $dir . '/Exception.php';

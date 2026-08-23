@@ -26,6 +26,8 @@ $applyUrl = dazu_course_apply_url($course);
 $duration = $months > 0 ? $months . ' Month' . ($months === 1 ? '' : 's') : 'Flexible';
 $abbr = strtoupper(trim($course['abbreviation'] ?? ''));
 $cardId = (int) ($course['id'] ?? 0);
+$onlineScheduleSummary = class_schedule_summary('online');
+$physicalScheduleSummary = class_schedule_summary('physical');
 ?>
 <article class="dazu-course-card group relative bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col justify-between h-full cursor-pointer hover:border-[#15A24A] transition-all duration-300 select-none shadow-sm"
          onclick="window.location.href='<?php echo htmlspecialchars($applyUrl); ?>'">
@@ -78,6 +80,20 @@ $cardId = (int) ($course['id'] ?? 0);
         <div class="flex items-center gap-1.5 text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-full px-2.5 py-1 w-fit">
           <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
           <?php echo htmlspecialchars($enrollWindow['label']); ?>
+        </div>
+      <?php endif; ?>
+      <?php if ($onlineScheduleSummary !== '' || $physicalScheduleSummary !== ''): ?>
+        <div class="space-y-1.5 pt-1">
+          <?php if ($onlineScheduleSummary !== ''): ?>
+            <div class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+              <span class="text-slate-400 uppercase tracking-wider">Online:</span> <?php echo htmlspecialchars($onlineScheduleSummary); ?>
+            </div>
+          <?php endif; ?>
+          <?php if ($physicalScheduleSummary !== ''): ?>
+            <div class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5">
+              <span class="text-slate-400 uppercase tracking-wider">Physical:</span> <?php echo htmlspecialchars($physicalScheduleSummary); ?>
+            </div>
+          <?php endif; ?>
         </div>
       <?php endif; ?>
     </div>
