@@ -108,7 +108,7 @@ ob_start();
         <p class="text-slate-500 text-sm mt-1">Add courses in the admin panel or check back soon.</p>
       </div>
     <?php else: ?>
-      <div id="dazu-courses-grid" class="dazu-courses-grid grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 items-start">
+      <div id="dazu-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
         <?php foreach ($courses as $course):
             $catId = (int) ($course['_display_category_id'] ?? 0);
             $hidden = ($activeCategoryId !== 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
