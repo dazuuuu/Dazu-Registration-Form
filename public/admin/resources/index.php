@@ -149,7 +149,7 @@ ob_start();
             <div class="card-header fw-semibold"><i class="fas fa-file-pdf me-2"></i>Upload ID Card or Certificate</div>
             <div class="card-body">
                 <p class="text-muted small">Upload PDF documents for a student or tutor. They will appear on their Resources page for download.</p>
-                <form method="POST" enctype="multipart/form-data">
+                <form method="POST" enctype="multipart/form-data" id="uploadDocumentForm">
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="action" value="upload_document">
                     <div class="mb-3">
@@ -226,11 +226,21 @@ ob_start();
         }
     }
     userType.addEventListener('change', syncUserSelect);
-    studentUserId.addEventListener('change', function () {
+    function syncRegistrationId() {
+        if (userType.value !== 'student' || !studentUserId.value) {
+            registrationId.value = '';
+            return;
+        }
         var opt = studentUserId.options[studentUserId.selectedIndex];
         registrationId.value = opt ? (opt.getAttribute('data-reg') || '') : '';
-    });
+    }
+    studentUserId.addEventListener('change', syncRegistrationId);
+    var uploadForm = document.getElementById('uploadDocumentForm');
+    if (uploadForm) {
+        uploadForm.addEventListener('submit', syncRegistrationId);
+    }
     syncUserSelect();
+    syncRegistrationId();
 })();
 </script>
 

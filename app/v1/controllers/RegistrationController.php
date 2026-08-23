@@ -127,9 +127,15 @@ class RegistrationController {
             $approvedReg['registration_no'] = $regNo;
 
             $studentCtrl = new StudentController();
-            $paymentResult = $studentCtrl->recordInitialPayment($approvedReg, $adminId);
-            if (!empty($paymentResult['ok'])) {
-                $this->studentModel()->unlockPortal($registrationId);
+            try {
+                $paymentResult = $studentCtrl->recordInitialPayment($approvedReg, $adminId);
+                if (!empty($paymentResult['ok'])) {
+                    $this->studentModel()->unlockPortal($registrationId);
+                } else {
+                    error_log('[RegistrationController::approve] Initial payment failed for #' . $registrationId . ': ' . ($paymentResult['error'] ?? 'unknown'));
+                }
+            } catch (\Throwable $paymentError) {
+                error_log('[RegistrationController::approve] Initial payment error for #' . $registrationId . ': ' . $paymentError->getMessage());
             }
 
             $progressModel = new \Models\ProgressModel($pdo);

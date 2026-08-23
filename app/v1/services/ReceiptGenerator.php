@@ -29,23 +29,23 @@ class ReceiptGenerator {
             . '<table style="width:100%;font-size:14px;border-collapse:collapse;">'
             . self::row('Receipt No.', $receiptNo)
             . self::row('Date', date('d M Y H:i', strtotime($payment['reviewed_at'] ?? $payment['paid_at'] ?? 'now')))
-            . self::row('Student ID', $reg['registration_no'] ?? '—')
-            . self::row('Student Name', $reg['full_name'])
-            . self::row('Email', $reg['email'])
-            . self::row('Phone', $reg['phone'])
-            . self::row('Course', $reg['course_title'])
-            . self::row('Payment Plan', self::planLabel($reg['payment_plan']))
+            . self::row('Student ID', $reg['registration_no'] ?? null)
+            . self::row('Student Name', $reg['full_name'] ?? null)
+            . self::row('Email', $reg['email'] ?? null)
+            . self::row('Phone', $reg['phone'] ?? null)
+            . self::row('Course', $reg['course_title'] ?? null)
+            . self::row('Payment Plan', self::planLabel($reg['payment_plan'] ?? null))
             . '</table>'
             . '<hr style="border:none;border-top:1px solid #eee;margin:20px 0;">'
             . '<table style="width:100%;font-size:14px;border-collapse:collapse;">'
-            . self::row('Payer Reference', $payment['payer_reference'])
-            . ($payment['mpesa_code'] ? self::row('M-Pesa Code', $payment['mpesa_code']) : '')
-            . self::row('Amount Paid', '<strong style="color:#0D9488;">' . format_price($payment['amount']) . '</strong>')
+            . self::row('Payer Reference', $payment['payer_reference'] ?? null)
+            . (!empty($payment['mpesa_code']) ? self::row('M-Pesa Code', $payment['mpesa_code']) : '')
+            . self::row('Amount Paid', '<strong style="color:#0D9488;">' . format_price($payment['amount']) . '</strong>', true)
             . self::row('Total Paid to Date', format_price($totalPaid))
             . self::row('Total Course Cost', format_price($totalOwed))
             . self::row('Balance Remaining', $balance > 0
                 ? '<strong style="color:#dc2626;">' . format_price($balance) . '</strong>'
-                : '<strong style="color:#16a34a;">Fully Paid</strong>')
+                : '<strong style="color:#16a34a;">Fully Paid</strong>', true)
             . '</table>'
             . '</div>'
             . '<div style="background:#f8f9fa;padding:16px 24px;text-align:center;font-size:12px;color:#666;">'
@@ -61,15 +61,24 @@ class ReceiptGenerator {
         return $regFee + (float) ($reg['course_fee'] ?? 0);
     }
 
-    private static function planLabel(string $plan): string {
+    private static function planLabel(?string $plan): string {
+        if ($plan === null || trim($plan) === '') {
+            return '—';
+        }
         return ['monthly' => 'Monthly Installments', '3months' => '3-Month Plan', 'full' => 'Full Payment'][$plan] ?? $plan;
     }
 
-    private static function row(string $label, string $value): string {
+    private static function row(string $label, ?string $value, bool $allowHtml = false): string {
+        $display = $allowHtml ? (string) $value : self::e(self::displayValue($value));
         return '<tr>'
             . '<td style="padding:8px 0;color:#666;width:45%;">' . self::e($label) . '</td>'
-            . '<td style="padding:8px 0;text-align:right;">' . $value . '</td>'
+            . '<td style="padding:8px 0;text-align:right;">' . $display . '</td>'
             . '</tr>';
+    }
+
+    private static function displayValue(?string $value): string {
+        $text = trim((string) ($value ?? ''));
+        return $text !== '' ? $text : '—';
     }
 
     private static function e($v): string {
