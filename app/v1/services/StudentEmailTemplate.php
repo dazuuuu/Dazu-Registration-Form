@@ -44,6 +44,35 @@ class StudentEmailTemplate {
                     ),
                 ];
 
+            case 'enrollment_package':
+                $attachmentList = '';
+                foreach ($data['attachment_names'] ?? [] as $name) {
+                    if ($name === '') {
+                        continue;
+                    }
+                    $attachmentList .= '<li>' . self::e($name) . '</li>';
+                }
+                return [
+                    'Your enrollment documents — ' . ($data['company_name'] ?? 'Dazu Hub Institute'),
+                    self::layout(
+                        'Enrollment Confirmed',
+                        '<p>Dear ' . self::e($data['full_name']) . ',</p>'
+                        . '<p>Thank you for enrolling in <strong>' . self::e($data['course_title'] ?? $data['title'] ?? '') . '</strong> '
+                        . 'at <strong>' . self::e($data['company_name']) . '</strong>.</p>'
+                        . '<p>Your registration number is <strong>' . self::e($data['registration_no'] ?? '') . '</strong>.</p>'
+                        . '<p>Please find the following documents attached to this email:</p>'
+                        . ($attachmentList !== ''
+                            ? '<ul style="margin:12px 0 16px;padding-left:20px;">' . $attachmentList . '</ul>'
+                            : '<p>Your enrollment documents are attached.</p>')
+                        . '<div style="background:#f1f6f5;border-radius:8px;padding:16px;margin:16px 0;">'
+                        . '<strong>What happens next?</strong><br>'
+                        . 'Present your admission letter at the admissions office for date confirmation and official signing. '
+                        . 'Review the fee structure for payment details.'
+                        . '</div>'
+                        . self::courseBlock($data)
+                    ),
+                ];
+
             case 'registration_approved':
                 return [
                     'Welcome to ' . ($data['company_name'] ?? 'Dazu Hub Institute') . ' — your account is ready',

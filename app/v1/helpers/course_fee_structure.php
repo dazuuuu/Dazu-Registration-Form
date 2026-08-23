@@ -101,6 +101,35 @@ if (!function_exists('course_brochure_url')) {
     }
 }
 
+if (!function_exists('course_brochure_absolute_path')) {
+    function course_brochure_absolute_path(array $course): ?string
+    {
+        $path = trim((string) ($course['brochure_path'] ?? ''));
+        if ($path === '') {
+            return null;
+        }
+        if (preg_match('#^https?://#i', $path)) {
+            return null;
+        }
+        if (!function_exists('public_path')) {
+            require_once __DIR__ . '/../config/paths.php';
+        }
+        $rel = ltrim($path, '/');
+        $candidates = [
+            public_path($rel),
+        ];
+        if (defined('PROJECT_ROOT')) {
+            $candidates[] = PROJECT_ROOT . '/public/' . $rel;
+        }
+        foreach ($candidates as $abs) {
+            if (is_string($abs) && is_file($abs)) {
+                return $abs;
+            }
+        }
+        return null;
+    }
+}
+
 if (!function_exists('course_fee_structure_download_url')) {
     function course_fee_structure_download_url(int $courseId, bool $download = true): string
     {
@@ -196,12 +225,6 @@ if (!function_exists('course_fee_structure_render_pdf')) {
             . course_fee_structure_document_html($course)
             . '</body></html>';
 
-        $autoload = null;
-        if (defined('PROJECT_ROOT') && is_file(PROJECT_ROOT . '/vendor/autoload.php')) {
-            $autoload = PROJECT_ROOT . '/vendor/autoload.php';
-        } elseif (is_file(dirname(__DIR__, 2) . '/vendor/autoload.php')) {
-            $autoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
-        }
         require_once __DIR__ . '/vendor_autoload.php';
         if (!safe_composer_autoload()) {
             return null;

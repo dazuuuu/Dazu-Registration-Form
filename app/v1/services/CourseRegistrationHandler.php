@@ -76,11 +76,13 @@ class CourseRegistrationHandler
                 return;
             }
 
-            require_once __DIR__ . '/StudentNotifier.php';
-            $notifier = new \StudentNotifier($this->pdo, null, true);
-            $emailResult = $notifier->sendAdmissionLetter($reg, $letter['path'] ?? '', $course);
+            $fullCourse = $this->courseModel->getById((int) ($course['id'] ?? $reg['course_id'] ?? 0)) ?? $course;
+
+            require_once __DIR__ . '/EnrollmentEmailService.php';
+            $emailService = new \EnrollmentEmailService($this->pdo);
+            $emailResult = $emailService->send($reg, $fullCourse, $letter['path'] ?? '');
             if (empty($emailResult['ok'])) {
-                error_log("[registration] Admission email failed for #{$registrationId}: " . ($emailResult['message'] ?? 'Unknown error'));
+                error_log("[registration] Enrollment email failed for #{$registrationId}: " . ($emailResult['message'] ?? 'Unknown error'));
             }
         } catch (\Throwable $e) {
             error_log("[registration] Admission letter/email error for #{$registrationId}: " . $e->getMessage());
