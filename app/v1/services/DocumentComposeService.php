@@ -34,6 +34,11 @@ class DocumentComposeService
             'title' => 'Official Receipt',
             'subject' => 'Payment receipt {receipt_no} — {institute_name}',
         ],
+        'remembrance_note' => [
+            'label' => 'Remembrance Note',
+            'title' => 'Fee Balance Reminder',
+            'subject' => 'Reminder — outstanding school fees — {institute_name}',
+        ],
     ];
 
     private \PDO $pdo;
@@ -51,6 +56,79 @@ class DocumentComposeService
     public function templateMeta(string $slug): ?array
     {
         return self::TEMPLATES[$slug] ?? null;
+    }
+
+    /** Which fee fields appear on the compose sidebar (amount is always course school fees). */
+    public function templateFieldUi(string $slug): array
+    {
+        return [
+            'show_school_fees'  => in_array($slug, ['invoice', 'receipt'], true),
+            'show_amount_paid'  => $slug === 'receipt',
+            'admission_auto_fees' => $slug === 'admission_letter',
+        ];
+    }
+
+    /**
+     * Apply course school fees, amount paid, and balance to context.
+     *
+     * @return array<string, string>
+     */
+    public function applyCourseFees(array $ctx, ?int $courseId, ?int $smsStudentId = null): array
+    {
+        require_once __DIR__ . '/../helpers/course_fee_structure.php';
+        require_once __DIR__ . '/../models/CourseModel.php';
+
+        if ($courseId !== null && $courseId > 0) {
+            $course = (new \Models\CourseModel($this->pdo))->getById($courseId);
+            if ($course) {
+                $fees = course_school_fees($course);
+                if (($ctx['course_title'] ?? '') === '') {
+                    $ctx['course_title'] = (string) ($course['title'] ?? '');
+                }
+                $ctx['fee_online'] = $fees['online'] > 0 ? format_price($fees['online']) : '';
+                $ctx['fee_physical'] = $fees['physical'] > 0 ? format_price($fees['physical']) : '';
+
+                $mode = strtolower(trim((string) ($ctx['study_mode'] ?? '')));
+                if ($mode === 'n/a') {
+                    $mode = '';
+                }
+                if ($mode === 'physical' && $fees['physical'] > 0) {
+                    $ctx['school_fees'] = format_price($fees['physical']);
+                } elseif ($mode === 'online' && $fees['online'] > 0) {
+                    $ctx['school_fees'] = format_price($fees['online']);
+                } else {
+                    $catalog = course_catalog_fee($course);
+                    $ctx['school_fees'] = $catalog > 0 ? format_price($catalog) : '';
+                }
+            }
+        }
+
+        $ctx['school_fees'] = trim((string) ($ctx['school_fees'] ?? ''));
+        $ctx['amount'] = $ctx['school_fees'];
+
+        if ($smsStudentId !== null && $smsStudentId > 0) {
+            require_once __DIR__ . '/SmsModuleService.php';
+            $student = (new SmsModuleService($this->pdo))->getStudent($smsStudentId);
+            if ($student) {
+                $cost = (float) ($student['cost'] ?? 0);
+                $paid = (float) ($student['paid'] ?? 0);
+                if ($ctx['school_fees'] === '' && $cost > 0) {
+                    $ctx['school_fees'] = format_price($cost);
+                    $ctx['amount'] = $ctx['school_fees'];
+                }
+                $ctx['amount_paid'] = format_price($paid);
+                $ctx['balance'] = $cost > $paid ? format_price($cost - $paid) : format_price(0);
+            }
+        }
+
+        if (!isset($ctx['amount_paid'])) {
+            $ctx['amount_paid'] = '';
+        }
+        if (!isset($ctx['balance'])) {
+            $ctx['balance'] = '';
+        }
+
+        return $ctx;
     }
 
     /**
@@ -223,6 +301,9 @@ class DocumentComposeService
             $ctx['registration_no'] = $reg['registration_no'];
         }
 
+        $resolvedCourseId = (int) ($courseId ?: (int) ($ctx['course_id'] ?? 0));
+        $ctx = $this->applyCourseFees($ctx, $resolvedCourseId > 0 ? $resolvedCourseId : null, $smsStudentId);
+
         return ['ctx' => $this->normalizeContext($ctx), 'reg' => $reg];
     }
 
@@ -245,22 +326,17 @@ class DocumentComposeService
             'phone'            => '',
             'fee_online'       => '',
             'fee_physical'     => '',
+            'school_fees'      => '',
             'invoice_no'       => 'INV-' . date('Y') . '-' . str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT),
             'receipt_no'       => 'RCP-' . date('Y') . '-' . str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT),
             'amount'           => '',
+            'amount_paid'      => '',
             'balance'          => '',
             'payment_reference'=> '',
         ];
 
         if ($courseId) {
-            $cm = new \Models\CourseModel($this->pdo);
-            $course = $cm->getById($courseId);
-            if ($course) {
-                $fees = course_school_fees($course);
-                $ctx['course_title'] = (string) ($course['title'] ?? '');
-                $ctx['fee_online'] = $fees['online'] > 0 ? format_price($fees['online']) : '';
-                $ctx['fee_physical'] = $fees['physical'] > 0 ? format_price($fees['physical']) : '';
-            }
+            $ctx = $this->applyCourseFees($ctx, $courseId);
         }
 
         return $ctx;
@@ -296,12 +372,8 @@ class DocumentComposeService
                 $ctx['study_mode'] = ucfirst($mode);
             }
         }
-        $cost = (float) ($student['cost'] ?? 0);
-        $paid = (float) ($student['paid'] ?? 0);
-        $ctx['amount'] = $paid > 0 ? format_price($paid) : ($cost > 0 ? format_price($cost) : '');
-        $ctx['balance'] = $cost > $paid ? format_price($cost - $paid) : format_price(0);
 
-        return $ctx;
+        return $this->applyCourseFees($ctx, (int) ($student['course_id'] ?? 0) ?: null, $smsStudentId);
     }
 
     /**
@@ -351,10 +423,10 @@ class DocumentComposeService
         );
         $stmt->execute([':rid' => $registrationId]);
         $paid = (float) $stmt->fetchColumn();
-        $ctx['amount'] = $paid > 0 ? format_price($paid) : format_price($total);
+        $ctx['amount_paid'] = format_price($paid);
         $ctx['balance'] = format_price(max(0, $total - $paid));
 
-        return $ctx;
+        return $this->applyCourseFees($ctx, (int) ($reg['course_id'] ?? 0) ?: null);
     }
 
     public function bodyTemplate(string $slug): string
@@ -366,7 +438,8 @@ class DocumentComposeService
                     . "RE: LETTER OF ADMISSION\n\n"
                     . "We are pleased to inform you that you have been provisionally admitted to {course_title} at {institute_name}.\n\n"
                     . "Registration Number: {registration_no}\n"
-                    . "Study Mode: {study_mode}\n\n"
+                    . "Study Mode: {study_mode}\n"
+                    . "School Fees: {school_fees}\n\n"
                     . "Please present this letter at the admissions office for verification, date confirmation, and official signing.\n\n"
                     . "Yours faithfully,\n\n"
                     . "_________________________\n"
@@ -407,8 +480,7 @@ class DocumentComposeService
                     . "Bill To:\n{recipient_name}\n{email}\n{phone}\n\n"
                     . "Description: Tuition — {course_title}\n"
                     . "Registration: {registration_no}\n\n"
-                    . "Amount Due: {amount}\n"
-                    . "Balance: {balance}\n\n"
+                    . "School Fees Due: {school_fees}\n\n"
                     . "Payment is due within fourteen (14) days of this invoice date. "
                     . "Please quote the invoice number when making payment.\n\n"
                     . "Yours faithfully,\n\n"
@@ -422,9 +494,27 @@ class DocumentComposeService
                     . "Received from: {recipient_name}\n"
                     . "Registration: {registration_no}\n"
                     . "Course: {course_title}\n\n"
-                    . "Amount Received: {amount}\n"
+                    . "School Fees: {school_fees}\n"
+                    . "Amount Received: {amount_paid}\n"
                     . "Payment Reference: {payment_reference}\n\n"
                     . "This receipt confirms payment received. Please retain for your records.\n\n"
+                    . "Yours faithfully,\n\n"
+                    . "_________________________\n"
+                    . "Finance Office\n"
+                    . "{institute_name}";
+
+            case 'remembrance_note':
+                return "Date: {date}\n\n"
+                    . "Dear {recipient_name},\n\n"
+                    . "RE: REMINDER — OUTSTANDING SCHOOL FEES\n\n"
+                    . "This is a courteous reminder regarding your enrollment in {course_title} at {institute_name}.\n\n"
+                    . "Registration Number: {registration_no}\n"
+                    . "Total School Fees: {school_fees}\n"
+                    . "Amount Paid to Date: {amount_paid}\n"
+                    . "Outstanding Balance: {balance}\n\n"
+                    . "Please arrange to settle the outstanding balance at your earliest convenience. "
+                    . "If you have already made payment, kindly disregard this notice and forward your payment confirmation to the finance office.\n\n"
+                    . "For payment enquiries, contact the finance office.\n\n"
                     . "Yours faithfully,\n\n"
                     . "_________________________\n"
                     . "Finance Office\n"
@@ -447,12 +537,16 @@ class DocumentComposeService
         if ($ctx['fee_physical'] === '') {
             $ctx['fee_physical'] = 'As advised';
         }
-        if ($ctx['amount'] === '') {
-            $ctx['amount'] = '_________________________';
+        if ($ctx['school_fees'] === '') {
+            $ctx['school_fees'] = 'As advised';
+        }
+        if ($ctx['amount_paid'] === '') {
+            $ctx['amount_paid'] = '_________________________';
         }
         if ($ctx['balance'] === '') {
             $ctx['balance'] = '_________________________';
         }
+        $ctx['amount'] = $ctx['school_fees'];
         if ($ctx['payment_reference'] === '') {
             $ctx['payment_reference'] = '_________________________';
         }

@@ -36,38 +36,33 @@ $ctx['recipient_name'] = trim((string) ($_POST['recipient_name'] ?? $ctx['recipi
 $ctx['email'] = trim((string) ($_POST['email'] ?? $ctx['email']));
 $ctx['phone'] = trim((string) ($_POST['phone'] ?? $ctx['phone']));
 $ctx['study_mode'] = trim((string) ($_POST['study_mode'] ?? $ctx['study_mode']));
-$ctx['amount'] = trim((string) ($_POST['amount'] ?? $ctx['amount']));
-$ctx['balance'] = trim((string) ($_POST['balance'] ?? $ctx['balance']));
 $ctx['payment_reference'] = trim((string) ($_POST['payment_reference'] ?? $ctx['payment_reference']));
 $ctx['invoice_no'] = trim((string) ($_POST['invoice_no'] ?? $ctx['invoice_no']));
 $ctx['receipt_no'] = trim((string) ($_POST['receipt_no'] ?? $ctx['receipt_no']));
 
-$claimReg = $regIsNew && ($regIsPreview || trim((string) ($_POST['registration_no'] ?? '')) === '');
+$ctx = $docService->applyCourseFees(
+    $ctx,
+    $courseId > 0 ? $courseId : null,
+    $smsStudentId > 0 ? $smsStudentId : null
+);
+
+if ($template === 'receipt') {
+    $postedPaid = trim((string) ($_POST['amount_paid'] ?? ''));
+    if ($postedPaid !== '') {
+        $ctx['amount_paid'] = $postedPaid;
+    }
+}
+
+$claimReg = $regIsNew && $regIsPreview;
 $regResolved = $docService->resolveRegistrationNumber(
     $courseId,
     $smsStudentId > 0 ? $smsStudentId : null,
     $ctx['email'],
-    $claimReg && in_array($action, ['download', 'email', 'preview'], true)
+    $claimReg && in_array($action, ['download', 'email'], true)
 );
 $ctx['registration_no'] = $regResolved['registration_no'] !== ''
     ? $regResolved['registration_no']
     : trim((string) ($_POST['registration_no'] ?? ''));
-
-if ($courseId > 0) {
-    require_once __DIR__ . '/../../../../app/v1/helpers/course_fee_structure.php';
-    require_once __DIR__ . '/../../../../app/v1/models/CourseModel.php';
-    $course = (new \Models\CourseModel($pdo))->getById($courseId);
-    if ($course) {
-        $fees = course_school_fees($course);
-        $ctx['course_title'] = (string) ($course['title'] ?? $ctx['course_title']);
-        if ($fees['online'] > 0) {
-            $ctx['fee_online'] = format_price($fees['online']);
-        }
-        if ($fees['physical'] > 0) {
-            $ctx['fee_physical'] = format_price($fees['physical']);
-        }
-    }
-}
 
 $built = $docService->buildDocument($template, $body, $ctx);
 if (empty($built['ok'])) {

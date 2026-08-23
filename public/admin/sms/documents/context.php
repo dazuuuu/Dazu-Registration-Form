@@ -28,11 +28,13 @@ $built = $docService->buildComposeContext(
 
 $ctx = $built['ctx'];
 $meta = $docService->templateMeta($template);
+$fieldUi = $docService->templateFieldUi($template);
 
 echo json_encode([
     'ok' => true,
     'ctx' => $ctx,
     'reg' => $built['reg'],
+    'field_ui' => $fieldUi,
     'body_template' => $docService->bodyTemplate($template),
     'subject_template' => $meta['subject'],
     'body' => $docService->defaultBody($template, $ctx),

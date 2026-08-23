@@ -28,6 +28,7 @@ $regMeta = $built['reg'];
 
 $bodyTemplate = $docService->bodyTemplate($template);
 $meta = $docService->templateMeta($template);
+$fieldUi = $docService->templateFieldUi($template);
 $bodyDefault = $docService->defaultBody($template, $ctx);
 $subjectDefault = document_merge_placeholders($meta['subject'], $ctx);
 
@@ -152,23 +153,32 @@ ob_start();
                         </select>
                     </div>
 
-                    <div class="row g-2 sync-field">
-                        <div class="col-6">
-                            <label class="form-label">Amount</label>
-                            <input type="text" name="amount" id="amountField" class="form-control sync-input" value="<?= htmlspecialchars($ctx['amount']) ?>">
-                        </div>
-                        <div class="col-6">
-                            <label class="form-label">Balance</label>
-                            <input type="text" name="balance" id="balanceField" class="form-control sync-input" value="<?= htmlspecialchars($ctx['balance']) ?>">
-                        </div>
+                    <div id="schoolFeesWrap" class="sync-field mb-3<?= empty($fieldUi['show_school_fees']) ? ' d-none' : '' ?>">
+                        <label class="form-label">School fees</label>
+                        <input type="text" id="schoolFeesDisplay" class="form-control bg-light" value="<?= htmlspecialchars($ctx['school_fees']) ?>" readonly>
+                        <small class="text-muted">Auto-filled from course fees (online/physical by study mode).</small>
                     </div>
+
+                    <div id="amountPaidWrap" class="sync-field mb-3<?= empty($fieldUi['show_amount_paid']) ? ' d-none' : '' ?>">
+                        <label class="form-label">Amount received</label>
+                        <input type="text" name="amount_paid" id="amountPaidField" class="form-control sync-input" value="<?= htmlspecialchars($ctx['amount_paid']) ?>" placeholder="Payment amount">
+                    </div>
+
+                    <div id="admissionFeesHint" class="small text-muted mb-3<?= empty($fieldUi['admission_auto_fees']) ? ' d-none' : '' ?>">
+                        School fees are included automatically in the admission letter from the selected course.
+                    </div>
+
                     <input type="hidden" name="invoice_no" id="invoiceNo" value="<?= htmlspecialchars($ctx['invoice_no']) ?>">
                     <input type="hidden" name="receipt_no" id="receiptNo" value="<?= htmlspecialchars($ctx['receipt_no']) ?>">
                     <input type="hidden" name="payment_reference" id="paymentReference" value="<?= htmlspecialchars($ctx['payment_reference']) ?>">
+                    <input type="hidden" id="schoolFees" value="<?= htmlspecialchars($ctx['school_fees']) ?>">
+                    <input type="hidden" id="balanceHidden" value="<?= htmlspecialchars($ctx['balance']) ?>">
+                    <input type="hidden" id="amountPaidHidden" value="<?= htmlspecialchars($ctx['amount_paid']) ?>">
                     <input type="hidden" id="instituteName" value="<?= htmlspecialchars($ctx['institute_name']) ?>">
                     <input type="hidden" id="feeOnline" value="<?= htmlspecialchars($ctx['fee_online']) ?>">
                     <input type="hidden" id="feePhysical" value="<?= htmlspecialchars($ctx['fee_physical']) ?>">
                     <input type="hidden" id="courseTitle" value="<?= htmlspecialchars($ctx['course_title']) ?>">
+                    <input type="hidden" id="fieldUiJson" value="<?= htmlspecialchars(json_encode($fieldUi), ENT_QUOTES, 'UTF-8') ?>">
                 </div>
             </div>
 
@@ -246,7 +256,16 @@ ob_start();
         return v === '' ? 'N/A' : v;
     }
 
+    function amountPaidVal() {
+        var paidField = document.getElementById('amountPaidField');
+        if (paidField && !paidField.closest('.d-none')) {
+            return displayVal(paidField.value);
+        }
+        return displayVal(document.getElementById('amountPaidHidden').value);
+    }
+
     function collectVars() {
+        var schoolFees = displayVal(document.getElementById('schoolFees').value, 'As advised');
         return {
             institute_name: document.getElementById('instituteName').value || '',
             date: <?= json_encode(date('d F Y')) ?>,
@@ -258,12 +277,30 @@ ob_start();
             phone: (document.getElementById('recipientPhone').value || '').trim(),
             fee_online: displayVal(document.getElementById('feeOnline').value, 'As advised'),
             fee_physical: displayVal(document.getElementById('feePhysical').value, 'As advised'),
-            amount: displayVal(document.getElementById('amountField').value),
-            balance: displayVal(document.getElementById('balanceField').value),
+            school_fees: schoolFees,
+            amount: schoolFees,
+            amount_paid: amountPaidVal(),
+            balance: displayVal(document.getElementById('balanceHidden').value),
             payment_reference: displayVal(document.getElementById('paymentReference').value),
             invoice_no: document.getElementById('invoiceNo').value || '',
             receipt_no: document.getElementById('receiptNo').value || ''
         };
+    }
+
+    function applyFieldUi(fieldUi) {
+        if (!fieldUi) {
+            try {
+                fieldUi = JSON.parse(document.getElementById('fieldUiJson').value || '{}');
+            } catch (e) {
+                fieldUi = {};
+            }
+        } else {
+            document.getElementById('fieldUiJson').value = JSON.stringify(fieldUi);
+        }
+
+        document.getElementById('schoolFeesWrap').classList.toggle('d-none', !fieldUi.show_school_fees);
+        document.getElementById('amountPaidWrap').classList.toggle('d-none', !fieldUi.show_amount_paid);
+        document.getElementById('admissionFeesHint').classList.toggle('d-none', !fieldUi.admission_auto_fees);
     }
 
     function mergeTemplate(tpl, vars) {
@@ -293,8 +330,14 @@ ob_start();
         document.getElementById('recipientEmail').value = ctx.email || '';
         document.getElementById('recipientPhone').value = ctx.phone || '';
         document.getElementById('registrationNo').value = ctx.registration_no || '';
-        document.getElementById('amountField').value = ctx.amount || '';
-        document.getElementById('balanceField').value = ctx.balance || '';
+        document.getElementById('schoolFees').value = ctx.school_fees || '';
+        document.getElementById('schoolFeesDisplay').value = ctx.school_fees || '';
+        document.getElementById('balanceHidden').value = ctx.balance || '';
+        document.getElementById('amountPaidHidden').value = ctx.amount_paid || '';
+        var amountPaidField = document.getElementById('amountPaidField');
+        if (amountPaidField) {
+            amountPaidField.value = ctx.amount_paid || '';
+        }
         document.getElementById('feeOnline').value = ctx.fee_online || '';
         document.getElementById('feePhysical').value = ctx.fee_physical || '';
         document.getElementById('courseTitle').value = ctx.course_title || '';
@@ -307,6 +350,7 @@ ob_start();
 
         if (data.body_template) bodyTemplateEl.value = data.body_template;
         if (data.subject_template) subjectTemplateEl.value = data.subject_template;
+        if (data.field_ui) applyFieldUi(data.field_ui);
 
         if (data.reg) {
             regIsNew.value = data.reg.is_new ? '1' : '0';
@@ -384,6 +428,7 @@ ob_start();
     });
 
     syncRecipientUi();
+    applyFieldUi();
 })();
 </script>
 <?php

@@ -280,7 +280,7 @@ ob_start();
                 </p>
                 <?php if ($regCount === 0): ?>
                 <form method="POST" action="<?php echo url('admin/free-courses/index.php'); ?>"
-                      onsubmit="return confirm('Permanently delete &quot;<?php echo htmlspecialchars(addslashes($course['title'])); ?>&quot;? This cannot be undone.');">
+                      onsubmit="return confirm(<?php echo json_encode('Permanently delete "' . $course['title'] . '"? This cannot be undone.'); ?>);">
                     <?php echo csrf_field(); ?>
                     <input type="hidden" name="delete_id" value="<?php echo (int) $id; ?>">
                     <button type="submit" class="btn btn-outline-danger">

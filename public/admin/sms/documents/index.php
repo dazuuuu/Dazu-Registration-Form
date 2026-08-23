@@ -53,7 +53,8 @@ ob_start();
         <ul class="mb-0">
             <li>Logo defaults to <code>assets/images/logo/logo.png</code> (upload under Settings → Branding to override).</li>
             <li>Documents use official black-and-white letterhead — no coloured branding.</li>
-            <li>Use placeholders like <code>{recipient_name}</code>, <code>{registration_no}</code>, <code>{course_title}</code>, <code>{date}</code>, <code>{amount}</code> in the body text.</li>
+            <li>Use placeholders like <code>{recipient_name}</code>, <code>{registration_no}</code>, <code>{course_title}</code>, <code>{school_fees}</code>, <code>{amount_paid}</code>, <code>{balance}</code>, <code>{date}</code> in the body text.</li>
+            <li>School fees are filled automatically from the course. Remembrance notes include outstanding balance from SmS student records.</li>
             <li>Email attachments are sent as PDF when Dompdf is installed.</li>
         </ul>
     </div>
