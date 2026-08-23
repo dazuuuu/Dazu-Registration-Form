@@ -2,6 +2,7 @@
 /** Course card — ported from Dazu-frontend Home.tsx */
 if (!isset($course) || !function_exists('dazu_course_apply_url')) {
     require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
+    require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
 }
 $img = dazu_course_image_url($course);
 $ratingVal = (float) ($course['rating'] ?? 4.8);
@@ -11,7 +12,7 @@ $weeks = (int) ($course['weeks_of_study'] ?? 0);
 $hours = (int) ($course['hours_of_study'] ?? 0);
 $schedule = trim((string) ($course['study_schedule'] ?? ''));
 $isFree = !empty($course['is_free']);
-$fee = number_format((float) ($course['course_fee'] ?? 0));
+$fee = number_format(course_catalog_fee($course));
 $enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => null];
 $title = htmlspecialchars($course['title'] ?? '');
 $overview = htmlspecialchars($course['overview'] ?? $course['description'] ?? '');
@@ -90,7 +91,6 @@ $cardId = (int) ($course['id'] ?? 0);
           <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
         </a>
       </div>
-      <?php if (!$isFree): $fee_compact = true; include __DIR__ . '/dazu_course_fee_breakdown.php'; endif; ?>
     </div>
   </div>
 </article>

@@ -12,15 +12,19 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
 }
 
 $pending_migration_count = 0;
+$pending_update_count = 0;
 $pending_migration_error = null;
 if (isset($pdo)) {
     try {
         require_once __DIR__ . '/../../../app/v1/services/MigrationService.php';
+        require_once __DIR__ . '/../../../app/v1/services/UpdatePackageService.php';
         $pending_migration_count = (new MigrationService($pdo))->pendingCount();
+        $pending_update_count = (new UpdatePackageService($pdo))->pendingCount();
     } catch (Throwable $e) {
         $pending_migration_error = $e->getMessage();
     }
 }
+$pending_system_count = $pending_migration_count + $pending_update_count;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -653,12 +657,19 @@ if (isset($pdo)) {
                 </div>
             <?php endif; ?>
 
-            <?php if ($pending_migration_count > 0): ?>
+            <?php if ($pending_system_count > 0): ?>
                 <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2" role="alert">
                     <div>
                         <i class="fas fa-download me-2"></i>
                         <strong>System update available.</strong>
-                        <?php echo number_format($pending_migration_count); ?> database migration<?php echo $pending_migration_count === 1 ? '' : 's'; ?> pending.
+                        <?php if ($pending_migration_count > 0): ?>
+                            <?php echo number_format($pending_migration_count); ?> migration<?php echo $pending_migration_count === 1 ? '' : 's'; ?>
+                        <?php endif; ?>
+                        <?php if ($pending_migration_count > 0 && $pending_update_count > 0): ?> and <?php endif; ?>
+                        <?php if ($pending_update_count > 0): ?>
+                            <?php echo number_format($pending_update_count); ?> feature update<?php echo $pending_update_count === 1 ? '' : 's'; ?>
+                        <?php endif; ?>
+                        pending.
                     </div>
                     <a class="btn btn-sm btn-warning" href="<?php echo url('admin/system/updates.php'); ?>">
                         <i class="fas fa-database me-1"></i> Update now

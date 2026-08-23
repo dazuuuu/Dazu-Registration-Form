@@ -30,8 +30,6 @@ if (!$course) {
     header('Location: ' . url('admin/courses/index.php'));
     exit();
 }
-// Free and paid courses are separate admin pages, not one form with a toggle —
-// send a free course here (e.g. an old bookmark) to its own edit page instead.
 if (!empty($course['is_free'])) {
     header('Location: ' . url('admin/free-courses/edit.php?id=' . $id));
     exit();
@@ -44,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Security check failed, please try again.';
     } else {
         $coverPath = null;
+        $brochurePath = null;
 
         if (!empty($_FILES['cover_image']['name'])) {
             $upload = upload_image(
@@ -58,33 +57,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if (!$error && !empty($_FILES['brochure']['name'])) {
+            $upload = upload_pdf(
+                $_FILES['brochure'],
+                __DIR__ . '/../../uploads/courses/brochures',
+                'uploads/courses/brochures'
+            );
+            if (!$upload['ok']) {
+                $error = $upload['error'];
+            } else {
+                $brochurePath = $upload['path'];
+            }
+        }
+
         if (!$error) {
-            $feeItems = course_fee_structure_from_post($_POST);
-            $feeTotal = course_fee_structure_total($feeItems);
-            $result = $courseModel->update($id, [
-                'title'           => $_POST['title'] ?? '',
-                'abbreviation'    => $_POST['abbreviation'] ?? '',
-                'category_id'     => $_POST['category_id'] ?? null,
-                'description'     => $_POST['description'] ?? '',
-                'requirements'    => $_POST['requirements'] ?? '',
-                'overview'        => $_POST['overview'] ?? '',
-                'duration_months' => $_POST['duration_months'] ?? 0,
-                'weeks_of_study'  => $_POST['weeks_of_study'] ?? null,
-                'days_of_study'   => $_POST['days_of_study'] ?? null,
-                'hours_of_study'  => $_POST['hours_of_study'] ?? null,
-                'study_schedule'  => $_POST['study_schedule'] ?? null,
-                'course_fee'      => $feeTotal > 0 ? $feeTotal : ($_POST['course_fee'] ?? 0),
-                'fee_structure_items' => $feeItems,
-                'is_free'         => false,
-                'cover_image'     => $coverPath,
-            ]);
+            $schoolFees = course_school_fees_from_post($_POST);
+            $payload = [
+                'title'               => $_POST['title'] ?? '',
+                'abbreviation'        => $_POST['abbreviation'] ?? '',
+                'category_id'         => $_POST['category_id'] ?? null,
+                'description'         => $_POST['description'] ?? '',
+                'requirements'        => $_POST['requirements'] ?? '',
+                'overview'            => $_POST['overview'] ?? '',
+                'duration_months'     => $_POST['duration_months'] ?? 0,
+                'weeks_of_study'      => $_POST['weeks_of_study'] ?? null,
+                'days_of_study'       => $_POST['days_of_study'] ?? null,
+                'hours_of_study'      => $_POST['hours_of_study'] ?? null,
+                'study_schedule'      => $_POST['study_schedule'] ?? null,
+                'school_fee_online'   => $schoolFees['online'] > 0 ? $schoolFees['online'] : null,
+                'school_fee_physical' => $schoolFees['physical'] > 0 ? $schoolFees['physical'] : null,
+                'is_free'             => false,
+                'cover_image'         => $coverPath,
+            ];
+            if ($brochurePath !== null) {
+                $payload['brochure_path'] = $brochurePath;
+            }
+            $result = $courseModel->update($id, $payload);
 
             if ($result['ok']) {
                 $notified = 0;
                 try {
-                    // No job queue in this codebase — sending is synchronous, so give it
-                    // room to work through the whole student roster before PHP's default
-                    // 30s execution limit kills the request mid-broadcast.
                     set_time_limit(0);
                     require_once __DIR__ . '/../../../app/v1/services/CourseUpdateNotifier.php';
                     $updatedCourse = $courseModel->getById($id);
@@ -102,10 +114,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $error = $result['error'];
         }
-        // Refresh local copy so the form reflects what was just attempted
         $course = array_merge($course, $_POST);
     }
 }
+
+$school_fees = $_SERVER['REQUEST_METHOD'] === 'POST'
+    ? course_school_fees_from_post($_POST)
+    : course_school_fees($course);
+$school_fees = [
+    'online' => $school_fees['online'] > 0 ? (string) (int) $school_fees['online'] : '',
+    'physical' => $school_fees['physical'] > 0 ? (string) (int) $school_fees['physical'] : '',
+];
 
 $page_title = 'Edit Course';
 $breadcrumbs = [
@@ -185,23 +204,13 @@ ob_start();
                     <input type="text" name="study_schedule" class="form-control" maxlength="150"
                            placeholder="e.g. Mon, Wed, Fri evenings" value="<?php echo htmlspecialchars($course['study_schedule'] ?? ''); ?>">
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Course Fee (KSh)</label>
-                    <input type="number" name="course_fee" class="form-control" min="1" step="1" required
-                           value="<?php echo htmlspecialchars($course['course_fee']); ?>">
-                    <small class="text-muted">Filled automatically from the fee structure total when line items are entered.</small>
-                </div>
 
-                <?php
-                $fee_items = $_SERVER['REQUEST_METHOD'] === 'POST'
-                    ? course_fee_structure_from_post($_POST)
-                    : course_fee_structure_items($course);
-                include __DIR__ . '/../../components/admin/course_fee_structure_fields.php';
-                ?>
+                <?php include __DIR__ . '/../../components/admin/course_school_fees_fields.php'; ?>
+
                 <?php if ((int) $course['id'] > 0): ?>
                     <div class="col-12">
-                        <a href="<?php echo htmlspecialchars(course_fee_structure_download_url((int) $course['id'], true)); ?>" class="btn btn-sm btn-outline-success">
-                            <i class="fas fa-download me-1"></i> Download fee structure
+                        <a href="<?php echo htmlspecialchars(course_fee_structure_download_url((int) $course['id'], true)); ?>" class="btn btn-sm btn-outline-dark" target="_blank" rel="noopener">
+                            <i class="fas fa-download me-1"></i> Preview fee structure document
                         </a>
                     </div>
                 <?php endif; ?>
@@ -216,6 +225,18 @@ ob_start();
                     <?php endif; ?>
                     <input type="file" name="cover_image" class="form-control" accept="image/jpeg,image/png,image/webp">
                     <small class="text-muted">Leave blank to keep the current image.</small>
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Course brochure (PDF)</label>
+                    <?php if (!empty($course['brochure_path'])): ?>
+                        <div class="mb-2">
+                            <a href="<?php echo htmlspecialchars(course_brochure_url($course)); ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-file-pdf me-1"></i> Current brochure
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                    <input type="file" name="brochure" class="form-control" accept="application/pdf">
+                    <small class="text-muted">Upload a new PDF to replace the current brochure. Leave blank to keep the existing file.</small>
                 </div>
 
                 <div class="col-12">

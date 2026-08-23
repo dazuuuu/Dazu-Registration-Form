@@ -2,6 +2,7 @@
 /** Left column — selected program details. Requires enriched $course */
 if (!isset($course)) return;
 require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
+require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
 $category = dazu_course_category($course['abbreviation'] ?? '');
 $syllabus = dazu_course_syllabus($course);
 $requirements = dazu_course_requirements($course);
@@ -10,7 +11,7 @@ $weeks = (int) ($course['weeks_of_study'] ?? 0);
 $hours = (int) ($course['hours_of_study'] ?? 0);
 $schedule = trim((string) ($course['study_schedule'] ?? ''));
 $isFree = !empty($course['is_free']);
-$fee = number_format((float) ($course['course_fee'] ?? 0));
+$fee = number_format(course_catalog_fee($course));
 $enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => null];
 ?>
 <div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-8" id="learn">
@@ -86,6 +87,7 @@ $enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => n
     </div>
 
     <?php $fee_compact = false; include __DIR__ . '/dazu_course_fee_breakdown.php'; ?>
+    <?php include __DIR__ . '/dazu_course_brochure_cta.php'; ?>
 
     <div>
       <span class="block text-slate-400 uppercase tracking-widest text-[9px] font-extrabold mb-2">What you will learn</span>
