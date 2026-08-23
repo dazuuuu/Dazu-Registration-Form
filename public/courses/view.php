@@ -85,11 +85,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $share_url = course_share_url((int) $course['id']);
 $share_title = 'Apply for ' . $course['title'] . ' at Dazu hub Institute';
+$extra_head = '<style>
+  .dazu-course-preview{background:#fff}.dazu-course-preview .preview-media{aspect-ratio:16/9;border-radius:16px;overflow:hidden;background:#0f172a;position:relative}.dazu-course-preview .preview-media img{width:100%;height:100%;object-fit:cover}.dazu-course-preview .preview-media:after{content:"▶";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:#ffffff33;border:1px solid #ffffff88;color:white;font-size:24px}.dazu-course-preview .lg\:col-span-8{min-width:0}@media(min-width:1024px){.dazu-course-preview .course-enrol-column{position:sticky;top:1rem}.dazu-course-preview .course-enrol-column>div{border-radius:0;border-width:0 0 0 1px;background:#f8fafc;min-height:calc(100vh - 6rem)}} 
+</style>';
 
 ob_start();
 ?>
-<div class="bg-slate-50 min-h-screen py-10 md:py-16">
-  <div class="max-w-[1280px] mx-auto px-4 md:px-8">
+<div class="dazu-course-preview bg-white min-h-screen">
+  <div class="max-w-[1720px] mx-auto px-4 md:px-8 py-10 md:py-12">
     <a href="<?php echo url('courses/index.php'); ?>" class="mb-8 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-green-600">
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
       Back to Courses
@@ -98,10 +101,11 @@ ob_start();
     <?php $input_id = 'viewShareUrl'; include __DIR__ . '/../components/public/dazu_course_share_bar.php'; ?>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-      <div class="lg:col-span-5 space-y-6">
+      <div class="lg:col-span-8 space-y-6">
+        <div class="preview-media"><img src="<?php echo htmlspecialchars(dazu_course_image_url($course)); ?>" alt="<?php echo htmlspecialchars($course['title']); ?>"></div>
         <?php include __DIR__ . '/../components/public/dazu_course_sidebar.php'; ?>
       </div>
-      <div class="lg:col-span-7">
+      <div class="lg:col-span-4 course-enrol-column">
         <?php $pfx = 'view'; include __DIR__ . '/../components/public/dazu_admission_form.php'; ?>
       </div>
     </div>
