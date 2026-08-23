@@ -97,8 +97,15 @@ class Mailer {
                 $mail->addReplyTo($replyToEmail, $replyToName ?? '');
             }
 
-            // Embed the logo so it shows without a public image URL: reference cid:ismanlogo.
+            // Embed institute logo (Settings → Branding or assets/images/logo/logo.png).
+            require_once __DIR__ . '/../helpers/site_logo.php';
             $logo = $this->cfg['logo_path'] ?? '';
+            if (!$logo || !is_file($logo)) {
+                $resolved = site_logo_absolute_path();
+                if ($resolved) {
+                    $logo = $resolved;
+                }
+            }
             if ($logo && is_file($logo)) {
                 $mail->addEmbeddedImage($logo, 'ismanlogo', 'logo.png');
             }

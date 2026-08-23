@@ -206,8 +206,8 @@ if (!function_exists('course_fee_structure_document_html')) {
             . '<td style="padding:8px 0;text-align:right;font-weight:600;color:#171717;font-size:13px;">'
             . htmlspecialchars($duration) . '</td></tr>';
 
-        return '<div style="font-family:Georgia,\'Times New Roman\',serif;max-width:640px;margin:0 auto;border:2px solid #171717;background:#ffffff;">'
-            . '<div style="padding:32px 32px 24px;text-align:center;border-bottom:4px solid #15A24A;">'
+        return '<div style="font-family:Georgia,\'Times New Roman\',serif;max-width:640px;margin:0 auto;border:1px solid #171717;background:#ffffff;">'
+            . '<div style="padding:32px 32px 24px;text-align:center;border-bottom:2px solid #171717;">'
             . '<img src="' . htmlspecialchars($logo) . '" alt="Institution logo" style="max-height:72px;max-width:200px;object-fit:contain;margin-bottom:16px;filter:grayscale(100%);">'
             . '<h1 style="margin:0;font-size:22px;font-weight:700;color:#171717;letter-spacing:.04em;text-transform:uppercase;">'
             . htmlspecialchars($instituteName) . '</h1>'
