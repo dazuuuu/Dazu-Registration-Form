@@ -111,7 +111,6 @@ ob_start();
       <div id="dazu-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
         <?php foreach ($courses as $course):
             $catId = (int) ($course['_display_category_id'] ?? 0);
-            // All (0) hides nothing, so the page is correct before JS runs.
             $hidden = ($activeCategoryId !== 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
         ?>
           <div class="dazu-course-list-item <?php echo $hidden; ?>"

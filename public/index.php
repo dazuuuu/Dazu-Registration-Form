@@ -6,6 +6,7 @@ $page_description = 'Hands-on software development, cybersecurity, data analytic
 require_once __DIR__ . '/../app/v1/init.php';
 require_once __DIR__ . '/../app/v1/helpers/dazu_theme.php';
 require_once __DIR__ . '/../app/v1/helpers/testimonials.php';
+require_once __DIR__ . '/../app/v1/helpers/partners.php';
 require_once __DIR__ . '/../app/v1/models/Connection.php';
 require_once __DIR__ . '/../app/v1/models/CourseModel.php';
 
@@ -26,12 +27,14 @@ $popularCourses = $popularSection['courses'];
 $testimonialData = testimonial_load_for_homepage($pdo);
 $textTestimonials = $testimonialData['text'];
 $videoTestimonials = $testimonialData['video'];
+$partners = partners_load_for_homepage($pdo);
 
 ob_start();
 include __DIR__ . '/components/public/dazu_hero.php';
 include __DIR__ . '/components/public/dazu_stats_bar.php';
 include __DIR__ . '/components/public/dazu_popular_courses.php';
 include __DIR__ . '/components/public/dazu_campus_section.php';
+include __DIR__ . '/components/public/dazu_partners_section.php';
 include __DIR__ . '/components/public/dazu_testimonials_section.php';
 include __DIR__ . '/components/public/dazu_cta_section.php';
 include __DIR__ . '/components/public/dazu_newsletter_section.php';

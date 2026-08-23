@@ -48,6 +48,7 @@ if (!function_exists('dazu_asset_v')) {
   <link rel="icon" type="image/jpeg" href="https://i.ibb.co/fzfZFtGc/223025.jpg">
   <link rel="stylesheet" href="<?php echo htmlspecialchars(dazu_tailwind_css()); ?>">
   <link rel="stylesheet" href="<?php echo dazu_asset_v('css/dazu-frontend-theme.css'); ?>">
+  <link rel="stylesheet" href="<?php echo dazu_asset_v('css/dazu-copy-ui.css'); ?>">
   <style>svg.dazu-icon{width:1.25rem;height:1.25rem;flex-shrink:0;max-width:100%}</style>
   <?php if (!empty($extra_head)) echo $extra_head; ?>
 </head>

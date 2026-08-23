@@ -1,406 +1,172 @@
 <?php
-/**
- * Homepage hero — two-slide carousel.
- *
- * Images live in public/assets/images/hero/ — drop in hero-1.* and hero-2.*
- * (jpg/jpeg/png/webp/avif all work). Missing files fall back to the bundled
- * student photo, so the page never renders a broken image.
- *
- * Slide 2 plays a video instead of a still image — drop hero-2.mp4 and/or
- * hero-2.webm into public/assets/videos/hero/. Until a file is there it
- * falls back to the hero-2 picture, so nothing ever renders broken.
- *
- * Optional: $heroStats (from dazu_hero_stats($pdo)) for the floating cards.
- */
-require_once __DIR__ . '/dazu_hero_helpers.php';
-
-$heroFallback = is_file(public_path('assets/app/hero.png'))
-    ? asset('app/hero.png')
-    : 'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=900&q=80';
-
-$heroStats = $heroStats ?? ['courses' => 0, 'students' => 0];
-
-/* Shown on every slide. */
-$heroChecks = ['Get Certified', 'Gain Job-ready Skills', 'Great Life'];
-
-/* Floating cards. A zero count is dropped rather than shown as "0+". */
-$heroCards = array_values(array_filter([
-    [
-        'value' => (int) ($heroStats['courses'] ?? 0),
-        'label' => 'Practical Courses',
-        'tone'  => 'rose',
-        'pos'   => 'top',
-    ],
-    [
-        // Fixed at 100+ rather than the live (still-small) approved count —
-        // requested so the banner doesn't undersell with "1+ Students".
-        'value' => 100,
-        'label' => 'Active Students',
-        'tone'  => 'green',
-        'pos'   => 'bottom',
-    ],
-], static fn($c) => $c['value'] > 0));
+/** Homepage hero — ported from Dazu-frontend Home.tsx carousel */
+$heroImage1 = 'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=900&q=80';
+$localHero = public_path('assets/app/hero_student_1783619555973-Dfwss1g9.jpg');
+if (is_file($localHero)) {
+    $heroImage1 = asset('app/hero_student_1783619555973-Dfwss1g9.jpg');
+}
 
 $heroSlides = [
     [
-        'eyebrow'  => 'Future-Proof Your Career',
-        'accent'   => 'Master Tech Skills',                     // green
-        'title'    => 'with Real-World Projects.', // navy
-        'text'     => 'Master Web & Software Development, Python, Data Analytics, and Cybersecurity with industry-focused training and hands-on experience.',
-        'image'    => 'hero-1',
-        'imageAlt' => 'Student working on data analytics and design at Dazu hub Institute',
-        'cta1'     => ['label' => 'Get Started', 'url' => url('apply/index.php')],
-        'cta2'     => ['label' => 'Our Courses', 'url' => url('courses/index.php')],
+        'badge' => 'Learn. Build. Succeed.',
+        'title1' => 'Upgrade Your Tech Skills.',
+        'titleAccent' => 'Build Your Future.',
+        'description' => 'Practical, hands-on training in high-demand tech skills to launch your career.',
+        'image' => $heroImage1,
+        'imageAlt' => 'Dazu Hub Tech Skills Student Profile',
+        'cta1Text' => 'Explore Courses',
+        'cta1Url' => url('courses/index.php'),
+        'cta2Text' => 'Watch Overview',
+        'cta2Url' => '#',
+        'showPlayBtn' => true,
+        'imagePosition' => 'center top',
     ],
     [
-        'eyebrow'  => 'Online E-Learning Course',
-        'accent'   => 'Learn & Build.',
-        'title'    => 'AI & Digital Skills for Everyone',
-        'text'     => 'Build practical skills in AI, technology, and professional short courses designed for today\'s job market.',
-        'image'    => 'hero-2',
-        'imageAlt' => 'Dazu hub Institute student with a laptop',
-        'video'    => 'hero-2', // public/assets/videos/hero/hero-2.mp4|webm — falls back to the image above until added
-        'cta1'     => ['label' => 'Get Started', 'url' => url('apply/index.php')],
-        'cta2'     => ['label' => 'Our Courses', 'url' => url('courses/index.php')],
+        'badge' => 'Future-Proof Your Career',
+        'title1' => 'Master AI & Analytics.',
+        'titleAccent' => 'Lead the Innovation.',
+        'description' => 'Empower your business or career with advanced Data Analytics and automated AI pipelines.',
+        'image' => 'https://i.pinimg.com/736x/4f/d6/5e/4fd65e9c73665937a0f7c5990de5ae35.jpg',
+        'imageAlt' => 'AI & Data Analytics Course',
+        'cta1Text' => 'Apply Online Now',
+        'cta1Url' => url('apply/index.php'),
+        'cta2Text' => 'Explore Courses',
+        'cta2Url' => url('courses/index.php'),
+        'showPlayBtn' => false,
+        'imagePosition' => 'center',
     ],
 ];
+$overviewVideoId = 'EUY5XaeDsCI';
 ?>
-<style>
-/* Inline rather than assets/css: sw.js caches every .css file, and PHP output is
-   never intercepted by the service worker, so this cannot go stale on deploy. */
-.dazu-hero {
-  position: relative;
-  padding: 3.5rem 0 4.5rem;
-  background: #fff;
-  overflow: hidden;
-}
-.dazu-hero__inner { max-width: 1280px; margin: 0 auto; padding: 0 1rem; }
-@media (min-width: 768px) { .dazu-hero__inner { padding: 0 2rem; } }
-@media (min-width: 1024px) { .dazu-hero__inner { padding: 0 3rem; } }
+<section class="relative min-h-[85vh] flex items-center pt-10 pb-24 bg-white overflow-hidden" id="dazu-hero">
+  <div class="absolute top-10 right-10 w-24 h-24 opacity-25 bg-[radial-gradient(#CBD5E1_2px,transparent_2px)] [background-size:12px_12px] pointer-events-none hidden md:block" aria-hidden="true"></div>
+  <div class="absolute bottom-10 left-10 w-24 h-24 opacity-25 bg-[radial-gradient(#CBD5E1_2px,transparent_2px)] [background-size:12px_12px] pointer-events-none hidden md:block" aria-hidden="true"></div>
 
-.dazu-hero__panel {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2.5rem;
-  align-items: center;
-}
-@media (min-width: 1024px) {
-  .dazu-hero__panel { grid-template-columns: 1fr 1fr; gap: 3rem; }
-}
-.dazu-hero__panel[hidden] { display: none; }
-
-/* ---- eyebrow ---- */
-.dazu-hero__eyebrow {
-  display: flex; align-items: center; gap: .75rem;
-  margin-bottom: 1.75rem;
-}
-.dazu-hero__eyebrow svg { width: 3rem; height: .75rem; color: #15a24a; flex-shrink: 0; }
-.dazu-hero__eyebrow span {
-  font-size: .8rem; font-weight: 700; letter-spacing: .12em;
-  text-transform: uppercase; color: #15a24a;
-}
-
-/* ---- headline ----
-   dazu-frontend-theme.css forces h1 to the Nasalization display face with
-   !important. The reference design sets the headline in the rounded body face,
-   so this overrides it — class beats element, and !important beats !important. */
-.dazu-hero__title {
-  margin: 0;
-  font-family: "Nunito", ui-sans-serif, system-ui, sans-serif !important;
-  font-size: clamp(2.25rem, 5.2vw, 4rem);
-  font-weight: 700;
-  line-height: 1.08;
-  letter-spacing: -.015em !important;
-}
-.dazu-hero__title .accent { display: block; color: #15a24a; }
-.dazu-hero__title .main   { display: block; color: #0b1120; }
-
-/* ---- checks ---- */
-.dazu-hero__checks {
-  list-style: none; margin: 1.75rem 0 0; padding: 0;
-  display: flex; flex-wrap: wrap; gap: .75rem 1.75rem;
-}
-.dazu-hero__checks li {
-  display: inline-flex; align-items: center; gap: .5rem;
-  font-size: .95rem; font-weight: 700; color: #0b1120;
-}
-.dazu-hero__checks svg { width: 1.15rem; height: 1.15rem; color: #15a24a; flex-shrink: 0; }
-
-.dazu-hero__text {
-  margin: 1.75rem 0 0;
-  max-width: 32rem;
-  font-size: 1rem; font-weight: 500; line-height: 1.7; color: #64748b;
-}
-
-/* ---- buttons ---- */
-.dazu-hero__ctas { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 2.25rem; }
-.dazu-hero__btn {
-  display: inline-flex; align-items: center; gap: .6rem;
-  padding: 1.05rem 1.9rem;
-  border-radius: 10px;
-  font-size: .8rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
-  text-decoration: none; white-space: nowrap;
-  transition: transform .15s ease, background-color .15s ease, box-shadow .15s ease;
-}
-.dazu-hero__btn svg { width: .95rem; height: .95rem; }
-.dazu-hero__btn--primary { background: #15a24a; color: #fff; box-shadow: 0 10px 24px -12px rgba(21,162,74,.9); }
-.dazu-hero__btn--primary:hover { background: #128a3e; transform: translateY(-2px); }
-.dazu-hero__btn--dark { background: #0b1120; color: #fff; box-shadow: 0 10px 24px -12px rgba(11,17,32,.8); }
-.dazu-hero__btn--dark:hover { background: #1e293b; transform: translateY(-2px); }
-.dazu-hero__btn:focus-visible { outline: 3px solid rgba(21,162,74,.45); outline-offset: 3px; }
-
-/* ---- footnote ---- */
-.dazu-hero__foot {
-  margin-top: 1.5rem; padding-top: 0;
-  display: flex; flex-wrap: wrap; gap: 1.5rem;
-}
-.dazu-hero__foot span {
-  display: inline-flex; align-items: center; gap: .5rem;
-  font-size: .9rem; font-weight: 800; color: #0b1120;
-}
-.dazu-hero__foot i { width: .5rem; height: .5rem; border-radius: 999px; background: #15a24a; }
-
-/* ---- media ---- */
-.dazu-hero__media {
-  position: relative;
-  display: flex; align-items: center; justify-content: center;
-  min-height: 320px;
-  padding: 1.5rem 0;
-}
-.dazu-hero__ring {
-  position: relative;
-  width: min(84vw, 480px);
-  aspect-ratio: 4 / 5;
-  border-radius: 1.25rem;
-  border: 0;
-  background: #f1f5f9;
-  overflow: hidden;
-}
-.dazu-hero__ring img,
-.dazu-hero__ring video { width: 100%; height: 100%; object-fit: cover; display: block; }
-
-/* dotted decoration */
-.dazu-hero__deco {
-  position: absolute;
-  background-image: radial-gradient(#15a24a 2px, transparent 2px);
-  background-size: 14px 14px;
-  opacity: .28;
-  pointer-events: none;
-}
-.dazu-hero__deco--tl { width: 140px; height: 110px; top: 4%; left: -2%; }
-.dazu-hero__deco--br { width: 140px; height: 110px; bottom: 2%; right: -2%; }
-@media (max-width: 767px) { .dazu-hero__deco { display: none; } }
-
-/* floating cards */
-.dazu-hero__card {
-  position: absolute;
-  display: flex; align-items: center; gap: .7rem;
-  padding: .7rem .95rem;
-  background: #fff;
-  border-radius: 14px;
-  box-shadow: 0 14px 34px -12px rgba(15,23,42,.28);
-  white-space: nowrap;
-  z-index: 2;
-}
-.dazu-hero__card--top { top: 14%; right: -4%; }
-.dazu-hero__card--bottom { bottom: 12%; left: -4%; }
-@media (max-width: 380px) {
-  .dazu-hero__card--top { right: 0; }
-  .dazu-hero__card--bottom { left: 0; }
-}
-.dazu-hero__card i {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 2.4rem; height: 2.4rem; border-radius: 999px; flex-shrink: 0;
-}
-.dazu-hero__card i svg { width: 1.15rem; height: 1.15rem; }
-.dazu-hero__card--rose i { background: #ffe4e6; color: #e11d48; }
-.dazu-hero__card--green i { background: #dcfce7; color: #15a24a; }
-.dazu-hero__card b { display: block; font-size: 1.1rem; font-weight: 800; color: #0b1120; line-height: 1.1; }
-.dazu-hero__card small { display: block; font-size: .68rem; font-weight: 700; color: #64748b; }
-
-/* ---- carousel controls ---- */
-.dazu-hero__nav {
-  display: flex; align-items: center; justify-content: center; gap: 1rem;
-  margin-top: 2rem;
-}
-.dazu-hero__nav button.arrow {
-  width: 2.6rem; height: 2.6rem; border-radius: 999px;
-  border: 1px solid #e2e8f0; background: #fff; color: #475569;
-  display: inline-flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: border-color .15s ease, color .15s ease;
-}
-.dazu-hero__nav button.arrow:hover { border-color: #15a24a; color: #15a24a; }
-.dazu-hero__nav button.arrow:focus-visible { outline: 3px solid rgba(21,162,74,.45); outline-offset: 2px; }
-.dazu-hero__nav button.arrow svg { width: 1rem; height: 1rem; }
-.dazu-hero__dots { display: flex; align-items: center; gap: .5rem; }
-.dazu-hero__dot {
-  width: .6rem; height: .6rem; padding: 0;
-  border: 0; border-radius: 999px; background: #cbd5e1;
-  cursor: pointer; transition: width .25s ease, background-color .25s ease;
-}
-.dazu-hero__dot.is-active { width: 1.9rem; background: #15a24a; }
-.dazu-hero__dot:focus-visible { outline: 3px solid rgba(21,162,74,.45); outline-offset: 2px; }
-
-@media (prefers-reduced-motion: reduce) {
-  .dazu-hero__btn, .dazu-hero__dot { transition: none; }
-  .dazu-hero__btn:hover { transform: none; }
-}
-</style>
-
-<section class="dazu-hero" id="dazu-hero" aria-roledescription="carousel" aria-label="Dazu hub Institute highlights">
-  <div class="dazu-hero__inner">
+  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 w-full z-10 relative">
     <div id="dazu-hero-slides">
-      <?php foreach ($heroSlides as $i => $slide):
-          $img = dazu_hero_image_url($slide['image'], $heroFallback);
-          $videoSources = !empty($slide['video']) ? dazu_hero_video_url($slide['video']) : [];
-      ?>
-        <div class="dazu-hero__panel" data-slide="<?php echo $i; ?>"
-             role="group" aria-roledescription="slide"
-             aria-label="Slide <?php echo $i + 1; ?> of <?php echo count($heroSlides); ?>"
-             <?php echo $i === 0 ? '' : 'hidden'; ?>>
-
-          <div>
-            <p class="dazu-hero__eyebrow">
-              <svg viewBox="0 0 48 12" fill="none" aria-hidden="true"><path d="M0 6h42" stroke="currentColor" stroke-width="2"/><path d="M38 2l5 4-5 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              <span><?php echo htmlspecialchars($slide['eyebrow']); ?></span>
-            </p>
-
-            <h1 class="dazu-hero__title">
-              <span class="accent"><?php echo htmlspecialchars($slide['accent']); ?></span>
-              <span class="main"><?php echo htmlspecialchars($slide['title']); ?></span>
-            </h1>
-
-            <p class="dazu-hero__text"><?php echo htmlspecialchars($slide['text']); ?></p>
-
-            <div class="dazu-hero__ctas">
-              <a class="dazu-hero__btn dazu-hero__btn--primary" href="<?php echo htmlspecialchars($slide['cta1']['url'], ENT_QUOTES); ?>">
-                <?php echo htmlspecialchars($slide['cta1']['label']); ?>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
-              </a>
-              <a class="dazu-hero__btn dazu-hero__btn--dark" href="<?php echo htmlspecialchars($slide['cta2']['url'], ENT_QUOTES); ?>">
-                <?php echo htmlspecialchars($slide['cta2']['label']); ?>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
-              </a>
+      <?php foreach ($heroSlides as $i => $slide): ?>
+        <div class="dazu-hero-panel grid grid-cols-1 lg:grid-cols-12 gap-12 items-center <?php echo $i === 0 ? '' : 'hidden'; ?>" data-slide="<?php echo $i; ?>">
+          <div class="lg:col-span-6 space-y-8 text-left">
+            <div class="inline-block">
+              <span class="text-[#15A24A] font-extrabold text-sm tracking-wider uppercase"><?php echo htmlspecialchars($slide['badge']); ?></span>
+              <span class="block h-[3px] w-12 bg-[#15A24A] mt-1 rounded-full"></span>
             </div>
-
-            <div class="dazu-hero__foot">
-              <?php foreach ($heroChecks as $check): ?>
-                <span><i></i><strong><?php echo htmlspecialchars($check); ?></strong></span>
-              <?php endforeach; ?>
+            <h1 class="text-2xl sm:text-5xl md:text-6xl font-extrabold text-slate-950 tracking-tight leading-[1.15] font-sans">
+              <span class="block"><?php echo htmlspecialchars($slide['title1']); ?></span>
+              <span class="block text-[#15A24A]"><?php echo htmlspecialchars($slide['titleAccent']); ?></span>
+            </h1>
+            <p class="text-sm sm:text-lg text-slate-500 font-medium leading-relaxed max-w-lg"><?php echo htmlspecialchars($slide['description']); ?></p>
+            <div class="flex flex-row items-center gap-2 sm:gap-5 pt-2">
+              <a href="<?php echo htmlspecialchars($slide['cta1Url']); ?>"
+                 class="px-3.5 py-3 sm:px-7 sm:py-4 text-[10px] sm:text-xs font-extrabold tracking-widest uppercase text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-md transition-all duration-200 text-center flex items-center justify-center gap-1.5 sm:gap-2 hover:-translate-y-0.5">
+                <?php echo htmlspecialchars($slide['cta1Text']); ?>
+                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+              </a>
+              <?php if ($slide['showPlayBtn']): ?>
+                <button type="button" id="dazu-hero-overview-btn"
+                        class="px-3.5 py-3 sm:px-7 sm:py-4 text-[10px] sm:text-xs font-extrabold tracking-widest uppercase text-slate-900 border-2 border-[#15A24A] hover:bg-[#15A24A]/5 rounded-md transition-all duration-200 text-center flex items-center justify-center gap-1.5 sm:gap-2 hover:-translate-y-0.5">
+                  <svg class="h-3.5 w-3.5 fill-slate-900 ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  <?php echo htmlspecialchars($slide['cta2Text']); ?>
+                </button>
+              <?php else: ?>
+                <a href="<?php echo htmlspecialchars($slide['cta2Url']); ?>"
+                   class="px-3.5 py-3 sm:px-7 sm:py-4 text-[10px] sm:text-xs font-extrabold tracking-widest uppercase text-slate-900 border-2 border-[#15A24A] hover:bg-[#15A24A]/5 rounded-md transition-all duration-200 text-center flex items-center justify-center gap-1.5 sm:gap-2 hover:-translate-y-0.5">
+                  <?php echo htmlspecialchars($slide['cta2Text']); ?>
+                </a>
+              <?php endif; ?>
+            </div>
+            <div class="pt-8 border-t border-slate-100 flex items-center gap-6 text-xs font-semibold text-slate-400">
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#15A24A]"></span>Room 529 Physical Labs</span>
+              <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-[#15A24A]"></span>Thika Town Campus</span>
             </div>
           </div>
 
-          <div class="dazu-hero__media">
-            <span class="dazu-hero__deco dazu-hero__deco--tl" aria-hidden="true"></span>
-            <span class="dazu-hero__deco dazu-hero__deco--br" aria-hidden="true"></span>
-
-            <div class="dazu-hero__ring">
-              <?php if ($videoSources): ?>
-                <video poster="<?php echo htmlspecialchars($img, ENT_QUOTES); ?>"
-                       width="840" height="840"
-                       autoplay muted loop playsinline preload="none"
-                       aria-label="<?php echo htmlspecialchars($slide['imageAlt']); ?>">
-                  <?php foreach ($videoSources as $source): ?>
-                    <source src="<?php echo htmlspecialchars($source['url'], ENT_QUOTES); ?>" type="<?php echo htmlspecialchars($source['type']); ?>">
-                  <?php endforeach; ?>
-                </video>
-              <?php else: ?>
-                <img src="<?php echo htmlspecialchars($img, ENT_QUOTES); ?>"
-                     alt="<?php echo htmlspecialchars($slide['imageAlt']); ?>"
-                     width="840" height="840"
-                     <?php echo $i === 0 ? 'fetchpriority="high"' : 'loading="lazy"'; ?>
-                     decoding="async" referrerpolicy="no-referrer">
-              <?php endif; ?>
+          <div class="lg:col-span-6 relative flex justify-center items-center py-8">
+            <div class="absolute inset-0 pointer-events-none z-20" aria-hidden="true">
+              <svg class="absolute top-[5%] left-[10%] w-[120px] h-[60px] text-slate-900 hidden md:block" viewBox="0 0 100 50" fill="none"><path d="M10 40 C30 10, 70 10, 90 40" stroke="currentColor" stroke-width="2.5" stroke-dasharray="3 3"/><polygon points="90,40 82,32 92,30" fill="currentColor"/></svg>
+              <svg class="absolute bottom-[5%] left-[20%] w-[180px] h-[80px] text-[#15A24A] hidden md:block" viewBox="0 0 100 50" fill="none"><path d="M90 10 C70 40, 30 40, 10 10" stroke="currentColor" stroke-width="2.5"/><polygon points="10,10 18,18 8,20" fill="currentColor"/></svg>
+              <div class="absolute top-[18%] left-[18%] animate-bounce"><span class="text-slate-400 font-mono text-xs font-extrabold">{ }</span></div>
+              <div class="absolute top-[10%] right-[10%] animate-bounce" style="animation-delay:500ms"><span class="text-slate-400 font-mono text-xs font-extrabold">&lt;/&gt;</span></div>
+              <div class="absolute bottom-[40%] left-[2%] text-[#F7DF1E] font-extrabold text-xs -rotate-12 animate-bounce" style="animation-delay:200ms">JS</div>
+              <div class="absolute bottom-[28%] right-[2%] text-[#1572B6] font-extrabold text-xs rotate-[8deg] animate-bounce" style="animation-delay:300ms">CSS</div>
             </div>
-
-            <?php foreach ($heroCards as $card): ?>
-              <div class="dazu-hero__card dazu-hero__card--<?php echo $card['pos']; ?> dazu-hero__card--<?php echo $card['tone']; ?>">
-                <i>
-                  <?php if ($card['tone'] === 'rose'): ?>
-                    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
-                  <?php else: ?>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4 2 9l10 5 10-5-10-5z"/><path d="M6 11.5V17c0 1.1 2.7 2.5 6 2.5s6-1.4 6-2.5v-5.5"/></svg>
-                  <?php endif; ?>
-                </i>
-                <span>
-                  <b><?php echo number_format($card['value']); ?>+</b>
-                  <small><?php echo htmlspecialchars($card['label']); ?></small>
-                </span>
+            <div class="relative w-[280px] sm:w-[360px] h-[280px] sm:h-[360px] bg-[#15A24A] rounded-[48px] -rotate-6 overflow-visible flex items-center justify-center">
+              <div class="absolute inset-2 border-2 border-dashed border-white/30 rounded-[42px]"></div>
+              <div class="absolute inset-0 rounded-[48px] overflow-hidden rotate-6 hover:rotate-0 transition-transform duration-500">
+                <img src="<?php echo htmlspecialchars($slide['image']); ?>" alt="<?php echo htmlspecialchars($slide['imageAlt']); ?>"
+                     class="w-full h-full object-cover" style="object-position:<?php echo htmlspecialchars($slide['imagePosition']); ?>"
+                     referrerpolicy="no-referrer">
               </div>
-            <?php endforeach; ?>
+            </div>
           </div>
         </div>
       <?php endforeach; ?>
     </div>
 
-    <?php if (count($heroSlides) > 1): ?>
-      <div class="dazu-hero__nav">
-        <button type="button" class="arrow" id="dazu-hero-prev" aria-label="Previous slide">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 19l-7-7 7-7"/></svg>
-        </button>
-        <div class="dazu-hero__dots" id="dazu-hero-dots">
-          <?php foreach ($heroSlides as $i => $slide): ?>
-            <button type="button" class="dazu-hero__dot<?php echo $i === 0 ? ' is-active' : ''; ?>"
-                    data-slide="<?php echo $i; ?>"
-                    aria-label="Go to slide <?php echo $i + 1; ?>"
-                    aria-current="<?php echo $i === 0 ? 'true' : 'false'; ?>"></button>
-          <?php endforeach; ?>
-        </div>
-        <button type="button" class="arrow" id="dazu-hero-next" aria-label="Next slide">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
-        </button>
+    <div class="absolute bottom-[-10px] left-1/2 -translate-x-1/2 z-20 flex items-center gap-4">
+      <button type="button" id="dazu-hero-prev" class="p-2 rounded-full border border-slate-200 bg-white/90 backdrop-blur-sm hover:bg-white text-slate-700 hover:text-[#15A24A] transition-all shadow-sm" aria-label="Previous slide">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <div class="flex gap-2" id="dazu-hero-dots">
+        <?php foreach ($heroSlides as $i => $slide): ?>
+          <button type="button" class="dazu-hero-dot h-2.5 rounded-full transition-all duration-300 <?php echo $i === 0 ? 'w-6 bg-[#15A24A]' : 'w-2.5 bg-slate-200 hover:bg-slate-300'; ?>" data-slide="<?php echo $i; ?>" aria-label="Go to slide <?php echo $i + 1; ?>"></button>
+        <?php endforeach; ?>
       </div>
-    <?php endif; ?>
+      <button type="button" id="dazu-hero-next" class="p-2 rounded-full border border-slate-200 bg-white/90 backdrop-blur-sm hover:bg-white text-slate-700 hover:text-[#15A24A] transition-all shadow-sm" aria-label="Next slide">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
   </div>
 </section>
 
+<!-- Overview video modal -->
+<div id="dazu-overview-modal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center z-50 p-4">
+  <div class="bg-slate-950 border border-slate-800 rounded-2xl w-full max-w-sm sm:max-w-md overflow-hidden relative flex flex-col aspect-[9/16] shadow-2xl">
+    <div class="flex items-center justify-between p-4 border-b border-slate-800 text-white shrink-0">
+      <div><span class="text-[10px] uppercase tracking-widest text-[#15A24A] font-extrabold">Dazu Hub</span><h3 class="font-extrabold text-sm">Institute Overview</h3></div>
+      <button type="button" id="dazu-overview-close" class="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white" aria-label="Close">✕</button>
+    </div>
+    <div class="relative flex-1 bg-black">
+      <iframe id="dazu-overview-iframe" class="absolute inset-0 w-full h-full border-0" title="Dazu Hub Overview" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+    </div>
+  </div>
+</div>
+
 <script>
-(function () {
-  var root = document.getElementById('dazu-hero');
-  if (!root) return;
-  var panels = [].slice.call(root.querySelectorAll('.dazu-hero__panel'));
-  var dots = [].slice.call(root.querySelectorAll('.dazu-hero__dot'));
-  var total = panels.length;
-  if (total < 2) return;
+(function(){
+  var panels = document.querySelectorAll('.dazu-hero-panel');
+  var dots = document.querySelectorAll('.dazu-hero-dot');
+  var cur = 0, total = panels.length;
+  var overviewBtn = document.getElementById('dazu-hero-overview-btn');
+  var overviewModal = document.getElementById('dazu-overview-modal');
+  var overviewClose = document.getElementById('dazu-overview-close');
+  var overviewIframe = document.getElementById('dazu-overview-iframe');
+  var videoId = <?php echo json_encode($overviewVideoId); ?>;
 
-  var cur = 0, timer = null;
-  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  function show(n) {
+  function show(n){
     cur = (n + total) % total;
-    panels.forEach(function (p, i) {
-      p.hidden = (i !== cur);
-      var v = p.querySelector('video');
-      if (!v) return;
-      if (i === cur) { v.play().catch(function () {}); } else { v.pause(); }
-    });
-    dots.forEach(function (d, i) {
-      d.classList.toggle('is-active', i === cur);
-      d.setAttribute('aria-current', i === cur ? 'true' : 'false');
+    panels.forEach(function(p,i){ p.classList.toggle('hidden', i !== cur); if(i===cur){ p.classList.add('dazu-hero-slide'); setTimeout(function(){p.classList.remove('dazu-hero-slide');},600);} });
+    dots.forEach(function(d,i){
+      d.classList.toggle('w-6', i === cur); d.classList.toggle('bg-[#15A24A]', i === cur);
+      d.classList.toggle('w-2.5', i !== cur); d.classList.toggle('bg-slate-200', i !== cur);
     });
   }
-  function start() {
-    if (reduce) return;                 // no auto-advance for reduced-motion users
-    stop();
-    timer = window.setInterval(function () { show(cur + 1); }, 8000);
+  document.getElementById('dazu-hero-prev').addEventListener('click', function(){ show(cur-1); });
+  document.getElementById('dazu-hero-next').addEventListener('click', function(){ show(cur+1); });
+  dots.forEach(function(d){ d.addEventListener('click', function(){ show(parseInt(d.dataset.slide,10)); }); });
+  setInterval(function(){ show(cur+1); }, 8000);
+
+  if(overviewBtn && overviewModal){
+    overviewBtn.addEventListener('click', function(){
+      overviewIframe.src = 'https://www.youtube.com/embed/' + videoId + '?autoplay=1&modestbranding=1&rel=0';
+      overviewModal.classList.remove('hidden'); overviewModal.classList.add('flex');
+    });
   }
-  function stop() { if (timer) { window.clearInterval(timer); timer = null; } }
-
-  root.querySelector('#dazu-hero-prev').addEventListener('click', function () { show(cur - 1); start(); });
-  root.querySelector('#dazu-hero-next').addEventListener('click', function () { show(cur + 1); start(); });
-  dots.forEach(function (d) {
-    d.addEventListener('click', function () { show(parseInt(d.getAttribute('data-slide'), 10)); start(); });
-  });
-
-  // Don't yank the slide out from under someone reading or tabbing through it.
-  root.addEventListener('mouseenter', stop);
-  root.addEventListener('mouseleave', start);
-  root.addEventListener('focusin', stop);
-  root.addEventListener('focusout', start);
-  document.addEventListener('visibilitychange', function () {
-    if (document.hidden) { stop(); } else { start(); }
-  });
-
-  start();
+  if(overviewClose && overviewModal){
+    overviewClose.addEventListener('click', function(){
+      overviewModal.classList.add('hidden'); overviewModal.classList.remove('flex');
+      overviewIframe.removeAttribute('src');
+    });
+  }
 })();
 </script>

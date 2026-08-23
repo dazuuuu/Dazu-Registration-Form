@@ -50,7 +50,7 @@ $quote = dazu_fee_quote($course, $studyMode, $paymentPlan);
 </div>
 <?php else: ?>
 
-<div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-10">
+<div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-10 shadow-sm">
   <div class="border-b border-slate-100 pb-6 mb-8">
     <h1 class="text-2xl md:text-3xl font-extrabold text-slate-950 tracking-tight"><?php echo $isFree ? 'Apply For This Free Course' : 'Admission Application Form'; ?></h1>
     <p class="text-slate-500 text-xs font-medium mt-1">

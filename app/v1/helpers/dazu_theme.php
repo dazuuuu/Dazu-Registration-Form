@@ -120,6 +120,71 @@ if (!function_exists('dazu_course_rating_count')) {
     }
 }
 
+if (!function_exists('dazu_course_card_specs')) {
+    /** Instructor / lecture stats — ported from dazu-updated-ui */
+    function dazu_course_card_specs(array $course): array
+    {
+        $abbr = strtoupper(trim($course['abbreviation'] ?? ''));
+        $map = [
+            'PY' => ['Kevin Perry', 'KP', '08 Lectures', '120+ Students'],
+            'WD' => ['Max Alexix', 'MA', '12 Lectures', '280+ Students'],
+            'FS' => ['Dazu Tutor', 'DT', '24 Lectures', '420+ Students'],
+            'PHP' => ['Dazu Tutor', 'DT', '24 Lectures', '420+ Students'],
+            'FE' => ['Dazu Tutor', 'DT', '24 Lectures', '420+ Students'],
+            'ND' => ['Dazu Tutor', 'DT', '24 Lectures', '420+ Students'],
+            'AI' => ['Dr. Sarah Kim', 'SK', '16 Lectures', '90+ Students'],
+            'DA' => ['Alex Mercer', 'AM', '10 Lectures', '180+ Students'],
+            'CY' => ['Senior Faculty', 'SF', '08 Lectures', '150+ Students'],
+        ];
+        $row = $map[$abbr] ?? ['Senior Faculty', 'SF', '08 Lectures', '150+ Students'];
+
+        return [
+            'instructor' => $row[0],
+            'initials' => $row[1],
+            'lectures' => $row[2],
+            'students' => $row[3],
+        ];
+    }
+}
+
+if (!function_exists('dazu_course_category_short')) {
+    function dazu_course_category_short(array $course): string
+    {
+        if (!empty($course['is_free'])) {
+            return 'FREE';
+        }
+        $raw = $course['category_name'] ?? dazu_course_category($course['abbreviation'] ?? '');
+        $parts = preg_split('/\s+/', trim((string) $raw));
+        return strtoupper((string) ($parts[0] ?? 'TECH'));
+    }
+}
+
+if (!function_exists('dazu_course_duration_ribbon')) {
+    function dazu_course_duration_ribbon(array $course): string
+    {
+        $months = (int) ($course['duration_months'] ?? 0);
+        if ($months > 0) {
+            return strtoupper($months . ' MONTH' . ($months === 1 ? '' : 'S'));
+        }
+        $weeks = (int) ($course['weeks_of_study'] ?? 0);
+        if ($weeks > 0) {
+            return strtoupper($weeks . ' WEEK' . ($weeks === 1 ? '' : 'S'));
+        }
+        return 'FLEXIBLE';
+    }
+}
+
+if (!function_exists('dazu_course_price_label')) {
+    function dazu_course_price_label(array $course): string
+    {
+        if (!empty($course['is_free'])) {
+            return 'FREE';
+        }
+        $fee = (float) ($course['course_fee'] ?? 0);
+        return 'KES ' . number_format($fee);
+    }
+}
+
 if (!function_exists('dazu_course_syllabus')) {
     function dazu_course_syllabus(array $course): array
     {
