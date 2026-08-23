@@ -159,6 +159,7 @@ if (!function_exists('course_fee_structure_document_html')) {
         $category = trim((string) ($course['category_name'] ?? ''));
         $fees = course_school_fees($course);
         $logo = site_logo_data_uri() ?: site_logo_url();
+        $instituteName = site_institute_name();
 
         $feeRows = '';
         if ($fees['online'] > 0) {
@@ -194,7 +195,8 @@ if (!function_exists('course_fee_structure_document_html')) {
         return '<div style="font-family:Georgia,\'Times New Roman\',serif;max-width:640px;margin:0 auto;border:2px solid #171717;background:#ffffff;">'
             . '<div style="padding:32px 32px 24px;text-align:center;border-bottom:4px solid #15A24A;">'
             . '<img src="' . htmlspecialchars($logo) . '" alt="Institution logo" style="max-height:72px;max-width:200px;object-fit:contain;margin-bottom:16px;filter:grayscale(100%);">'
-            . '<h1 style="margin:0;font-size:22px;font-weight:700;color:#171717;letter-spacing:.04em;text-transform:uppercase;">Dazu Hub Institute</h1>'
+            . '<h1 style="margin:0;font-size:22px;font-weight:700;color:#171717;letter-spacing:.04em;text-transform:uppercase;">'
+            . htmlspecialchars($instituteName) . '</h1>'
             . '<p style="margin:10px 0 0;font-size:13px;color:#525252;letter-spacing:.12em;text-transform:uppercase;">Fee Structure</p>'
             . '</div>'
             . '<div style="padding:28px 32px;">'
@@ -217,34 +219,38 @@ if (!function_exists('course_fee_structure_document_html')) {
     }
 }
 
+if (!function_exists('course_fee_structure_pdf_html')) {
+    function course_fee_structure_pdf_html(array $course): string
+    {
+        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fee Structure</title></head>'
+            . '<body style="margin:0;padding:24px;background:#fff;">'
+            . course_fee_structure_document_html($course)
+            . '</body></html>';
+    }
+}
+
 if (!function_exists('course_fee_structure_render_pdf')) {
     /** @return string|null PDF binary */
     function course_fee_structure_render_pdf(array $course): ?string
     {
-        $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:24px;background:#fff;">'
-            . course_fee_structure_document_html($course)
-            . '</body></html>';
+        require_once __DIR__ . '/pdf_render.php';
+        return html_to_pdf(course_fee_structure_pdf_html($course));
+    }
+}
 
-        require_once __DIR__ . '/vendor_autoload.php';
-        if (!safe_composer_autoload()) {
+if (!function_exists('course_fee_structure_save_pdf')) {
+    /**
+     * Save fee structure as PDF. Returns absolute path or null on failure.
+     */
+    function course_fee_structure_save_pdf(array $course, string $directory, string $basename): ?string
+    {
+        require_once __DIR__ . '/pdf_render.php';
+        $filename = preg_replace('/[^a-zA-Z0-9_-]/', '-', $basename) ?: 'fee-structure';
+        $abs = rtrim($directory, '/\\') . DIRECTORY_SEPARATOR . $filename . '.pdf';
+        if (!html_to_pdf_file(course_fee_structure_pdf_html($course), $abs)) {
             return null;
         }
-        if (!class_exists('Dompdf\\Dompdf')) {
-            return null;
-        }
-        try {
-            $dompdf = new \Dompdf\Dompdf([
-                'isRemoteEnabled' => true,
-                'isHtml5ParserEnabled' => true,
-            ]);
-            $dompdf->loadHtml($html);
-            $dompdf->setPaper('A4', 'portrait');
-            $dompdf->render();
-            return $dompdf->output();
-        } catch (Throwable $e) {
-            error_log('[fee-structure] PDF render failed: ' . $e->getMessage());
-            return null;
-        }
+        return $abs;
     }
 }
 

@@ -28,6 +28,6 @@ return [
     'password'   => dazu_env('MAIL_PASSWORD', 'yyne ltcw lwmj trso'),
 
     'from_email' => dazu_env('MAIL_FROM_EMAIL', 'no-reply@dazuhub.co.ke'),
-    'from_name'  => dazu_env('MAIL_FROM_NAME', 'Dazu Hub Institute'),
+    'from_name'  => dazu_env('MAIL_FROM_NAME', 'Dazu Institute'),
     'logo_path'  => public_path('assets/images/logo/logo.png'),
 ];

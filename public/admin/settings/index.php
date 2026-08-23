@@ -10,7 +10,7 @@ if (!isLoggedIn() || (int) ($_SESSION['role_id'] ?? 99) > 2) {
 
 $settings = new SettingModel($pdo);
 $logoUrl = settings_asset_url($settings->get('logo_path'));
-$siteName = $settings->get('site_name', 'Dazu Hub Institute');
+$siteName = $settings->get('site_name', 'Dazu Institute');
 $heroSlides = $settings->getHeroSlides(false);
 $pageHeaders = $settings->getAllPageHeaders();
 
@@ -103,9 +103,9 @@ ob_start();
               <li class="list-group-item d-flex justify-content-between align-items-center py-2">
                 <span class="text-capitalize fw-semibold"><?php echo htmlspecialchars($h['page_key']); ?></span>
                 <?php if (!empty($h['image_path'])): ?>
-                  <span class="badge bg-success-subtle text-success border border-success-subtle">Image set</span>
+                  <span class="badge bg-success">Image set</span>
                 <?php else: ?>
-                  <span class="badge bg-secondary-subtle text-secondary border">No image</span>
+                  <span class="badge bg-secondary">No image</span>
                 <?php endif; ?>
               </li>
             <?php endforeach; ?>

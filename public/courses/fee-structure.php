@@ -27,21 +27,15 @@ $title = htmlspecialchars($course['title'] ?? 'Fee structure');
 $id = (int) $course['id'];
 
 $pdf = $download ? course_fee_structure_render_pdf($course) : null;
-if ($pdf !== null) {
-    header('Content-Type: application/pdf');
-    header('Content-Disposition: attachment; filename="' . $slug . '-fee-structure.pdf"');
-    echo $pdf;
-    exit();
-}
-
-$filename = $slug . '-fee-structure.html';
-
 if ($download) {
-    header('Content-Type: text/html; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
-    echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' . $title . ' — Fee Structure</title></head><body style="margin:0;padding:24px;background:#fff;">'
-        . $html
-        . '</body></html>';
+    if ($pdf !== null) {
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: attachment; filename="' . $slug . '-fee-structure.pdf"');
+        echo $pdf;
+        exit();
+    }
+    http_response_code(503);
+    echo 'Fee structure PDF is unavailable. Run composer install in the project root to install Dompdf.';
     exit();
 }
 

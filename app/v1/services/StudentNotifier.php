@@ -96,7 +96,7 @@ class StudentNotifier {
         $mailer = $this->mailer ?? new Mailer($sendCfg);
 
         if ($filePath !== '' && is_file($filePath)) {
-            $fileName = ($reg['registration_no'] ?? 'admission') . '-letter.html';
+            $fileName = ($reg['registration_no'] ?? 'admission') . '-letter.pdf';
             return $mailer->sendWithAttachment($reg['email'], $reg['full_name'], $subject, $html, $filePath, $fileName);
         }
 

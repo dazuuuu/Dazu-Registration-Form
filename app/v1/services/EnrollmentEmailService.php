@@ -24,15 +24,15 @@ class EnrollmentEmailService
         if ($admissionLetterPath !== '' && is_file($admissionLetterPath)) {
             $attachments[] = [
                 'path' => $admissionLetterPath,
-                'name' => $regNo . '-admission-letter.html',
+                'name' => $regNo . '-admission-letter.pdf',
             ];
         }
 
-        $feeFile = $this->saveFeeStructureDocument($course, $regNo);
+        $feeFile = $this->saveFeeStructurePdf($course, $regNo);
         if ($feeFile !== null) {
             $attachments[] = [
                 'path' => $feeFile,
-                'name' => $regNo . '-fee-structure.html',
+                'name' => $regNo . '-fee-structure.pdf',
             ];
         }
 
@@ -52,27 +52,17 @@ class EnrollmentEmailService
         return $notifier->sendEnrollmentPackage($registration, $course, $attachments);
     }
 
-    private function saveFeeStructureDocument(array $course, string $regNo): ?string
+    private function saveFeeStructurePdf(array $course, string $regNo): ?string
     {
         if (!function_exists('public_path')) {
             require_once __DIR__ . '/../config/paths.php';
         }
-
-        $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Fee Structure</title></head><body style="margin:0;padding:24px;background:#fff;">'
-            . course_fee_structure_document_html($course)
-            . '</body></html>';
 
         $dir = public_path('uploads/enrollment_packages');
         if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {
             return null;
         }
 
-        $filename = $regNo . '-fee-structure.html';
-        $abs = $dir . DIRECTORY_SEPARATOR . $filename;
-        if (@file_put_contents($abs, $html) === false) {
-            return null;
-        }
-
-        return $abs;
+        return course_fee_structure_save_pdf($course, $dir, $regNo . '-fee-structure');
     }
 }

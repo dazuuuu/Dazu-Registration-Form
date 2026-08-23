@@ -52,8 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action === 'save_logo') {
-        $settings->set('site_name', trim($_POST['site_name'] ?? '') ?: 'Dazu Hub Institute');
-        $settings->set('logo_alt', trim($_POST['logo_alt'] ?? '') ?: 'Dazu Hub Institute');
+        $settings->set('site_name', trim($_POST['site_name'] ?? '') ?: 'Dazu Institute');
+        $settings->set('logo_alt', trim($_POST['logo_alt'] ?? '') ?: 'Dazu Institute');
 
         if (!empty($_FILES['logo']['name'])) {
             $res = upload_image(
@@ -174,8 +174,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     settings_redirect_back($section, 'error', 'Unknown action.');
 }
 
-$siteName = $settings->get('site_name', 'Dazu Hub Institute');
-$logoAlt = $settings->get('logo_alt', 'Dazu Hub Institute');
+$siteName = $settings->get('site_name', 'Dazu Institute');
+$logoAlt = $settings->get('logo_alt', 'Dazu Institute');
 $logoUrl = settings_asset_url($settings->get('logo_path'));
 $heroSlides = $settings->getHeroSlides(false);
 $pageHeaders = $settings->getAllPageHeaders();
@@ -234,7 +234,7 @@ ob_start();
   <div class="card">
     <div class="card-header"><h5 class="mb-0">Branding</h5></div>
     <div class="card-body">
-      <p class="text-muted small">The logo is used across the site and in admission letters. Recommended: transparent PNG or WebP.</p>
+      <p class="text-muted small">The logo is used across the site, admission letters, and fee documents. Default: <code>assets/images/logo/logo.png</code>. Recommended: transparent PNG or WebP.</p>
       <form method="POST" enctype="multipart/form-data">
         <?php echo csrf_field(); ?>
         <input type="hidden" name="action" value="save_logo">

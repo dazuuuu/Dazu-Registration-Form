@@ -1,5 +1,5 @@
 <?php
-// Generates and stores admission letters for new enrollments.
+// Generates and stores admission letters for new enrollments (PDF).
 
 class AdmissionLetterService
 {
@@ -11,20 +11,18 @@ class AdmissionLetterService
     }
 
     /**
-     * @return array{ok:bool, error?:string, path?:string, html?:string}
+     * @return array{ok:bool, error?:string, path?:string, rel_path?:string, html?:string}
      */
     public function generateAndStore(array $registration, array $course): array
     {
         require_once __DIR__ . '/../helpers/site_logo.php';
+        require_once __DIR__ . '/../helpers/pdf_render.php';
         require_once __DIR__ . '/../models/SettingModel.php';
 
-        $settings = new SettingModel($this->pdo);
-        $schoolName = trim((string) $settings->get('site_name', '')) ?: 'Dazu Hub Institute';
-
-        // site_logo_* helpers read global $pdo when resolving branding assets.
         global $pdo;
         $pdo = $this->pdo;
 
+        $schoolName = site_institute_name();
         $logo = site_logo_data_uri() ?: site_logo_url();
 
         $regNo = (string) ($registration['registration_no'] ?? '');
@@ -37,7 +35,11 @@ class AdmissionLetterService
         $courseTitle = (string) ($course['title'] ?? $registration['course_title'] ?? '');
         $studyMode = ucfirst((string) ($registration['study_mode'] ?? 'online'));
 
-        $html = $this->documentHtml($schoolName, $logo, $studentName, $courseTitle, $regNo, $studyMode);
+        $bodyHtml = $this->documentHtml($schoolName, $logo, $studentName, $courseTitle, $regNo, $studyMode);
+        $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Admission Letter</title></head>'
+            . '<body style="margin:0;padding:24px;background:#fff;font-family:Georgia,\'Times New Roman\',serif;">'
+            . $bodyHtml
+            . '</body></html>';
 
         if (!function_exists('public_path')) {
             require_once __DIR__ . '/../config/paths.php';
@@ -49,10 +51,11 @@ class AdmissionLetterService
         }
 
         $slug = preg_replace('/[^a-zA-Z0-9_-]/', '-', $regNo) ?: ('reg-' . (int) ($registration['id'] ?? 0));
-        $filename = $slug . '.html';
+        $filename = $slug . '.pdf';
         $abs = $dir . DIRECTORY_SEPARATOR . $filename;
-        if (@file_put_contents($abs, $html) === false) {
-            return ['ok' => false, 'error' => 'Could not save admission letter.'];
+
+        if (!html_to_pdf_file($html, $abs)) {
+            return ['ok' => false, 'error' => 'Could not generate admission letter PDF. Run composer install to install Dompdf.'];
         }
 
         $relPath = 'uploads/admission_letters/' . $filename;
@@ -84,8 +87,7 @@ class AdmissionLetterService
         string $regNo,
         string $studyMode
     ): string {
-        return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Admission Letter</title></head><body style="margin:0;padding:24px;background:#fff;font-family:Georgia,\'Times New Roman\',serif;">'
-            . '<div style="max-width:680px;margin:0 auto;border:2px solid #171717;padding:40px 48px;">'
+        return '<div style="max-width:680px;margin:0 auto;border:2px solid #171717;padding:40px 48px;">'
             . '<div style="text-align:center;border-bottom:3px solid #15A24A;padding-bottom:24px;margin-bottom:32px;">'
             . '<img src="' . htmlspecialchars($logo) . '" alt="Logo" style="max-height:72px;max-width:200px;object-fit:contain;margin-bottom:16px;filter:grayscale(100%);">'
             . '<h1 style="margin:0;font-size:22px;color:#171717;letter-spacing:.06em;text-transform:uppercase;">'
@@ -112,6 +114,6 @@ class AdmissionLetterService
             . '<div style="display:flex;justify-content:space-between;gap:48px;margin-top:64px;">'
             . '<div style="flex:1;border-top:1px solid #171717;padding-top:8px;font-size:12px;color:#525252;">Student signature</div>'
             . '<div style="flex:1;border-top:1px solid #171717;padding-top:8px;font-size:12px;color:#525252;">Authorized signatory<br><span style="font-size:11px;">' . htmlspecialchars($schoolName) . '</span></div>'
-            . '</div></div></body></html>';
+            . '</div></div>';
     }
 }
