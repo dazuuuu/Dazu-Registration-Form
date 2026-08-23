@@ -638,4 +638,263 @@ class DocumentComposeService
 
         return $mailer->send($toEmail, $toName, $subject, $html);
     }
+
+    public function composedDocumentsTableExists(): bool
+    {
+        try {
+            $this->pdo->query('SELECT 1 FROM sms_composed_documents LIMIT 1');
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    public function admissionDocumentsTableExists(): bool
+    {
+        try {
+            $this->pdo->query('SELECT 1 FROM admission_documents LIMIT 1');
+            return true;
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+
+    /**
+     * @param array{
+     *   template_slug:string,
+     *   template_label:string,
+     *   delivery:string,
+     *   recipient_name?:string,
+     *   recipient_email?:string,
+     *   registration_no?:string,
+     *   course_id?:int|null,
+     *   course_title?:string,
+     *   sms_student_id?:int|null,
+     *   file_path:string,
+     *   file_name:string,
+     *   email_subject?:string,
+     *   actor_id?:int|null
+     * } $data
+     */
+    public function recordIssuedDocument(array $data): ?int
+    {
+        if (!$this->composedDocumentsTableExists()) {
+            return null;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare(
+                'INSERT INTO sms_composed_documents (
+                    template_slug, template_label, delivery, recipient_name, recipient_email,
+                    registration_no, course_id, course_title, sms_student_id,
+                    file_path, file_name, email_subject, actor_id
+                ) VALUES (
+                    :template_slug, :template_label, :delivery, :recipient_name, :recipient_email,
+                    :registration_no, :course_id, :course_title, :sms_student_id,
+                    :file_path, :file_name, :email_subject, :actor_id
+                )'
+            );
+            $stmt->execute([
+                ':template_slug'    => $data['template_slug'],
+                ':template_label'   => $data['template_label'],
+                ':delivery'         => $data['delivery'] === 'email' ? 'email' : 'download',
+                ':recipient_name'   => ($data['recipient_name'] ?? '') !== '' ? $data['recipient_name'] : null,
+                ':recipient_email'  => ($data['recipient_email'] ?? '') !== '' ? $data['recipient_email'] : null,
+                ':registration_no'  => ($data['registration_no'] ?? '') !== '' ? $data['registration_no'] : null,
+                ':course_id'        => !empty($data['course_id']) ? (int) $data['course_id'] : null,
+                ':course_title'     => ($data['course_title'] ?? '') !== '' ? $data['course_title'] : null,
+                ':sms_student_id'   => !empty($data['sms_student_id']) ? (int) $data['sms_student_id'] : null,
+                ':file_path'        => $data['file_path'],
+                ':file_name'        => $data['file_name'],
+                ':email_subject'    => ($data['email_subject'] ?? '') !== '' ? $data['email_subject'] : null,
+                ':actor_id'         => !empty($data['actor_id']) ? (int) $data['actor_id'] : null,
+            ]);
+
+            return (int) $this->pdo->lastInsertId();
+        } catch (\Throwable $e) {
+            error_log('[DocumentComposeService] recordIssuedDocument: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function getIssuedDocument(int $id): ?array
+    {
+        if (!$this->composedDocumentsTableExists()) {
+            return null;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT d.*, u.username AS actor_name
+             FROM sms_composed_documents d
+             LEFT JOIN users u ON u.id = d.actor_id
+             WHERE d.id = :id LIMIT 1'
+        );
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    public function getAdmissionDocument(int $id): ?array
+    {
+        if (!$this->admissionDocumentsTableExists()) {
+            return null;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'SELECT ad.*, r.email AS recipient_email
+             FROM admission_documents ad
+             LEFT JOIN registrations r ON r.id = ad.registration_id
+             WHERE ad.id = :id LIMIT 1'
+        );
+        $stmt->execute([':id' => $id]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * @return array{items: list<array<string, mixed>>, total: int}
+     */
+    public function listDocumentHistory(array $filters = [], int $limit = 50, int $offset = 0): array
+    {
+        $limit = max(1, min(100, $limit));
+        $offset = max(0, $offset);
+        $source = $filters['source'] ?? 'all';
+        $items = [];
+
+        if ($source !== 'enrollment' && $this->composedDocumentsTableExists()) {
+            $items = array_merge($items, $this->fetchComposedHistoryRows($filters));
+        }
+
+        if ($source !== 'composed' && $this->admissionDocumentsTableExists()) {
+            $items = array_merge($items, $this->fetchAdmissionHistoryRows($filters));
+        }
+
+        usort($items, static function (array $a, array $b): int {
+            return strcmp((string) ($b['created_at'] ?? ''), (string) ($a['created_at'] ?? ''));
+        });
+
+        $total = count($items);
+        $items = array_slice($items, $offset, $limit);
+
+        return ['items' => $items, 'total' => $total];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchComposedHistoryRows(array $filters): array
+    {
+        $where = ['1=1'];
+        $params = [];
+
+        if (!empty($filters['template']) && $filters['template'] !== 'all') {
+            $where[] = 'd.template_slug = :template';
+            $params[':template'] = $filters['template'];
+        }
+        if (!empty($filters['delivery']) && in_array($filters['delivery'], ['download', 'email'], true)) {
+            $where[] = 'd.delivery = :delivery';
+            $params[':delivery'] = $filters['delivery'];
+        }
+        if (!empty($filters['q'])) {
+            $where[] = '(d.recipient_name LIKE :q OR d.recipient_email LIKE :q OR d.registration_no LIKE :q OR d.course_title LIKE :q)';
+            $params[':q'] = '%' . $filters['q'] . '%';
+        }
+
+        $sql = 'SELECT d.*, u.username AS actor_name
+                FROM sms_composed_documents d
+                LEFT JOIN users u ON u.id = d.actor_id
+                WHERE ' . implode(' AND ', $where) . '
+                ORDER BY d.created_at DESC
+                LIMIT 500';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        return array_map(static function (array $row): array {
+            $row['history_source'] = 'composed';
+            $row['history_id'] = (int) $row['id'];
+            $row['document_label'] = (string) ($row['template_label'] ?? 'Document');
+            $row['delivery_label'] = ($row['delivery'] ?? '') === 'email' ? 'Emailed' : 'Downloaded';
+            return $row;
+        }, $rows);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchAdmissionHistoryRows(array $filters): array
+    {
+        if (!empty($filters['delivery']) && $filters['delivery'] !== 'all' && $filters['delivery'] !== 'enrollment') {
+            return [];
+        }
+        if (!empty($filters['template']) && $filters['template'] !== 'all' && $filters['template'] !== 'admission_letter') {
+            return [];
+        }
+
+        $where = ['1=1'];
+        $params = [];
+        if (!empty($filters['q'])) {
+            $where[] = '(ad.student_name LIKE :q OR ad.registration_no LIKE :q OR ad.course_title LIKE :q OR r.email LIKE :q)';
+            $params[':q'] = '%' . $filters['q'] . '%';
+        }
+
+        $sql = 'SELECT ad.*, r.email AS recipient_email
+                FROM admission_documents ad
+                LEFT JOIN registrations r ON r.id = ad.registration_id
+                WHERE ' . implode(' AND ', $where) . '
+                ORDER BY ad.created_at DESC
+                LIMIT 500';
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($params);
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        return array_map(static function (array $row): array {
+            return [
+                'history_source'   => 'enrollment',
+                'history_id'       => (int) $row['id'],
+                'document_label'   => 'Admission Letter',
+                'template_slug'    => 'admission_letter',
+                'delivery'         => 'enrollment',
+                'delivery_label'   => 'Enrollment',
+                'recipient_name'   => (string) ($row['student_name'] ?? ''),
+                'recipient_email'  => (string) ($row['recipient_email'] ?? ''),
+                'registration_no'  => (string) ($row['registration_no'] ?? ''),
+                'course_title'     => (string) ($row['course_title'] ?? ''),
+                'file_path'        => (string) ($row['file_path'] ?? ''),
+                'file_name'        => basename((string) ($row['file_path'] ?? 'admission.pdf')),
+                'email_subject'    => null,
+                'actor_name'       => null,
+                'created_at'       => (string) ($row['created_at'] ?? ''),
+            ];
+        }, $rows);
+    }
+
+    public function absoluteDocumentPath(string $relPath): ?string
+    {
+        $relPath = ltrim(str_replace('\\', '/', $relPath), '/');
+        if ($relPath === '' || strpos($relPath, '..') !== false) {
+            return null;
+        }
+
+        if (!function_exists('public_path')) {
+            require_once __DIR__ . '/../config/paths.php';
+        }
+
+        $abs = public_path($relPath);
+        if (!is_file($abs)) {
+            return null;
+        }
+
+        $uploadsRoot = realpath(public_path('uploads'));
+        $fileReal = realpath($abs);
+        if (!$uploadsRoot || !$fileReal || strpos($fileReal, $uploadsRoot) !== 0) {
+            return null;
+        }
+
+        return $fileReal;
+    }
 }

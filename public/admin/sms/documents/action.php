@@ -92,6 +92,22 @@ if (empty($pdf['ok'])) {
 }
 
 if ($action === 'download') {
+    $docService->recordIssuedDocument([
+        'template_slug'   => $template,
+        'template_label'  => $built['label'],
+        'delivery'        => 'download',
+        'recipient_name'  => $ctx['recipient_name'],
+        'recipient_email' => $ctx['email'],
+        'registration_no' => $ctx['registration_no'],
+        'course_id'       => $courseId > 0 ? $courseId : null,
+        'course_title'    => $ctx['course_title'],
+        'sms_student_id'  => $smsStudentId > 0 ? $smsStudentId : null,
+        'file_path'       => $pdf['rel_path'],
+        'file_name'       => $pdf['filename'],
+        'email_subject'   => $subject,
+        'actor_id'        => (int) ($_SESSION['user_id'] ?? 0),
+    ]);
+
     header('Content-Type: application/pdf');
     header('Content-Disposition: attachment; filename="' . basename($pdf['filename']) . '"');
     header('Content-Length: ' . filesize($pdf['path']));
@@ -109,7 +125,27 @@ if ($action === 'email') {
 
     $result = $docService->sendEmail($toEmail, $toName, $subject, $built['html'], $pdf['path']);
     if (!empty($result['ok'])) {
-        $sms->log('document_emailed', 'Emailed ' . $built['label'] . ' to ' . $toEmail, 'document', 0);
+        $recordId = $docService->recordIssuedDocument([
+            'template_slug'   => $template,
+            'template_label'  => $built['label'],
+            'delivery'        => 'email',
+            'recipient_name'  => $toName,
+            'recipient_email' => $toEmail,
+            'registration_no' => $ctx['registration_no'],
+            'course_id'       => $courseId > 0 ? $courseId : null,
+            'course_title'    => $ctx['course_title'],
+            'sms_student_id'  => $smsStudentId > 0 ? $smsStudentId : null,
+            'file_path'       => $pdf['rel_path'],
+            'file_name'       => $pdf['filename'],
+            'email_subject'   => $subject,
+            'actor_id'        => (int) ($_SESSION['user_id'] ?? 0),
+        ]);
+        $sms->log(
+            'document_emailed',
+            'Emailed ' . $built['label'] . ' to ' . $toEmail,
+            'document',
+            $recordId ?: 0
+        );
         sms_flash('success', 'Document emailed to ' . $toEmail . '.');
     } else {
         sms_flash('danger', 'Email failed: ' . ($result['error'] ?? $result['message'] ?? 'Unknown error'));

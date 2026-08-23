@@ -11,8 +11,10 @@ $breadcrumbs = [
     ['label' => 'SmS', 'url' => url('admin/dashboard.php#sms-alerts')],
     ['label' => 'Documents', 'active' => true],
 ];
+$documents_nav_active = 'templates';
 
 ob_start();
+require __DIR__ . '/_nav.php';
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>

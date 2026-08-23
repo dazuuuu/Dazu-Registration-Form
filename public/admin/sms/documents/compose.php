@@ -47,8 +47,10 @@ $breadcrumbs = [
     ['label' => 'Documents', 'url' => url('admin/sms/documents/index.php')],
     ['label' => 'Compose', 'active' => true],
 ];
+$documents_nav_active = 'compose';
 
 ob_start();
+require __DIR__ . '/_nav.php';
 ?>
 <form method="post" action="<?= url('admin/sms/documents/action.php') ?>" id="composeForm" target="_blank">
     <?php echo csrf_field(); ?>
