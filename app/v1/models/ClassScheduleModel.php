@@ -102,4 +102,33 @@ class ClassScheduleModel
         $row = $stmt->fetch(\PDO::FETCH_ASSOC);
         return $row ?: null;
     }
+
+    public function countAll(): int
+    {
+        return (int) $this->db->query('SELECT COUNT(*) FROM class_schedule_entries')->fetchColumn();
+    }
+
+    /** Replace all entries with the default Mon–Fri schedule slots. */
+    public function restoreDefaults(): array
+    {
+        require_once __DIR__ . '/../helpers/class_schedule_defaults.php';
+        $this->db->exec('DELETE FROM class_schedule_entries');
+        foreach (class_schedule_default_entries() as $entry) {
+            $this->create($entry);
+        }
+        return ['ok' => true];
+    }
+
+    /** Insert defaults only when table is empty. */
+    public function seedDefaultsIfEmpty(): bool
+    {
+        if ($this->countAll() > 0) {
+            return false;
+        }
+        require_once __DIR__ . '/../helpers/class_schedule_defaults.php';
+        foreach (class_schedule_default_entries() as $entry) {
+            $this->create($entry);
+        }
+        return true;
+    }
 }

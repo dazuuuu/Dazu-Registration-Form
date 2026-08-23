@@ -90,6 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'cover_image'         => $coverPath,
             ];
             if ($brochurePath !== null) {
+                if (!empty($course['brochure_path'])) {
+                    course_brochure_unlink($course['brochure_path']);
+                }
                 $payload['brochure_path'] = $brochurePath;
             }
             $result = $courseModel->update($id, $payload);

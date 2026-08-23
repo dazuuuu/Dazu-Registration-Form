@@ -247,6 +247,11 @@ function isSmsSection($section) {
                             <i class="fas fa-users"></i>
                             <span>Team</span>
                         </a>
+                        <a href="<?php echo url('admin/partners/index.php'); ?>"
+                           class="nav-link <?php echo isActive('partners', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-handshake"></i>
+                            <span>Partners</span>
+                        </a>
 
                         <!-- STORE SUB-SECTION (nested collapse, unchanged from original) -->
                         <div class="nav-item">

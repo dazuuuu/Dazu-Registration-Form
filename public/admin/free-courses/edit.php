@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseCategoryModel.php';
+require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -43,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Security check failed, please try again.';
     } else {
         $coverPath = null;
+        $brochurePath = null;
 
         if (!empty($_FILES['cover_image']['name'])) {
             $upload = upload_image(
@@ -57,8 +59,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if (!$error && !empty($_FILES['brochure']['name'])) {
+            $upload = upload_pdf(
+                $_FILES['brochure'],
+                __DIR__ . '/../../uploads/courses/brochures',
+                'uploads/courses/brochures'
+            );
+            if (!$upload['ok']) {
+                $error = $upload['error'];
+            } else {
+                $brochurePath = $upload['path'];
+            }
+        }
+
         if (!$error) {
-            $result = $courseModel->update($id, [
+            $payload = [
                 'title'           => $_POST['title'] ?? '',
                 'abbreviation'    => $_POST['abbreviation'] ?? '',
                 'category_id'     => $_POST['category_id'] ?? null,
@@ -75,7 +90,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'start_date'      => $_POST['start_date'] ?? null,
                 'end_date'        => $_POST['end_date'] ?? null,
                 'cover_image'     => $coverPath,
-            ]);
+            ];
+            if ($brochurePath !== null) {
+                if (!empty($course['brochure_path'])) {
+                    course_brochure_unlink($course['brochure_path']);
+                }
+                $payload['brochure_path'] = $brochurePath;
+            }
+            $result = $courseModel->update($id, $payload);
 
             if ($result['ok']) {
                 $notified = 0;
@@ -210,6 +232,19 @@ ob_start();
                     <?php endif; ?>
                     <input type="file" name="cover_image" class="form-control" accept="image/jpeg,image/png,image/webp">
                     <small class="text-muted">Leave blank to keep the current image.</small>
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">Course brochure (PDF)</label>
+                    <?php if (!empty($course['brochure_path'])): ?>
+                        <div class="mb-2">
+                            <a href="<?php echo htmlspecialchars(course_brochure_url($course)); ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-file-pdf me-1"></i> Current brochure
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                    <input type="file" name="brochure" class="form-control" accept="application/pdf">
+                    <small class="text-muted">Upload a new PDF to replace the current brochure. Leave blank to keep the existing file.</small>
                 </div>
 
                 <div class="col-12">

@@ -130,6 +130,20 @@ if (!function_exists('course_brochure_absolute_path')) {
     }
 }
 
+if (!function_exists('course_brochure_unlink')) {
+    function course_brochure_unlink(?string $relPath): void
+    {
+        $path = trim((string) $relPath);
+        if ($path === '' || preg_match('#^https?://#i', $path)) {
+            return;
+        }
+        $abs = course_brochure_absolute_path(['brochure_path' => $path]);
+        if ($abs && is_file($abs)) {
+            @unlink($abs);
+        }
+    }
+}
+
 if (!function_exists('course_fee_structure_download_url')) {
     function course_fee_structure_download_url(int $courseId, bool $download = true): string
     {
