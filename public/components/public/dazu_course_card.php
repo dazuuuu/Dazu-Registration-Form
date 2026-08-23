@@ -1,7 +1,12 @@
 <?php
 /** Course card — ported from Dazu-frontend Home.tsx */
-if (!isset($course) || !function_exists('dazu_course_apply_url')) {
+if (!isset($course)) {
+    return;
+}
+if (!function_exists('dazu_course_apply_url')) {
     require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
+}
+if (!function_exists('course_catalog_fee')) {
     require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
 }
 $img = dazu_course_image_url($course);
