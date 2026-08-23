@@ -89,5 +89,11 @@ $editUrl = url('admin/' . ($isFree ? 'free-courses' : 'courses') . '/edit.php?id
         <i class="fas fa-<?= $isActive ? 'ban' : 'check' ?>"></i>
       </button>
     </form>
+    <form method="POST" class="d-inline" onsubmit="return confirm('Permanently delete &quot;<?= htmlspecialchars(addslashes($course['title'] ?? '')) ?>&quot;? This cannot be undone.');">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="delete_id" value="<?= (int)$course['id'] ?>">
+      <input type="hidden" name="redirect_query" value="<?= htmlspecialchars($_SERVER['QUERY_STRING'] ?? '') ?>">
+      <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete permanently"><i class="fas fa-trash"></i></button>
+    </form>
   </div>
 </div>

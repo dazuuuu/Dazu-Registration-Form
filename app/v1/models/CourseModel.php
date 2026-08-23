@@ -242,6 +242,83 @@ class CourseModel {
         return $stmt->execute([':a' => $active ? 1 : 0, ':id' => $id]);
     }
 
+    public function countRegistrations(int $courseId): int
+    {
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM registrations WHERE course_id = :id');
+        $stmt->execute([':id' => $courseId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Permanently delete a course and its uploaded files.
+     * Blocked when student registrations exist for the course.
+     *
+     * @return array{ok:bool, error?:string}
+     */
+    public function deletePermanent(int $id): array
+    {
+        $course = $this->getById($id);
+        if (!$course) {
+            return ['ok' => false, 'error' => 'Course not found.'];
+        }
+
+        $regCount = $this->countRegistrations($id);
+        if ($regCount > 0) {
+            return [
+                'ok' => false,
+                'error' => 'Cannot delete this course — '
+                    . $regCount . ' student registration' . ($regCount === 1 ? '' : 's')
+                    . ' still exist. Delete those registrations first under Admin → Registrations.',
+            ];
+        }
+
+        try {
+            $this->db->beginTransaction();
+            $this->unlinkCourseAssets($course);
+
+            $stmt = $this->db->prepare('DELETE FROM courses WHERE id = :id');
+            $stmt->execute([':id' => $id]);
+
+            if ($stmt->rowCount() === 0) {
+                $this->db->rollBack();
+                return ['ok' => false, 'error' => 'Course could not be deleted.'];
+            }
+
+            $this->db->commit();
+            return ['ok' => true];
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('[CourseModel::deletePermanent] ' . $e->getMessage());
+            if (stripos($e->getMessage(), 'foreign key') !== false) {
+                return ['ok' => false, 'error' => 'Cannot delete this course because other records still reference it. Remove linked data first.'];
+            }
+            return ['ok' => false, 'error' => 'Could not delete the course. Please try again.'];
+        }
+    }
+
+    private function unlinkCourseAssets(array $course): void
+    {
+        if (!function_exists('public_path')) {
+            require_once __DIR__ . '/../config/paths.php';
+        }
+        require_once __DIR__ . '/../helpers/course_fee_structure.php';
+
+        $cover = trim((string) ($course['cover_image'] ?? ''));
+        if ($cover !== '' && !preg_match('#^https?://#i', $cover)) {
+            $abs = public_path(ltrim($cover, '/'));
+            if (is_file($abs)) {
+                @unlink($abs);
+            }
+        }
+
+        $brochure = trim((string) ($course['brochure_path'] ?? ''));
+        if ($brochure !== '') {
+            course_brochure_unlink($brochure);
+        }
+    }
+
     public function getById(int $id): ?array {
         $stmt = $this->db->prepare("SELECT * FROM courses WHERE id = :id");
         $stmt->execute([':id' => $id]);

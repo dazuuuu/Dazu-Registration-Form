@@ -262,6 +262,31 @@ ob_start();
                 <a href="<?php echo url('admin/courses/index.php'); ?>" class="btn btn-link">Cancel</a>
             </div>
         </form>
+
+        <?php
+        $regCount = $courseModel->countRegistrations($id);
+        ?>
+        <div class="card border-danger mt-4">
+            <div class="card-header bg-danger text-white fw-semibold">Delete course permanently</div>
+            <div class="card-body">
+                <p class="text-muted small mb-2">
+                    Removes this course from the system and deletes its cover image and brochure.
+                    <?php if ($regCount > 0): ?>
+                        <strong class="text-danger">Blocked:</strong> <?= (int) $regCount ?> registration(s) exist — delete those first.
+                    <?php endif; ?>
+                </p>
+                <?php if ($regCount === 0): ?>
+                <form method="POST" action="<?php echo url('admin/courses/index.php'); ?>"
+                      onsubmit="return confirm('Permanently delete &quot;<?php echo htmlspecialchars(addslashes($course['title'])); ?>&quot;? This cannot be undone.');">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="delete_id" value="<?php echo (int) $id; ?>">
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="fas fa-trash me-1"></i> Delete course permanently
+                    </button>
+                </form>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
 </div>
 <?php
