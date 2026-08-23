@@ -7,6 +7,6 @@ return [
     'host'     => dazu_env('DB_HOST', 'localhost'),
     'dbname'   => dazu_env('DB_NAME', 'registration_system'),
     'username' => dazu_env('DB_USER', 'root'),
-    'password' => dazu_env('DB_PASS', ''),
+    'password' => dazu_env('DB_PASS', 'mysql'),
     'charset'  => 'utf8mb4',
 ];

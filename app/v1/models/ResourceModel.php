@@ -99,7 +99,7 @@ class ResourceModel {
             return $result;
         }
 
-        $existing = $this->getDocument($userId, $docType, $registrationId);
+        $existing = $this->getLatestDocument($userId, $docType);
         if ($existing) {
             $stmt = $this->db->prepare(
                 "UPDATE user_documents SET file_path = :path, uploaded_by = :admin, registration_id = :rid, updated_at = NOW()
@@ -128,6 +128,17 @@ class ResourceModel {
             ':admin' => $adminId,
         ]);
         return ['ok' => true, 'id' => (int) $this->db->lastInsertId()];
+    }
+
+    public function getLatestDocument(int $userId, string $docType): ?array {
+        $stmt = $this->db->prepare(
+            "SELECT * FROM user_documents
+             WHERE user_id = :uid AND doc_type = :type
+             ORDER BY updated_at DESC LIMIT 1"
+        );
+        $stmt->execute([':uid' => $userId, ':type' => $docType]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+        return $row ?: null;
     }
 
     public function getDocument(int $userId, string $docType, ?int $registrationId = null): ?array {

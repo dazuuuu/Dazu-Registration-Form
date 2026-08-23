@@ -19,9 +19,7 @@ class CourseRegistrationHandler
     }
 
     /**
-     * Process a course registration POST. Works standalone on share pages.
-     *
-     * @return array{ok:bool, error?:string, id?:int}
+     * @return array{ok:bool, error?:string, id?:int, registration_no?:string}
      */
     public function process(array $post, array $files, array $course, ?string $referralNo = null): array
     {
@@ -33,22 +31,25 @@ class CourseRegistrationHandler
             return ['ok' => false, 'error' => 'Security check failed. Refresh and try again.'];
         }
 
-        $idDocPath = $this->uploadIdDocument($files['id_document'] ?? null);
-        if (is_string($idDocPath) && str_starts_with($idDocPath, 'ERROR:')) {
-            return ['ok' => false, 'error' => substr($idDocPath, 6)];
+        $courseId = (int) ($post['course_id'] ?? $course['id'] ?? 0);
+        if ($courseId > 0 && $courseId !== (int) ($course['id'] ?? 0)) {
+            $resolved = $this->courseModel->getById($courseId);
+            if (CourseModel::isShareable($resolved)) {
+                $course = $resolved;
+            }
         }
 
         $data = [
-            'full_name'         => $post['full_name'] ?? '',
-            'email'             => $post['email'] ?? '',
-            'phone'             => $post['phone'] ?? '',
-            'course_id'         => $course['id'],
-            'study_mode'        => $post['study_mode'] ?? 'online',
-            'payment_plan'      => $post['payment_plan'] ?? 'monthly',
-            'id_document_path'  => $idDocPath,
-            'payment_reference' => $post['payment_reference'] ?? '',
-            'free_course_reason' => $post['free_course_reason'] ?? '',
+            'full_name'                => $post['full_name'] ?? '',
+            'email'                    => $post['email'] ?? '',
+            'phone'                    => $post['phone'] ?? '',
+            'course_id'                => $course['id'],
+            'study_mode'               => $post['study_mode'] ?? 'online',
+            'payment_plan'             => $post['payment_plan'] ?? 'full',
+            'payment_reference'      => $post['payment_reference'] ?? '',
+            'free_course_reason'       => $post['free_course_reason'] ?? '',
             'referral_registration_no' => $referralNo,
+            'id_document_path'         => null,
         ];
 
         $result = $this->regModel->submit($data, $this->courseModel);
@@ -56,68 +57,35 @@ class CourseRegistrationHandler
             return $result;
         }
 
-        // Free courses skip payment but still go through the normal admin-review queue —
-        // same "received, awaiting approval" flow as paid courses, just without a payment step.
-        $reg = $this->regModel->getById($result['id']);
-        $this->sendReceivedEmail($reg, (int) $result['id']);
+        $reg = $this->regModel->getById((int) $result['id']);
+        if ($reg) {
+            $this->issueAdmissionLetterAndEmail($reg, $course, (int) $result['id']);
+        }
 
         return $result;
     }
 
-    private function sendReceivedEmail(?array $reg, int $registrationId): void
+    private function issueAdmissionLetterAndEmail(array $reg, array $course, int $registrationId): void
     {
-        if (!$reg) {
-            return;
-        }
         try {
-            require_once __DIR__ . '/StudentNotifier.php';
-            $notifier = new \StudentNotifier($this->pdo, null, true);
-            $result = $notifier->sendRegistrationReceived($reg);
-            if (empty($result['ok'])) {
-                error_log("[registration] Confirmation email failed for #{$registrationId}: " . ($result['message'] ?? 'Unknown error'));
+            require_once __DIR__ . '/AdmissionLetterService.php';
+            $letterService = new \AdmissionLetterService($this->pdo);
+            $letter = $letterService->generateAndStore($reg, $course);
+            if (empty($letter['ok'])) {
+                error_log("[registration] Admission letter failed for #{$registrationId}: " . ($letter['error'] ?? 'unknown'));
+                return;
+            }
+
+            $fullCourse = $this->courseModel->getById((int) ($course['id'] ?? $reg['course_id'] ?? 0)) ?? $course;
+
+            require_once __DIR__ . '/EnrollmentEmailService.php';
+            $emailService = new \EnrollmentEmailService($this->pdo);
+            $emailResult = $emailService->send($reg, $fullCourse, $letter['path'] ?? '');
+            if (empty($emailResult['ok'])) {
+                error_log("[registration] Enrollment email failed for #{$registrationId}: " . ($emailResult['message'] ?? 'Unknown error'));
             }
         } catch (\Throwable $e) {
-            error_log("[registration] Confirmation email error for #{$registrationId}: " . $e->getMessage());
+            error_log("[registration] Admission letter/email error for #{$registrationId}: " . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
         }
-    }
-
-    /**
-     * @return string|null Path on success, or 'ERROR:...' message string on failure
-     */
-    private function uploadIdDocument($file): ?string
-    {
-        if (!$file || empty($file['name'])) {
-            return 'ERROR:Please upload your ID or result slip as a PDF.';
-        }
-        if (($file['error'] ?? 1) !== UPLOAD_ERR_OK) {
-            return 'ERROR:Document upload failed. Try again.';
-        }
-        if (($file['size'] ?? 0) > 5 * 1024 * 1024) {
-            return 'ERROR:Document must be under 5 MB.';
-        }
-
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mime = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
-
-        if ($mime !== 'application/pdf') {
-            return 'ERROR:Only PDF files are accepted.';
-        }
-
-        if (!function_exists('public_path')) {
-            require_once __DIR__ . '/../config/paths.php';
-        }
-
-        $dest = public_path('uploads/registrations/documents');
-        if (!is_dir($dest)) {
-            mkdir($dest, 0775, true);
-        }
-
-        $fname = time() . '_' . bin2hex(random_bytes(6)) . '.pdf';
-        if (!move_uploaded_file($file['tmp_name'], $dest . DIRECTORY_SEPARATOR . $fname)) {
-            return 'ERROR:Could not save the document. Try again.';
-        }
-
-        return url('uploads/registrations/documents/' . $fname);
     }
 }

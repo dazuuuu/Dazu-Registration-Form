@@ -12,6 +12,7 @@ require_once __DIR__ . '/../models/StudentModel.php';
 require_once __DIR__ . '/../models/ProgressModel.php';
 require_once __DIR__ . '/StudentController.php';
 require_once __DIR__ . '/../services/StudentNotifier.php';
+require_once __DIR__ . '/../services/SmsModuleService.php';
 
 class RegistrationController {
 
@@ -61,10 +62,14 @@ class RegistrationController {
         try {
             $pdo->beginTransaction();
 
-            // Step 1: claim sequence atomically
-            $seq = $this->courseModel->claimNextSequence((int) $reg['course_id']);
-            $year = date('Y');
-            $regNo = sprintf('DH-%s%02d/%s', $reg['abbreviation'], $seq, $year);
+            // Step 1: use enrollment registration number if already assigned
+            if (!empty($reg['registration_no'])) {
+                $regNo = $reg['registration_no'];
+            } else {
+                require_once __DIR__ . '/../helpers/registration_number.php';
+                $seq = registration_number_claim($pdo, (int) $reg['course_id']);
+                $regNo = registration_number_format((string) $reg['abbreviation'], $seq);
+            }
 
             // Step 2: create the user account — temporary password, student will be prompted to reset
             $tempPassword = bin2hex(random_bytes(8)); // 16-char hex; admin shares manually
@@ -123,9 +128,23 @@ class RegistrationController {
             $approvedReg['registration_no'] = $regNo;
 
             $studentCtrl = new StudentController();
-            $paymentResult = $studentCtrl->recordInitialPayment($approvedReg, $adminId);
-            if (!empty($paymentResult['ok'])) {
-                $this->studentModel()->unlockPortal($registrationId);
+            try {
+                $paymentResult = $studentCtrl->recordInitialPayment($approvedReg, $adminId);
+                if (!empty($paymentResult['ok'])) {
+                    $this->studentModel()->unlockPortal($registrationId);
+                } else {
+                    error_log('[RegistrationController::approve] Initial payment failed for #' . $registrationId . ': ' . ($paymentResult['error'] ?? 'unknown'));
+                }
+            } catch (\Throwable $paymentError) {
+                error_log('[RegistrationController::approve] Initial payment error for #' . $registrationId . ': ' . $paymentError->getMessage());
+            }
+
+            try {
+                $approvedReg = $this->regModel->getById($registrationId) ?: $approvedReg;
+                $sms = new \SmsModuleService($pdo, $adminId);
+                $sms->syncFromRegistration($registrationId, $approvedReg);
+            } catch (\Throwable $smsError) {
+                error_log('[RegistrationController::approve] SmS sync error for #' . $registrationId . ': ' . $smsError->getMessage());
             }
 
             $progressModel = new \Models\ProgressModel($pdo);

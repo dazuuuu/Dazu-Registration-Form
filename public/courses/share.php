@@ -38,12 +38,15 @@ $referralNo = $referrer ? $referrer['registration_no'] : null;
 
 $reg_success = false;
 $reg_error = null;
+$reg_no = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $handler = new CourseRegistrationHandler($pdo);
     $result = $handler->process($_POST, $_FILES, $course, $referralNo);
-    $reg_success = $result['ok'];
-    if (!$result['ok']) {
+    if ($result['ok']) {
+        $reg_success = true;
+        $reg_no = $result['registration_no'] ?? null;
+    } else {
         $reg_error = $result['error'] ?? 'Registration failed.';
     }
 }

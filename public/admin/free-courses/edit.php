@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseCategoryModel.php';
+require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -43,6 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Security check failed, please try again.';
     } else {
         $coverPath = null;
+        $brochurePath = null;
 
         if (!empty($_FILES['cover_image']['name'])) {
             $upload = upload_image(
@@ -57,8 +59,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if (!$error && !empty($_FILES['brochure']['name'])) {
+            $upload = upload_pdf(
+                $_FILES['brochure'],
+                __DIR__ . '/../../uploads/courses/brochures',
+                'uploads/courses/brochures'
+            );
+            if (!$upload['ok']) {
+                $error = $upload['error'];
+            } else {
+                $brochurePath = $upload['path'];
+            }
+        }
+
         if (!$error) {
-            $result = $courseModel->update($id, [
+            $payload = [
                 'title'           => $_POST['title'] ?? '',
                 'abbreviation'    => $_POST['abbreviation'] ?? '',
                 'category_id'     => $_POST['category_id'] ?? null,
@@ -75,7 +90,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'start_date'      => $_POST['start_date'] ?? null,
                 'end_date'        => $_POST['end_date'] ?? null,
                 'cover_image'     => $coverPath,
-            ]);
+            ];
+            if ($brochurePath !== null) {
+                if (!empty($course['brochure_path'])) {
+                    course_brochure_unlink($course['brochure_path']);
+                }
+                $payload['brochure_path'] = $brochurePath;
+            }
+            $result = $courseModel->update($id, $payload);
 
             if ($result['ok']) {
                 $notified = 0;
@@ -213,6 +235,19 @@ ob_start();
                 </div>
 
                 <div class="col-12">
+                    <label class="form-label">Course brochure (PDF)</label>
+                    <?php if (!empty($course['brochure_path'])): ?>
+                        <div class="mb-2">
+                            <a href="<?php echo htmlspecialchars(course_brochure_url($course)); ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success">
+                                <i class="fas fa-file-pdf me-1"></i> Current brochure
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                    <input type="file" name="brochure" class="form-control" accept="application/pdf">
+                    <small class="text-muted">Upload a new PDF to replace the current brochure. Leave blank to keep the existing file.</small>
+                </div>
+
+                <div class="col-12">
                     <label class="form-label">Overview</label>
                     <textarea name="overview" class="form-control" rows="2"><?php echo htmlspecialchars($course['overview']); ?></textarea>
                 </div>
@@ -232,6 +267,29 @@ ob_start();
                 <a href="<?php echo url('admin/free-courses/index.php'); ?>" class="btn btn-link">Cancel</a>
             </div>
         </form>
+
+        <?php $regCount = $courseModel->countRegistrations($id); ?>
+        <div class="card border-danger mt-4">
+            <div class="card-header bg-danger text-white fw-semibold">Delete course permanently</div>
+            <div class="card-body">
+                <p class="text-muted small mb-2">
+                    Removes this free course and its uploaded files permanently.
+                    <?php if ($regCount > 0): ?>
+                        <strong class="text-danger">Blocked:</strong> <?= (int) $regCount ?> registration(s) exist — delete those first.
+                    <?php endif; ?>
+                </p>
+                <?php if ($regCount === 0): ?>
+                <form method="POST" action="<?php echo url('admin/free-courses/index.php'); ?>"
+                      onsubmit="return confirm(<?php echo json_encode('Permanently delete "' . $course['title'] . '"? This cannot be undone.'); ?>);">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="delete_id" value="<?php echo (int) $id; ?>">
+                    <button type="submit" class="btn btn-outline-danger">
+                        <i class="fas fa-trash me-1"></i> Delete course permanently
+                    </button>
+                </form>
+                <?php endif; ?>
+            </div>
+        </div>
     </div>
 </div>
 <?php

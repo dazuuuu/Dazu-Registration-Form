@@ -81,6 +81,61 @@ class StudentNotifier {
         return $this->send($reg['email'], $reg['full_name'], 'registration_received', $this->baseData($reg));
     }
 
+    public function sendAdmissionLetter(array $reg, string $filePath, array $course = []): array
+    {
+        if (!$this->enabled) {
+            error_log('[StudentNotifier] admission letter mail skipped — SMTP not enabled');
+            return ['ok' => false, 'message' => 'mail disabled', 'skipped' => true];
+        }
+
+        $data = $this->baseData(array_merge($reg, $course));
+        [$subject, $html] = StudentEmailTemplate::render('admission_letter', $data);
+
+        $sendCfg = $this->mailCfg;
+        $sendCfg['enabled'] = true;
+        $mailer = $this->mailer ?? new Mailer($sendCfg);
+
+        if ($filePath !== '' && is_file($filePath)) {
+            $fileName = ($reg['registration_no'] ?? 'admission') . '-letter.pdf';
+            return $mailer->sendWithAttachment($reg['email'], $reg['full_name'], $subject, $html, $filePath, $fileName);
+        }
+
+        return $mailer->send($reg['email'], $reg['full_name'], $subject, $html);
+    }
+
+    /**
+     * @param array<int, array{path:string, name:string}> $attachments
+     */
+    public function sendEnrollmentPackage(array $reg, array $course, array $attachments): array
+    {
+        if (!$this->enabled) {
+            error_log('[StudentNotifier] enrollment package mail skipped — SMTP not enabled');
+            return ['ok' => false, 'message' => 'mail disabled', 'skipped' => true];
+        }
+
+        $data = $this->baseData(array_merge($reg, $course));
+        $data['attachment_names'] = array_map(static fn ($a) => $a['name'] ?? basename($a['path'] ?? ''), $attachments);
+        [$subject, $html] = StudentEmailTemplate::render('enrollment_package', $data);
+
+        $sendCfg = $this->mailCfg;
+        $sendCfg['enabled'] = true;
+        $mailer = $this->mailer ?? new Mailer($sendCfg);
+
+        $result = $mailer->sendWithAttachments(
+            $reg['email'],
+            $reg['full_name'],
+            $subject,
+            $html,
+            $attachments
+        );
+
+        if (!$result['ok']) {
+            error_log('[StudentNotifier] enrollment_package to ' . $reg['email'] . ': ' . ($result['message'] ?? 'unknown'));
+        }
+
+        return $result;
+    }
+
     public function sendRegistrationApproved(array $reg, string $tempPassword): array {
         $data = $this->baseData($reg);
         $data['temp_password'] = $tempPassword;

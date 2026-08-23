@@ -31,7 +31,7 @@ class StudentModel {
              FROM registrations r
              JOIN courses c ON r.course_id = c.id
              LEFT JOIN users u ON r.user_id = u.id
-             WHERE r.status = 'approved'
+             WHERE r.status = 'approved' AND r.user_id IS NOT NULL
              ORDER BY r.reviewed_at DESC"
         );
         return $stmt->fetchAll();

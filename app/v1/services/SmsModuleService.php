@@ -193,6 +193,7 @@ class SmsModuleService
 
     public function listStudents(?string $search = null, ?string $status = null): array
     {
+        $this->backfillMissingSmsStudents();
         $sql = 'SELECT s.*, c.title AS course_title, r.registration_no, r.full_name AS reg_full_name,
                        r.email AS reg_email, r.phone AS reg_phone, r.user_id AS reg_user_id
                 FROM sms_students s
@@ -213,6 +214,157 @@ class SmsModuleService
         $stmt->execute($params);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
         return array_map([$this, 'normalizeStudentRow'], $rows);
+    }
+
+    /**
+     * Ensure an approved registration appears in sms_students (SmS → Students list).
+     * Safe to call repeatedly — updates links but does not duplicate rows.
+     *
+     * @return array{ok:bool, error?:string, id?:int, created?:bool}
+     */
+    public function syncFromRegistration(int $registrationId, ?array $reg = null): array
+    {
+        if (!self::isInstalled($this->pdo)) {
+            return ['ok' => false, 'error' => 'SmS module not installed.'];
+        }
+
+        if ($reg === null) {
+            require_once __DIR__ . '/../models/RegistrationModel.php';
+            $reg = (new \Models\RegistrationModel($this->pdo))->getById($registrationId);
+        }
+        if (!$reg || ($reg['status'] ?? '') !== 'approved') {
+            return ['ok' => false, 'error' => 'Registration is not approved.'];
+        }
+
+        $userId = (int) ($reg['user_id'] ?? 0);
+        if ($userId <= 0) {
+            return ['ok' => false, 'error' => 'Registration has no linked portal account.'];
+        }
+
+        $stmt = $this->pdo->prepare('SELECT id, user_id, registration_id FROM sms_students WHERE registration_id = :rid LIMIT 1');
+        $stmt->execute([':rid' => $registrationId]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($existing) {
+            if (empty($existing['user_id']) && $userId > 0) {
+                $this->pdo->prepare('UPDATE sms_students SET user_id = :uid WHERE id = :id')
+                    ->execute([':uid' => $userId, ':id' => (int) $existing['id']]);
+            }
+            return ['ok' => true, 'id' => (int) $existing['id'], 'created' => false];
+        }
+
+        $email = strtolower(trim($reg['email'] ?? ''));
+        if ($email !== '') {
+            $stmt = $this->pdo->prepare(
+                'SELECT id, registration_id FROM sms_students WHERE email = :email ORDER BY id DESC LIMIT 1'
+            );
+            $stmt->execute([':email' => $email]);
+            $byEmail = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($byEmail && empty($byEmail['registration_id'])) {
+                $this->linkSmsStudentPortal((int) $byEmail['id'], $registrationId, $userId);
+                $this->refreshSmsStudentFromRegistration((int) $byEmail['id'], $reg);
+                return ['ok' => true, 'id' => (int) $byEmail['id'], 'created' => false];
+            }
+        }
+
+        $cost = $this->registrationTotalCost($reg);
+        $paid = $this->registrationPaidTotal($registrationId);
+        $duration = $this->registrationDurationLabel($reg);
+
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO sms_students (name, email, phone, course_id, duration, start_date, cost, paid, status, notes, user_id, registration_id)
+             VALUES (:name, :email, :phone, :cid, :dur, :sd, :cost, :paid, :st, :notes, :uid, :rid)'
+        );
+        $stmt->execute([
+            ':name'  => trim($reg['full_name'] ?? '') ?: 'Student',
+            ':email' => $email ?: null,
+            ':phone' => trim($reg['phone'] ?? '') ?: null,
+            ':cid'   => (int) ($reg['course_id'] ?? 0) ?: null,
+            ':dur'   => $duration ?: null,
+            ':sd'    => !empty($reg['reviewed_at']) ? date('Y-m-d', strtotime($reg['reviewed_at'])) : null,
+            ':cost'  => $cost,
+            ':paid'  => $paid,
+            ':st'    => 'active',
+            ':notes' => 'Synced from registration approval',
+            ':uid'   => $userId,
+            ':rid'   => $registrationId,
+        ]);
+        $id = (int) $this->pdo->lastInsertId();
+        $this->log(
+            'student_synced',
+            'Added ' . ($reg['full_name'] ?? 'student') . ' to SmS list (' . ($reg['registration_no'] ?? 'reg #' . $registrationId) . ')',
+            'student',
+            $id
+        );
+
+        return ['ok' => true, 'id' => $id, 'created' => true];
+    }
+
+    /** Import approved registrations that are missing from sms_students. */
+    public function backfillMissingSmsStudents(): int
+    {
+        if (!self::isInstalled($this->pdo)) {
+            return 0;
+        }
+
+        $ids = $this->pdo->query(
+            "SELECT r.id FROM registrations r
+             LEFT JOIN sms_students s ON s.registration_id = r.id
+             WHERE r.status = 'approved' AND r.user_id IS NOT NULL AND s.id IS NULL
+             ORDER BY r.id ASC"
+        )->fetchAll(PDO::FETCH_COLUMN);
+
+        $created = 0;
+        foreach ($ids as $registrationId) {
+            $result = $this->syncFromRegistration((int) $registrationId);
+            if (!empty($result['ok']) && !empty($result['created'])) {
+                $created++;
+            }
+        }
+        return $created;
+    }
+
+    private function registrationTotalCost(array $reg): float
+    {
+        $regFee = !empty($reg['registration_fee_waived']) ? 0 : (float) ($reg['registration_fee'] ?? 0);
+        return round($regFee + (float) ($reg['course_fee'] ?? 0), 2);
+    }
+
+    private function registrationPaidTotal(int $registrationId): float
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT COALESCE(SUM(amount), 0) FROM payments WHERE registration_id = :rid AND status = 'approved'"
+        );
+        $stmt->execute([':rid' => $registrationId]);
+        return round((float) $stmt->fetchColumn(), 2);
+    }
+
+    private function registrationDurationLabel(array $reg): string
+    {
+        $courseId = (int) ($reg['course_id'] ?? 0);
+        if ($courseId <= 0) {
+            return '';
+        }
+        require_once __DIR__ . '/../helpers/course_duration.php';
+        $cm = new \Models\CourseModel($this->pdo);
+        $course = $cm->getById($courseId);
+        return $course ? course_study_summary($course) : '';
+    }
+
+    private function refreshSmsStudentFromRegistration(int $smsStudentId, array $reg): void
+    {
+        $this->pdo->prepare(
+            'UPDATE sms_students SET name = :name, email = :email, phone = :phone, course_id = :cid,
+             duration = :dur, cost = :cost, paid = :paid WHERE id = :id'
+        )->execute([
+            ':name'  => trim($reg['full_name'] ?? '') ?: 'Student',
+            ':email' => strtolower(trim($reg['email'] ?? '')) ?: null,
+            ':phone' => trim($reg['phone'] ?? '') ?: null,
+            ':cid'   => (int) ($reg['course_id'] ?? 0) ?: null,
+            ':dur'   => $this->registrationDurationLabel($reg) ?: null,
+            ':cost'  => $this->registrationTotalCost($reg),
+            ':paid'  => $this->registrationPaidTotal((int) $reg['id']),
+            ':id'    => $smsStudentId,
+        ]);
     }
 
     public function getStudent(int $id): ?array
@@ -742,8 +894,9 @@ class SmsModuleService
 
         try {
             $this->pdo->beginTransaction();
-            $seq = $cm->claimNextSequence($courseId);
-            $regNo = sprintf('DH-%s%02d/%s', $course['abbreviation'], $seq, date('Y'));
+            require_once __DIR__ . '/../helpers/registration_number.php';
+            $seq = registration_number_claim($this->pdo, $courseId);
+            $regNo = registration_number_format((string) $course['abbreviation'], $seq);
             $cost = (float) ($student['cost'] ?? $course['course_fee']);
             $paid = (float) ($student['paid'] ?? 0);
 

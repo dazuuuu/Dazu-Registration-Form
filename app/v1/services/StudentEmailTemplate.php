@@ -19,12 +19,55 @@ class StudentEmailTemplate {
                         '<p>Hi ' . self::e($data['full_name']) . ',</p>'
                         . '<p>Thank you for registering at <strong>' . self::e($data['company_name']) . '</strong>. '
                         . 'We have received your application for <strong>' . self::e($data['course_title']) . '</strong>.</p>'
+                        . (!empty($data['registration_no'])
+                            ? '<p><strong>Your registration number:</strong> ' . self::e($data['registration_no']) . '</p>'
+                            : '')
                         . '<div style="background:#f1f6f5;border-radius:8px;padding:16px;margin:16px 0;">'
                         . '<strong>What happens next?</strong><br>'
-                        . (!empty($data['is_free'])
-                            ? 'This course is free — our team will review your application and documents.'
-                            : 'Our team will verify your payment reference and review your documents.')
-                        . ' You will receive another email once your registration is approved or if we need more information.'
+                        . 'Our team will review your enrollment. Your admission letter is attached to this email when available.'
+                        . '</div>'
+                        . self::courseBlock($data)
+                    ),
+                ];
+
+            case 'admission_letter':
+                return [
+                    'Your admission letter — ' . ($data['company_name'] ?? 'Dazu Hub Institute'),
+                    self::layout(
+                        'Admission Letter',
+                        '<p>Dear ' . self::e($data['full_name']) . ',</p>'
+                        . '<p>Thank you for enrolling in <strong>' . self::e($data['course_title'] ?? '') . '</strong> '
+                        . 'at <strong>' . self::e($data['company_name']) . '</strong>.</p>'
+                        . '<p>Your registration number is <strong>' . self::e($data['registration_no'] ?? '') . '</strong>.</p>'
+                        . '<p>Please find your provisional admission letter attached. Present it at the admissions office for date confirmation and official signing.</p>'
+                        . self::courseBlock($data)
+                    ),
+                ];
+
+            case 'enrollment_package':
+                $attachmentList = '';
+                foreach ($data['attachment_names'] ?? [] as $name) {
+                    if ($name === '') {
+                        continue;
+                    }
+                    $attachmentList .= '<li>' . self::e($name) . '</li>';
+                }
+                return [
+                    'Your enrollment documents — ' . ($data['company_name'] ?? 'Dazu Hub Institute'),
+                    self::layout(
+                        'Enrollment Confirmed',
+                        '<p>Dear ' . self::e($data['full_name']) . ',</p>'
+                        . '<p>Thank you for enrolling in <strong>' . self::e($data['course_title'] ?? $data['title'] ?? '') . '</strong> '
+                        . 'at <strong>' . self::e($data['company_name']) . '</strong>.</p>'
+                        . '<p>Your registration number is <strong>' . self::e($data['registration_no'] ?? '') . '</strong>.</p>'
+                        . '<p>Please find the following documents attached to this email:</p>'
+                        . ($attachmentList !== ''
+                            ? '<ul style="margin:12px 0 16px;padding-left:20px;">' . $attachmentList . '</ul>'
+                            : '<p>Your enrollment documents are attached.</p>')
+                        . '<div style="background:#f1f6f5;border-radius:8px;padding:16px;margin:16px 0;">'
+                        . '<strong>What happens next?</strong><br>'
+                        . 'Present your admission letter at the admissions office for date confirmation and official signing. '
+                        . 'Review the fee structure for payment details.'
                         . '</div>'
                         . self::courseBlock($data)
                     ),
@@ -197,18 +240,19 @@ class StudentEmailTemplate {
     }
 
     private static function layout(string $heading, string $bodyHtml): string {
-        $company = 'Dazu Hub Institute';
-        $logoUrl = 'https://i.ibb.co/fzfZFtGc/223025.jpg';
-        return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">'
-            . '<div style="text-align:center;padding:24px 0;border-bottom:1px solid #eee;">'
-            . '<img src="' . $logoUrl . '" alt="' . self::e($company) . '" style="width:56px;height:56px;border-radius:8px;object-fit:cover;margin-bottom:8px;">'
-            . '<div style="font-size:18px;font-weight:bold;color:#15A24A;">' . self::e($company) . '</div>'
+        require_once __DIR__ . '/../helpers/site_logo.php';
+        $company = site_institute_name();
+        $logoUrl = site_logo_url();
+        return '<div style="font-family:Georgia,\'Times New Roman\',serif;max-width:600px;margin:0 auto;color:#171717;background:#fff;border:1px solid #171717;">'
+            . '<div style="text-align:center;padding:24px 20px;border-bottom:2px solid #171717;">'
+            . '<img src="' . htmlspecialchars($logoUrl, ENT_QUOTES, 'UTF-8') . '" alt="' . self::e($company) . '" style="max-height:56px;max-width:160px;object-fit:contain;margin-bottom:10px;filter:grayscale(100%);">'
+            . '<div style="font-size:17px;font-weight:bold;color:#171717;letter-spacing:.06em;text-transform:uppercase;">' . self::e($company) . '</div>'
             . '</div>'
             . '<div style="padding:24px;">'
-            . '<h2 style="color:#0D9488;margin:0 0 8px;">' . self::e($heading) . '</h2>'
+            . '<h2 style="color:#171717;margin:0 0 12px;font-size:16px;letter-spacing:.04em;text-transform:uppercase;">' . self::e($heading) . '</h2>'
             . $bodyHtml
             . '</div>'
-            . '<div style="padding:16px 24px;border-top:1px solid #eee;color:#888;font-size:12px;text-align:center;">'
+            . '<div style="padding:14px 24px;border-top:1px solid #171717;color:#525252;font-size:12px;text-align:center;">'
             . self::e($company) . ' &middot; Need help? Reply to this email.'
             . '</div>'
             . '</div>';

@@ -55,6 +55,24 @@ if ($categoryParam === 'uncategorized') {
     $categoryId = (int) $categoryParam;
 }
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    if (!csrf_verify($_POST['csrf_token'] ?? null)) {
+        SessionModel::setFlash('error', 'Security check failed, please try again.');
+    } else {
+        $id = (int) $_POST['delete_id'];
+        $result = $courseModel->deletePermanent($id);
+        SessionModel::setFlash($result['ok'] ? 'success' : 'error', $result['ok']
+            ? 'Free course permanently deleted.'
+            : ($result['error'] ?? 'Could not delete course.'));
+    }
+    $redirect = url('admin/free-courses/index.php');
+    if (!empty($_POST['redirect_query'])) {
+        $redirect .= '?' . $_POST['redirect_query'];
+    }
+    header('Location: ' . $redirect);
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_id'])) {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         SessionModel::setFlash('error', 'Security check failed, please try again.');

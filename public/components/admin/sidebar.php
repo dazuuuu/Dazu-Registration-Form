@@ -19,7 +19,7 @@ function isStoreActive($current_dir) {
 
 // New System group: registration, courses, tutors, payments
 function isSystemActive($current_dir) {
-    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'payments', 'resources'], true);
+    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'payments', 'resources', 'class-schedules'], true);
 }
 
 // Courses sub-section: paid (admin/courses) and free (admin/free-courses) are fully
@@ -78,12 +78,13 @@ function isSmsSection($section) {
                 <span>Dashboard</span>
             </a>
 
-            <?php if (!empty($pending_migration_count)): ?>
+            <?php $sidebar_pending_updates = $pending_system_count ?? ($pending_migration_count ?? 0); ?>
+            <?php if (!empty($sidebar_pending_updates)): ?>
             <a href="<?php echo url('admin/system/updates.php'); ?>"
                class="nav-link <?php echo $current_dir == 'system' ? 'active' : ''; ?>">
                 <i class="fas fa-download"></i>
                 <span>System Update</span>
-                <span class="updates-badge"><?php echo (int) $pending_migration_count; ?></span>
+                <span class="updates-badge"><?php echo (int) $sidebar_pending_updates; ?></span>
             </a>
             <?php endif; ?>
 
@@ -136,6 +137,11 @@ function isSmsSection($section) {
                             <i class="fas fa-money-bill-wave"></i>
                             <span>Payments</span>
                         </a>
+                        <a href="<?php echo url('admin/class-schedules/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'class-schedules' ? 'active' : ''; ?>">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span>Class Schedules</span>
+                        </a>
                         <a href="<?php echo url('admin/resources/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'resources' ? 'active' : ''; ?>">
                             <i class="fas fa-folder-open"></i>
@@ -179,6 +185,11 @@ function isSmsSection($section) {
                            class="nav-link <?php echo isSmsSection('sales') ? 'active' : ''; ?>">
                             <i class="fas fa-cash-register"></i>
                             <span>Sales</span>
+                        </a>
+                        <a href="<?php echo url('admin/sms/documents/index.php'); ?>"
+                           class="nav-link <?php echo isSmsSection('documents') ? 'active' : ''; ?>">
+                            <i class="fas fa-file-signature"></i>
+                            <span>Documents</span>
                         </a>
                     </div>
                 </div>
@@ -235,6 +246,11 @@ function isSmsSection($section) {
                            class="nav-link <?php echo isActive('team', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-users"></i>
                             <span>Team</span>
+                        </a>
+                        <a href="<?php echo url('admin/partners/index.php'); ?>"
+                           class="nav-link <?php echo isActive('partners', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-handshake"></i>
+                            <span>Partners</span>
                         </a>
 
                         <!-- STORE SUB-SECTION (nested collapse, unchanged from original) -->

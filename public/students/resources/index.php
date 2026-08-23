@@ -26,7 +26,7 @@ if (!$reg) {
 }
 
 $profile = $resourceModel->getProfile($userId) ?? [];
-$documents = $resourceModel->listDocumentsForUser($userId, (int) $reg['id']);
+$documents = $resourceModel->listDocumentsForUser($userId);
 $error = null;
 $success = null;
 

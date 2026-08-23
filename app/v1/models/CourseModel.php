@@ -24,33 +24,35 @@ class CourseModel {
         $categoryId = !empty($data['category_id']) ? (int) $data['category_id'] : null;
         $dur = $this->durationFields($data);
         $isFree = !empty($data['is_free']);
-        $fee = $isFree ? 0.0 : (float) $data['course_fee'];
+        $schoolFees = $this->schoolFeeFields($data, $isFree);
+        $fee = $isFree ? 0.0 : $schoolFees['course_fee'];
         $dates = $this->dateFields($data);
-        $feeStructure = $isFree ? null : $this->feeStructureValue($data);
 
         try {
-            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, description, requirements, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, fee_structure, is_free, start_date, end_date, is_active, created_by)
-                    VALUES (:title, :abbreviation, :category_id, :cover_image, :description, :requirements, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :course_fee, :fee_structure, :is_free, :start_date, :end_date, 1, :created_by)";
+            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, brochure_path, description, requirements, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, school_fee_online, school_fee_physical, is_free, start_date, end_date, is_active, created_by)
+                    VALUES (:title, :abbreviation, :category_id, :cover_image, :brochure_path, :description, :requirements, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :course_fee, :school_fee_online, :school_fee_physical, :is_free, :start_date, :end_date, 1, :created_by)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
-                ':title'            => trim($data['title']),
-                ':abbreviation'     => $abbr,
-                ':category_id'      => $categoryId,
-                ':cover_image'      => $data['cover_image'] ?? null,
-                ':description'      => $data['description'] ?? '',
-                ':requirements'     => trim($data['requirements'] ?? ''),
-                ':overview'         => $data['overview'] ?? '',
-                ':duration_months'  => $dur['duration_months'],
-                ':weeks_of_study'   => $dur['weeks_of_study'],
-                ':days_of_study'    => $dur['days_of_study'],
-                ':hours_of_study'   => $dur['hours_of_study'],
-                ':study_schedule'   => $dur['study_schedule'],
-                ':course_fee'       => $fee,
-                ':fee_structure'    => $feeStructure,
-                ':is_free'          => $isFree ? 1 : 0,
-                ':start_date'       => $dates['start_date'],
-                ':end_date'         => $dates['end_date'],
-                ':created_by'       => $this->resolveCreatedBy($createdBy),
+                ':title'               => trim($data['title']),
+                ':abbreviation'        => $abbr,
+                ':category_id'         => $categoryId,
+                ':cover_image'         => $data['cover_image'] ?? null,
+                ':brochure_path'       => $data['brochure_path'] ?? null,
+                ':description'         => $data['description'] ?? '',
+                ':requirements'        => trim($data['requirements'] ?? ''),
+                ':overview'            => $data['overview'] ?? '',
+                ':duration_months'     => $dur['duration_months'],
+                ':weeks_of_study'      => $dur['weeks_of_study'],
+                ':days_of_study'       => $dur['days_of_study'],
+                ':hours_of_study'      => $dur['hours_of_study'],
+                ':study_schedule'      => $dur['study_schedule'],
+                ':course_fee'          => $fee,
+                ':school_fee_online'   => $schoolFees['school_fee_online'],
+                ':school_fee_physical' => $schoolFees['school_fee_physical'],
+                ':is_free'             => $isFree ? 1 : 0,
+                ':start_date'          => $dates['start_date'],
+                ':end_date'            => $dates['end_date'],
+                ':created_by'          => $this->resolveCreatedBy($createdBy),
             ]);
         } catch (\PDOException $e) {
             $missingDateCols = stripos($e->getMessage(), 'start_date') !== false
@@ -67,6 +69,11 @@ class CourseModel {
                 || stripos($e->getMessage(), 'days_of_study') !== false
                 || stripos($e->getMessage(), 'hours_of_study') !== false
                 || stripos($e->getMessage(), 'study_schedule') !== false;
+            if (stripos($e->getMessage(), 'brochure_path') !== false
+                || stripos($e->getMessage(), 'school_fee_online') !== false
+                || stripos($e->getMessage(), 'school_fee_physical') !== false) {
+                return ['ok' => false, 'error' => 'Database not updated yet — run Admin → System Updates (037_course_brochure_and_school_fees), then retry.'];
+            }
             if (stripos($e->getMessage(), 'fee_structure') !== false) {
                 return ['ok' => false, 'error' => 'Database not migrated yet — run databases/required_migrations/036_course_fee_structure.sql, then retry.'];
             }
@@ -131,38 +138,44 @@ class CourseModel {
             : null;
 
         $isFree = !empty($data['is_free']);
-        $fee = $isFree ? 0.0 : (float) $data['course_fee'];
+        $schoolFees = $this->schoolFeeFields($data, $isFree);
+        $fee = $isFree ? 0.0 : $schoolFees['course_fee'];
         $dates = $this->dateFields($data);
-        $feeStructure = $isFree ? null : $this->feeStructureValue($data);
 
         $fields = "title = :title, abbreviation = :abbreviation, category_id = :category_id, description = :description,
                    requirements = :requirements, overview = :overview, duration_months = :duration_months, weeks_of_study = :weeks_of_study,
                    days_of_study = :days_of_study, hours_of_study = :hours_of_study, study_schedule = :study_schedule, course_fee = :course_fee,
-                   fee_structure = :fee_structure, is_free = :is_free, start_date = :start_date, end_date = :end_date";
+                   school_fee_online = :school_fee_online, school_fee_physical = :school_fee_physical,
+                   is_free = :is_free, start_date = :start_date, end_date = :end_date";
         $dur = $this->durationFields($data);
         $params = [
-            ':title'           => trim($data['title']),
-            ':abbreviation'    => $abbr,
-            ':category_id'     => $categoryId,
-            ':description'     => $data['description'] ?? '',
-            ':requirements'    => trim($data['requirements'] ?? ''),
-            ':overview'        => $data['overview'] ?? '',
-            ':duration_months' => $dur['duration_months'],
-            ':weeks_of_study'  => $dur['weeks_of_study'],
-            ':days_of_study'   => $dur['days_of_study'],
-            ':hours_of_study'  => $dur['hours_of_study'],
-            ':study_schedule'  => $dur['study_schedule'],
-            ':course_fee'      => $fee,
-            ':fee_structure'   => $feeStructure,
-            ':is_free'         => $isFree ? 1 : 0,
-            ':start_date'      => $dates['start_date'],
-            ':end_date'        => $dates['end_date'],
-            ':id'              => $id,
+            ':title'               => trim($data['title']),
+            ':abbreviation'        => $abbr,
+            ':category_id'         => $categoryId,
+            ':description'         => $data['description'] ?? '',
+            ':requirements'        => trim($data['requirements'] ?? ''),
+            ':overview'            => $data['overview'] ?? '',
+            ':duration_months'     => $dur['duration_months'],
+            ':weeks_of_study'      => $dur['weeks_of_study'],
+            ':days_of_study'       => $dur['days_of_study'],
+            ':hours_of_study'      => $dur['hours_of_study'],
+            ':study_schedule'      => $dur['study_schedule'],
+            ':course_fee'          => $fee,
+            ':school_fee_online'   => $schoolFees['school_fee_online'],
+            ':school_fee_physical' => $schoolFees['school_fee_physical'],
+            ':is_free'             => $isFree ? 1 : 0,
+            ':start_date'          => $dates['start_date'],
+            ':end_date'            => $dates['end_date'],
+            ':id'                  => $id,
         ];
 
         if (!empty($data['cover_image'])) {
             $fields .= ", cover_image = :cover_image";
             $params[':cover_image'] = $data['cover_image'];
+        }
+        if (array_key_exists('brochure_path', $data) && $data['brochure_path'] !== null) {
+            $fields .= ", brochure_path = :brochure_path";
+            $params[':brochure_path'] = $data['brochure_path'];
         }
 
         $sql = "UPDATE courses SET $fields WHERE id = :id";
@@ -184,6 +197,11 @@ class CourseModel {
                 || stripos($e->getMessage(), 'days_of_study') !== false
                 || stripos($e->getMessage(), 'hours_of_study') !== false
                 || stripos($e->getMessage(), 'study_schedule') !== false;
+            if (stripos($e->getMessage(), 'brochure_path') !== false
+                || stripos($e->getMessage(), 'school_fee_online') !== false
+                || stripos($e->getMessage(), 'school_fee_physical') !== false) {
+                return ['ok' => false, 'error' => 'Database not updated yet — run Admin → System Updates (037_course_brochure_and_school_fees), then retry.'];
+            }
             if (stripos($e->getMessage(), 'fee_structure') !== false) {
                 return ['ok' => false, 'error' => 'Database not migrated yet — run databases/required_migrations/036_course_fee_structure.sql, then retry.'];
             }
@@ -222,6 +240,83 @@ class CourseModel {
     public function setActive(int $id, bool $active): bool {
         $stmt = $this->db->prepare("UPDATE courses SET is_active = :a WHERE id = :id");
         return $stmt->execute([':a' => $active ? 1 : 0, ':id' => $id]);
+    }
+
+    public function countRegistrations(int $courseId): int
+    {
+        $stmt = $this->db->prepare('SELECT COUNT(*) FROM registrations WHERE course_id = :id');
+        $stmt->execute([':id' => $courseId]);
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Permanently delete a course and its uploaded files.
+     * Blocked when student registrations exist for the course.
+     *
+     * @return array{ok:bool, error?:string}
+     */
+    public function deletePermanent(int $id): array
+    {
+        $course = $this->getById($id);
+        if (!$course) {
+            return ['ok' => false, 'error' => 'Course not found.'];
+        }
+
+        $regCount = $this->countRegistrations($id);
+        if ($regCount > 0) {
+            return [
+                'ok' => false,
+                'error' => 'Cannot delete this course — '
+                    . $regCount . ' student registration' . ($regCount === 1 ? '' : 's')
+                    . ' still exist. Delete those registrations first under Admin → Registrations.',
+            ];
+        }
+
+        try {
+            $this->db->beginTransaction();
+            $this->unlinkCourseAssets($course);
+
+            $stmt = $this->db->prepare('DELETE FROM courses WHERE id = :id');
+            $stmt->execute([':id' => $id]);
+
+            if ($stmt->rowCount() === 0) {
+                $this->db->rollBack();
+                return ['ok' => false, 'error' => 'Course could not be deleted.'];
+            }
+
+            $this->db->commit();
+            return ['ok' => true];
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            error_log('[CourseModel::deletePermanent] ' . $e->getMessage());
+            if (stripos($e->getMessage(), 'foreign key') !== false) {
+                return ['ok' => false, 'error' => 'Cannot delete this course because other records still reference it. Remove linked data first.'];
+            }
+            return ['ok' => false, 'error' => 'Could not delete the course. Please try again.'];
+        }
+    }
+
+    private function unlinkCourseAssets(array $course): void
+    {
+        if (!function_exists('public_path')) {
+            require_once __DIR__ . '/../config/paths.php';
+        }
+        require_once __DIR__ . '/../helpers/course_fee_structure.php';
+
+        $cover = trim((string) ($course['cover_image'] ?? ''));
+        if ($cover !== '' && !preg_match('#^https?://#i', $cover)) {
+            $abs = public_path(ltrim($cover, '/'));
+            if (is_file($abs)) {
+                @unlink($abs);
+            }
+        }
+
+        $brochure = trim((string) ($course['brochure_path'] ?? ''));
+        if ($brochure !== '') {
+            course_brochure_unlink($brochure);
+        }
     }
 
     public function getById(int $id): ?array {
@@ -398,19 +493,9 @@ class CourseModel {
         }
 
         if (empty($data['is_free'])) {
-            $fee = (float) ($data['course_fee'] ?? 0);
-            if ($fee <= 0) {
-                return 'Course fee must be greater than zero.';
-            }
-            $items = $this->feeStructureItems($data);
-            if ($items) {
-                $sum = 0.0;
-                foreach ($items as $item) {
-                    $sum += (float) ($item['amount'] ?? 0);
-                }
-                if ($sum <= 0) {
-                    return 'Fee structure amounts must add up to more than zero.';
-                }
+            $schoolFees = $this->schoolFeeFields($data, false);
+            if ($schoolFees['course_fee'] <= 0) {
+                return 'Enter at least one school fee (online or physical) greater than zero.';
             }
         }
 
@@ -427,21 +512,38 @@ class CourseModel {
         return course_normalize_duration_input($data);
     }
 
-    private function feeStructureItems(array $data): array
+    private function schoolFeeFields(array $data, bool $isFree): array
     {
-        require_once __DIR__ . '/../helpers/course_fee_structure.php';
-        if (isset($data['fee_structure_items']) && is_array($data['fee_structure_items'])) {
-            return course_fee_structure_decode($data['fee_structure_items']);
+        if ($isFree) {
+            return [
+                'school_fee_online' => null,
+                'school_fee_physical' => null,
+                'course_fee' => 0.0,
+            ];
         }
-        if (array_key_exists('fee_structure', $data)) {
-            return course_fee_structure_decode($data['fee_structure']);
-        }
-        return [];
-    }
 
-    private function feeStructureValue(array $data): ?string
-    {
-        return course_fee_structure_encode($this->feeStructureItems($data));
+        require_once __DIR__ . '/../helpers/course_fee_structure.php';
+        $online = isset($data['school_fee_online']) && $data['school_fee_online'] !== '' && $data['school_fee_online'] !== null
+            ? round((float) $data['school_fee_online'], 2)
+            : null;
+        $physical = isset($data['school_fee_physical']) && $data['school_fee_physical'] !== '' && $data['school_fee_physical'] !== null
+            ? round((float) $data['school_fee_physical'], 2)
+            : null;
+
+        $catalog = 0.0;
+        if ($online !== null && $online > 0) {
+            $catalog = $online;
+        } elseif ($physical !== null && $physical > 0) {
+            $catalog = $physical;
+        } else {
+            $catalog = (float) ($data['course_fee'] ?? 0);
+        }
+
+        return [
+            'school_fee_online' => $online,
+            'school_fee_physical' => $physical,
+            'course_fee' => $catalog,
+        ];
     }
 
     /** Blank strings from an untouched date input become NULL, not '' (invalid DATE). */

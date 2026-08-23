@@ -54,11 +54,14 @@ $editUrl = url('admin/' . ($isFree ? 'free-courses' : 'courses') . '/edit.php?id
         <?php
         if (!$isFree) {
             require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
-            $adminFeeItems = course_fee_structure_items($course);
-            if ($adminFeeItems) {
+            $fees = course_school_fees($course);
+            if ($fees['online'] > 0 || $fees['physical'] > 0) {
                 echo '<ul class="list-unstyled small mb-0 mt-1">';
-                foreach ($adminFeeItems as $item) {
-                    echo '<li class="d-flex justify-content-between gap-2"><span>' . htmlspecialchars($item['label']) . '</span><span>KSh ' . number_format($item['amount']) . '</span></li>';
+                if ($fees['online'] > 0) {
+                    echo '<li class="d-flex justify-content-between gap-2"><span>Online</span><span>KSh ' . number_format($fees['online']) . '</span></li>';
+                }
+                if ($fees['physical'] > 0) {
+                    echo '<li class="d-flex justify-content-between gap-2"><span>Physical</span><span>KSh ' . number_format($fees['physical']) . '</span></li>';
                 }
                 echo '</ul>';
             }
@@ -85,6 +88,12 @@ $editUrl = url('admin/' . ($isFree ? 'free-courses' : 'courses') . '/edit.php?id
       <button type="submit" class="btn btn-sm btn-outline-<?= $isActive ? 'danger' : 'success' ?>">
         <i class="fas fa-<?= $isActive ? 'ban' : 'check' ?>"></i>
       </button>
+    </form>
+    <form method="POST" class="d-inline" onsubmit="return confirm(<?= json_encode('Permanently delete "' . ($course['title'] ?? '') . '"? This cannot be undone.') ?>);">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="delete_id" value="<?= (int)$course['id'] ?>">
+      <input type="hidden" name="redirect_query" value="<?= htmlspecialchars($_SERVER['QUERY_STRING'] ?? '') ?>">
+      <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete permanently"><i class="fas fa-trash"></i></button>
     </form>
   </div>
 </div>

@@ -13,6 +13,9 @@ RewriteRule ^about/?$ about/index.php [L]
 RewriteRule ^contact/?$ contact/index.php [L]
 RewriteRule ^projects/?$ projects/index.php [L]
 RewriteRule ^blog/?$ blogs/index.php [L]
+RewriteRule ^blogs/?$ blogs/index.php [L]
+RewriteRule ^gallery/?$ gallery/index.php [L]
+RewriteRule ^services/?$ services/index.php [L]
 
 # Real files and folders (css, images, api, admin, etc.)
 RewriteCond %{REQUEST_FILENAME} -f [OR]

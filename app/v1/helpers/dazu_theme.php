@@ -397,3 +397,10 @@ if (!function_exists('dazu_fee_quote')) {
         ];
     }
 }
+
+if (!function_exists('course_catalog_fee')) {
+    require_once __DIR__ . '/course_fee_structure.php';
+}
+if (!function_exists('class_schedule_entries')) {
+    require_once __DIR__ . '/class_schedule.php';
+}

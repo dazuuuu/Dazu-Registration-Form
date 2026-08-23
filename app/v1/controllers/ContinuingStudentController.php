@@ -100,8 +100,9 @@ class ContinuingStudentController {
         try {
             $this->db->beginTransaction();
 
-            $seq = $this->courseModel->claimNextSequence((int) $course['id']);
-            $regNo = sprintf('DH-%s%02d/%s', $course['abbreviation'], $seq, date('Y'));
+            require_once __DIR__ . '/../helpers/registration_number.php';
+            $seq = registration_number_claim($this->db, (int) $course['id']);
+            $regNo = registration_number_format((string) $course['abbreviation'], $seq);
 
             $stmt = $this->db->prepare(
                 "INSERT INTO registrations

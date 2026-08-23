@@ -1,46 +1,55 @@
 <?php
-// public/index.php
-$page_title = 'Dazu hub Institute — Practical Tech Training in Thika';
-$page_description = 'Hands-on software development, cybersecurity, data analytics and AI courses at Dazu hub Institute, Thika Town.';
-
+$courses=[
+['AI COURSES','https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1000&auto=format&fit=crop','4.8','120','3 MONTHS','AI and digital marketing','Master content creation, ad targeting, and digital marketing powered by AI.'],
+['AI COURSES','https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=1000&auto=format&fit=crop','4.8','120','1 MONTH','Ai automation','Automate repetitive workflows and connect platforms using AI pipelines.'],
+['AI COURSES','https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1000&auto=format&fit=crop','4.8','120','12 MONTHS','AI ENGINEER','Learn how to code, build, integrate and Train AI models.'],
+['CYBERSECURITY','https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=1000&auto=format&fit=crop','4.8','120','6 MONTHS','Cyber security','Cybersecurity is the practice of protecting networks, devices, and data from...'],
+['DATA','https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=1000&auto=format&fit=crop','4.9','85','4 MONTHS','Data Analytics','Transform raw data into actionable insights using Python, SQL, and Power BI.'],
+['WEB DEVELOPMENT','https://images.unsplash.com/photo-1547658719-da2b51169166?q=80&w=1000&auto=format&fit=crop','4.7','210','6 MONTHS','Full Stack Web Dev','Learn React, Node.js, and databases to build complete web applications.'],
+['BASIC SKILLS','https://images.unsplash.com/photo-1526379095098-d400fd0bfce8?q=80&w=1000&auto=format&fit=crop','4.8','150','2 MONTHS','Python Programming','Master the fundamentals of Python for scripting, automation, and basics.'],
+['CYBERSECURITY','https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?q=80&w=1000&auto=format&fit=crop','4.9','95','5 MONTHS','Penetration Testing','Learn advanced ethical hacking techniques to secure infrastructure.'],
+['WEB DEVELOPMENT','https://images.unsplash.com/photo-1517134191118-9d595e4c8c2b?q=80&w=1000&auto=format&fit=crop','4.7','110','3 MONTHS','Frontend Engineering','Focus on UI/UX, responsive design, React, and modern CSS frameworks.'],
+['AI COURSES','https://images.unsplash.com/photo-1555255707-c07966088b7b?q=80&w=1000&auto=format&fit=crop','4.9','180','8 MONTHS','Machine Learning','Dive deep into ML algorithms, neural networks, and deep learning.'],
+['SOFTWARE DEVELOPMENT','https://images.unsplash.com/photo-1555066931-4365d14bab8c?q=80&w=1000&auto=format&fit=crop','4.8','140','6 MONTHS','Backend Development','Design robust APIs, microservices, and manage database architectures.'],
+['SOFTWARE DEVELOPMENT','https://images.unsplash.com/photo-1451187580459-43490279c0fa?q=80&w=1000&auto=format&fit=crop','4.8','75','4 MONTHS','Cloud Computing','Deploy and scale applications using AWS, GCP, and modern DevOps tools.'],
+['SOFTWARE & WEB','https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?q=80&w=1000&auto=format&fit=crop','4.9','320','1 MONTHS','Video editing & content creation','Master video editing and content creation for TikTok, YouTube, and social media.']];
+$slides=[
+['⌘','Master Web & Software Development','Practical training for the modern tech landscape','Learn Python, Data Analytics, Cybersecurity, and more with our hands-on approach.','https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2070&auto=format&fit=crop'],
+['⌁','Secure Your Future with Cybersecurity','Learn to protect networks and data','Get practical experience in ethical hacking, network defense, and risk management.','https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop'],
+['◈','Unlock Insights with Data Analytics','Turn data into actionable intelligence','Master tools and techniques to analyze, visualize, and interpret complex data sets.','https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=2070&auto=format&fit=crop']];
+$categories=['ALL','SOFTWARE & WEB','CYBERSECURITY','SOFTWARE DEVELOPMENT','WEB DEVELOPMENT','AI COURSES','BASIC SKILLS','DATA'];
 require_once __DIR__ . '/../app/v1/init.php';
 require_once __DIR__ . '/../app/v1/helpers/dazu_theme.php';
-require_once __DIR__ . '/../app/v1/helpers/testimonials.php';
+require_once __DIR__ . '/../app/v1/helpers/partners.php';
 require_once __DIR__ . '/../app/v1/models/Connection.php';
 require_once __DIR__ . '/../app/v1/models/CourseModel.php';
-
-use Models\Connection;
-use Models\CourseModel;
-
-$pdo = Connection::getInstance()->getConnection();
-$courseModel = new CourseModel($pdo);
-
-// Hero floating cards use real counts, not the template's invented ones.
-require_once __DIR__ . '/components/public/dazu_hero_helpers.php';
-$heroStats = dazu_hero_stats($pdo);
-
-$popularSection = dazu_load_popular_courses_section($pdo, $courseModel);
-$popularCategories = $popularSection['categories'];
-$popularCourses = $popularSection['courses'];
-
-$testimonialData = testimonial_load_for_homepage($pdo);
-$textTestimonials = $testimonialData['text'];
-$videoTestimonials = $testimonialData['video'];
-
-ob_start();
-include __DIR__ . '/components/public/dazu_hero.php';
-include __DIR__ . '/components/public/dazu_stats_bar.php';
-include __DIR__ . '/components/public/dazu_popular_courses.php';
-include __DIR__ . '/components/public/dazu_campus_section.php';
-include __DIR__ . '/components/public/dazu_testimonials_section.php';
-include __DIR__ . '/components/public/dazu_cta_section.php';
-include __DIR__ . '/components/public/dazu_newsletter_section.php';
-$content = ob_get_clean();
-require_once __DIR__ . '/components/public/dazu_hero_helpers.php';
-$og_image = dazu_hero_image_url(
-    'hero-1',
-    is_file(public_path('assets/app/hero.png'))
-        ? asset('app/hero.png')
-        : 'https://images.unsplash.com/photo-1580894732444-8ecded7900cd?auto=format&fit=crop&w=1200&q=80'
-);
-require __DIR__ . '/templates/public/dazu_layout.php';
+require_once __DIR__ . '/../app/v1/models/BlogModel.php';
+$pdo = \Models\Connection::getInstance()->getConnection();
+$courseModel = new \Models\CourseModel($pdo);
+$dbCourses = $courseModel->getAll(true);
+if ($dbCourses) {
+  $courses = array_map(static function (array $course): array {
+    $months = (int) ($course['duration_months'] ?? 0);
+    return [strtoupper((string) ($course['category_name'] ?? 'Technology')), dazu_course_image_url($course), (string) ($course['rating'] ?? '4.8'), (string) dazu_course_rating_count((string) ($course['abbreviation'] ?? '')), $months ? $months . ' MONTH' . ($months === 1 ? '' : 'S') : 'FLEXIBLE', (string) ($course['title'] ?? ''), (string) ($course['overview'] ?: ($course['description'] ?? '')), (int) ($course['id'] ?? 0), (string) ($course['brochure_path'] ?? '')];
+  }, $dbCourses);
+  $categories = array_values(array_unique(array_merge(['ALL'], array_column($courses, 0))));
+}
+$blogModel = new \BlogModel($pdo);
+$blogs = $blogModel->getAll('published', 3);
+$partners = partners_load_for_homepage($pdo);
+?>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dazu Training Institute</title><meta name="description" content="Master Web & Software Development, Python, Data Analytics, and Cybersecurity with modern and practical training."><link rel="stylesheet" href="/assets/css/copy-ui-php.css"></head>
+<link rel="stylesheet" href="/assets/css/copy-ui-overrides.css"><body>
+<nav class="cu-nav"><div class="cu-wrap cu-navin"><a class="cu-brand" href="/"><img class="cu-logo" src="/assets/images/logo/logo.png" alt="Dazu hub Institute"><span>Dazu Training</span></a><div class="cu-links"><a href="/">HOME</a><a href="/courses/">COURSES</a><a href="/about/">ABOUT</a><a href="/projects/">PROJECTS</a><a href="/blogs/">BLOGS</a><a href="/contact/">CONTACTS</a></div><div class="cu-actions"><a class="cu-apply" href="/apply/">APPLY</a><a class="cu-login" href="/auth/login.php">Login</a></div><button class="cu-menu" data-cu-menu aria-label="Open menu">☰</button></div><div class="cu-mobile"><a href="/">HOME</a><a href="/courses/">COURSES</a><a href="/courses/free.php">FREE COURSES</a><a href="/about/">ABOUT</a><a href="/projects/">PROJECTS</a><a href="/blogs/">BLOGS</a><a href="/contact/">CONTACTS</a><a href="/apply/">APPLY</a><a href="/auth/login.php">LOGIN</a></div></nav>
+<main>
+<section class="cu-hero"><?php foreach($slides as $i=>$s): ?><div class="cu-slide <?=!$i?'active':''?>" style="background-image:url('<?=$s[4]?>')"></div><?php endforeach; ?><div class="cu-hero-content"><div class="cu-hero-copy"><?php foreach($slides as $i=>$s): ?><div class="cu-hero-text" <?= $i?'hidden':'' ?>><div style="font-size:48px;color:#4ade80"><?=$s[0]?></div><h1><?=$s[1]?></h1><p class="sub"><?=$s[2]?></p><p><?=$s[3]?></p></div><?php endforeach; ?><div class="cu-hero-buttons"><a class="cu-button cu-light" href="/apply/">Get started →</a><a class="cu-button cu-outline" href="/courses/">Our courses</a></div></div></div><div class="cu-dots"><?php foreach($slides as $i=>$s): ?><button class="cu-dot <?=!$i?'active':''?>" aria-label="Slide <?=$i+1?>"></button><?php endforeach; ?></div></section>
+<section class="cu-stats"><div class="cu-wrap cu-grid4"><?php foreach([['1,200+','Students Trained'],['14+','Practical Courses'],['350+','Projects Completed'],['25+','Industry Mentors']] as $stat): ?><div class="cu-stat"><b><?=$stat[0]?></b><span><?=$stat[1]?></span></div><?php endforeach; ?></div></section>
+<section class="cu-section"><div class="cu-wrap"><h2 class="cu-title">Our Courses</h2><div class="cu-rule"></div><p class="cu-overline" style="text-align:center">Explore our top technology certification tracks</p><div class="cu-tabs"><?php foreach($categories as $i=>$c): ?><button class="cu-tab <?=!$i?'active':''?>" data-category="<?=$c?>"><?=$c?></button><?php endforeach; ?></div><p class="cu-count">SHOWING <span style="color:#16a34a" data-cu-count><?=count($courses)?></span> OF <?=count($courses)?> TRACKS</p><div class="cu-courses"><?php foreach($courses as $course): ?><article class="cu-card" data-category="<?=$course[0]?>"><div style="position:relative"><span class="cu-chip"><?=$course[0]?></span><img src="<?=$course[1]?>" alt="<?=htmlspecialchars($course[5])?>"></div><div class="cu-card-body"><div class="cu-meta"><span class="cu-star">★ <?=$course[2]?></span> (<?=$course[3]?>) &nbsp;•&nbsp; <?=$course[4]?></div><h3><?=$course[5]?></h3><p><?=$course[6]?></p><div class="cu-card-actions"><a class="cu-primary" href="/apply/">Apply Now</a><a class="cu-secondary" href="/courses/">View Course</a><a class="cu-brochure" href="/courses/">⇩ Brochure</a></div></div></article><?php endforeach; ?></div></div></section>
+<section class="cu-section cu-features"><div class="cu-wrap cu-grid4"><?php foreach([['⌘','Hands-on Projects','Build real-world projects.'],['★','Industry Recognized','Get certified and boost your career.'],['♟','Expert Mentors','Learn from industry professionals.'],['◷','Flexible Learning','Study at your own pace.']] as $f): ?><div class="cu-feature"><i><?=$f[0]?></i><h3><?=$f[1]?></h3><p><?=$f[2]?></p></div><?php endforeach; ?></div></section>
+<section class="cu-section cu-testimonials"><div class="cu-wrap"><h2 class="cu-title">Hear From Our Students</h2><div class="cu-rule"></div><p class="cu-muted">Real stories from our graduates who have transformed their careers through our hands-on training programs.</p><div class="cu-videos"><div class="cu-video" style="background-image:url('https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=2071&auto=format&fit=crop')"><button class="cu-play">▶</button><p class="cu-quote">“The practical approach changed my career path completely. I was able to deploy a real-world app within months.”<span>Sarah W. — Software Engineering Graduate</span></p></div><div class="cu-video" style="background-image:url('https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=2076&auto=format&fit=crop')"><button class="cu-play">▶</button><p class="cu-quote">“The mentors guided us through real-world penetration testing scenarios that prepared me for my current role as a Security Analyst.”<span>David M. — Cybersecurity Alumni</span></p></div></div></div></section>
+<section class="cu-section"><div class="cu-wrap"><div class="cu-insights-head"><div><h2>Latest Insights</h2><div class="cu-rule" style="margin:15px 0"></div><p style="color:#475569;font-size:18px">Explore knowledge from our growing library of <b style="color:#16a34a">93 blogs</b> covering tech trends, coding tutorials, and career advice.</p></div><a class="cu-green-link" href="/blogs/">View all 93 blogs →</a></div><div class="cu-blogs"><?php foreach([['Career Guide','How to Transition into Tech in 2024','Discover the most effective strategies to shift your career into the tech industry, regardless of your background.','https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop'],['Data Science','Why Python is Still the King of Data','An in-depth look at why Python continues to dominate the data analytics and machine learning landscape.','https://images.unsplash.com/photo-1526379095098-d400fd0bfce8?q=80&w=800&auto=format&fit=crop'],['Security','Top 5 Cybersecurity Threats This Year','Stay ahead of malicious actors by understanding the most prominent vulnerabilities and attack vectors facing businesses today.','https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=800&auto=format&fit=crop']] as $b): ?><article class="cu-blog"><img src="<?=$b[3]?>" alt=""><div><span class="cu-overline"><?=$b[0]?></span><h3><?=$b[1]?></h3><p><?=$b[2]?></p><a class="cu-green-link" href="/blogs/">Read article →</a></div></article><?php endforeach; ?></div></div></section>
+<section class="cu-partners"><div class="cu-wrap"><p class="cu-overline">Our Partners</p><div class="cu-partner-list"><?php foreach(['CompTIA','Cisco','NITA','TVETA',"Eddy's AI Lab",'Infinity Habits'] as $p): ?><div class="cu-partner"><?=$p?></div><?php endforeach; ?></div></div></section>
+</main>
+<?php if (!empty($partners)): ?><section class="cu-partners"><div class="cu-wrap"><p class="cu-overline">Our Partners</p><div class="cu-partner-list"><?php foreach ($partners as $partner): ?><div class="cu-partner"><img src="<?php echo htmlspecialchars(settings_asset_url($partner['image_path'])); ?>" alt="<?php echo htmlspecialchars($partner['title'] ?? 'Partner'); ?>" style="max-width:150px;max-height:68px;object-fit:contain"><?php if(empty($partner['image_path'])) echo htmlspecialchars($partner['title'] ?? 'Partner'); ?></div><?php endforeach; ?></div></div></section><?php endif; ?>
+<footer class="cu-footer"><div class="cu-wrap"><div class="cu-footer-grid"><div><div class="cu-brand" style="color:#fff"><span class="cu-mark">D</span><span>Dazuhub<br>Institute</span></div><div class="cu-socials" style="margin-top:24px"><a href="https://www.tiktok.com/@dazuhub">◉</a><a href="https://www.facebook.com/people/Dazu-Training-institute/61573237914007/">f</a><a href="https://www.instagram.com/dazuhub/">◎</a><a href="https://music.youtube.com/@dazuhub">▶</a></div></div><div><h4>Company</h4><ul><li><a href="/about/">About Us</a></li><li><a href="/projects/">Student Projects</a></li><li><a href="/blogs/">Institute Blog</a></li><li><a href="/contact/">Contact & Support</a></li></ul></div><div><h4>Courses</h4><ul><li><a href="/courses/">Software Development</a></li><li><a href="/courses/">Artificial Intelligence</a></li><li><a href="/courses/">Cybersecurity & Networks</a></li><li><a href="/courses/">Creative Graphics & Design</a></li></ul></div><div><h4>Contact</h4><p>☎ +254 722 922 454</p><p>✉ admin@dazuhub.com</p><p>⌖ Witeithie House 5H FLOOR, Room 529, Thika Town and Nairobi branch Cianda house 4TH floor room 406B</p><p>◷ Mon - Sat: 8:00 AM - 5:00 PM</p></div></div><div class="cu-bottom"><span>© 2026 Dazu hub Institute. All rights reserved.</span><span>Support &nbsp;&nbsp; Terms of Study</span></div></div></footer>
+<script src="/assets/js/copy-ui-php.js"></script></body></html>

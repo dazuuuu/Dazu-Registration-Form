@@ -1,26 +1,16 @@
 <?php
-// public/admin/settings/edit.php
-// Handles uploads + DB writes for: logo, hero slides, page headers.
-// Sections via ?section=logo|hero|headers . Uses Post-Redirect-Get.
+// public/admin/settings/edit.php — uploads + DB writes for site settings sections.
 
-require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';        // BASE_URL + helpers
+require_once __DIR__ . '/../../../app/v1/bootstrap.php';
 require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
-require_once __DIR__ . '/../../../app/v1/config/db_connect.php';      // provides $pdo
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// --- Admin guard ------------------------------------------------------
-if (empty($_SESSION['logged_in']) || (int) ($_SESSION['role_id'] ?? 99) > 2) {
-    header('Location: ' . BASE_URL . '/auth/login.php');
-    exit;
+if (!isLoggedIn() || (int) ($_SESSION['role_id'] ?? 99) > 2) {
+    redirect(url('admin/portal.php'));
 }
 
 $settings = new SettingModel($pdo);
 
-// Filesystem root of /public  and the upload destinations.
-$PUBLIC = realpath(__DIR__ . '/../..');
+$PUBLIC = defined('PUBLIC_ROOT') ? PUBLIC_ROOT : realpath(__DIR__ . '/../..');
 $DIRS = [
     'logo'    => ['abs' => $PUBLIC . '/assets/images/branding', 'web' => 'assets/images/branding'],
     'hero'    => ['abs' => $PUBLIC . '/uploads/hero',           'web' => 'uploads/hero'],
@@ -33,39 +23,37 @@ if (!in_array($section, ['logo', 'hero', 'headers', 'contact', 'receipt'], true)
     $section = 'logo';
 }
 
-/** Remove a stored file, but only if it really lives under /public. */
-function safe_unlink(?string $relPath, string $publicRoot): void
+function settings_safe_unlink(?string $relPath, string $publicRoot): void
 {
-    if (!$relPath) return;
-    if (preg_match('#^(https?:)?//#', $relPath)) return;   // external URL, skip
+    if (!$relPath) {
+        return;
+    }
+    if (preg_match('#^(https?:)?//#', $relPath)) {
+        return;
+    }
     $abs = realpath($publicRoot . '/' . ltrim($relPath, '/'));
     if ($abs && str_starts_with($abs, $publicRoot) && is_file($abs)) {
         @unlink($abs);
     }
 }
 
-function redirect_back(string $section, string $type, string $msg): void
+function settings_redirect_back(string $section, string $type, string $msg): void
 {
-    $_SESSION['flash'] = ['type' => $type, 'msg' => $msg];
-    header('Location: edit.php?section=' . urlencode($section));
+    SessionModel::setFlash($type === 'success' ? 'success' : 'error', $msg);
+    header('Location: ' . url('admin/settings/edit.php?section=' . urlencode($section)));
     exit;
 }
 
-/* ====================================================================
-   POST HANDLING
-   ==================================================================== */
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
-        redirect_back($section, 'error', 'Your session expired. Please try again.');
+        settings_redirect_back($section, 'error', 'Your session expired. Please try again.');
     }
 
     $action = $_POST['action'] ?? '';
 
-    // ---- LOGO -------------------------------------------------------
     if ($action === 'save_logo') {
-        $settings->set('site_name', trim($_POST['site_name'] ?? '') ?: 'Ismano');
-        $settings->set('logo_alt',  trim($_POST['logo_alt'] ?? '') ?: 'Ismano');
+        $settings->set('site_name', trim($_POST['site_name'] ?? '') ?: 'Dazu Institute');
+        $settings->set('logo_alt', trim($_POST['logo_alt'] ?? '') ?: 'Dazu Institute');
 
         if (!empty($_FILES['logo']['name'])) {
             $res = upload_image(
@@ -75,32 +63,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ['png', 'jpg', 'jpeg', 'webp']
             );
             if (!$res['ok']) {
-                redirect_back('logo', 'error', $res['error']);
+                settings_redirect_back('logo', 'error', $res['error']);
             }
-            safe_unlink($settings->get('logo_path'), $PUBLIC);   // remove previous
+            settings_safe_unlink($settings->get('logo_path'), $PUBLIC);
             $settings->set('logo_path', $res['path']);
         }
-        redirect_back('logo', 'success', 'Branding saved.');
+        settings_redirect_back('logo', 'success', 'Branding saved.');
     }
 
-    // ---- HERO: add --------------------------------------------------
     if ($action === 'add_hero') {
         if (empty($_FILES['image']['name'])) {
-            redirect_back('hero', 'error', 'Please choose an image to add.');
+            settings_redirect_back('hero', 'error', 'Please choose an image to add.');
         }
         $res = upload_image($_FILES['image'], $DIRS['hero']['abs'], $DIRS['hero']['web']);
         if (!$res['ok']) {
-            redirect_back('hero', 'error', $res['error']);
+            settings_redirect_back('hero', 'error', $res['error']);
         }
         $settings->addHeroSlide(
             $res['path'],
             trim($_POST['caption'] ?? '') ?: null,
             (int) ($_POST['sort_order'] ?? 0)
         );
-        redirect_back('hero', 'success', 'Slide added.');
+        settings_redirect_back('hero', 'success', 'Slide added.');
     }
 
-    // ---- HERO: update meta -----------------------------------------
     if ($action === 'update_hero') {
         $id = (int) ($_POST['id'] ?? 0);
         if ($id > 0) {
@@ -110,24 +96,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'is_active'  => isset($_POST['is_active']) ? 1 : 0,
             ]);
         }
-        redirect_back('hero', 'success', 'Slide updated.');
+        settings_redirect_back('hero', 'success', 'Slide updated.');
     }
 
-    // ---- HERO: delete ----------------------------------------------
     if ($action === 'delete_hero') {
         $id = (int) ($_POST['id'] ?? 0);
         if ($id > 0) {
             $removedPath = $settings->deleteHeroSlide($id);
-            safe_unlink($removedPath, $PUBLIC);
+            settings_safe_unlink($removedPath, $PUBLIC);
         }
-        redirect_back('hero', 'success', 'Slide removed.');
+        settings_redirect_back('hero', 'success', 'Slide removed.');
     }
 
-    // ---- PAGE HEADER: save -----------------------------------------
     if ($action === 'save_header') {
         $pageKey = trim($_POST['page_key'] ?? '');
         if ($pageKey === '' || !preg_match('/^[a-z0-9_-]+$/', $pageKey)) {
-            redirect_back('headers', 'error', 'Invalid page key (use lowercase letters, numbers, - or _).');
+            settings_redirect_back('headers', 'error', 'Invalid page key (use lowercase letters, numbers, - or _).');
         }
         $fields = [
             'title'    => trim($_POST['title'] ?? '') ?: null,
@@ -136,16 +120,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($_FILES['image']['name'])) {
             $res = upload_image($_FILES['image'], $DIRS['headers']['abs'], $DIRS['headers']['web']);
             if (!$res['ok']) {
-                redirect_back('headers', 'error', $res['error']);
+                settings_redirect_back('headers', 'error', $res['error']);
             }
             $existing = $settings->getPageHeader($pageKey);
             if ($existing) {
-                safe_unlink($existing['image_path'], $PUBLIC);
+                settings_safe_unlink($existing['image_path'], $PUBLIC);
             }
             $fields['image_path'] = $res['path'];
         }
         $settings->upsertPageHeader($pageKey, $fields);
-        redirect_back('headers', 'success', 'Page banner saved.');
+        settings_redirect_back('headers', 'success', 'Page banner saved.');
     }
 
     if ($action === 'save_contact') {
@@ -159,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $settings->set($key, trim($_POST[$key]));
             }
         }
-        redirect_back('contact', 'success', 'Contact & map settings saved.');
+        settings_redirect_back('contact', 'success', 'Contact & map settings saved.');
     }
 
     if ($action === 'save_receipt') {
@@ -179,30 +163,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $res = upload_image($_FILES['receipt_logo'], $DIRS['receipt']['abs'], $DIRS['receipt']['web'], ['png', 'jpg', 'jpeg', 'webp']);
             if (!$res['ok']) {
-                redirect_back('receipt', 'error', $res['error']);
+                settings_redirect_back('receipt', 'error', $res['error']);
             }
-            safe_unlink($settings->get('sms_receipt_logo_path'), $PUBLIC);
+            settings_safe_unlink($settings->get('sms_receipt_logo_path'), $PUBLIC);
             $settings->set('sms_receipt_logo_path', $res['path']);
         }
-        redirect_back('receipt', 'success', 'Receipt settings saved.');
+        settings_redirect_back('receipt', 'success', 'Receipt settings saved.');
     }
 
-    redirect_back($section, 'error', 'Unknown action.');
+    settings_redirect_back($section, 'error', 'Unknown action.');
 }
 
-/* ====================================================================
-   VIEW DATA
-   ==================================================================== */
-$flash = $_SESSION['flash'] ?? null;
-unset($_SESSION['flash']);
-
-$siteName    = $settings->get('site_name', 'Ismano');
-$logoAlt     = $settings->get('logo_alt', 'Ismano');
-$logoUrl     = settings_asset_url($settings->get('logo_path'));
-$heroSlides  = $settings->getHeroSlides(false);
+$siteName = $settings->get('site_name', 'Dazu Institute');
+$logoAlt = $settings->get('logo_alt', 'Dazu Institute');
+$logoUrl = settings_asset_url($settings->get('logo_path'));
+$heroSlides = $settings->getHeroSlides(false);
 $pageHeaders = $settings->getAllPageHeaders();
 
-$titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners', 'contact' => 'Contact & Map', 'receipt' => 'Receipts'];
+$titles = [
+    'logo' => 'Branding',
+    'hero' => 'Homepage Hero',
+    'headers' => 'Page Banners',
+    'contact' => 'Contact & Map',
+    'receipt' => 'Receipts',
+];
 $contactPhone = $settings->get('contact_phone', '+254 750 116 600');
 $contactEmail = $settings->get('contact_email', 'admin@dazuhub.com');
 $contactAddress = $settings->get('contact_address', 'Witeithie House, Room 529, Thika Town');
@@ -218,368 +202,316 @@ $receiptLocation = $settings->get('sms_receipt_location', $contactAddress);
 $receiptPobox = $settings->get('sms_receipt_pobox', '');
 $receiptFooter = $settings->get('sms_receipt_footer', 'Thank you for your payment. Please retain this receipt for your records.');
 $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: $settings->get('logo_path'));
+
+$page_title = $titles[$section];
+$breadcrumbs = [
+    ['label' => 'Settings', 'url' => url('admin/settings/index.php')],
+    ['label' => $titles[$section], 'active' => true],
+];
+
+$sections = [
+    'logo' => ['label' => 'Branding', 'icon' => 'fa-image'],
+    'hero' => ['label' => 'Hero', 'icon' => 'fa-images'],
+    'headers' => ['label' => 'Page banners', 'icon' => 'fa-heading'],
+    'contact' => ['label' => 'Contact & map', 'icon' => 'fa-map-location-dot'],
+    'receipt' => ['label' => 'Receipts', 'icon' => 'fa-receipt'],
+];
+
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?php echo $titles[$section]; ?> — Settings</title>
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/theme.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <style>
-    :root{ --brand-sky:#00A1F3; --brand-royal:#0759F8; --brand-gold:#EBA94E; --brand-black:#000; }
-    *{ box-sizing:border-box; }
-    body{ margin:0; background:#f5f7fb; color:#101319; font-family:var(--font-body, system-ui, sans-serif); }
-    a{ text-decoration:none; color:inherit; }
-    .admin-topbar{ display:flex; align-items:center; gap:14px; background:var(--brand-black); color:#fff; padding:14px 28px; }
-    .admin-topbar .dot{ width:12px;height:12px;border-radius:3px;background:var(--brand-sky); }
-    .admin-topbar h1{ font-size:1rem; font-weight:600; margin:0; }
-    .admin-topbar .back{ margin-left:auto; color:rgba(255,255,255,.7); font-size:.85rem; }
-    .admin-topbar .back:hover{ color:var(--brand-gold); }
-    .wrap{ max-width:880px; margin:0 auto; padding:28px 24px 64px; }
-    .tabs{ display:flex; gap:6px; margin-bottom:24px; flex-wrap:wrap; }
-    .tab{ padding:9px 16px; border-radius:9px; font-size:.86rem; font-weight:600; color:#5b6472; background:#fff; border:1px solid #e6e9f0; }
-    .tab:hover{ border-color:var(--brand-sky); color:var(--brand-royal); }
-    .tab.active{ background:var(--brand-royal); color:#fff; border-color:var(--brand-royal); }
-    .flash{ padding:12px 16px; border-radius:10px; margin-bottom:22px; font-size:.9rem; font-weight:500; }
-    .flash.success{ background:#e7f7ee; color:#11704a; border:1px solid #b6e6cd; }
-    .flash.error{ background:#fdecec; color:#a4282b; border:1px solid #f3c0c1; }
-    .panel{ background:#fff; border:1px solid #e6e9f0; border-radius:16px; padding:26px; margin-bottom:22px; }
-    .panel h2{ font-family:var(--font-display, Georgia, serif); font-size:1.3rem; margin:0 0 4px; }
-    .panel .hint{ color:#8a93a3; font-size:.85rem; margin:0 0 22px; }
-    label{ display:block; font-size:.82rem; font-weight:600; color:#3a4250; margin:0 0 6px; }
-    input[type=text], input[type=number], textarea, select{
-      width:100%; padding:10px 12px; border:1px solid #d7dce6; border-radius:9px;
-      font-size:.9rem; font-family:inherit; color:#101319; background:#fff; outline:none;
-    }
-    input:focus, textarea:focus, select:focus{ border-color:var(--brand-royal); box-shadow:0 0 0 3px rgba(7,89,248,.12); }
-    .field{ margin-bottom:18px; }
-    .row{ display:grid; grid-template-columns:1fr 140px; gap:14px; }
-    .file-drop{
-      border:1.5px dashed #c7cdda; border-radius:11px; padding:16px; background:#fafbfd;
-      display:flex; align-items:center; gap:14px; font-size:.85rem; color:#5b6472;
-    }
-    .file-drop input{ font-size:.82rem; }
-    .btn{ display:inline-flex; align-items:center; gap:8px; border:none; cursor:pointer;
-      padding:11px 20px; border-radius:9px; font-size:.88rem; font-weight:600; transition:all .15s ease; }
-    .btn-primary{ background:var(--brand-royal); color:#fff; } .btn-primary:hover{ background:#0546c8; }
-    .btn-ghost{ background:#fff; color:#3a4250; border:1px solid #d7dce6; } .btn-ghost:hover{ border-color:var(--brand-sky); }
-    .btn-danger{ background:#fff; color:#b9402f; border:1px solid #f0c5bf; } .btn-danger:hover{ background:#fdecec; }
-    .logo-preview{ height:96px; border-radius:11px; border:1px solid #e6e9f0; background:#0b0d12;
-      display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:18px; }
-    .logo-preview img{ max-height:64px; max-width:70%; object-fit:contain; }
-    .logo-preview .muted{ color:#6b7686; font-size:.85rem; }
-    .slide{ display:grid; grid-template-columns:120px 1fr auto; gap:16px; align-items:center;
-      border:1px solid #eceff4; border-radius:12px; padding:14px; margin-bottom:12px; }
-    .slide img{ width:120px; height:74px; object-fit:cover; border-radius:8px; }
-    .slide .meta{ display:flex; flex-direction:column; gap:8px; }
-    .slide .inline{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .slide .inline input[type=text]{ flex:1; min-width:140px; }
-    .slide .inline input[type=number]{ width:80px; }
-    .chk{ display:flex; align-items:center; gap:6px; font-size:.82rem; font-weight:500; color:#3a4250; }
-    .slide .actions{ display:flex; flex-direction:column; gap:8px; }
-    .empty{ color:#8a93a3; font-size:.88rem; padding:8px 0; }
-    .divider{ height:1px; background:#eceff4; margin:24px 0; }
-  </style>
-</head>
-<body>
+<ul class="nav nav-pills mb-4 flex-wrap gap-1">
+  <?php foreach ($sections as $key => $meta): ?>
+    <li class="nav-item">
+      <a class="nav-link <?php echo $section === $key ? 'active' : ''; ?>"
+         href="<?php echo url('admin/settings/edit.php?section=' . $key); ?>">
+        <i class="fas <?php echo $meta['icon']; ?> me-1"></i><?php echo htmlspecialchars($meta['label']); ?>
+      </a>
+    </li>
+  <?php endforeach; ?>
+</ul>
 
-<div class="admin-topbar">
-  <span class="dot"></span>
-  <h1><?php echo htmlspecialchars($siteName); ?> · Settings</h1>
-  <a class="back" href="index.php"><i class="fa-solid fa-arrow-left"></i> All settings</a>
-</div>
+<?php if ($section === 'logo'): ?>
+  <div class="card">
+    <div class="card-header"><h5 class="mb-0">Branding</h5></div>
+    <div class="card-body">
+      <p class="text-muted small">The logo is used across the site, admission letters, and fee documents. Default: <code>assets/images/logo/logo.png</code>. Recommended: transparent PNG or WebP.</p>
+      <form method="POST" enctype="multipart/form-data">
+        <?php echo csrf_field(); ?>
+        <input type="hidden" name="action" value="save_logo">
 
-<div class="wrap">
+        <div class="border rounded bg-dark d-flex align-items-center justify-content-center mb-3" style="height:120px;">
+          <?php if ($logoUrl): ?>
+            <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoAlt); ?>" style="max-height:72px;max-width:70%;object-fit:contain;">
+          <?php else: ?>
+            <span class="text-white-50 small">No logo uploaded yet</span>
+          <?php endif; ?>
+        </div>
 
-  <div class="tabs">
-    <a class="tab <?php echo $section === 'logo' ? 'active' : ''; ?>"    href="edit.php?section=logo"><i class="fa-solid fa-image"></i> Branding</a>
-    <a class="tab <?php echo $section === 'hero' ? 'active' : ''; ?>"    href="edit.php?section=hero"><i class="fa-solid fa-images"></i> Hero</a>
-    <a class="tab <?php echo $section === 'headers' ? 'active' : ''; ?>" href="edit.php?section=headers"><i class="fa-solid fa-heading"></i> Page banners</a>
-    <a class="tab <?php echo $section === 'contact' ? 'active' : ''; ?>" href="edit.php?section=contact"><i class="fa-solid fa-map-location-dot"></i> Contact &amp; map</a>
-    <a class="tab <?php echo $section === 'receipt' ? 'active' : ''; ?>" href="edit.php?section=receipt"><i class="fa-solid fa-receipt"></i> Receipts</a>
+        <div class="mb-3">
+          <label class="form-label">Replace logo</label>
+          <input type="file" name="logo" class="form-control" accept="image/png,image/jpeg,image/webp">
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label class="form-label">Site name</label>
+            <input type="text" name="site_name" class="form-control" value="<?php echo htmlspecialchars($siteName); ?>">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Logo alt text</label>
+            <input type="text" name="logo_alt" class="form-control" value="<?php echo htmlspecialchars($logoAlt); ?>">
+          </div>
+        </div>
+
+        <button class="btn btn-primary mt-4" type="submit"><i class="fas fa-floppy-disk me-1"></i> Save branding</button>
+      </form>
+    </div>
+  </div>
+<?php endif; ?>
+
+<?php if ($section === 'hero'): ?>
+  <div class="card mb-4">
+    <div class="card-header"><h5 class="mb-0">Add hero slide</h5></div>
+    <div class="card-body">
+      <p class="text-muted small">These images appear in the homepage hero slideshow. Landscape images (1920×1080) look best.</p>
+      <form method="POST" enctype="multipart/form-data">
+        <?php echo csrf_field(); ?>
+        <input type="hidden" name="action" value="add_hero">
+        <div class="mb-3">
+          <label class="form-label">Image</label>
+          <input type="file" name="image" class="form-control" accept="image/*" required>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-8">
+            <label class="form-label">Caption (optional)</label>
+            <input type="text" name="caption" class="form-control" placeholder="e.g. Creative workspace">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Order</label>
+            <input type="number" name="sort_order" class="form-control" value="0">
+          </div>
+        </div>
+        <button class="btn btn-primary mt-3" type="submit"><i class="fas fa-plus me-1"></i> Add slide</button>
+      </form>
+    </div>
   </div>
 
-  <?php if ($flash): ?>
-    <div class="flash <?php echo $flash['type'] === 'success' ? 'success' : 'error'; ?>">
-      <?php echo htmlspecialchars($flash['msg']); ?>
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h5 class="mb-0">Current slides</h5>
+      <span class="badge bg-secondary"><?php echo count($heroSlides); ?></span>
     </div>
-  <?php endif; ?>
-
-  <?php /* ============================ LOGO ============================ */ ?>
-  <?php if ($section === 'logo'): ?>
-    <form class="panel" method="POST" enctype="multipart/form-data">
-      <?php echo csrf_field(); ?>
-      <input type="hidden" name="action" value="save_logo">
-      <h2>Branding</h2>
-      <p class="hint">The logo here is used anywhere the site shows a logo. Recommended: a transparent PNG or WebP.</p>
-
-      <div class="logo-preview">
-        <?php if ($logoUrl): ?>
-          <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="<?php echo htmlspecialchars($logoAlt); ?>">
-        <?php else: ?>
-          <span class="muted">No logo uploaded yet</span>
-        <?php endif; ?>
-      </div>
-
-      <div class="field">
-        <label>Replace logo</label>
-        <div class="file-drop">
-          <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-          <input type="file" name="logo" accept="image/png,image/jpeg,image/webp">
-        </div>
-      </div>
-
-      <div class="row">
-        <div class="field" style="margin:0;">
-          <label>Site name</label>
-          <input type="text" name="site_name" value="<?php echo htmlspecialchars($siteName); ?>">
-        </div>
-        <div class="field" style="margin:0;">
-          <label>Logo alt text</label>
-          <input type="text" name="logo_alt" value="<?php echo htmlspecialchars($logoAlt); ?>">
-        </div>
-      </div>
-
-      <div class="divider"></div>
-      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save branding</button>
-    </form>
-  <?php endif; ?>
-
-  <?php /* ============================ HERO ============================ */ ?>
-  <?php if ($section === 'hero'): ?>
-    <form class="panel" method="POST" enctype="multipart/form-data">
-      <?php echo csrf_field(); ?>
-      <input type="hidden" name="action" value="add_hero">
-      <h2>Add a hero slide</h2>
-      <p class="hint">These images appear in the homepage hero slideshow. Landscape images (1920×1080) look best.</p>
-
-      <div class="field">
-        <label>Image</label>
-        <div class="file-drop">
-          <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-          <input type="file" name="image" accept="image/*" required>
-        </div>
-      </div>
-      <div class="row">
-        <div class="field" style="margin:0;">
-          <label>Caption (optional)</label>
-          <input type="text" name="caption" placeholder="e.g. Creative workspace">
-        </div>
-        <div class="field" style="margin:0;">
-          <label>Order</label>
-          <input type="number" name="sort_order" value="0">
-        </div>
-      </div>
-      <div class="divider"></div>
-      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-plus"></i> Add slide</button>
-    </form>
-
-    <div class="panel">
-      <h2>Current slides</h2>
-      <p class="hint">Uncheck “Active” to hide a slide without deleting it.</p>
+    <div class="card-body">
       <?php if (empty($heroSlides)): ?>
-        <p class="empty">No slides yet. The homepage will use its built-in fallback images until you add some.</p>
+        <p class="text-muted mb-0">No slides yet. The homepage will use built-in fallback images until you add some.</p>
       <?php else: ?>
         <?php foreach ($heroSlides as $s): ?>
-          <div class="slide">
-            <img src="<?php echo htmlspecialchars(settings_asset_url($s['image_path'])); ?>" alt="">
-            <form method="POST" class="meta">
-              <?php echo csrf_field(); ?>
-              <input type="hidden" name="action" value="update_hero">
-              <input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>">
-              <div class="inline">
-                <input type="text" name="caption" value="<?php echo htmlspecialchars($s['caption'] ?? ''); ?>" placeholder="Caption">
-                <input type="number" name="sort_order" value="<?php echo (int) $s['sort_order']; ?>" title="Order">
-                <label class="chk"><input type="checkbox" name="is_active" <?php echo $s['is_active'] ? 'checked' : ''; ?>> Active</label>
+          <div class="border rounded p-3 mb-3">
+            <div class="row g-3 align-items-start">
+              <div class="col-md-3 col-lg-2">
+                <img src="<?php echo htmlspecialchars(settings_asset_url($s['image_path'])); ?>" alt="" class="img-fluid rounded border w-100" style="max-height:90px;object-fit:cover;">
               </div>
-              <div>
-                <button class="btn btn-ghost" type="submit"><i class="fa-solid fa-rotate"></i> Update</button>
+              <div class="col-md-9 col-lg-8">
+                <form method="POST" class="row g-2 align-items-end">
+                  <?php echo csrf_field(); ?>
+                  <input type="hidden" name="action" value="update_hero">
+                  <input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>">
+                  <div class="col-md-7">
+                    <label class="form-label small mb-1">Caption</label>
+                    <input type="text" name="caption" class="form-control form-control-sm" value="<?php echo htmlspecialchars($s['caption'] ?? ''); ?>">
+                  </div>
+                  <div class="col-md-2">
+                    <label class="form-label small mb-1">Order</label>
+                    <input type="number" name="sort_order" class="form-control form-control-sm" value="<?php echo (int) $s['sort_order']; ?>">
+                  </div>
+                  <div class="col-md-3">
+                    <div class="form-check mb-2">
+                      <input class="form-check-input" type="checkbox" name="is_active" id="hero_active_<?php echo (int) $s['id']; ?>" <?php echo $s['is_active'] ? 'checked' : ''; ?>>
+                      <label class="form-check-label small" for="hero_active_<?php echo (int) $s['id']; ?>">Active</label>
+                    </div>
+                    <button class="btn btn-sm btn-outline-primary" type="submit"><i class="fas fa-rotate me-1"></i> Update</button>
+                  </div>
+                </form>
               </div>
-            </form>
-            <div class="actions">
-              <form method="POST" onsubmit="return confirm('Remove this slide?');">
-                <?php echo csrf_field(); ?>
-                <input type="hidden" name="action" value="delete_hero">
-                <input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>">
-                <button class="btn btn-danger" type="submit"><i class="fa-solid fa-trash"></i></button>
-              </form>
+              <div class="col-lg-2 text-lg-end">
+                <form method="POST" onsubmit="return confirm('Remove this slide?');">
+                  <?php echo csrf_field(); ?>
+                  <input type="hidden" name="action" value="delete_hero">
+                  <input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>">
+                  <button class="btn btn-sm btn-outline-danger" type="submit"><i class="fas fa-trash"></i></button>
+                </form>
+              </div>
             </div>
           </div>
         <?php endforeach; ?>
       <?php endif; ?>
     </div>
-  <?php endif; ?>
+  </div>
+<?php endif; ?>
 
-  <?php /* ========================= PAGE HEADERS ========================= */ ?>
-  <?php if ($section === 'headers'): ?>
-    <?php foreach ($pageHeaders as $h): ?>
-      <form class="panel" method="POST" enctype="multipart/form-data">
+<?php if ($section === 'headers'): ?>
+  <?php foreach ($pageHeaders as $h): ?>
+    <div class="card mb-4">
+      <div class="card-header"><h5 class="mb-0 text-capitalize"><?php echo htmlspecialchars($h['page_key']); ?> page banner</h5></div>
+      <div class="card-body">
+        <form method="POST" enctype="multipart/form-data">
+          <?php echo csrf_field(); ?>
+          <input type="hidden" name="action" value="save_header">
+          <input type="hidden" name="page_key" value="<?php echo htmlspecialchars($h['page_key']); ?>">
+
+          <?php if (!empty($h['image_path'])): ?>
+            <img src="<?php echo htmlspecialchars(settings_asset_url($h['image_path'])); ?>" alt="" class="img-fluid rounded border mb-3 w-100" style="max-height:160px;object-fit:cover;">
+          <?php endif; ?>
+
+          <div class="mb-3">
+            <label class="form-label">Title</label>
+            <input type="text" name="title" class="form-control" value="<?php echo htmlspecialchars($h['title'] ?? ''); ?>">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Subtitle</label>
+            <input type="text" name="subtitle" class="form-control" value="<?php echo htmlspecialchars($h['subtitle'] ?? ''); ?>">
+          </div>
+          <div class="mb-3">
+            <label class="form-label"><?php echo !empty($h['image_path']) ? 'Replace banner image' : 'Banner image'; ?></label>
+            <input type="file" name="image" class="form-control" accept="image/*">
+          </div>
+          <button class="btn btn-primary" type="submit"><i class="fas fa-floppy-disk me-1"></i> Save banner</button>
+        </form>
+      </div>
+    </div>
+  <?php endforeach; ?>
+
+  <div class="card">
+    <div class="card-header"><h5 class="mb-0">Add a new page banner</h5></div>
+    <div class="card-body">
+      <p class="text-muted small">Use a short key like <code>about</code> or <code>contact</code>. Your page references it via <code>$page_key</code>.</p>
+      <form method="POST" enctype="multipart/form-data">
         <?php echo csrf_field(); ?>
         <input type="hidden" name="action" value="save_header">
-        <input type="hidden" name="page_key" value="<?php echo htmlspecialchars($h['page_key']); ?>">
-        <h2 style="text-transform:capitalize;"><?php echo htmlspecialchars($h['page_key']); ?> page</h2>
-        <p class="hint">Shown as the banner at the top of the <?php echo htmlspecialchars($h['page_key']); ?> page.</p>
-
-        <?php if (!empty($h['image_path'])): ?>
-          <div class="logo-preview" style="height:120px;background:#0b0d12;">
-            <img src="<?php echo htmlspecialchars(settings_asset_url($h['image_path'])); ?>" style="max-height:120px;max-width:100%;object-fit:cover;width:100%;border-radius:11px;" alt="">
-          </div>
-        <?php endif; ?>
-
-        <div class="field">
-          <label>Title</label>
-          <input type="text" name="title" value="<?php echo htmlspecialchars($h['title'] ?? ''); ?>">
+        <div class="mb-3">
+          <label class="form-label">Page key</label>
+          <input type="text" name="page_key" class="form-control" placeholder="about" required pattern="[a-z0-9_-]+">
         </div>
-        <div class="field">
-          <label>Subtitle</label>
-          <input type="text" name="subtitle" value="<?php echo htmlspecialchars($h['subtitle'] ?? ''); ?>">
+        <div class="mb-3">
+          <label class="form-label">Title</label>
+          <input type="text" name="title" class="form-control">
         </div>
-        <div class="field">
-          <label><?php echo !empty($h['image_path']) ? 'Replace banner image' : 'Banner image'; ?></label>
-          <div class="file-drop">
-            <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-            <input type="file" name="image" accept="image/*">
-          </div>
+        <div class="mb-3">
+          <label class="form-label">Subtitle</label>
+          <input type="text" name="subtitle" class="form-control">
         </div>
-        <div class="divider"></div>
-        <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save <?php echo htmlspecialchars($h['page_key']); ?> banner</button>
+        <div class="mb-3">
+          <label class="form-label">Banner image (optional)</label>
+          <input type="file" name="image" class="form-control" accept="image/*">
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-plus me-1"></i> Add page banner</button>
       </form>
-    <?php endforeach; ?>
+    </div>
+  </div>
+<?php endif; ?>
 
-    <!-- Add a new page key -->
-    <form class="panel" method="POST" enctype="multipart/form-data">
-      <?php echo csrf_field(); ?>
-      <input type="hidden" name="action" value="save_header">
-      <h2>Add a new page</h2>
-      <p class="hint">Use a short key like <code>about</code> or <code>contact</code>. Your page references it via <code>$page_key</code>.</p>
-      <div class="field">
-        <label>Page key</label>
-        <input type="text" name="page_key" placeholder="about" required pattern="[a-z0-9_-]+">
-      </div>
-      <div class="field">
-        <label>Title</label>
-        <input type="text" name="title">
-      </div>
-      <div class="field">
-        <label>Subtitle</label>
-        <input type="text" name="subtitle">
-      </div>
-      <div class="field">
-        <label>Banner image (optional)</label>
-        <div class="file-drop">
-          <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-          <input type="file" name="image" accept="image/*">
+<?php if ($section === 'contact'): ?>
+  <div class="card">
+    <div class="card-header"><h5 class="mb-0">Contact page &amp; campus map</h5></div>
+    <div class="card-body">
+      <p class="text-muted small">These details appear on the public Contact page. Paste a Google Maps <strong>embed URL</strong> (iframe src) for the live map.</p>
+      <form method="POST">
+        <?php echo csrf_field(); ?>
+        <input type="hidden" name="action" value="save_contact">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Phone / WhatsApp (display)</label>
+            <input type="text" name="contact_phone" class="form-control" value="<?php echo htmlspecialchars($contactPhone); ?>">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Email</label>
+            <input type="text" name="contact_email" class="form-control" value="<?php echo htmlspecialchars($contactEmail); ?>">
+          </div>
         </div>
-      </div>
-      <div class="divider"></div>
-      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-plus"></i> Add page banner</button>
-    </form>
-  <?php endif; ?>
+        <div class="mb-3 mt-3">
+          <label class="form-label">Campus address</label>
+          <input type="text" name="contact_address" class="form-control" value="<?php echo htmlspecialchars($contactAddress); ?>">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Office hours</label>
+          <input type="text" name="contact_hours" class="form-control" value="<?php echo htmlspecialchars($contactHours); ?>">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Google Maps embed URL (iframe src)</label>
+          <textarea name="contact_map_embed" rows="3" class="form-control" placeholder="https://www.google.com/maps/embed?pb=..."><?php echo htmlspecialchars($contactMapEmbed); ?></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Google Maps link (Open in Maps button)</label>
+          <input type="url" name="contact_map_link" class="form-control" value="<?php echo htmlspecialchars($contactMapLink); ?>" placeholder="https://maps.google.com/...">
+        </div>
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Map card title</label>
+            <input type="text" name="contact_map_title" class="form-control" value="<?php echo htmlspecialchars($contactMapTitle); ?>">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Map card subtitle</label>
+            <input type="text" name="contact_map_subtitle" class="form-control" value="<?php echo htmlspecialchars($contactMapSubtitle); ?>">
+          </div>
+        </div>
+        <div class="mb-3 mt-3">
+          <label class="form-label">Directions blurb</label>
+          <textarea name="contact_map_blurb" rows="3" class="form-control"><?php echo htmlspecialchars($contactMapBlurb); ?></textarea>
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-floppy-disk me-1"></i> Save contact settings</button>
+      </form>
+    </div>
+  </div>
+<?php endif; ?>
 
-  <?php if ($section === 'contact'): ?>
-    <form class="panel" method="POST">
-      <?php echo csrf_field(); ?>
-      <input type="hidden" name="action" value="save_contact">
-      <h2>Contact page &amp; campus map</h2>
-      <p class="hint">These details appear on the public Contact page. Paste a Google Maps <strong>embed URL</strong> (iframe src) for the live map.</p>
+<?php if ($section === 'receipt'): ?>
+  <div class="card">
+    <div class="card-header"><h5 class="mb-0">SmS receipt layout</h5></div>
+    <div class="card-body">
+      <p class="text-muted small">Professional black &amp; white receipts for SmS student payments. Logo, address and footer appear on generated PDF receipts.</p>
+      <form method="POST" enctype="multipart/form-data">
+        <?php echo csrf_field(); ?>
+        <input type="hidden" name="action" value="save_receipt">
 
-      <div class="row">
-        <div class="field" style="margin:0;">
-          <label>Phone / WhatsApp (display)</label>
-          <input type="text" name="contact_phone" value="<?php echo htmlspecialchars($contactPhone); ?>">
+        <div class="border rounded bg-white d-flex align-items-center justify-content-center mb-3" style="height:96px;">
+          <?php if ($receiptLogoUrl): ?>
+            <img src="<?php echo htmlspecialchars($receiptLogoUrl); ?>" alt="Receipt logo" style="max-height:64px;max-width:70%;object-fit:contain;">
+          <?php else: ?>
+            <span class="text-muted small">No receipt logo — site logo will be used if set</span>
+          <?php endif; ?>
         </div>
-        <div class="field" style="margin:0;">
-          <label>Email</label>
-          <input type="text" name="contact_email" value="<?php echo htmlspecialchars($contactEmail); ?>">
-        </div>
-      </div>
-      <div class="field">
-        <label>Campus address</label>
-        <input type="text" name="contact_address" value="<?php echo htmlspecialchars($contactAddress); ?>">
-      </div>
-      <div class="field">
-        <label>Office hours</label>
-        <input type="text" name="contact_hours" value="<?php echo htmlspecialchars($contactHours); ?>">
-      </div>
-      <div class="field">
-        <label>Google Maps embed URL (iframe src)</label>
-        <textarea name="contact_map_embed" rows="3" placeholder="https://www.google.com/maps/embed?pb=..."><?php echo htmlspecialchars($contactMapEmbed); ?></textarea>
-      </div>
-      <div class="field">
-        <label>Google Maps link (Open in Maps button)</label>
-        <input type="url" name="contact_map_link" value="<?php echo htmlspecialchars($contactMapLink); ?>" placeholder="https://maps.google.com/...">
-      </div>
-      <div class="row">
-        <div class="field" style="margin:0;">
-          <label>Map card title</label>
-          <input type="text" name="contact_map_title" value="<?php echo htmlspecialchars($contactMapTitle); ?>">
-        </div>
-        <div class="field" style="margin:0;">
-          <label>Map card subtitle</label>
-          <input type="text" name="contact_map_subtitle" value="<?php echo htmlspecialchars($contactMapSubtitle); ?>">
-        </div>
-      </div>
-      <div class="field">
-        <label>Directions blurb</label>
-        <textarea name="contact_map_blurb" rows="3"><?php echo htmlspecialchars($contactMapBlurb); ?></textarea>
-      </div>
-      <div class="divider"></div>
-      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save contact settings</button>
-    </form>
-  <?php endif; ?>
 
-  <?php if ($section === 'receipt'): ?>
-    <form class="panel" method="POST" enctype="multipart/form-data">
-      <?php echo csrf_field(); ?>
-      <input type="hidden" name="action" value="save_receipt">
-      <h2>SmS receipt layout</h2>
-      <p class="hint">Professional black &amp; white receipts for SmS student payments. Logo, address and footer appear on generated PDF receipts.</p>
-
-      <div class="logo-preview" style="background:#fff;border:1px solid #111;">
-        <?php if ($receiptLogoUrl): ?>
-          <img src="<?php echo htmlspecialchars($receiptLogoUrl); ?>" alt="Receipt logo">
-        <?php else: ?>
-          <span class="muted">No receipt logo — site logo will be used if set</span>
-        <?php endif; ?>
-      </div>
-
-      <div class="field">
-        <label>Receipt logo (optional)</label>
-        <div class="file-drop">
-          <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-          <input type="file" name="receipt_logo" accept="image/png,image/jpeg,image/webp">
+        <div class="mb-3">
+          <label class="form-label">Receipt logo (optional)</label>
+          <input type="file" name="receipt_logo" class="form-control" accept="image/png,image/jpeg,image/webp">
         </div>
-      </div>
-
-      <div class="field">
-        <label>Company / institute name</label>
-        <input type="text" name="receipt_company_name" value="<?php echo htmlspecialchars($receiptCompany); ?>">
-      </div>
-      <div class="row">
-        <div class="field" style="margin:0;">
-          <label>Phone</label>
-          <input type="text" name="receipt_phone" value="<?php echo htmlspecialchars($receiptPhone); ?>">
+        <div class="mb-3">
+          <label class="form-label">Company / institute name</label>
+          <input type="text" name="receipt_company_name" class="form-control" value="<?php echo htmlspecialchars($receiptCompany); ?>">
         </div>
-        <div class="field" style="margin:0;">
-          <label>P.O. Box</label>
-          <input type="text" name="receipt_pobox" value="<?php echo htmlspecialchars($receiptPobox); ?>">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Phone</label>
+            <input type="text" name="receipt_phone" class="form-control" value="<?php echo htmlspecialchars($receiptPhone); ?>">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">P.O. Box</label>
+            <input type="text" name="receipt_pobox" class="form-control" value="<?php echo htmlspecialchars($receiptPobox); ?>">
+          </div>
         </div>
-      </div>
-      <div class="field">
-        <label>Location / address</label>
-        <input type="text" name="receipt_location" value="<?php echo htmlspecialchars($receiptLocation); ?>">
-      </div>
-      <div class="field">
-        <label>Receipt footer note</label>
-        <textarea name="receipt_footer" rows="3"><?php echo htmlspecialchars($receiptFooter); ?></textarea>
-      </div>
-      <div class="divider"></div>
-      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save receipt settings</button>
-    </form>
-  <?php endif; ?>
-
-</div>
-</body>
-</html>
+        <div class="mb-3 mt-3">
+          <label class="form-label">Location / address</label>
+          <input type="text" name="receipt_location" class="form-control" value="<?php echo htmlspecialchars($receiptLocation); ?>">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Receipt footer note</label>
+          <textarea name="receipt_footer" rows="3" class="form-control"><?php echo htmlspecialchars($receiptFooter); ?></textarea>
+        </div>
+        <button class="btn btn-primary" type="submit"><i class="fas fa-floppy-disk me-1"></i> Save receipt settings</button>
+      </form>
+    </div>
+  </div>
+<?php endif; ?>
+<?php
+$content = ob_get_clean();
+include __DIR__ . '/../../templates/admin/layout.php';
