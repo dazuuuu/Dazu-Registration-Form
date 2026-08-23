@@ -12,6 +12,7 @@ require_once __DIR__ . '/../models/StudentModel.php';
 require_once __DIR__ . '/../models/ProgressModel.php';
 require_once __DIR__ . '/StudentController.php';
 require_once __DIR__ . '/../services/StudentNotifier.php';
+require_once __DIR__ . '/../services/SmsModuleService.php';
 
 class RegistrationController {
 
@@ -65,9 +66,9 @@ class RegistrationController {
             if (!empty($reg['registration_no'])) {
                 $regNo = $reg['registration_no'];
             } else {
-                $seq = $this->courseModel->claimNextSequence((int) $reg['course_id']);
                 require_once __DIR__ . '/../helpers/registration_number.php';
-                $regNo = registration_number_format((string) $reg['abbreviation'], max(50, $seq));
+                $seq = registration_number_claim($pdo, (int) $reg['course_id']);
+                $regNo = registration_number_format((string) $reg['abbreviation'], $seq);
             }
 
             // Step 2: create the user account — temporary password, student will be prompted to reset
@@ -136,6 +137,14 @@ class RegistrationController {
                 }
             } catch (\Throwable $paymentError) {
                 error_log('[RegistrationController::approve] Initial payment error for #' . $registrationId . ': ' . $paymentError->getMessage());
+            }
+
+            try {
+                $approvedReg = $this->regModel->getById($registrationId) ?: $approvedReg;
+                $sms = new \SmsModuleService($pdo, $adminId);
+                $sms->syncFromRegistration($registrationId, $approvedReg);
+            } catch (\Throwable $smsError) {
+                error_log('[RegistrationController::approve] SmS sync error for #' . $registrationId . ': ' . $smsError->getMessage());
             }
 
             $progressModel = new \Models\ProgressModel($pdo);
