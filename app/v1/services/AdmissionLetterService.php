@@ -18,11 +18,21 @@ class AdmissionLetterService
         require_once __DIR__ . '/../helpers/site_logo.php';
         require_once __DIR__ . '/../models/SettingModel.php';
 
-        $settings = new \Models\SettingModel($this->pdo);
+        $settings = new SettingModel($this->pdo);
         $schoolName = trim((string) $settings->get('site_name', '')) ?: 'Dazu Hub Institute';
+
+        // site_logo_* helpers read global $pdo when resolving branding assets.
+        global $pdo;
+        $pdo = $this->pdo;
+
         $logo = site_logo_data_uri() ?: site_logo_url();
 
         $regNo = (string) ($registration['registration_no'] ?? '');
+        if ($regNo === '' && !empty($registration['id'])) {
+            $stmt = $this->pdo->prepare('SELECT registration_no FROM registrations WHERE id = :id LIMIT 1');
+            $stmt->execute([':id' => (int) $registration['id']]);
+            $regNo = trim((string) ($stmt->fetchColumn() ?: ''));
+        }
         $studentName = (string) ($registration['full_name'] ?? '');
         $courseTitle = (string) ($course['title'] ?? $registration['course_title'] ?? '');
         $studyMode = ucfirst((string) ($registration['study_mode'] ?? 'online'));

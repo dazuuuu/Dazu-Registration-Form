@@ -85,7 +85,7 @@ class CourseRegistrationHandler
                 error_log("[registration] Enrollment email failed for #{$registrationId}: " . ($emailResult['message'] ?? 'Unknown error'));
             }
         } catch (\Throwable $e) {
-            error_log("[registration] Admission letter/email error for #{$registrationId}: " . $e->getMessage());
+            error_log("[registration] Admission letter/email error for #{$registrationId}: " . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
         }
     }
 }
