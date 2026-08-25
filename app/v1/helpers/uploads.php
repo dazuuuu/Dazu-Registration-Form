@@ -73,21 +73,40 @@ if (!function_exists('validate_image_upload')) {
             return ['ok' => false, 'error' => 'File exceeds ' . round($maxBytes / 1048576, 1) . ' MB.'];
         }
 
-        // Confirm the bytes are actually a recognised image.
-        $info = @getimagesize($file['tmp_name']);
-        if ($info === false) {
-            return ['ok' => false, 'error' => 'That file is not a valid image.'];
-        }
-
         $mimeToExt = [
             'image/jpeg' => 'jpg',
             'image/png'  => 'png',
             'image/webp' => 'webp',
             'image/gif'  => 'gif',
+            'image/svg+xml' => 'svg',
         ];
-        $mime = $info['mime'] ?? '';
+
+        $mime = '';
+        if (function_exists('finfo_open')) {
+            $finfo = @finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $mime = (string) @finfo_file($finfo, $file['tmp_name']);
+                @finfo_close($finfo);
+            }
+        }
+
+        // getimagesize reliably validates raster images; SVG needs MIME + XML checks.
+        if ($mime === 'image/svg+xml' || strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION)) === 'svg') {
+            $bytes = @file_get_contents($file['tmp_name']);
+            if ($bytes === false || stripos($bytes, '<svg') === false || preg_match('/<script\b/i', $bytes)) {
+                return ['ok' => false, 'error' => 'That SVG logo is not valid.'];
+            }
+            $mime = 'image/svg+xml';
+        } else {
+            $info = @getimagesize($file['tmp_name']);
+            if ($info === false) {
+                return ['ok' => false, 'error' => 'That file is not a valid image.'];
+            }
+            $mime = $info['mime'] ?? $mime;
+        }
+
         if (!isset($mimeToExt[$mime])) {
-            return ['ok' => false, 'error' => 'Unsupported image type. Use JPG, PNG, WebP or GIF.'];
+            return ['ok' => false, 'error' => 'Unsupported image type. Use JPG, PNG, WebP, GIF or SVG.'];
         }
 
         $ext = $mimeToExt[$mime];

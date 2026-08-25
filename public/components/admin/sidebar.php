@@ -78,14 +78,14 @@ function isSmsSection($section) {
                 <span>Dashboard</span>
             </a>
 
-            <?php if (!empty($pending_migration_count)): ?>
             <a href="<?php echo url('admin/system/updates.php'); ?>"
                class="nav-link <?php echo $current_dir == 'system' ? 'active' : ''; ?>">
-                <i class="fas fa-download"></i>
-                <span>System Update</span>
-                <span class="updates-badge"><?php echo (int) $pending_migration_count; ?></span>
+                <i class="fas fa-database"></i>
+                <span>System Updates</span>
+                <?php if (!empty($pending_migration_count)): ?>
+                    <span class="updates-badge"><?php echo (int) $pending_migration_count; ?></span>
+                <?php endif; ?>
             </a>
-            <?php endif; ?>
 
             <!-- SYSTEM SECTION: registration, courses, students, tutors, payments -->
             <div class="nav-item">

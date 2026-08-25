@@ -2,6 +2,7 @@
 // app/services/StudentNotifier.php
 require_once __DIR__ . '/Mailer.php';
 require_once __DIR__ . '/StudentEmailTemplate.php';
+require_once __DIR__ . '/RegistrationFormGenerator.php';
 
 class StudentNotifier {
     private $pdo;
@@ -61,7 +62,7 @@ class StudentNotifier {
         return $this->mailer;
     }
 
-    private function send(string $email, string $name, string $event, array $data): array {
+    private function send(string $email, string $name, string $event, array $data, ?string $attachmentPath = null, ?string $attachmentName = null): array {
         if (!$this->enabled) {
             error_log('[StudentNotifier] mail skipped — SMTP not enabled for ' . $event);
             return ['ok' => false, 'message' => 'mail disabled', 'skipped' => true];
@@ -70,7 +71,11 @@ class StudentNotifier {
         $sendCfg = $this->mailCfg;
         $sendCfg['enabled'] = true;
         $mailer = $this->mailer ?? new Mailer($sendCfg);
-        $result = $mailer->send($email, $name, $subject, $html);
+        if ($attachmentPath && is_file($attachmentPath)) {
+            $result = $mailer->sendWithAttachment($email, $name, $subject, $html, $attachmentPath, $attachmentName ?: basename($attachmentPath));
+        } else {
+            $result = $mailer->send($email, $name, $subject, $html);
+        }
         if (!$result['ok']) {
             error_log('[StudentNotifier] ' . $event . ' to ' . $email . ': ' . $result['message']);
         }
@@ -78,7 +83,42 @@ class StudentNotifier {
     }
 
     public function sendRegistrationReceived(array $reg): array {
-        return $this->send($reg['email'], $reg['full_name'], 'registration_received', $this->baseData($reg));
+        $tmp = RegistrationFormGenerator::writeTempPdf($reg);
+        try {
+            return $this->send(
+                $reg['email'],
+                $reg['full_name'],
+                'registration_received',
+                $this->baseData($reg),
+                $tmp,
+                RegistrationFormGenerator::fileName($reg)
+            );
+        } finally {
+            if ($tmp && is_file($tmp)) {
+                @unlink($tmp);
+            }
+        }
+    }
+
+    public function sendRegistrationForm(array $reg): array {
+        $tmp = RegistrationFormGenerator::writeTempPdf($reg);
+        if (!$tmp) {
+            return ['ok' => false, 'message' => 'Could not generate registration form PDF.'];
+        }
+        try {
+            return $this->send(
+                $reg['email'],
+                $reg['full_name'],
+                'registration_form',
+                $this->baseData($reg),
+                $tmp,
+                RegistrationFormGenerator::fileName($reg)
+            );
+        } finally {
+            if ($tmp && is_file($tmp)) {
+                @unlink($tmp);
+            }
+        }
     }
 
     public function sendRegistrationApproved(array $reg, string $tempPassword): array {

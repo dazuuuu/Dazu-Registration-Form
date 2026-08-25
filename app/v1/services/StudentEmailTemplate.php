@@ -32,6 +32,18 @@ class StudentEmailTemplate {
                     ),
                 ];
 
+            case 'registration_form':
+                return [
+                    'Your registration form — ' . ($data['company_name'] ?? 'Dazu Hub Institute'),
+                    self::layout(
+                        'Registration Form',
+                        '<p>Hi ' . self::e($data['full_name']) . ',</p>'
+                        . '<p>Your registration form for <strong>' . self::e($data['course_title']) . '</strong> is attached.</p>'
+                        . '<p>Keep a copy for your records. If any details are incorrect, reply to this email so our team can update them.</p>'
+                        . self::courseBlock($data)
+                    ),
+                ];
+
             case 'registration_approved':
                 return [
                     'Welcome to ' . ($data['company_name'] ?? 'Dazu Hub Institute') . ' — your account is ready',

@@ -20,7 +20,7 @@ if (empty($_SESSION['logged_in']) || (int) ($_SESSION['role_id'] ?? 99) > 2) {
 $settings = new SettingModel($pdo);
 
 // Filesystem root of /public  and the upload destinations.
-$PUBLIC = realpath(__DIR__ . '/../..');
+$PUBLIC = defined('PUBLIC_ROOT') ? rtrim(PUBLIC_ROOT, '/\\') : realpath(__DIR__ . '/../..');
 $DIRS = [
     'logo'    => ['abs' => $PUBLIC . '/assets/images/branding', 'web' => 'assets/images/branding'],
     'hero'    => ['abs' => $PUBLIC . '/uploads/hero',           'web' => 'uploads/hero'],
@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_FILES['logo'],
                 $DIRS['logo']['abs'],
                 $DIRS['logo']['web'],
-                ['png', 'jpg', 'jpeg', 'webp']
+                ['png', 'jpg', 'jpeg', 'webp', 'svg']
             );
             if (!$res['ok']) {
                 redirect_back('logo', 'error', $res['error']);
@@ -177,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!is_dir($DIRS['receipt']['abs'])) {
                 mkdir($DIRS['receipt']['abs'], 0755, true);
             }
-            $res = upload_image($_FILES['receipt_logo'], $DIRS['receipt']['abs'], $DIRS['receipt']['web'], ['png', 'jpg', 'jpeg', 'webp']);
+            $res = upload_image($_FILES['receipt_logo'], $DIRS['receipt']['abs'], $DIRS['receipt']['web'], ['png', 'jpg', 'jpeg', 'webp', 'svg']);
             if (!$res['ok']) {
                 redirect_back('receipt', 'error', $res['error']);
             }
@@ -327,7 +327,7 @@ $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: 
         <label>Replace logo</label>
         <div class="file-drop">
           <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-          <input type="file" name="logo" accept="image/png,image/jpeg,image/webp">
+          <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml">
         </div>
       </div>
 
@@ -549,7 +549,7 @@ $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: 
         <label>Receipt logo (optional)</label>
         <div class="file-drop">
           <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-          <input type="file" name="receipt_logo" accept="image/png,image/jpeg,image/webp">
+          <input type="file" name="receipt_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml">
         </div>
       </div>
 

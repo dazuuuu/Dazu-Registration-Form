@@ -12,7 +12,8 @@ $compact = !empty($brochure_compact);
 ?>
 <?php if ($compact): ?>
   <a href="<?php echo htmlspecialchars($brochureUrl); ?>" onclick="event.stopPropagation();"
-     class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-[#15A24A] hover:underline">
+     class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-slate-200 bg-white text-[10px] font-extrabold uppercase tracking-wider text-slate-600 hover:border-[#15A24A] hover:text-[#15A24A]">
+    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M6 4h8l4 4v12H6z"/></svg>
     Download brochure
   </a>
 <?php else: ?>

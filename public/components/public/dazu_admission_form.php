@@ -55,6 +55,20 @@ $studyMode = $_POST['study_mode'] ?? 'online';
   </div>
   <?php endif; ?>
 
+  <?php
+  ob_start();
+  $fee_compact = false;
+  include __DIR__ . '/dazu_course_fee_breakdown.php';
+  $brochure_compact = false;
+  include __DIR__ . '/dazu_course_brochure_cta.php';
+  $courseResourceHtml = trim(ob_get_clean());
+  ?>
+  <?php if ($courseResourceHtml !== ''): ?>
+  <div class="mb-8 p-4 border border-slate-200 bg-slate-50 rounded-2xl space-y-4">
+    <?php echo $courseResourceHtml; ?>
+  </div>
+  <?php endif; ?>
+
   <form method="POST" id="<?php echo $pfx; ?>Form" class="space-y-6">
     <?php echo csrf_field(); ?>
     <input type="hidden" name="dh_register" value="1">
