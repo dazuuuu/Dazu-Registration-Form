@@ -18,9 +18,9 @@ $menuItems = [
     ['name' => 'CONTACTS', 'href' => url('contact'), 'key' => 'contact'],
 ];
 
-// Admin can close the free-courses section from Admin → Free Courses — while closed,
-// the nav link disappears entirely rather than pointing at an empty page.
-if (!dazu_free_courses_enabled()) {
+// FREE COURSES stays hidden unless admin left the section open AND at least one
+// public free course exists. An empty listing never gets a nav item.
+if (!dazu_free_courses_nav_visible()) {
     $menuItems = array_values(array_filter($menuItems, static fn($item) => $item['key'] !== 'free-courses'));
 }
 

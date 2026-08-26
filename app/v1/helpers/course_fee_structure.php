@@ -317,6 +317,57 @@ if (!function_exists('course_brochure_url')) {
     }
 }
 
+if (!function_exists('course_brochure_absolute_path')) {
+    function course_brochure_absolute_path(array $course): ?string
+    {
+        $rel = ltrim(trim((string) ($course['brochure_path'] ?? '')), '/');
+        if ($rel === '' || preg_match('#^https?://#i', $rel)) {
+            return null;
+        }
+        if (!defined('PROJECT_ROOT')) {
+            require_once __DIR__ . '/../config/paths.php';
+        }
+        $candidates = [
+            public_path($rel),
+            PROJECT_ROOT . '/public/' . $rel,
+        ];
+        foreach ($candidates as $abs) {
+            if (is_string($abs) && is_file($abs)) {
+                return $abs;
+            }
+        }
+        return null;
+    }
+}
+
+if (!function_exists('course_brochure_download_name')) {
+    function course_brochure_download_name(array $course): string
+    {
+        $slug = preg_replace('/[^a-zA-Z0-9_-]/', '-', strtolower(trim((string) ($course['abbreviation'] ?? 'course')))) ?: 'course';
+        return $slug . '-brochure.pdf';
+    }
+}
+
+if (!function_exists('course_fee_structure_file_name')) {
+    function course_fee_structure_file_name(array $course): string
+    {
+        $slug = preg_replace('/[^a-zA-Z0-9_-]/', '-', strtolower(trim((string) ($course['abbreviation'] ?? 'course')))) ?: 'course';
+        return $slug . '-fee-structure.pdf';
+    }
+}
+
+if (!function_exists('course_fee_structure_write_temp_pdf')) {
+    function course_fee_structure_write_temp_pdf(array $course): ?string
+    {
+        $pdf = course_fee_structure_render_pdf($course);
+        if ($pdf === null || $pdf === '') {
+            return null;
+        }
+        $path = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . uniqid('fee-structure-', true) . '.pdf';
+        return file_put_contents($path, $pdf) !== false ? $path : null;
+    }
+}
+
 if (!function_exists('course_fee_structure_download_url')) {
     function course_fee_structure_download_url(int $courseId, bool $download = true): string
     {

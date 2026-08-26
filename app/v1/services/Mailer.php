@@ -185,9 +185,17 @@ class Mailer {
     }
 
     /**
-     * @return array{ok:bool, message:string}
+     * @param list<array{path:string,name?:string}> $attachments
+     * @return array{ok:bool, message:string, skipped?:bool}
      */
-    public function sendWithAttachment(string $toEmail, string $toName, string $subject, string $htmlBody, string $filePath, string $fileName): array {
+    public function sendWithAttachments(
+        string $toEmail,
+        string $toName,
+        string $subject,
+        string $htmlBody,
+        array $attachments = [],
+        bool $embedLogo = true
+    ): array {
         if (array_key_exists('enabled', $this->cfg) && empty($this->cfg['enabled'])) {
             return ['ok' => true, 'message' => 'skipped', 'skipped' => true];
         }
@@ -197,8 +205,17 @@ class Mailer {
         if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
             return ['ok' => false, 'message' => 'PHPMailer is not installed.'];
         }
-        if (!is_file($filePath)) {
-            return $this->send($toEmail, $toName, $subject, $htmlBody);
+        if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'message' => 'Invalid recipient email'];
+        }
+
+        $files = [];
+        foreach ($attachments as $item) {
+            $path = is_array($item) ? (string) ($item['path'] ?? '') : (string) $item;
+            $name = is_array($item) ? (string) ($item['name'] ?? basename($path)) : basename($path);
+            if ($path !== '' && is_file($path)) {
+                $files[] = ['path' => $path, 'name' => $name !== '' ? $name : basename($path)];
+            }
         }
 
         $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
@@ -216,8 +233,12 @@ class Mailer {
 
             $mail->setFrom($this->cfg['from_email'] ?? 'no-reply@example.com', $this->cfg['from_name'] ?? 'Store');
             $mail->addAddress($toEmail, $toName);
-            $this->embedLogo($mail);
-            $mail->addAttachment($filePath, $fileName);
+            if ($embedLogo) {
+                $this->embedLogo($mail);
+            }
+            foreach ($files as $file) {
+                $mail->addAttachment($file['path'], $file['name']);
+            }
             $mail->isHTML(true);
             $mail->Subject = $subject;
             $mail->Body = $htmlBody;
@@ -228,6 +249,15 @@ class Mailer {
             error_log('[mailer] ' . $e->getMessage());
             return ['ok' => false, 'message' => $e->getMessage()];
         }
+    }
+
+    /**
+     * @return array{ok:bool, message:string}
+     */
+    public function sendWithAttachment(string $toEmail, string $toName, string $subject, string $htmlBody, string $filePath, string $fileName): array {
+        return $this->sendWithAttachments($toEmail, $toName, $subject, $htmlBody, [
+            ['path' => $filePath, 'name' => $fileName],
+        ]);
     }
 
     private function resolveLogoPath(): string

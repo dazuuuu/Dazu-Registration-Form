@@ -60,8 +60,6 @@ $studyMode = $_POST['study_mode'] ?? 'online';
   $fee_compact = false;
   $fee_show_download = true;
   include __DIR__ . '/dazu_course_fee_breakdown.php';
-  $brochure_compact = false;
-  include __DIR__ . '/dazu_course_brochure_cta.php';
   $courseResourceHtml = trim(ob_get_clean());
   ?>
   <?php if ($courseResourceHtml !== ''): ?>

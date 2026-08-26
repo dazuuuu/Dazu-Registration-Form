@@ -297,6 +297,25 @@ class CourseModel {
         }
     }
 
+    /** Count of free courses currently listed on the public site. */
+    public function countFreePublic(): int
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM courses c
+                    WHERE c.is_free = 1
+                    AND c.is_active = 1
+                    AND (c.end_date IS NULL OR c.end_date >= CURDATE())";
+            return (int) $this->db->query($sql)->fetchColumn();
+        } catch (\PDOException $e) {
+            try {
+                $sql = "SELECT COUNT(*) FROM courses c WHERE c.is_free = 1 AND c.is_active = 1";
+                return (int) $this->db->query($sql)->fetchColumn();
+            } catch (\PDOException $e2) {
+                return 0;
+            }
+        }
+    }
+
     /**
      * Free-course listing for public/courses/free.php. Degrades to an empty list
      * (not an error) if is_free hasn't been migrated yet — this is just a listing,

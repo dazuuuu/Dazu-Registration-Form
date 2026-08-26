@@ -3,6 +3,8 @@
 require_once __DIR__ . '/Mailer.php';
 require_once __DIR__ . '/StudentEmailTemplate.php';
 require_once __DIR__ . '/RegistrationFormGenerator.php';
+require_once __DIR__ . '/AdmissionLetterGenerator.php';
+require_once __DIR__ . '/../helpers/course_fee_structure.php';
 
 class StudentNotifier {
     private $pdo;
@@ -62,7 +64,16 @@ class StudentNotifier {
         return $this->mailer;
     }
 
-    private function send(string $email, string $name, string $event, array $data, ?string $attachmentPath = null, ?string $attachmentName = null): array {
+    private function send(
+        string $email,
+        string $name,
+        string $event,
+        array $data,
+        ?string $attachmentPath = null,
+        ?string $attachmentName = null,
+        array $attachments = [],
+        bool $embedLogo = true
+    ): array {
         if (!$this->enabled) {
             error_log('[StudentNotifier] mail skipped — SMTP not enabled for ' . $event);
             return ['ok' => false, 'message' => 'mail disabled', 'skipped' => true];
@@ -72,7 +83,10 @@ class StudentNotifier {
         $sendCfg['enabled'] = true;
         $mailer = $this->mailer ?? new Mailer($sendCfg);
         if ($attachmentPath && is_file($attachmentPath)) {
-            $result = $mailer->sendWithAttachment($email, $name, $subject, $html, $attachmentPath, $attachmentName ?: basename($attachmentPath));
+            $attachments[] = ['path' => $attachmentPath, 'name' => $attachmentName ?: basename($attachmentPath)];
+        }
+        if ($attachments !== [] || !$embedLogo) {
+            $result = $mailer->sendWithAttachments($email, $name, $subject, $html, $attachments, $embedLogo);
         } else {
             $result = $mailer->send($email, $name, $subject, $html);
         }
@@ -83,20 +97,62 @@ class StudentNotifier {
     }
 
     public function sendRegistrationReceived(array $reg): array {
-        $tmp = RegistrationFormGenerator::writeTempPdf($reg);
+        $course = $this->courseForRegistration($reg);
+        $temps = [];
+        $attachments = [];
+
+        $brochure = $course ? course_brochure_absolute_path($course) : null;
+        if ($brochure) {
+            $attachments[] = ['path' => $brochure, 'name' => course_brochure_download_name($course)];
+        }
+
+        $letter = AdmissionLetterGenerator::writeTempPdf($reg, $course ?? []);
+        if ($letter) {
+            $temps[] = $letter;
+            $attachments[] = ['path' => $letter, 'name' => AdmissionLetterGenerator::fileName($reg)];
+        }
+
+        if ($course) {
+            $fees = course_fee_structure_write_temp_pdf($course);
+            if ($fees) {
+                $temps[] = $fees;
+                $attachments[] = ['path' => $fees, 'name' => course_fee_structure_file_name($course)];
+            }
+        }
+
         try {
             return $this->send(
                 $reg['email'],
                 $reg['full_name'],
                 'registration_received',
                 $this->baseData($reg),
-                $tmp,
-                RegistrationFormGenerator::fileName($reg)
+                null,
+                null,
+                $attachments,
+                false
             );
         } finally {
-            if ($tmp && is_file($tmp)) {
-                @unlink($tmp);
+            foreach ($temps as $tmp) {
+                if ($tmp && is_file($tmp)) {
+                    @unlink($tmp);
+                }
             }
+        }
+    }
+
+    private function courseForRegistration(array $reg): ?array
+    {
+        $courseId = (int) ($reg['course_id'] ?? 0);
+        if ($courseId <= 0) {
+            return null;
+        }
+        try {
+            require_once __DIR__ . '/../models/CourseModel.php';
+            $model = new \Models\CourseModel($this->pdo);
+            $course = $model->getById($courseId);
+            return is_array($course) ? $course : null;
+        } catch (Throwable $e) {
+            return null;
         }
     }
 
