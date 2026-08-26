@@ -16,9 +16,13 @@ if (isset($_GET['delete']) && $_GET['delete'] === '1') {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['resend_credentials'])) {
-        $result = $sms->resendStudentCredentials($id);
+        $forceReset = !empty($_POST['force_password_reset']);
+        $result = $sms->resendStudentCredentials($id, $forceReset);
         if (!empty($result['ok'])) {
-            sms_flash('success', 'Account details emailed to ' . ($result['email'] ?? $student['email']) . '. A new temporary password was set — the student must choose a new password on first login.');
+            $message = $forceReset
+                ? 'A new temporary password was emailed to ' . ($result['email'] ?? $student['email']) . '. The student must choose a new password on first login.'
+                : 'Account details emailed to ' . ($result['email'] ?? $student['email']) . '.';
+            sms_flash('success', $message);
         } else {
             sms_flash('error', $result['error'] ?? 'Could not send account details.');
         }
@@ -63,9 +67,10 @@ ob_start();
   </div>
   <div class="d-flex gap-2 flex-wrap">
     <?php if ($canResend): ?>
-    <form method="post" class="d-inline" onsubmit="return confirm('Send new login details to <?= htmlspecialchars($student['email']) ?>?\n\nThis will reset the password to a new temporary one. The student must set a new password on first login.');">
+    <form method="post" class="d-inline" onsubmit="return confirm('<?= $hasPortalAccount ? 'Reset this student password and email a new temporary password to ' : 'Create/send login details to ' ?><?= htmlspecialchars($student['email']) ?>?<?= $hasPortalAccount ? '\n\nTheir current password will stop working immediately.' : '' ?>');">
+      <?php if ($hasPortalAccount): ?><input type="hidden" name="force_password_reset" value="1"><?php endif; ?>
       <button type="submit" name="resend_credentials" value="1" class="btn btn-sm btn-warning text-dark fw-semibold">
-        <i class="fas fa-paper-plane me-1"></i>Resend account details
+        <i class="fas fa-paper-plane me-1"></i><?= $hasPortalAccount ? 'Reset password & email temp password' : 'Send account details' ?>
       </button>
     </form>
     <?php endif; ?>
@@ -98,15 +103,15 @@ ob_start();
           </dd>
         </dl>
         <p class="text-muted small mb-0 mt-2">
-          Resending account details generates a <strong>new temporary password</strong>, emails it to the student,
-          and requires them to set a new password on first login.
+          Existing portal passwords are not changed unless you explicitly reset the password.
         </p>
       </div>
       <div class="col-md-4 text-md-end">
         <?php if ($canResend): ?>
-        <form method="post" onsubmit="return confirm('Send new login details to <?= htmlspecialchars($student['email']) ?>?\n\nThis will reset the password to a new temporary one. The student must set a new password on first login.');">
+        <form method="post" onsubmit="return confirm('<?= $hasPortalAccount ? 'Reset this student password and email a new temporary password to ' : 'Create/send login details to ' ?><?= htmlspecialchars($student['email']) ?>?<?= $hasPortalAccount ? '\n\nTheir current password will stop working immediately.' : '' ?>');">
+          <?php if ($hasPortalAccount): ?><input type="hidden" name="force_password_reset" value="1"><?php endif; ?>
           <button type="submit" name="resend_credentials" value="1" class="btn btn-warning text-dark fw-semibold w-100">
-            <i class="fas fa-envelope me-1"></i>Resend account details
+            <i class="fas fa-envelope me-1"></i><?= $hasPortalAccount ? 'Reset password & email temp password' : 'Send account details' ?>
           </button>
         </form>
         <?php else: ?>

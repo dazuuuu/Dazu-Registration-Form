@@ -54,11 +54,33 @@ $editUrl = url('admin/' . ($isFree ? 'free-courses' : 'courses') . '/edit.php?id
         <?php
         if (!$isFree) {
             require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
-            $adminFeeItems = course_fee_structure_items($course);
-            if ($adminFeeItems) {
-                echo '<ul class="list-unstyled small mb-0 mt-1">';
-                foreach ($adminFeeItems as $item) {
-                    echo '<li class="d-flex justify-content-between gap-2"><span>' . htmlspecialchars($item['label']) . '</span><span>KSh ' . number_format($item['amount']) . '</span></li>';
+            $adminModes = course_fee_structure_all($course);
+            foreach (['online' => 'Online', 'physical' => 'Physical'] as $mode => $label) {
+                $modeData = course_fee_mode_decode($adminModes[$mode] ?? []);
+                if (course_fee_mode_total($modeData) <= 0) {
+                    continue;
+                }
+                echo '<div class="small text-muted mt-1">' . htmlspecialchars($label) . '</div>';
+                echo '<ul class="list-unstyled small mb-0">';
+                if ((float) ($modeData['tuition_total'] ?? 0) > 0) {
+                    $semesters = max(1, (int) ($course['semester_count'] ?? 1));
+                    $perSemester = course_fee_mode_per_semester($course, $modeData);
+                    $tuitionLabel = 'Tuition';
+                    if ($perSemester > 0) {
+                        $tuitionLabel .= ' (' . $semesters . ' sem x KSh ' . number_format($perSemester, 0) . ')';
+                    }
+                    echo '<li class="d-flex justify-content-between gap-2"><span>' . htmlspecialchars($tuitionLabel) . '</span><span>KSh ' . number_format((float) $modeData['tuition_total'], 0) . '</span></li>';
+                }
+                foreach (($modeData['additional'] ?? []) as $item) {
+                    if (!is_array($item)) {
+                        continue;
+                    }
+                    $itemLabel = trim((string) ($item['label'] ?? ''));
+                    $amount = (float) ($item['amount'] ?? 0);
+                    if ($itemLabel === '' || $amount <= 0) {
+                        continue;
+                    }
+                    echo '<li class="d-flex justify-content-between gap-2"><span>' . htmlspecialchars($itemLabel) . '</span><span>KSh ' . number_format($amount, 0) . '</span></li>';
                 }
                 echo '</ul>';
             }

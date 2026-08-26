@@ -23,11 +23,20 @@ class UserModel {
     }
     
     public function getUserByEmail($email) {
-        $sql = "SELECT u.*, r.role_name FROM users u 
-                JOIN roles r ON u.role_id = r.id 
-                WHERE u.email = :email";
+        $sql = "SELECT u.*, COALESCE(r.role_name,
+                    CASE
+                        WHEN u.role_id = 1 THEN 'superadmin'
+                        WHEN u.role_id = 2 THEN 'admin'
+                        WHEN u.role_id = 4 THEN 'tutor'
+                        ELSE 'student'
+                    END
+                ) AS role_name
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                WHERE LOWER(u.email) = LOWER(:email)
+                LIMIT 1";
         $stmt = $this->db->prepare($sql);
-        $stmt->execute([':email' => $email]);
+        $stmt->execute([':email' => trim((string) $email)]);
         return $stmt->fetch();
     }
     
@@ -41,9 +50,18 @@ class UserModel {
     }
     
     public function getUserById($id) {
-        $sql = "SELECT u.*, r.role_name FROM users u 
-                JOIN roles r ON u.role_id = r.id 
-                WHERE u.id = :id";
+        $sql = "SELECT u.*, COALESCE(r.role_name,
+                    CASE
+                        WHEN u.role_id = 1 THEN 'superadmin'
+                        WHEN u.role_id = 2 THEN 'admin'
+                        WHEN u.role_id = 4 THEN 'tutor'
+                        ELSE 'student'
+                    END
+                ) AS role_name
+                FROM users u
+                LEFT JOIN roles r ON u.role_id = r.id
+                WHERE u.id = :id
+                LIMIT 1";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id]);
         return $stmt->fetch();
@@ -74,9 +92,18 @@ class UserModel {
     
     public function updatePassword($user_id, $newPassword) {
         $password_hash = password_hash($newPassword, PASSWORD_DEFAULT);
-        $sql = "UPDATE users SET password_hash = :hash WHERE id = :id";
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute([':hash' => $password_hash, ':id' => $user_id]);
+        try {
+            $sql = "UPDATE users SET password_hash = :hash, must_change_password = 0 WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([':hash' => $password_hash, ':id' => $user_id]) && $stmt->rowCount() > 0;
+        } catch (PDOException $e) {
+            if (stripos($e->getMessage(), 'must_change_password') === false) {
+                throw $e;
+            }
+            $sql = "UPDATE users SET password_hash = :hash WHERE id = :id";
+            $stmt = $this->db->prepare($sql);
+            return $stmt->execute([':hash' => $password_hash, ':id' => $user_id]) && $stmt->rowCount() > 0;
+        }
     }
     
     public function logLoginAttempt($email, $ip) {

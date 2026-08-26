@@ -55,9 +55,17 @@ if (!course_is_shareable($course)) {
     exit;
 }
 
-$page_title = htmlspecialchars($course['title']) . ' — Apply | Dazu hub Institute';
-$page_description = mb_strimwidth(strip_tags($course['overview'] ?? ''), 0, 160, '…');
-$og_image = dazu_course_image_url($course);
+$page_title = ($course['title'] ?? 'Course') . ' — Apply | Dazu hub Institute';
+$page_description = mb_strimwidth(strip_tags($course['overview'] ?? $course['description'] ?? ''), 0, 160, '…');
+$og_image = course_og_image_url($course);
+$og_url = course_share_url((int) $course['id']);
+$share_url = $og_url;
+$share_title = 'Apply for ' . $course['title'] . ' at Dazu hub Institute';
+
+require_once __DIR__ . '/../../app/v1/helpers/seo.php';
+if (seo_is_social_crawler() && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    seo_emit_course_share_preview($course, $og_url);
+}
 
 // Courses offered in the Course Choice select. getAll(true) and course_is_shareable()
 // use the same is_active === 1 rule, so the current course is always among them.
@@ -66,6 +74,7 @@ $allowCourseChange = true;
 
 $reg_success = false;
 $reg_error = null;
+$issued_reg_no = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($courseChangeError !== null) {
@@ -75,14 +84,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = $handler->process($_POST, $_FILES, $course, null);
         if ($result['ok']) {
             $reg_success = true;
+            $issued_reg_no = $result['registration_no'] ?? '';
         } else {
             $reg_error = $result['error'] ?? 'Registration failed.';
         }
     }
 }
-
-$share_url = course_share_url((int) $course['id']);
-$share_title = 'Apply for ' . $course['title'] . ' at Dazu hub Institute';
 
 ob_start();
 ?>

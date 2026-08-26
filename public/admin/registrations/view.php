@@ -10,6 +10,8 @@ require_once __DIR__ . '/../../../app/v1/models/RegistrationModel.php';
 require_once __DIR__ . '/../../../app/v1/controllers/RegistrationController.php';
 require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/services/RegistrationFormGenerator.php';
+require_once __DIR__ . '/../../../app/v1/services/StudentNotifier.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -27,6 +29,21 @@ $reg = $regModel->getById($id);
 if (!$reg) {
     SessionModel::setFlash('error', 'Registration not found.');
     header('Location: ' . url('admin/registrations/index.php'));
+    exit();
+}
+
+if (($_GET['action'] ?? '') === 'download_form') {
+    $pdf = RegistrationFormGenerator::pdf($reg);
+    if ($pdf === null) {
+        SessionModel::setFlash('error', 'Could not generate the registration form PDF. Run composer install to enable Dompdf.');
+        header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+        exit();
+    }
+    $fileName = RegistrationFormGenerator::fileName($reg);
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="' . $fileName . '"');
+    header('Content-Length: ' . strlen($pdf));
+    echo $pdf;
     exit();
 }
 
@@ -129,6 +146,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $error = $result['error'];
             }
+        } elseif ($action === 'email_registration_form') {
+            $notifier = new StudentNotifier($pdo, null, true);
+            $result = $notifier->sendRegistrationForm($reg);
+            if (!empty($result['ok'])) {
+                SessionModel::setFlash('success', 'Registration form emailed to ' . htmlspecialchars($reg['email']) . '.');
+                header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+                exit();
+            }
+            $error = 'Could not email registration form: ' . ($result['message'] ?? 'Unknown error.');
         }
 
         // Refresh after action attempt
@@ -358,6 +384,26 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
     <!-- RIGHT COLUMN: Actions -->
     <div class="col-lg-4">
 
+        <div class="card border-info mb-4">
+            <div class="card-header bg-info text-dark fw-semibold">
+                <i class="fas fa-file-pdf me-1"></i> Registration form
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Download or email the branded registration form using the student's enrolment email.</p>
+                <a href="<?php echo url('admin/registrations/view.php?id=' . (int)$id . '&action=download_form'); ?>"
+                   class="btn btn-outline-primary w-100 mb-2">
+                    <i class="fas fa-download me-1"></i> Download form
+                </a>
+                <form method="POST" onsubmit="return confirm('Email the registration form to <?php echo htmlspecialchars($reg['email'], ENT_QUOTES); ?>?');">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="email_registration_form">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-envelope me-1"></i> Email to student
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <?php if ($reg['status'] === 'pending'): ?>
 
         <!-- APPROVE -->
@@ -390,9 +436,14 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
                     <?php endif; ?>
 
                     <p class="text-muted small mb-3">
-                        On approval, a student account is created and a registration number is issued
-                        (<strong>DH-<?php echo htmlspecialchars($reg['abbreviation']); ?>XX/<?php echo date('Y'); ?></strong>).
-                        You will get the temporary password to copy or send via WhatsApp — no email is sent.
+                        <?php if (!empty($reg['registration_no'])): ?>
+                            This enrolment already has registration number
+                            <strong><?php echo htmlspecialchars($reg['registration_no']); ?></strong>.
+                            Approval creates the student portal account and keeps that number.
+                        <?php else: ?>
+                            On approval, a student account is created and the next registration number is issued
+                            (starting from <strong>DH050/<?php echo date('y'); ?></strong>).
+                        <?php endif; ?>
                     </p>
 
                     <button type="submit" class="btn btn-success w-100"

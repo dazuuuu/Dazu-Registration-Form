@@ -38,21 +38,48 @@ $referralNo = $referrer ? $referrer['registration_no'] : null;
 
 $reg_success = false;
 $reg_error = null;
+$issued_reg_no = '';
+$courseChangeError = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $handler = new CourseRegistrationHandler($pdo);
-    $result = $handler->process($_POST, $_FILES, $course, $referralNo);
-    $reg_success = $result['ok'];
-    if (!$result['ok']) {
-        $reg_error = $result['error'] ?? 'Registration failed.';
+    $postedCourseId = (int) ($_POST['course_id'] ?? 0);
+    if ($postedCourseId > 0 && $postedCourseId !== (int) ($course['id'] ?? 0)) {
+        $picked = $courseModel->getById($postedCourseId);
+        if (course_is_shareable($picked)) {
+            $course = course_catalog_enrich($picked);
+            $courseId = $postedCourseId;
+        } else {
+            $courseChangeError = 'The course you selected is no longer available. Please choose another.';
+        }
     }
 }
 
-$page_title = htmlspecialchars($course['title']) . ' — Register | Dazu hub Institute';
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($courseChangeError !== null) {
+        $reg_error = $courseChangeError;
+    } else {
+        $handler = new CourseRegistrationHandler($pdo);
+        $result = $handler->process($_POST, $_FILES, $course, $referralNo);
+        $reg_success = $result['ok'];
+        if ($result['ok']) {
+            $issued_reg_no = $result['registration_no'] ?? '';
+        } else {
+            $reg_error = $result['error'] ?? 'Registration failed.';
+        }
+    }
+}
+
+$page_title = ($course['title'] ?? 'Course') . ' — Register | Dazu hub Institute';
 $share_url = course_share_url((int) $course['id'], $referralNo);
 $share_title = 'Join me at Dazu hub — ' . $course['title'];
-$og_image = dazu_course_image_url($course);
+$og_image = course_og_image_url($course);
+$og_url = $share_url;
 $page_description = mb_strimwidth(strip_tags($course['overview'] ?? $course['description'] ?? ''), 0, 160, '…');
+
+require_once __DIR__ . '/../../app/v1/helpers/seo.php';
+if (seo_is_social_crawler() && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    seo_emit_course_share_preview($course, $og_url);
+}
 
 ob_start();
 ?>
@@ -70,7 +97,13 @@ ob_start();
         <?php include __DIR__ . '/../components/public/dazu_course_sidebar.php'; ?>
       </div>
       <div class="lg:col-span-7">
-        <?php $pfx = 'share'; include __DIR__ . '/../components/public/dazu_admission_form.php'; ?>
+        <?php
+          $pfx = 'share';
+          $allowCourseChange = true;
+          $courseChoices = $courseModel->getAll(true);
+          $courseChangeUrl = url('courses/share.php') . ($refParam !== '' ? ('?ref=' . rawurlencode($refParam)) : '');
+          include __DIR__ . '/../components/public/dazu_admission_form.php';
+        ?>
       </div>
     </div>
   </div>

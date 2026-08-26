@@ -3,24 +3,18 @@
 // Handles uploads + DB writes for: logo, hero slides, page headers.
 // Sections via ?section=logo|hero|headers . Uses Post-Redirect-Get.
 
+require_once __DIR__ . '/../../../app/v1/init.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';        // BASE_URL + helpers
 require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
-require_once __DIR__ . '/../../../app/v1/config/db_connect.php';      // provides $pdo
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
 // --- Admin guard ------------------------------------------------------
-if (empty($_SESSION['logged_in']) || (int) ($_SESSION['role_id'] ?? 99) > 2) {
-    header('Location: ' . BASE_URL . '/auth/login.php');
-    exit;
-}
+Middleware::requireAdmin();
 
 $settings = new SettingModel($pdo);
 
 // Filesystem root of /public  and the upload destinations.
-$PUBLIC = realpath(__DIR__ . '/../..');
+$PUBLIC = defined('PUBLIC_ROOT') ? rtrim(PUBLIC_ROOT, '/\\') : realpath(__DIR__ . '/../..');
 $DIRS = [
     'logo'    => ['abs' => $PUBLIC . '/assets/images/branding', 'web' => 'assets/images/branding'],
     'hero'    => ['abs' => $PUBLIC . '/uploads/hero',           'web' => 'uploads/hero'],
@@ -29,7 +23,7 @@ $DIRS = [
 ];
 
 $section = $_GET['section'] ?? 'logo';
-if (!in_array($section, ['logo', 'hero', 'headers', 'contact', 'receipt'], true)) {
+if (!in_array($section, ['logo', 'hero', 'headers', 'contact', 'schedule', 'receipt'], true)) {
     $section = 'logo';
 }
 
@@ -72,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_FILES['logo'],
                 $DIRS['logo']['abs'],
                 $DIRS['logo']['web'],
-                ['png', 'jpg', 'jpeg', 'webp']
+                ['png', 'jpg', 'jpeg', 'webp', 'svg']
             );
             if (!$res['ok']) {
                 redirect_back('logo', 'error', $res['error']);
@@ -162,6 +156,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect_back('contact', 'success', 'Contact & map settings saved.');
     }
 
+    if ($action === 'save_schedule') {
+        $settings->set('class_schedule_online', mb_strimwidth(trim((string) ($_POST['class_schedule_online'] ?? '')), 0, 240, ''));
+        $settings->set('class_schedule_physical', mb_strimwidth(trim((string) ($_POST['class_schedule_physical'] ?? '')), 0, 240, ''));
+        $settings->set('class_schedule_note', mb_strimwidth(trim((string) ($_POST['class_schedule_note'] ?? '')), 0, 500, ''));
+        redirect_back('schedule', 'success', 'Class schedule saved.');
+    }
+
     if ($action === 'save_receipt') {
         $keys = [
             'sms_receipt_company_name' => trim($_POST['receipt_company_name'] ?? ''),
@@ -177,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!is_dir($DIRS['receipt']['abs'])) {
                 mkdir($DIRS['receipt']['abs'], 0755, true);
             }
-            $res = upload_image($_FILES['receipt_logo'], $DIRS['receipt']['abs'], $DIRS['receipt']['web'], ['png', 'jpg', 'jpeg', 'webp']);
+            $res = upload_image($_FILES['receipt_logo'], $DIRS['receipt']['abs'], $DIRS['receipt']['web'], ['png', 'jpg', 'jpeg', 'webp', 'svg']);
             if (!$res['ok']) {
                 redirect_back('receipt', 'error', $res['error']);
             }
@@ -202,7 +203,7 @@ $logoUrl     = settings_asset_url($settings->get('logo_path'));
 $heroSlides  = $settings->getHeroSlides(false);
 $pageHeaders = $settings->getAllPageHeaders();
 
-$titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners', 'contact' => 'Contact & Map', 'receipt' => 'Receipts'];
+$titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners', 'contact' => 'Contact & Map', 'schedule' => 'Class Schedule', 'receipt' => 'Receipts'];
 $contactPhone = $settings->get('contact_phone', '+254 750 116 600');
 $contactEmail = $settings->get('contact_email', 'admin@dazuhub.com');
 $contactAddress = $settings->get('contact_address', 'Witeithie House, Room 529, Thika Town');
@@ -212,92 +213,84 @@ $contactMapLink = $settings->get('contact_map_link', '');
 $contactMapTitle = $settings->get('contact_map_title', 'Witeithie House, Thika');
 $contactMapSubtitle = $settings->get('contact_map_subtitle', 'Room 529 (5th Floor)');
 $contactMapBlurb = $settings->get('contact_map_blurb', 'Located directly within Thika Town, near principal transport stages, making daily commutes seamless for local students.');
+$classScheduleOnline = $settings->get('class_schedule_online', '8am, 12pm, 6pm');
+$classSchedulePhysical = $settings->get('class_schedule_physical', '5am');
+$classScheduleNote = $settings->get('class_schedule_note', '');
 $receiptCompany = $settings->get('sms_receipt_company_name', $siteName);
 $receiptPhone = $settings->get('sms_receipt_phone', $contactPhone);
 $receiptLocation = $settings->get('sms_receipt_location', $contactAddress);
 $receiptPobox = $settings->get('sms_receipt_pobox', '');
 $receiptFooter = $settings->get('sms_receipt_footer', 'Thank you for your payment. Please retain this receipt for your records.');
 $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: $settings->get('logo_path'));
+$page_title = $titles[$section] . ' Settings';
+$breadcrumbs = [
+    ['label' => 'Settings', 'url' => url('admin/settings/index.php')],
+    ['label' => $titles[$section], 'active' => true],
+];
+
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?php echo $titles[$section]; ?> — Settings</title>
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/theme.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <style>
-    :root{ --brand-sky:#00A1F3; --brand-royal:#0759F8; --brand-gold:#EBA94E; --brand-black:#000; }
-    *{ box-sizing:border-box; }
-    body{ margin:0; background:#f5f7fb; color:#101319; font-family:var(--font-body, system-ui, sans-serif); }
-    a{ text-decoration:none; color:inherit; }
-    .admin-topbar{ display:flex; align-items:center; gap:14px; background:var(--brand-black); color:#fff; padding:14px 28px; }
-    .admin-topbar .dot{ width:12px;height:12px;border-radius:3px;background:var(--brand-sky); }
-    .admin-topbar h1{ font-size:1rem; font-weight:600; margin:0; }
-    .admin-topbar .back{ margin-left:auto; color:rgba(255,255,255,.7); font-size:.85rem; }
-    .admin-topbar .back:hover{ color:var(--brand-gold); }
-    .wrap{ max-width:880px; margin:0 auto; padding:28px 24px 64px; }
-    .tabs{ display:flex; gap:6px; margin-bottom:24px; flex-wrap:wrap; }
-    .tab{ padding:9px 16px; border-radius:9px; font-size:.86rem; font-weight:600; color:#5b6472; background:#fff; border:1px solid #e6e9f0; }
-    .tab:hover{ border-color:var(--brand-sky); color:var(--brand-royal); }
-    .tab.active{ background:var(--brand-royal); color:#fff; border-color:var(--brand-royal); }
-    .flash{ padding:12px 16px; border-radius:10px; margin-bottom:22px; font-size:.9rem; font-weight:500; }
-    .flash.success{ background:#e7f7ee; color:#11704a; border:1px solid #b6e6cd; }
-    .flash.error{ background:#fdecec; color:#a4282b; border:1px solid #f3c0c1; }
-    .panel{ background:#fff; border:1px solid #e6e9f0; border-radius:16px; padding:26px; margin-bottom:22px; }
-    .panel h2{ font-family:var(--font-display, Georgia, serif); font-size:1.3rem; margin:0 0 4px; }
-    .panel .hint{ color:#8a93a3; font-size:.85rem; margin:0 0 22px; }
-    label{ display:block; font-size:.82rem; font-weight:600; color:#3a4250; margin:0 0 6px; }
-    input[type=text], input[type=number], textarea, select{
-      width:100%; padding:10px 12px; border:1px solid #d7dce6; border-radius:9px;
-      font-size:.9rem; font-family:inherit; color:#101319; background:#fff; outline:none;
-    }
-    input:focus, textarea:focus, select:focus{ border-color:var(--brand-royal); box-shadow:0 0 0 3px rgba(7,89,248,.12); }
-    .field{ margin-bottom:18px; }
-    .row{ display:grid; grid-template-columns:1fr 140px; gap:14px; }
-    .file-drop{
-      border:1.5px dashed #c7cdda; border-radius:11px; padding:16px; background:#fafbfd;
-      display:flex; align-items:center; gap:14px; font-size:.85rem; color:#5b6472;
-    }
-    .file-drop input{ font-size:.82rem; }
-    .btn{ display:inline-flex; align-items:center; gap:8px; border:none; cursor:pointer;
-      padding:11px 20px; border-radius:9px; font-size:.88rem; font-weight:600; transition:all .15s ease; }
-    .btn-primary{ background:var(--brand-royal); color:#fff; } .btn-primary:hover{ background:#0546c8; }
-    .btn-ghost{ background:#fff; color:#3a4250; border:1px solid #d7dce6; } .btn-ghost:hover{ border-color:var(--brand-sky); }
-    .btn-danger{ background:#fff; color:#b9402f; border:1px solid #f0c5bf; } .btn-danger:hover{ background:#fdecec; }
-    .logo-preview{ height:96px; border-radius:11px; border:1px solid #e6e9f0; background:#0b0d12;
-      display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:18px; }
-    .logo-preview img{ max-height:64px; max-width:70%; object-fit:contain; }
-    .logo-preview .muted{ color:#6b7686; font-size:.85rem; }
-    .slide{ display:grid; grid-template-columns:120px 1fr auto; gap:16px; align-items:center;
-      border:1px solid #eceff4; border-radius:12px; padding:14px; margin-bottom:12px; }
-    .slide img{ width:120px; height:74px; object-fit:cover; border-radius:8px; }
-    .slide .meta{ display:flex; flex-direction:column; gap:8px; }
-    .slide .inline{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .slide .inline input[type=text]{ flex:1; min-width:140px; }
-    .slide .inline input[type=number]{ width:80px; }
-    .chk{ display:flex; align-items:center; gap:6px; font-size:.82rem; font-weight:500; color:#3a4250; }
-    .slide .actions{ display:flex; flex-direction:column; gap:8px; }
-    .empty{ color:#8a93a3; font-size:.88rem; padding:8px 0; }
-    .divider{ height:1px; background:#eceff4; margin:24px 0; }
-  </style>
-</head>
-<body>
+<style>
+.settings-edit { max-width: 980px; }
+.settings-edit .tabs { display: flex; gap: 6px; margin-bottom: 24px; flex-wrap: wrap; }
+.settings-edit .tab { padding: 9px 16px; border-radius: 9px; font-size: .86rem; font-weight: 600; color: #5b6472; background: #fff; border: 1px solid #e6e9f0; text-decoration: none; }
+.settings-edit .tab:hover { border-color: var(--brand-primary, #0D9488); color: var(--brand-primary, #0D9488); }
+.settings-edit .tab.active { background: var(--brand-primary, #0D9488); color: #fff; border-color: var(--brand-primary, #0D9488); }
+.settings-edit .flash { padding: 12px 16px; border-radius: 10px; margin-bottom: 22px; font-size: .9rem; font-weight: 500; }
+.settings-edit .flash.success { background: #e7f7ee; color: #11704a; border: 1px solid #b6e6cd; }
+.settings-edit .flash.error { background: #fdecec; color: #a4282b; border: 1px solid #f3c0c1; }
+.settings-edit .panel { background: #fff; border: 1px solid #e6e9f0; border-radius: 14px; padding: 24px; margin-bottom: 22px; box-shadow: 0 3px 14px rgba(20,35,25,.07); }
+.settings-edit .panel h2 { font-size: 1.15rem; margin: 0 0 4px; font-weight: 700; }
+.settings-edit .panel .hint { color: #8a93a3; font-size: .85rem; margin: 0 0 22px; }
+.settings-edit label { display: block; font-size: .82rem; font-weight: 600; color: #3a4250; margin: 0 0 6px; }
+.settings-edit input[type=text], .settings-edit input[type=number], .settings-edit input[type=url], .settings-edit textarea, .settings-edit select {
+  width: 100%; padding: 10px 12px; border: 1px solid #d7dce6; border-radius: 9px;
+  font-size: .9rem; font-family: inherit; color: #101319; background: #fff; outline: none;
+}
+.settings-edit input:focus, .settings-edit textarea:focus, .settings-edit select:focus { border-color: var(--brand-primary, #0D9488); box-shadow: 0 0 0 3px rgba(13,148,136,.12); }
+.settings-edit .field { margin-bottom: 18px; }
+.settings-edit .row { display: grid; grid-template-columns: 1fr 140px; gap: 14px; }
+.settings-edit .file-drop { border: 1.5px dashed #c7cdda; border-radius: 11px; padding: 16px; background: #fafbfd; display: flex; align-items: center; gap: 14px; font-size: .85rem; color: #5b6472; }
+.settings-edit .file-drop input { font-size: .82rem; }
+.settings-edit .btn { display: inline-flex; align-items: center; gap: 8px; }
+.settings-edit .btn-ghost { background: #fff; color: #3a4250; border: 1px solid #d7dce6; }
+.settings-edit .btn-ghost:hover { border-color: var(--brand-primary, #0D9488); }
+.settings-edit .logo-preview { height: 96px; border-radius: 11px; border: 1px solid #e6e9f0; background: #0b0d12; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 18px; }
+.settings-edit .logo-preview img { max-height: 64px; max-width: 70%; object-fit: contain; }
+.settings-edit .logo-preview .muted { color: #6b7686; font-size: .85rem; }
+.settings-edit .slide { display: grid; grid-template-columns: 120px 1fr auto; gap: 16px; align-items: center; border: 1px solid #eceff4; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+.settings-edit .slide img { width: 120px; height: 74px; object-fit: cover; border-radius: 8px; }
+.settings-edit .slide .meta { display: flex; flex-direction: column; gap: 8px; }
+.settings-edit .slide .inline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.settings-edit .slide .inline input[type=text] { flex: 1; min-width: 140px; }
+.settings-edit .slide .inline input[type=number] { width: 80px; }
+.settings-edit .chk { display: flex; align-items: center; gap: 6px; font-size: .82rem; font-weight: 500; color: #3a4250; }
+.settings-edit .slide .actions { display: flex; flex-direction: column; gap: 8px; }
+.settings-edit .empty { color: #8a93a3; font-size: .88rem; padding: 8px 0; }
+.settings-edit .divider { height: 1px; background: #eceff4; margin: 24px 0; }
+@media (max-width: 767.98px) {
+  .settings-edit .row, .settings-edit .slide { display: block; }
+  .settings-edit .slide img { width: 100%; height: 150px; margin-bottom: 12px; }
+}
+</style>
 
-<div class="admin-topbar">
-  <span class="dot"></span>
-  <h1><?php echo htmlspecialchars($siteName); ?> · Settings</h1>
-  <a class="back" href="index.php"><i class="fa-solid fa-arrow-left"></i> All settings</a>
-</div>
-
-<div class="wrap">
+<div class="settings-edit">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+      <h5 class="mb-1"><i class="fas fa-cog me-2"></i><?php echo htmlspecialchars($titles[$section]); ?></h5>
+      <div class="text-muted small">Editing settings for <?php echo htmlspecialchars($siteName); ?>.</div>
+    </div>
+    <a href="<?php echo url('admin/settings/index.php'); ?>" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> All settings
+    </a>
+  </div>
 
   <div class="tabs">
     <a class="tab <?php echo $section === 'logo' ? 'active' : ''; ?>"    href="edit.php?section=logo"><i class="fa-solid fa-image"></i> Branding</a>
     <a class="tab <?php echo $section === 'hero' ? 'active' : ''; ?>"    href="edit.php?section=hero"><i class="fa-solid fa-images"></i> Hero</a>
     <a class="tab <?php echo $section === 'headers' ? 'active' : ''; ?>" href="edit.php?section=headers"><i class="fa-solid fa-heading"></i> Page banners</a>
     <a class="tab <?php echo $section === 'contact' ? 'active' : ''; ?>" href="edit.php?section=contact"><i class="fa-solid fa-map-location-dot"></i> Contact &amp; map</a>
+    <a class="tab <?php echo $section === 'schedule' ? 'active' : ''; ?>" href="edit.php?section=schedule"><i class="fa-solid fa-calendar-days"></i> Class schedule</a>
     <a class="tab <?php echo $section === 'receipt' ? 'active' : ''; ?>" href="edit.php?section=receipt"><i class="fa-solid fa-receipt"></i> Receipts</a>
   </div>
 
@@ -327,7 +320,7 @@ $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: 
         <label>Replace logo</label>
         <div class="file-drop">
           <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-          <input type="file" name="logo" accept="image/png,image/jpeg,image/webp">
+          <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml">
         </div>
       </div>
 
@@ -530,6 +523,38 @@ $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: 
     </form>
   <?php endif; ?>
 
+  <?php if ($section === 'schedule'): ?>
+    <form class="panel" method="POST">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="action" value="save_schedule">
+      <h2>Class schedule</h2>
+      <p class="hint">These official class times are shown on every paid course details page. Keep them short and easy to scan.</p>
+
+      <div class="row">
+        <div class="field" style="margin:0;">
+          <label>Online classes</label>
+          <input type="text" name="class_schedule_online" maxlength="240"
+                 placeholder="e.g. 8am, 12pm, 6pm"
+                 value="<?php echo htmlspecialchars($classScheduleOnline ?? ''); ?>">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Physical classes</label>
+          <input type="text" name="class_schedule_physical" maxlength="240"
+                 placeholder="e.g. 5am"
+                 value="<?php echo htmlspecialchars($classSchedulePhysical ?? ''); ?>">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Schedule note <span class="text-muted small">(optional)</span></label>
+        <textarea name="class_schedule_note" rows="3" maxlength="500" placeholder="e.g. Students confirm their selected slot after admission."><?php echo htmlspecialchars($classScheduleNote ?? ''); ?></textarea>
+      </div>
+
+      <div class="divider"></div>
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save class schedule</button>
+    </form>
+  <?php endif; ?>
+
   <?php if ($section === 'receipt'): ?>
     <form class="panel" method="POST" enctype="multipart/form-data">
       <?php echo csrf_field(); ?>
@@ -549,7 +574,7 @@ $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: 
         <label>Receipt logo (optional)</label>
         <div class="file-drop">
           <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-          <input type="file" name="receipt_logo" accept="image/png,image/jpeg,image/webp">
+          <input type="file" name="receipt_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml">
         </div>
       </div>
 
@@ -581,5 +606,6 @@ $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: 
   <?php endif; ?>
 
 </div>
-</body>
-</html>
+<?php
+$content = ob_get_clean();
+require __DIR__ . '/../../templates/admin/layout.php';

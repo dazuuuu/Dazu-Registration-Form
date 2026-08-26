@@ -224,7 +224,7 @@ ob_start();
         <div class="input-group mb-2">
             <input type="text" class="form-control form-control-sm" id="<?php echo $input_id; ?>" readonly value="<?php echo htmlspecialchars($share_url); ?>">
             <button type="button" class="btn btn-brand btn-sm dh-share-copy" data-target="<?php echo $input_id; ?>"><i class="fas fa-copy"></i> Copy</button>
-            <a href="https://wa.me/?text=<?php echo rawurlencode($share_title . ' ' . $share_url); ?>" class="btn btn-success btn-sm" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i></a>
+            <a href="https://wa.me/?text=<?php echo rawurlencode(course_share_invite_text(['title' => $reg['course_title'] ?? 'tech course', 'overview' => ''], $share_url, $share_title)); ?>" class="btn btn-success btn-sm" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i></a>
         </div>
         <a href="<?php echo htmlspecialchars($share_url); ?>" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
             <i class="fas fa-external-link-alt me-1"></i> Preview share page

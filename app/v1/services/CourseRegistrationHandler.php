@@ -46,7 +46,7 @@ class CourseRegistrationHandler
             'study_mode'        => $post['study_mode'] ?? 'online',
             'payment_plan'      => $post['payment_plan'] ?? 'monthly',
             'id_document_path'  => $idDocPath,
-            'payment_reference' => $post['payment_reference'] ?? '',
+            'payment_reference' => $post['payment_reference'] ?? 'Public enrolment — payment to follow',
             'free_course_reason' => $post['free_course_reason'] ?? '',
             'referral_registration_no' => $referralNo,
         ];
@@ -82,12 +82,12 @@ class CourseRegistrationHandler
     }
 
     /**
-     * @return string|null Path on success, or 'ERROR:...' message string on failure
+     * @return string|null Path on success, null when no file, or 'ERROR:...' on failure
      */
     private function uploadIdDocument($file): ?string
     {
         if (!$file || empty($file['name'])) {
-            return 'ERROR:Please upload your ID or result slip as a PDF.';
+            return null;
         }
         if (($file['error'] ?? 1) !== UPLOAD_ERR_OK) {
             return 'ERROR:Document upload failed. Try again.';

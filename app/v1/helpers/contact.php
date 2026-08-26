@@ -97,7 +97,7 @@ if (!function_exists('course_whatsapp_share_url')) {
             $pageUrl = course_view_url($course);
         }
 
-        $text = "Hi Dazu Hub Institute, I'm interested in the course: {$title}\n{$pageUrl}";
+        $text = "Hi Dazu Hub Institute, I'm interested in the course: {$title}\n\n{$pageUrl}";
         return whatsapp_chat_url($text);
     }
 }

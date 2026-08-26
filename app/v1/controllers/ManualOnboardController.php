@@ -2,7 +2,7 @@
 // app/v1/controllers/ManualOnboardController.php
 namespace Controllers;
 
-require_once __DIR__ . '/../helpers/course_duration.php';
+require_once __DIR__ . '/../helpers/registration_number.php';
 use Models\Connection;
 use Models\CourseModel;
 use Models\PaymentModel;
@@ -73,8 +73,8 @@ class ManualOnboardController {
         try {
             $this->db->beginTransaction();
 
-            $seq = $this->courseModel->claimNextSequence((int) $course['id']);
-            $regNo = sprintf('DH-%s%02d/%s', $course['abbreviation'], $seq, date('Y'));
+            registration_number_lock($this->db);
+            $regNo = registration_number_next($this->db);
 
             $stmt = $this->db->prepare("SELECT id FROM roles WHERE role_name = 'student' LIMIT 1");
             $stmt->execute();
@@ -150,6 +150,8 @@ class ManualOnboardController {
             }
             error_log('[ManualOnboardController::onboardNew] ' . $e->getMessage());
             return ['ok' => false, 'error' => 'Onboarding failed: ' . $e->getMessage()];
+        } finally {
+            registration_number_unlock($this->db);
         }
     }
 

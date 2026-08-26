@@ -93,11 +93,8 @@ class Mailer {
                 $mail->addReplyTo($replyToEmail, $replyToName ?? '');
             }
 
-            // Embed the logo so it shows without a public image URL: reference cid:ismanlogo.
-            $logo = $this->cfg['logo_path'] ?? '';
-            if ($logo && is_file($logo)) {
-                $mail->addEmbeddedImage($logo, 'ismanlogo', 'logo.png');
-            }
+            // Embed the admin branding logo (Settings → Branding). cid:ismanlogo
+            $this->embedLogo($mail);
 
             $mail->isHTML(true);
             $mail->Subject = $subject;
@@ -157,8 +154,6 @@ class Mailer {
             $mail->setFrom($this->cfg['from_email'] ?? 'no-reply@example.com', $this->cfg['from_name'] ?? 'Store');
             $mail->isHTML(true);
 
-            $logo = $this->cfg['logo_path'] ?? '';
-
             foreach ($messages as $msg) {
                 $toEmail = $msg['to_email'] ?? '';
                 if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
@@ -169,9 +164,7 @@ class Mailer {
                     $mail->clearAddresses();
                     $mail->clearAttachments(); // also clears embedded images, so the logo below doesn't duplicate/collide across iterations
                     $mail->addAddress($toEmail, $msg['to_name'] ?? '');
-                    if ($logo && is_file($logo)) {
-                        $mail->addEmbeddedImage($logo, 'ismanlogo', 'logo.png');
-                    }
+                    $this->embedLogo($mail);
                     $mail->Subject = $msg['subject'] ?? '';
                     $mail->Body = $msg['html'] ?? '';
                     $mail->AltBody = trim(preg_replace('/\s+/', ' ', strip_tags($msg['html'] ?? '')));
@@ -223,6 +216,7 @@ class Mailer {
 
             $mail->setFrom($this->cfg['from_email'] ?? 'no-reply@example.com', $this->cfg['from_name'] ?? 'Store');
             $mail->addAddress($toEmail, $toName);
+            $this->embedLogo($mail);
             $mail->addAttachment($filePath, $fileName);
             $mail->isHTML(true);
             $mail->Subject = $subject;
@@ -234,5 +228,36 @@ class Mailer {
             error_log('[mailer] ' . $e->getMessage());
             return ['ok' => false, 'message' => $e->getMessage()];
         }
+    }
+
+    private function resolveLogoPath(): string
+    {
+        require_once __DIR__ . '/../helpers/site_logo.php';
+        $fromSettings = site_logo_absolute_path();
+        if ($fromSettings && is_file($fromSettings)) {
+            return $fromSettings;
+        }
+        $configured = (string) ($this->cfg['logo_path'] ?? '');
+        if ($configured !== '' && is_file($configured)) {
+            return $configured;
+        }
+        return '';
+    }
+
+    private function embedLogo(\PHPMailer\PHPMailer\PHPMailer $mail): void
+    {
+        $logo = $this->resolveLogoPath();
+        if (!$logo || !is_file($logo)) {
+            return;
+        }
+        $name = basename($logo) ?: 'logo.png';
+        $mime = 'image/png';
+        if (function_exists('mime_content_type')) {
+            $detected = @mime_content_type($logo);
+            if (is_string($detected) && str_starts_with($detected, 'image/')) {
+                $mime = $detected;
+            }
+        }
+        $mail->addEmbeddedImage($logo, 'ismanlogo', $name, 'base64', $mime);
     }
 }

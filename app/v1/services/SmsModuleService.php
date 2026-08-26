@@ -5,6 +5,7 @@ require_once __DIR__ . '/Mailer.php';
 require_once __DIR__ . '/StudentNotifier.php';
 require_once __DIR__ . '/../models/CourseModel.php';
 require_once __DIR__ . '/../controllers/ManualOnboardController.php';
+require_once __DIR__ . '/../helpers/registration_number.php';
 
 class SmsModuleService
 {
@@ -524,12 +525,13 @@ class SmsModuleService
     }
 
     /**
-     * Reset portal password and email fresh login credentials to the student.
+     * Email fresh login credentials to the student.
      * Creates or links a portal account first when missing (legacy SmS records).
+     * Existing accounts keep their chosen password unless $resetExistingPassword is true.
      *
      * @return array{ok:bool, error?:string, email?:string}
      */
-    public function resendStudentCredentials(int $id): array
+    public function resendStudentCredentials(int $id, bool $resetExistingPassword = false): array
     {
         $linked = $this->ensurePortalAccountForStudent($id);
         if (empty($linked['ok'])) {
@@ -568,6 +570,12 @@ class SmsModuleService
             : bin2hex(random_bytes(8));
 
         if (empty($linked['temp_password'])) {
+            if (!$resetExistingPassword) {
+                return [
+                    'ok' => false,
+                    'error' => 'This student already has a portal password. Use the reset password action only if they cannot recover it themselves.',
+                ];
+            }
             $hash = password_hash($tempPassword, PASSWORD_DEFAULT);
             try {
                 $this->pdo->prepare(
@@ -742,8 +750,8 @@ class SmsModuleService
 
         try {
             $this->pdo->beginTransaction();
-            $seq = $cm->claimNextSequence($courseId);
-            $regNo = sprintf('DH-%s%02d/%s', $course['abbreviation'], $seq, date('Y'));
+            registration_number_lock($this->pdo);
+            $regNo = registration_number_next($this->pdo);
             $cost = (float) ($student['cost'] ?? $course['course_fee']);
             $paid = (float) ($student['paid'] ?? 0);
 
@@ -791,6 +799,8 @@ class SmsModuleService
             }
             error_log('[SmsModule] createRegistrationForExistingUser: ' . $e->getMessage());
             return ['ok' => false, 'error' => 'Could not link portal account: ' . $e->getMessage()];
+        } finally {
+            registration_number_unlock($this->pdo);
         }
     }
 

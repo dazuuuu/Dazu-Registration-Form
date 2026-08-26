@@ -108,13 +108,13 @@ ob_start();
         <p class="text-slate-500 text-sm mt-1">Add courses in the admin panel or check back soon.</p>
       </div>
     <?php else: ?>
-      <div id="dazu-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
+      <div id="dazu-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
         <?php foreach ($courses as $course):
             $catId = (int) ($course['_display_category_id'] ?? 0);
             // All (0) hides nothing, so the page is correct before JS runs.
             $hidden = ($activeCategoryId !== 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
         ?>
-          <div class="dazu-course-list-item <?php echo $hidden; ?>"
+          <div class="dazu-course-list-item h-full <?php echo $hidden; ?>"
                data-category-id="<?php echo $catId; ?>"
                data-search="<?php echo htmlspecialchars($course['_search_blob'] ?? '', ENT_QUOTES); ?>">
             <?php include __DIR__ . '/../components/public/dazu_course_card.php'; ?>
