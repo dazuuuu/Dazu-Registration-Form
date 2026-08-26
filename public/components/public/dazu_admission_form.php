@@ -23,7 +23,6 @@ $enrolment_offer_email = $enrolment_offer_email ?? '';
 $showCourseSelect = $allowCourseChange && count($courseChoices) > 1;
 $courseChangeUrl = $courseChangeUrl ?? url('courses/view.php');
 $studyMode = $_POST['study_mode'] ?? 'online';
-$packUrl = url('courses/enrolment-pack.php');
 ?>
 
 <?php if ($reg_success): ?>
@@ -35,73 +34,42 @@ $packUrl = url('courses/enrolment-pack.php');
   <p class="text-xs font-bold uppercase tracking-wider text-green-700">Your registration number</p>
   <?php endif; ?>
   <p class="text-sm text-green-700 max-w-md mx-auto">
-    Choose whether to download your documents now or send them to <?php echo htmlspecialchars($enrolment_offer_email !== '' ? $enrolment_offer_email : 'your email'); ?>.
+    Download your documents or send them to your email. This prompt only appears once after you apply.
   </p>
+  <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+    <a href="<?php echo htmlspecialchars(url('courses/enrolment-pack.php')); ?>" class="px-6 py-3 bg-[#15A24A] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl">Download</a>
+    <button type="button" id="dazuEnrolmentEmailBtn" class="px-6 py-3 border border-green-300 bg-white text-green-800 text-xs font-extrabold uppercase tracking-wider rounded-xl">Send to email</button>
+  </div>
+  <p id="dazuEnrolmentEmailStatus" class="text-xs font-semibold text-green-700 min-h-[1.25rem]"></p>
   <a href="<?php echo url('/'); ?>" class="inline-block px-6 py-3 bg-green-600 text-white text-xs font-extrabold uppercase tracking-wider rounded-xl">Back to Home</a>
 </div>
-
-<div id="dazuEnrolmentOffer" class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/50 p-4">
-  <div class="w-full max-w-md rounded-2xl bg-white shadow-xl p-6 md:p-8 text-center space-y-4">
-    <h3 class="text-lg font-extrabold text-slate-950">Your enrolment documents</h3>
-    <p class="text-sm text-slate-600">Download the brochure, admission letter, and fee structure, or send them to <strong><?php echo htmlspecialchars($enrolment_offer_email !== '' ? $enrolment_offer_email : 'your email'); ?></strong>.</p>
-    <div class="flex flex-col sm:flex-row gap-3">
-      <a href="<?php echo htmlspecialchars($packUrl); ?>" class="flex-1 px-4 py-3 rounded-xl bg-[#15A24A] text-white text-xs font-extrabold uppercase tracking-wider">Download</a>
-      <button type="button" id="dazuEnrolmentEmailBtn" class="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-800 text-xs font-extrabold uppercase tracking-wider">Send to email</button>
-    </div>
-    <p id="dazuEnrolmentEmailStatus" class="text-xs font-semibold text-slate-500 min-h-[1.25rem]"></p>
-    <button type="button" id="dazuEnrolmentOfferClose" class="text-xs font-bold text-slate-400 hover:text-slate-700">Close</button>
-  </div>
-</div>
-<form id="dazuEnrolmentEmailForm" method="POST" action="<?php echo htmlspecialchars($packUrl); ?>" class="hidden">
+<form id="dazuEnrolmentEmailForm" method="POST" action="<?php echo htmlspecialchars(url('courses/enrolment-pack.php')); ?>" class="hidden">
   <?php echo csrf_field(); ?>
 </form>
 <script>
 (function(){
-  var modal = document.getElementById('dazuEnrolmentOffer');
-  var closeBtn = document.getElementById('dazuEnrolmentOfferClose');
   var emailBtn = document.getElementById('dazuEnrolmentEmailBtn');
   var statusEl = document.getElementById('dazuEnrolmentEmailStatus');
   var form = document.getElementById('dazuEnrolmentEmailForm');
-  if (closeBtn && modal) closeBtn.addEventListener('click', function(){ modal.remove(); });
   if (!emailBtn || !form) return;
   emailBtn.addEventListener('click', function(){
     emailBtn.disabled = true;
     statusEl.textContent = 'Sending…';
-    var body = new FormData(form);
-    fetch(form.action, { method: 'POST', body: body, credentials: 'same-origin' })
+    fetch(form.action, { method: 'POST', body: new FormData(form), credentials: 'same-origin' })
       .then(function(r){ return r.json(); })
       .then(function(data){
         statusEl.textContent = data.message || (data.ok ? 'Sent.' : 'Could not send.');
-        statusEl.className = 'text-xs font-semibold ' + (data.ok ? 'text-green-700' : 'text-red-600');
         if (!data.ok) emailBtn.disabled = false;
       })
       .catch(function(){
-        statusEl.textContent = 'Could not send. Try Download instead.';
-        statusEl.className = 'text-xs font-semibold text-red-600';
+        statusEl.textContent = 'Could not send. Use Download instead.';
         emailBtn.disabled = false;
       });
   });
 })();
 </script>
 <?php else: ?>
-$courseChangeUrl = $courseChangeUrl ?? url('courses/view.php');
-$studyMode = $_POST['study_mode'] ?? 'online';
-?>
 
-<?php if ($reg_success): ?>
-<div class="bg-green-50 border border-green-200 text-green-800 rounded-2xl p-8 text-center space-y-4">
-  <svg class="h-12 w-12 text-green-600 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-  <h2 class="text-xl font-extrabold">You are enrolled</h2>
-  <?php if ($issued_reg_no !== ''): ?>
-  <p class="text-2xl font-extrabold tracking-wide text-green-800"><?php echo htmlspecialchars($issued_reg_no); ?></p>
-  <p class="text-xs font-bold uppercase tracking-wider text-green-700">Your registration number</p>
-  <?php endif; ?>
-  <p class="text-sm text-green-700 max-w-md mx-auto">
-    We emailed a confirmation to the address you entered. Keep your registration number for records and payments.
-  </p>
-  <a href="<?php echo url('/'); ?>" class="inline-block px-6 py-3 bg-green-600 text-white text-xs font-extrabold uppercase tracking-wider rounded-xl">Back to Home</a>
-</div>
-<?php else: ?>
 
 <div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-10">
   <div class="border-b border-slate-100 pb-6 mb-8">
