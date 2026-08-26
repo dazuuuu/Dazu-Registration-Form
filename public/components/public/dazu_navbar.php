@@ -7,6 +7,7 @@ if (!function_exists('url')) {
 }
 require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
 require_once __DIR__ . '/../../../app/v1/helpers/free_courses.php';
+require_once __DIR__ . '/../../../app/v1/helpers/site_contact.php';
 
 $menuItems = [
     ['name' => 'HOME', 'href' => url('/'), 'key' => 'home'],
@@ -26,13 +27,14 @@ if (!dazu_free_courses_nav_visible()) {
 
 $isLoggedIn = !empty($_SESSION['logged_in']);
 $role = $_SESSION['role'] ?? '';
+$contact = site_contact_settings();
 ?>
 <nav class="sticky top-0 z-50 w-full bg-white border-b border-slate-100 font-sans">
   <div class="bg-[#0F172A] border-b border-slate-800 py-2">
     <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 flex items-center justify-end gap-2 text-white text-[11px] font-bold">
       <svg class="h-3.5 w-3.5 text-[#15A24A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
       <span class="text-slate-300">Call / WhatsApp:</span>
-      <a href="tel:+254750116600" class="text-[#15A24A] hover:text-[#128a3e] hover:underline font-extrabold">+254 750 116600</a>
+      <a href="tel:<?php echo htmlspecialchars($contact['contact_phone_tel']); ?>" class="text-[#15A24A] hover:text-[#128a3e] hover:underline font-extrabold"><?php echo htmlspecialchars($contact['contact_phone']); ?></a>
     </div>
   </div>
 
@@ -57,7 +59,7 @@ $role = $_SESSION['role'] ?? '';
       </div>
 
       <div class="hidden lg:flex items-center gap-4">
-        <a href="tel:+254750116600" class="text-xs font-extrabold text-slate-700 hover:text-[#15A24A] flex items-center gap-1.5 mr-2">+254 750 116600</a>
+        <a href="tel:<?php echo htmlspecialchars($contact['contact_phone_tel']); ?>" class="text-xs font-extrabold text-slate-700 hover:text-[#15A24A] flex items-center gap-1.5 mr-2"><?php echo htmlspecialchars($contact['contact_phone']); ?></a>
         <a href="<?php echo url('apply/index.php'); ?>" class="px-6 py-2.5 text-xs font-extrabold tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-md uppercase transition-all duration-200">APPLY</a>
         <?php if ($isLoggedIn && in_array($role, ['admin', 'superadmin'], true)): ?>
           <a href="<?php echo url('admin/dashboard.php'); ?>" class="px-4 py-2 text-xs font-bold text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 rounded-md">Admin</a>

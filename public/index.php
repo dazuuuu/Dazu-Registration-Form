@@ -6,6 +6,7 @@ $page_description = 'Hands-on software development, cybersecurity, data analytic
 require_once __DIR__ . '/../app/v1/init.php';
 require_once __DIR__ . '/../app/v1/helpers/dazu_theme.php';
 require_once __DIR__ . '/../app/v1/helpers/testimonials.php';
+require_once __DIR__ . '/../app/v1/helpers/seo.php';
 require_once __DIR__ . '/../app/v1/models/Connection.php';
 require_once __DIR__ . '/../app/v1/models/CourseModel.php';
 
@@ -37,7 +38,7 @@ include __DIR__ . '/components/public/dazu_cta_section.php';
 include __DIR__ . '/components/public/dazu_newsletter_section.php';
 $content = ob_get_clean();
 require_once __DIR__ . '/components/public/dazu_hero_helpers.php';
-$og_image = dazu_hero_image_url(
+$og_image = seo_home_hero_image() ?: dazu_hero_image_url(
     'hero-1',
     is_file(public_path('assets/app/hero.png'))
         ? asset('app/hero.png')

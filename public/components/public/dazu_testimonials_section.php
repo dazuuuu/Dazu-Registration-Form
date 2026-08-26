@@ -20,20 +20,20 @@ $gradients = [
     'linear-gradient(to bottom right, #f59e0b, #9a3412)',
 ];
 ?>
-<section class="py-24 bg-white" id="testimonials">
-  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
+<section class="bg-white" id="testimonials">
 
     <!-- Video Testimonials -->
-    <div class="text-center mb-16">
-      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-green-50 border border-green-100 rounded-full inline-block">Alumni Experience</span>
-      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 tracking-tight flex items-center justify-center gap-2.5 mt-4">
-        <span class="inline-block p-1.5 bg-green-50 text-[#15A24A] rounded-lg border border-green-100">
-          <svg class="h-5 w-5 fill-[#15A24A]" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        </span>
-        Video Testimonials
-      </h2>
-      <p class="text-slate-500 text-sm font-medium leading-relaxed max-w-lg mx-auto mt-3">Watch Dazu Hub Alumni Share Their Learning Experience</p>
-    </div>
+    <div class="bg-slate-950 py-24 md:py-32">
+      <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
+        <div class="text-center mb-16">
+          <h2 class="text-3xl md:text-5xl font-extrabold text-white tracking-tight">
+            Hear From Our Students
+          </h2>
+          <div class="h-1.5 w-28 bg-[#15A24A] mx-auto mt-8 rounded-full"></div>
+          <p class="text-slate-400 text-base md:text-lg font-semibold leading-relaxed max-w-3xl mx-auto mt-12">
+            Real stories from our graduates who have transformed their careers through our hands-on training programs.
+          </p>
+        </div>
 
     <?php if ($playable): ?>
       <div id="dazu-video-row">
@@ -102,30 +102,33 @@ $gradients = [
         <?php endforeach; ?>
       </div>
     <?php else: ?>
-      <div class="max-w-xl mx-auto text-center p-8 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-500 text-sm">
-        Video testimonials will appear once you add YouTube links in
-        <a href="<?php echo url('admin/testimonials/create_video.php'); ?>" class="text-[#15A24A] font-bold hover:underline">Admin → Testimonials</a>.
+      <div class="max-w-[1120px] mx-auto text-center px-6 py-16 md:py-20 border border-dashed border-slate-700 rounded-3xl text-slate-400 text-sm md:text-base font-semibold">
+        Video testimonials will appear here when approved video records are published from the administration portal.
       </div>
     <?php endif; ?>
+      </div>
+    </div>
 
     <!-- Text Testimonials -->
     <?php if ($textTestimonials): ?>
-      <div class="max-w-2xl mx-auto space-y-4 text-center mt-24 mb-16">
+      <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 py-24 md:py-32">
+      <div class="max-w-2xl mx-auto space-y-4 text-center mb-16">
         <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Proven Outcomes</span>
         <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-950">Student Success Stories</h2>
         <p class="text-slate-500 text-sm font-medium leading-relaxed max-w-lg mx-auto">Read how Dazu Hub alumni launched their high-growth technology careers right here in Thika.</p>
       </div>
 
-      <div class="max-w-3xl mx-auto" id="dazu-text-testimonials">
+      <div class="max-w-[1120px] mx-auto" id="dazu-text-testimonials">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <?php foreach ($textTestimonials as $i => $t):
             $initials = $t['customer_initial'] ?? testimonial_initials($t['customer_name'] ?? '');
             $role = $t['role'] ?? '';
             $quote = $t['testimonial_text'] ?? '';
         ?>
-          <article class="dazu-text-slide bg-slate-50 border border-slate-200 rounded-3xl p-8 md:p-12 text-left relative overflow-hidden <?php echo $i === 0 ? '' : 'hidden'; ?>" data-index="<?php echo $i; ?>">
-            <span class="absolute top-8 right-8 text-8xl font-serif text-slate-200/50 select-none">"</span>
-            <div class="space-y-6 relative z-10">
-              <p class="text-base sm:text-lg text-slate-700 italic font-medium leading-relaxed">"<?php echo htmlspecialchars($quote); ?>"</p>
+          <article class="dazu-text-slide bg-slate-50 border border-slate-200 rounded-3xl p-8 md:p-12 text-left relative overflow-hidden <?php echo $i < 2 ? '' : 'hidden'; ?>" data-index="<?php echo $i; ?>">
+            <span class="absolute top-8 left-10 text-5xl font-serif text-slate-200/70 select-none">"</span>
+            <div class="space-y-8 relative z-10">
+              <p class="text-lg md:text-xl text-slate-700 italic font-semibold leading-relaxed pt-8">"<?php echo htmlspecialchars($quote); ?>"</p>
               <div class="flex items-center gap-4 pt-4">
                 <div class="h-12 w-12 bg-[#15A24A] rounded-full flex items-center justify-center text-white font-extrabold text-sm tracking-wide"><?php echo htmlspecialchars($initials); ?></div>
                 <div>
@@ -138,13 +141,14 @@ $gradients = [
             </div>
           </article>
         <?php endforeach; ?>
+        </div>
 
         <?php if (count($textTestimonials) > 1): ?>
           <div class="flex items-center justify-between mt-8">
             <div class="flex items-center gap-2" id="dazu-text-dots">
-              <?php foreach ($textTestimonials as $i => $t): ?>
+              <?php for ($i = 0, $pages = (int) ceil(count($textTestimonials) / 2); $i < $pages; $i++): ?>
                 <button type="button" class="dazu-text-dot h-2.5 rounded-full transition-all duration-300 <?php echo $i === 0 ? 'w-8 bg-[#15A24A]' : 'w-2.5 bg-slate-200'; ?>" data-index="<?php echo $i; ?>" aria-label="Go to testimonial <?php echo $i + 1; ?>"></button>
-              <?php endforeach; ?>
+              <?php endfor; ?>
             </div>
             <div class="flex gap-2">
               <button type="button" id="dazu-text-prev" class="p-2.5 border border-slate-200 bg-white hover:bg-slate-50 rounded-lg text-slate-700 transition-colors" aria-label="Previous">
@@ -157,8 +161,8 @@ $gradients = [
           </div>
         <?php endif; ?>
       </div>
+      </div>
     <?php endif; ?>
-  </div>
 </section>
 
 <!-- Expanded video overlay -->
@@ -278,9 +282,14 @@ $gradients = [
   var dots = document.querySelectorAll('.dazu-text-dot');
   if(slides.length > 1){
     var cur = 0;
+    var perPage = 2;
+    var pages = Math.ceil(slides.length / perPage);
     function show(n){
-      cur = (n + slides.length) % slides.length;
-      slides.forEach(function(s,i){ s.classList.toggle('hidden', i !== cur); });
+      cur = (n + pages) % pages;
+      slides.forEach(function(s,i){
+        var page = Math.floor(i / perPage);
+        s.classList.toggle('hidden', page !== cur);
+      });
       dots.forEach(function(d,i){
         d.classList.toggle('w-8', i === cur); d.classList.toggle('bg-[#15A24A]', i === cur);
         d.classList.toggle('w-2.5', i !== cur); d.classList.toggle('bg-slate-200', i !== cur);

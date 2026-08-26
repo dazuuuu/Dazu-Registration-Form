@@ -81,6 +81,86 @@ if (!function_exists('seo_head_tags')) {
     }
 }
 
+if (!function_exists('seo_page_key_from_request')) {
+    function seo_page_key_from_request(): string
+    {
+        $path = trim(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/', '/');
+        $path = preg_replace('#/index\.php$#', '', $path) ?: '';
+        $first = explode('/', $path)[0] ?? '';
+        return $first === '' ? 'home' : strtolower((string) $first);
+    }
+}
+
+if (!function_exists('seo_home_hero_image')) {
+    function seo_home_hero_image(): ?string
+    {
+        try {
+            if (!class_exists('SettingModel')) {
+                require_once __DIR__ . '/../models/SettingModel.php';
+            }
+            if (!function_exists('settings_asset_url')) {
+                require_once __DIR__ . '/uploads.php';
+            }
+            global $pdo;
+            if (!isset($pdo) || !$pdo instanceof PDO) {
+                require_once __DIR__ . '/../config/db_connect.php';
+            }
+            if (!isset($pdo) || !$pdo instanceof PDO) {
+                return null;
+            }
+            $slides = (new SettingModel($pdo))->getHeroSlides(true);
+            foreach ($slides as $slide) {
+                $path = trim((string) ($slide['image_path'] ?? ''));
+                $ext = strtolower(pathinfo(parse_url($path, PHP_URL_PATH) ?: $path, PATHINFO_EXTENSION));
+                $isVideo = (($slide['media_type'] ?? '') === 'video') || in_array($ext, ['mp4', 'webm', 'mov'], true);
+                if ($path !== '' && !$isVideo) {
+                    return seo_image_url(settings_asset_url($path));
+                }
+            }
+        } catch (Throwable $e) {
+            return null;
+        }
+        return null;
+    }
+}
+
+if (!function_exists('seo_page_header_image')) {
+    function seo_page_header_image(string $pageKey): ?string
+    {
+        try {
+            if (!class_exists('SettingModel')) {
+                require_once __DIR__ . '/../models/SettingModel.php';
+            }
+            if (!function_exists('settings_asset_url')) {
+                require_once __DIR__ . '/uploads.php';
+            }
+            global $pdo;
+            if (!isset($pdo) || !$pdo instanceof PDO) {
+                require_once __DIR__ . '/../config/db_connect.php';
+            }
+            if (!isset($pdo) || !$pdo instanceof PDO) {
+                return null;
+            }
+            $header = (new SettingModel($pdo))->getPageHeader($pageKey);
+            $image = trim((string) ($header['image_path'] ?? ''));
+            return $image !== '' ? seo_image_url(settings_asset_url($image)) : null;
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+}
+
+if (!function_exists('seo_public_preview_image')) {
+    function seo_public_preview_image(?string $pageKey = null): ?string
+    {
+        $pageKey = $pageKey !== null && $pageKey !== '' ? $pageKey : seo_page_key_from_request();
+        if ($pageKey === 'home') {
+            return seo_home_hero_image();
+        }
+        return seo_page_header_image($pageKey);
+    }
+}
+
 if (!function_exists('seo_is_social_crawler')) {
     function seo_is_social_crawler(): bool
     {

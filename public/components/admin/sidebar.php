@@ -5,6 +5,7 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF']));
 $role = $_SESSION['role'] ?? '';
 $role_id = $_SESSION['role_id'] ?? 0;
 $is_class_schedule_page = $current_dir === 'settings' && ($_GET['section'] ?? '') === 'schedule';
+$is_contact_settings_page = $current_dir === 'settings' && ($_GET['section'] ?? '') === 'contact';
 
 // Determine active menu
 function isActive($path, $current_dir, $current_page) {
@@ -276,9 +277,14 @@ function isSmsSection($section) {
             
             <!-- Settings -->
             <a href="<?php echo url('admin/settings/index.php'); ?>"
-               class="nav-link <?php echo isActive('settings', $current_dir, $current_page) && !$is_class_schedule_page ? 'active' : ''; ?>">
+               class="nav-link <?php echo isActive('settings', $current_dir, $current_page) && !$is_class_schedule_page && !$is_contact_settings_page ? 'active' : ''; ?>">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
+            </a>
+            <a href="<?php echo url('admin/settings/edit.php?section=contact'); ?>"
+               class="nav-link <?php echo $is_contact_settings_page ? 'active' : ''; ?>">
+                <i class="fas fa-address-book"></i>
+                <span>Contact Settings</span>
             </a>
             <a href="<?php echo url('admin/settings/edit.php?section=schedule'); ?>"
                class="nav-link <?php echo $is_class_schedule_page ? 'active' : ''; ?>">

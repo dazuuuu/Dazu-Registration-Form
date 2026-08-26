@@ -43,7 +43,8 @@ ob_start();
 .settings-logo-preview { height: 90px; border: 1px dashed #d9dee7; border-radius: 10px; background: #f8fafc; display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .settings-logo-preview img { max-height: 64px; max-width: 80%; object-fit: contain; }
 .settings-thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
-.settings-thumbs img { width: 64px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; }
+.settings-thumbs img, .settings-thumbs .video-thumb { width: 64px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; }
+.settings-thumbs .video-thumb { display: inline-flex; align-items: center; justify-content: center; background: #111827; color: #fff; }
 .settings-header-list { max-height: 150px; overflow: auto; }
 </style>
 
@@ -92,7 +93,15 @@ ob_start();
             <?php if ($heroSlides): ?>
               <div class="settings-thumbs">
                 <?php foreach (array_slice($heroSlides, 0, 6) as $slide): ?>
-                  <img src="<?php echo htmlspecialchars(settings_asset_url($slide['image_path'])); ?>" alt="">
+                  <?php
+                    $slideExt = strtolower(pathinfo(parse_url((string) ($slide['image_path'] ?? ''), PHP_URL_PATH) ?: (string) ($slide['image_path'] ?? ''), PATHINFO_EXTENSION));
+                    $isVideoSlide = (($slide['media_type'] ?? '') === 'video') || in_array($slideExt, ['mp4', 'webm', 'mov'], true);
+                  ?>
+                  <?php if ($isVideoSlide): ?>
+                    <span class="video-thumb"><i class="fas fa-play"></i></span>
+                  <?php else: ?>
+                    <img src="<?php echo htmlspecialchars(settings_asset_url($slide['image_path'])); ?>" alt="">
+                  <?php endif; ?>
                 <?php endforeach; ?>
               </div>
             <?php else: ?>

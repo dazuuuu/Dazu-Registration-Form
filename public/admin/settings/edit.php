@@ -79,17 +79,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ---- HERO: add --------------------------------------------------
     if ($action === 'add_hero') {
-        if (empty($_FILES['image']['name'])) {
-            redirect_back('hero', 'error', 'Please choose an image to add.');
+        if (empty($_FILES['media']['name'])) {
+            redirect_back('hero', 'error', 'Please choose an image or video to add.');
         }
-        $res = upload_image($_FILES['image'], $DIRS['hero']['abs'], $DIRS['hero']['web']);
+        $mediaType = str_starts_with((string) ($_FILES['media']['type'] ?? ''), 'video/') ? 'video' : 'image';
+        $res = $mediaType === 'video'
+            ? upload_video($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web'])
+            : upload_image($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web']);
         if (!$res['ok']) {
             redirect_back('hero', 'error', $res['error']);
         }
         $settings->addHeroSlide(
             $res['path'],
             trim($_POST['caption'] ?? '') ?: null,
-            (int) ($_POST['sort_order'] ?? 0)
+            (int) ($_POST['sort_order'] ?? 0),
+            [
+                'media_type' => $mediaType,
+            ]
         );
         redirect_back('hero', 'success', 'Slide added.');
     }
@@ -98,11 +104,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update_hero') {
         $id = (int) ($_POST['id'] ?? 0);
         if ($id > 0) {
+            $mediaType = in_array($_POST['media_type'] ?? 'image', ['image', 'video'], true) ? $_POST['media_type'] : 'image';
             $settings->updateHeroSlide($id, [
                 'caption'    => trim($_POST['caption'] ?? '') ?: null,
                 'sort_order' => (int) ($_POST['sort_order'] ?? 0),
                 'is_active'  => isset($_POST['is_active']) ? 1 : 0,
+                'media_type' => $mediaType,
             ]);
+            if (!empty($_FILES['media']['name'])) {
+                $oldSlide = $settings->getHeroSlide($id);
+                $newType = str_starts_with((string) ($_FILES['media']['type'] ?? ''), 'video/') ? 'video' : 'image';
+                $res = $newType === 'video'
+                    ? upload_video($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web'])
+                    : upload_image($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web']);
+                if (!$res['ok']) {
+                    redirect_back('hero', 'error', $res['error']);
+                }
+                $settings->replaceHeroSlideMedia($id, $res['path'], $newType);
+                safe_unlink($oldSlide['image_path'] ?? null, $PUBLIC);
+            }
         }
         redirect_back('hero', 'success', 'Slide updated.');
     }
@@ -346,19 +366,19 @@ ob_start();
       <?php echo csrf_field(); ?>
       <input type="hidden" name="action" value="add_hero">
       <h2>Add a hero slide</h2>
-      <p class="hint">These images appear in the homepage hero slideshow. Landscape images (1920×1080) look best.</p>
+      <p class="hint">These slides appear in the homepage hero carousel. Upload an image or video; both use the same layout.</p>
 
       <div class="field">
-        <label>Image</label>
+        <label>Media</label>
         <div class="file-drop">
           <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-          <input type="file" name="image" accept="image/*" required>
+          <input type="file" name="media" accept="image/*,video/mp4,video/webm,video/quicktime" required>
         </div>
       </div>
       <div class="row">
         <div class="field" style="margin:0;">
-          <label>Caption (optional)</label>
-          <input type="text" name="caption" placeholder="e.g. Creative workspace">
+          <label>Media caption / alt text <span class="text-muted small">(optional)</span></label>
+          <input type="text" name="caption" placeholder="e.g. Student working in the lab">
         </div>
         <div class="field" style="margin:0;">
           <label>Order</label>
@@ -376,16 +396,29 @@ ob_start();
         <p class="empty">No slides yet. The homepage will use its built-in fallback images until you add some.</p>
       <?php else: ?>
         <?php foreach ($heroSlides as $s): ?>
+          <?php
+            $slideExt = strtolower(pathinfo(parse_url((string) ($s['image_path'] ?? ''), PHP_URL_PATH) ?: (string) ($s['image_path'] ?? ''), PATHINFO_EXTENSION));
+            $slideType = (($s['media_type'] ?? '') === 'video' || in_array($slideExt, ['mp4', 'webm', 'mov'], true)) ? 'video' : 'image';
+          ?>
           <div class="slide">
-            <img src="<?php echo htmlspecialchars(settings_asset_url($s['image_path'])); ?>" alt="">
-            <form method="POST" class="meta">
+            <?php if ($slideType === 'video'): ?>
+              <video src="<?php echo htmlspecialchars(settings_asset_url($s['image_path'])); ?>" muted playsinline style="width:120px;height:74px;object-fit:cover;border-radius:8px;"></video>
+            <?php else: ?>
+              <img src="<?php echo htmlspecialchars(settings_asset_url($s['image_path'])); ?>" alt="">
+            <?php endif; ?>
+            <form method="POST" enctype="multipart/form-data" class="meta">
               <?php echo csrf_field(); ?>
               <input type="hidden" name="action" value="update_hero">
               <input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>">
+              <input type="hidden" name="media_type" value="<?php echo htmlspecialchars($slideType); ?>">
               <div class="inline">
-                <input type="text" name="caption" value="<?php echo htmlspecialchars($s['caption'] ?? ''); ?>" placeholder="Caption">
+                <input type="text" name="caption" value="<?php echo htmlspecialchars($s['caption'] ?? ''); ?>" placeholder="Media caption / alt text">
                 <input type="number" name="sort_order" value="<?php echo (int) $s['sort_order']; ?>" title="Order">
                 <label class="chk"><input type="checkbox" name="is_active" <?php echo $s['is_active'] ? 'checked' : ''; ?>> Active</label>
+              </div>
+              <div class="file-drop" style="padding:10px;">
+                <i class="fa-solid fa-repeat" style="color:var(--brand-sky);"></i>
+                <input type="file" name="media" accept="image/*,video/mp4,video/webm,video/quicktime">
               </div>
               <div>
                 <button class="btn btn-ghost" type="submit"><i class="fa-solid fa-rotate"></i> Update</button>

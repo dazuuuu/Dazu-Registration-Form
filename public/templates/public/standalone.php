@@ -15,6 +15,9 @@ $logoPath = url('assets/images/logo/logo.png');
 <meta name="description" content="<?php echo htmlspecialchars($page_description ?? ''); ?>">
 <?php
 require_once __DIR__ . '/../../../app/v1/helpers/seo.php';
+if (empty($og_image)) {
+    $og_image = seo_public_preview_image($page_key ?? null);
+}
 echo seo_head_tags(
     (string) ($page_title ?? 'Dazu Hub Institute'),
     (string) ($page_description ?? ''),

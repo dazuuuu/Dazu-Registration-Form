@@ -2,7 +2,9 @@
 // public/components/public/footer.php — Dazu Hub Institute
 $year = date('Y');
 require_once __DIR__ . '/../../../app/v1/helpers/site_logo.php';
+require_once __DIR__ . '/../../../app/v1/helpers/site_contact.php';
 $logoPath = site_logo_url(url('assets/images/logo/logo.png'));
+$contact = site_contact_settings();
 ?>
 <footer class="dh-footer">
     <div class="dh-footer-top">
@@ -72,9 +74,9 @@ $logoPath = site_logo_url(url('assets/images/logo/logo.png'));
             <div class="dh-footer-col">
                 <h6 class="dh-footer-col-title">Contact</h6>
                 <div class="dh-footer-contact-list">
-                    <a href="mailto:info@dazuhub.ac.ke" class="dh-footer-contact-item">
+                    <a href="mailto:<?php echo htmlspecialchars($contact['contact_email']); ?>" class="dh-footer-contact-item">
                         <i class="fas fa-envelope"></i>
-                        <span>info@dazuhub.ac.ke</span>
+                        <span><?php echo htmlspecialchars($contact['contact_email']); ?></span>
                     </a>
                     <a href="tel:<?php echo htmlspecialchars(site_phone_tel()); ?>" class="dh-footer-contact-item">
                         <i class="fas fa-phone"></i>
@@ -86,7 +88,7 @@ $logoPath = site_logo_url(url('assets/images/logo/logo.png'));
                     </a>
                     <div class="dh-footer-contact-item">
                         <i class="fas fa-location-dot"></i>
-                        <span>Nairobi, Kenya</span>
+                        <span><?php echo htmlspecialchars($contact['contact_address']); ?></span>
                     </div>
                 </div>
                 <a href="<?php echo url('courses/index.php'); ?>" class="dh-btn dh-btn-primary dh-footer-cta">
