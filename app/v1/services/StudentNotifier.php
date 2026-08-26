@@ -96,13 +96,13 @@ class StudentNotifier {
         return $result;
     }
 
-    public function sendRegistrationReceived(array $reg): array {
+    public function sendRegistrationReceived(array $reg, array $course = []): array {
         @ignore_user_abort(true);
         if (function_exists('set_time_limit')) {
             @set_time_limit(90);
         }
 
-        $course = $this->courseForRegistration($reg);
+        $course = $this->courseForRegistration($reg, $course);
         $temps = [];
         $attachments = [];
 
@@ -137,10 +137,12 @@ class StudentNotifier {
             error_log('[StudentNotifier] fee structure skipped: ' . $e->getMessage());
         }
 
+        error_log('[StudentNotifier] enrolment pack for ' . ($reg['email'] ?? '') . ': ' . implode(', ', array_column($attachments, 'name')));
+
         try {
             return $this->send(
-                $reg['email'],
-                $reg['full_name'],
+                (string) $reg['email'],
+                (string) $reg['full_name'],
                 'registration_received',
                 $this->baseData($reg),
                 null,
@@ -157,19 +159,50 @@ class StudentNotifier {
         }
     }
 
-    private function courseForRegistration(array $reg): ?array
+    public function sendCourseFeeStructure(array $reg): array
     {
-        $courseId = (int) ($reg['course_id'] ?? 0);
+        $course = $this->courseForRegistration($reg);
+        if (!$course) {
+            return ['ok' => false, 'message' => 'Course not found for this application.'];
+        }
+        $tmp = course_fee_structure_write_temp_pdf($course);
+        if (!$tmp) {
+            return ['ok' => false, 'message' => 'Could not generate the fee structure PDF.'];
+        }
+        try {
+            return $this->send(
+                (string) $reg['email'],
+                (string) $reg['full_name'],
+                'fee_structure',
+                $this->baseData($reg),
+                $tmp,
+                course_fee_structure_file_name($course),
+                [],
+                false
+            );
+        } finally {
+            if (is_file($tmp)) {
+                @unlink($tmp);
+            }
+        }
+    }
+
+    private function courseForRegistration(array $reg, array $course = []): ?array
+    {
+        if ($course !== [] && !empty($course['id'])) {
+            return $course;
+        }
+        $courseId = (int) ($reg['course_id'] ?? $course['id'] ?? 0);
         if ($courseId <= 0) {
             return null;
         }
         try {
             require_once __DIR__ . '/../models/CourseModel.php';
             $model = new \Models\CourseModel($this->pdo);
-            $course = $model->getById($courseId);
-            return is_array($course) ? $course : null;
+            $found = $model->getById($courseId);
+            return is_array($found) ? $found : null;
         } catch (Throwable $e) {
-            return null;
+            return $course !== [] ? $course : null;
         }
     }
 

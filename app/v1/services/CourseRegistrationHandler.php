@@ -59,12 +59,12 @@ class CourseRegistrationHandler
         // Free courses skip payment but still go through the normal admin-review queue —
         // same "received, awaiting approval" flow as paid courses, just without a payment step.
         $reg = $this->regModel->getById($result['id']);
-        $this->sendReceivedEmail($reg, (int) $result['id']);
+        $this->sendReceivedEmail($reg, (int) $result['id'], $course);
 
         return $result;
     }
 
-    private function sendReceivedEmail(?array $reg, int $registrationId): void
+    private function sendReceivedEmail(?array $reg, int $registrationId, array $course = []): void
     {
         if (!$reg) {
             return;
@@ -72,7 +72,7 @@ class CourseRegistrationHandler
         try {
             require_once __DIR__ . '/StudentNotifier.php';
             $notifier = new \StudentNotifier($this->pdo, null, true);
-            $result = $notifier->sendRegistrationReceived($reg);
+            $result = $notifier->sendRegistrationReceived($reg, $course);
             if (empty($result['ok'])) {
                 error_log("[registration] Confirmation email failed for #{$registrationId}: " . ($result['message'] ?? 'Unknown error'));
             }

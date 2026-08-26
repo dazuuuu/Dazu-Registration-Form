@@ -536,21 +536,13 @@ if (!function_exists('course_fee_structure_render_pdf')) {
             . course_fee_structure_document_html($course)
             . '</body></html>';
 
-        $autoload = null;
-        if (defined('PROJECT_ROOT') && is_file(PROJECT_ROOT . '/vendor/autoload.php')) {
-            $autoload = PROJECT_ROOT . '/vendor/autoload.php';
-        } elseif (is_file(dirname(__DIR__, 2) . '/vendor/autoload.php')) {
-            $autoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
-        }
-        if ($autoload) {
-            require_once $autoload;
-        }
-        if (!class_exists('Dompdf\\Dompdf')) {
+        require_once __DIR__ . '/dompdf.php';
+        if (!dazu_load_dompdf()) {
             return null;
         }
         try {
             $dompdf = new \Dompdf\Dompdf([
-                'isRemoteEnabled' => true,
+                'isRemoteEnabled' => false,
                 'isHtml5ParserEnabled' => true,
             ]);
             $dompdf->loadHtml($html);

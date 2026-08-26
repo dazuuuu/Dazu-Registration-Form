@@ -131,10 +131,8 @@ class AdmissionLetterGenerator
 
     private static function loadDompdf(): void
     {
-        $autoload = defined('PROJECT_ROOT') ? PROJECT_ROOT . '/vendor/autoload.php' : dirname(__DIR__, 3) . '/vendor/autoload.php';
-        if (is_file($autoload)) {
-            require_once $autoload;
-        }
+        require_once __DIR__ . '/../helpers/dompdf.php';
+        dazu_load_dompdf();
     }
 
     private static function e($value): string

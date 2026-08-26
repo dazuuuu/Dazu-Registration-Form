@@ -23,6 +23,17 @@ class StudentEmailTemplate {
                     . '<p style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111827;">Please find the attached files.</p>',
                 ];
 
+            case 'fee_structure':
+                $name = trim((string) ($data['full_name'] ?? ''));
+                $first = $name !== '' ? explode(' ', $name)[0] : '';
+                $greeting = $first !== '' ? 'Hi ' . self::e($first) . ',' : 'Hi,';
+                return [
+                    'Fee structure — Dazu institute',
+                    '<p style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111827;">'
+                    . $greeting . '</p>'
+                    . '<p style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111827;">Please find the attached fee structure.</p>',
+                ];
+
             case 'registration_form':
                 return [
                     'Your registration form — ' . ($data['company_name'] ?? 'Dazu Hub Institute'),

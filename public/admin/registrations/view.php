@@ -12,6 +12,7 @@ require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
 require_once __DIR__ . '/../../../app/v1/services/RegistrationFormGenerator.php';
 require_once __DIR__ . '/../../../app/v1/services/StudentNotifier.php';
+require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
 
 use Models\Connection;
 use Models\CourseModel;
@@ -40,6 +41,23 @@ if (($_GET['action'] ?? '') === 'download_form') {
         exit();
     }
     $fileName = RegistrationFormGenerator::fileName($reg);
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="' . $fileName . '"');
+    header('Content-Length: ' . strlen($pdf));
+    echo $pdf;
+    exit();
+}
+
+if (($_GET['action'] ?? '') === 'download_fees') {
+    $courseModel = new CourseModel($pdo);
+    $course = $courseModel->getById((int) ($reg['course_id'] ?? 0));
+    $pdf = $course ? course_fee_structure_render_pdf($course) : null;
+    if ($pdf === null) {
+        SessionModel::setFlash('error', 'Could not generate the fee structure PDF.');
+        header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+        exit();
+    }
+    $fileName = course_fee_structure_file_name($course);
     header('Content-Type: application/pdf');
     header('Content-Disposition: attachment; filename="' . $fileName . '"');
     header('Content-Length: ' . strlen($pdf));
@@ -155,6 +173,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
             $error = 'Could not email registration form: ' . ($result['message'] ?? 'Unknown error.');
+        } elseif ($action === 'email_fee_structure') {
+            $notifier = new StudentNotifier($pdo, null, true);
+            $result = $notifier->sendCourseFeeStructure($reg);
+            if (!empty($result['ok'])) {
+                SessionModel::setFlash('success', 'Fee structure emailed to ' . htmlspecialchars($reg['email']) . '.');
+                header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+                exit();
+            }
+            $error = 'Could not email fee structure: ' . ($result['message'] ?? 'Unknown error.');
         }
 
         // Refresh after action attempt
@@ -399,6 +426,26 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
                     <input type="hidden" name="action" value="email_registration_form">
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="fas fa-envelope me-1"></i> Email to student
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card border-success mb-4">
+            <div class="card-header bg-success text-white fw-semibold">
+                <i class="fas fa-file-invoice-dollar me-1"></i> Fee structure
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Send the fee structure for <strong><?php echo htmlspecialchars($reg['course_title'] ?? 'this course'); ?></strong> to <?php echo htmlspecialchars($reg['email']); ?>.</p>
+                <a href="<?php echo url('admin/registrations/view.php?id=' . (int)$id . '&action=download_fees'); ?>"
+                   class="btn btn-outline-success w-100 mb-2">
+                    <i class="fas fa-download me-1"></i> Download fee structure
+                </a>
+                <form method="POST" onsubmit="return confirm('Email the fee structure to <?php echo htmlspecialchars($reg['email'], ENT_QUOTES); ?>?');">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="email_fee_structure">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-envelope me-1"></i> Email fee structure
                     </button>
                 </form>
             </div>

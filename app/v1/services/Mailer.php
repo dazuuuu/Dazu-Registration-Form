@@ -215,13 +215,6 @@ class Mailer {
             return ['ok' => true, 'message' => 'sent'];
         } catch (Throwable $e) {
             error_log('[mailer] ' . $e->getMessage());
-            if ($files !== []) {
-                try {
-                    return $this->sendWithAttachments($toEmail, $toName, $subject, $htmlBody, [], $embedLogo);
-                } catch (Throwable $retry) {
-                    return ['ok' => false, 'message' => $e->getMessage()];
-                }
-            }
             return ['ok' => false, 'message' => $e->getMessage()];
         }
     }
