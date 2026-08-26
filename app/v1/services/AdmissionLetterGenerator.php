@@ -19,7 +19,7 @@ class AdmissionLetterGenerator
     {
         $title = (string) ($course['title'] ?? $reg['course_title'] ?? 'Course');
         $abbr = strtoupper(trim((string) ($course['abbreviation'] ?? $reg['abbreviation'] ?? '')));
-        $logo = site_logo_data_uri() ?: site_logo_url();
+        $logo = site_logo_data_uri() ?: '';
         $student = (string) ($reg['full_name'] ?? '');
         $regNo = (string) ($reg['registration_no'] ?? '');
         $email = (string) ($reg['email'] ?? '');
@@ -56,9 +56,13 @@ class AdmissionLetterGenerator
             $i++;
         }
 
+        $logoHtml = $logo !== ''
+            ? '<img src="' . htmlspecialchars($logo) . '" alt="Dazu Hub" style="max-height:78px;max-width:100px;object-fit:contain;">'
+            : '';
+
         return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:720px;margin:0 auto;background:#ffffff;color:#111827;padding:46px 52px;">'
             . '<div style="display:table;width:100%;margin-bottom:42px;">'
-            . '<div style="display:table-cell;width:120px;vertical-align:middle;"><img src="' . htmlspecialchars($logo) . '" alt="Dazu Hub" style="max-height:78px;max-width:100px;object-fit:contain;"></div>'
+            . '<div style="display:table-cell;width:120px;vertical-align:middle;">' . $logoHtml . '</div>'
             . '<div style="display:table-cell;vertical-align:middle;"><h1 style="margin:0;font-size:24px;letter-spacing:.02em;">DAZU HUB</h1>'
             . '<p style="margin:8px 0 0;font-size:13px;font-weight:800;text-transform:uppercase;color:#374151;">Admission Letter</p></div>'
             . '</div>'
@@ -102,7 +106,7 @@ class AdmissionLetterGenerator
         }
         try {
             $dompdf = new \Dompdf\Dompdf([
-                'isRemoteEnabled' => true,
+                'isRemoteEnabled' => false,
                 'isHtml5ParserEnabled' => true,
             ]);
             $dompdf->loadHtml('<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body>' . self::html($reg, $course) . '</body></html>');

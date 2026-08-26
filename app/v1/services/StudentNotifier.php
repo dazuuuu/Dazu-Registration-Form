@@ -97,27 +97,44 @@ class StudentNotifier {
     }
 
     public function sendRegistrationReceived(array $reg): array {
+        @ignore_user_abort(true);
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(90);
+        }
+
         $course = $this->courseForRegistration($reg);
         $temps = [];
         $attachments = [];
 
-        $brochure = $course ? course_brochure_absolute_path($course) : null;
-        if ($brochure) {
-            $attachments[] = ['path' => $brochure, 'name' => course_brochure_download_name($course)];
-        }
-
-        $letter = AdmissionLetterGenerator::writeTempPdf($reg, $course ?? []);
-        if ($letter) {
-            $temps[] = $letter;
-            $attachments[] = ['path' => $letter, 'name' => AdmissionLetterGenerator::fileName($reg)];
-        }
-
-        if ($course) {
-            $fees = course_fee_structure_write_temp_pdf($course);
-            if ($fees) {
-                $temps[] = $fees;
-                $attachments[] = ['path' => $fees, 'name' => course_fee_structure_file_name($course)];
+        try {
+            $brochure = $course ? course_brochure_absolute_path($course) : null;
+            if ($brochure) {
+                $attachments[] = ['path' => $brochure, 'name' => course_brochure_download_name($course)];
             }
+        } catch (Throwable $e) {
+            error_log('[StudentNotifier] brochure attach skipped: ' . $e->getMessage());
+        }
+
+        try {
+            $letter = AdmissionLetterGenerator::writeTempPdf($reg, $course ?? []);
+            if ($letter) {
+                $temps[] = $letter;
+                $attachments[] = ['path' => $letter, 'name' => AdmissionLetterGenerator::fileName($reg)];
+            }
+        } catch (Throwable $e) {
+            error_log('[StudentNotifier] admission letter skipped: ' . $e->getMessage());
+        }
+
+        try {
+            if ($course) {
+                $fees = course_fee_structure_write_temp_pdf($course);
+                if ($fees) {
+                    $temps[] = $fees;
+                    $attachments[] = ['path' => $fees, 'name' => course_fee_structure_file_name($course)];
+                }
+            }
+        } catch (Throwable $e) {
+            error_log('[StudentNotifier] fee structure skipped: ' . $e->getMessage());
         }
 
         try {

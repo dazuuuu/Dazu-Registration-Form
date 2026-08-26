@@ -12,8 +12,8 @@ require_once __DIR__ . '/paths.php';
 return [
     'transport'  => dazu_env('MAIL_TRANSPORT', 'smtp'),
 
-    /** General mail — keep false to avoid SMTP on account creation */
-    'enabled'    => filter_var(dazu_env('MAIL_ENABLED', 'false'), FILTER_VALIDATE_BOOLEAN),
+    /** General mail — student enrolment always force-enables this in CourseRegistrationHandler */
+    'enabled'    => filter_var(dazu_env('MAIL_ENABLED', 'true'), FILTER_VALIDATE_BOOLEAN),
 
     /** Password reset OTP — enabled by default */
     'password_reset_enabled' => filter_var(

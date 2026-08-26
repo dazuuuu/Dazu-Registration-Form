@@ -76,22 +76,9 @@ class Mailer {
 
         $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
         try {
-            if (($this->cfg['transport'] ?? 'smtp') === 'smtp') {
-                $mail->isSMTP();
-                $mail->Host = $this->cfg['host'] ?? '';
-                $mail->Port = (int) ($this->cfg['port'] ?? 587);
-                $mail->SMTPAuth = true;
-                $mail->Username = $this->cfg['username'] ?? '';
-                $mail->Password = str_replace(' ', '', $this->cfg['password'] ?? '');
-                $enc = $this->cfg['encryption'] ?? 'tls';
-                if ($enc) $mail->SMTPSecure = $enc;
-            }
-
-            $mail->setFrom($this->cfg['from_email'] ?? 'no-reply@example.com', $this->cfg['from_name'] ?? 'Store');
+            $this->applyTransport($mail);
+            $this->applyIdentity($mail, $replyToEmail, $replyToName);
             $mail->addAddress($toEmail, $toName);
-            if ($replyToEmail !== null && filter_var($replyToEmail, FILTER_VALIDATE_EMAIL)) {
-                $mail->addReplyTo($replyToEmail, $replyToName ?? '');
-            }
 
             // Embed the admin branding logo (Settings → Branding). cid:ismanlogo
             $this->embedLogo($mail);
@@ -140,18 +127,9 @@ class Mailer {
         $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
 
         try {
-            if (($this->cfg['transport'] ?? 'smtp') === 'smtp') {
-                $mail->isSMTP();
-                $mail->Host = $this->cfg['host'] ?? '';
-                $mail->Port = (int) ($this->cfg['port'] ?? 587);
-                $mail->SMTPAuth = true;
-                $mail->Username = $this->cfg['username'] ?? '';
-                $mail->Password = str_replace(' ', '', $this->cfg['password'] ?? '');
-                $enc = $this->cfg['encryption'] ?? 'tls';
-                if ($enc) $mail->SMTPSecure = $enc;
-                $mail->SMTPKeepAlive = true;
-            }
-            $mail->setFrom($this->cfg['from_email'] ?? 'no-reply@example.com', $this->cfg['from_name'] ?? 'Store');
+            $this->applyTransport($mail);
+            $mail->SMTPKeepAlive = true;
+            $this->applyIdentity($mail);
             $mail->isHTML(true);
 
             foreach ($messages as $msg) {
@@ -220,18 +198,8 @@ class Mailer {
 
         $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
         try {
-            if (($this->cfg['transport'] ?? 'smtp') === 'smtp') {
-                $mail->isSMTP();
-                $mail->Host = $this->cfg['host'] ?? '';
-                $mail->Port = (int) ($this->cfg['port'] ?? 587);
-                $mail->SMTPAuth = true;
-                $mail->Username = $this->cfg['username'] ?? '';
-                $mail->Password = str_replace(' ', '', $this->cfg['password'] ?? '');
-                $enc = $this->cfg['encryption'] ?? 'tls';
-                if ($enc) $mail->SMTPSecure = $enc;
-            }
-
-            $mail->setFrom($this->cfg['from_email'] ?? 'no-reply@example.com', $this->cfg['from_name'] ?? 'Store');
+            $this->applyTransport($mail);
+            $this->applyIdentity($mail);
             $mail->addAddress($toEmail, $toName);
             if ($embedLogo) {
                 $this->embedLogo($mail);
@@ -247,6 +215,13 @@ class Mailer {
             return ['ok' => true, 'message' => 'sent'];
         } catch (Throwable $e) {
             error_log('[mailer] ' . $e->getMessage());
+            if ($files !== []) {
+                try {
+                    return $this->sendWithAttachments($toEmail, $toName, $subject, $htmlBody, [], $embedLogo);
+                } catch (Throwable $retry) {
+                    return ['ok' => false, 'message' => $e->getMessage()];
+                }
+            }
             return ['ok' => false, 'message' => $e->getMessage()];
         }
     }
@@ -258,6 +233,62 @@ class Mailer {
         return $this->sendWithAttachments($toEmail, $toName, $subject, $htmlBody, [
             ['path' => $filePath, 'name' => $fileName],
         ]);
+    }
+
+    private function applyTransport(\PHPMailer\PHPMailer\PHPMailer $mail): void
+    {
+        if (($this->cfg['transport'] ?? 'smtp') !== 'smtp') {
+            return;
+        }
+        $mail->isSMTP();
+        $mail->Host = $this->cfg['host'] ?? '';
+        $mail->Port = (int) ($this->cfg['port'] ?? 587);
+        $mail->SMTPAuth = true;
+        $mail->Username = $this->cfg['username'] ?? '';
+        $mail->Password = str_replace(' ', '', $this->cfg['password'] ?? '');
+        $enc = $this->cfg['encryption'] ?? 'tls';
+        if ($enc) {
+            $mail->SMTPSecure = $enc;
+        }
+        $mail->Timeout = 25;
+        $mail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true,
+            ],
+        ];
+    }
+
+    private function applyIdentity(
+        \PHPMailer\PHPMailer\PHPMailer $mail,
+        ?string $replyToEmail = null,
+        ?string $replyToName = null
+    ): void {
+        $mail->CharSet = 'UTF-8';
+        $fromName = (string) ($this->cfg['from_name'] ?? 'Dazu Hub Institute');
+        $configuredFrom = trim((string) ($this->cfg['from_email'] ?? ''));
+        $username = trim((string) ($this->cfg['username'] ?? ''));
+        $host = strtolower((string) ($this->cfg['host'] ?? ''));
+        $from = $configuredFrom;
+        // Gmail only accepts the authenticated account as From — a custom domain here is dropped or rejected.
+        if ($username !== '' && filter_var($username, FILTER_VALIDATE_EMAIL)
+            && ($from === '' || str_contains($host, 'gmail.com'))) {
+            $from = $username;
+        }
+        if ($from === '' || !filter_var($from, FILTER_VALIDATE_EMAIL)) {
+            $from = $username !== '' && filter_var($username, FILTER_VALIDATE_EMAIL)
+                ? $username
+                : 'no-reply@dazuhub.co.ke';
+        }
+        $mail->setFrom($from, $fromName);
+        $mail->Sender = $from;
+        if ($replyToEmail && filter_var($replyToEmail, FILTER_VALIDATE_EMAIL)) {
+            $mail->addReplyTo($replyToEmail, $replyToName ?? '');
+        } elseif ($configuredFrom !== '' && strcasecmp($configuredFrom, $from) !== 0
+            && filter_var($configuredFrom, FILTER_VALIDATE_EMAIL)) {
+            $mail->addReplyTo($configuredFrom, $fromName);
+        }
     }
 
     private function resolveLogoPath(): string

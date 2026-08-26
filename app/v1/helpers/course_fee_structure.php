@@ -419,7 +419,7 @@ if (!function_exists('course_fee_structure_document_html')) {
         require_once __DIR__ . '/payment_credentials.php';
         $title = (string) ($course['title'] ?? 'Course');
         $abbr = strtoupper(trim((string) ($course['abbreviation'] ?? '')));
-        $logo = site_logo_data_uri() ?: site_logo_url();
+        $logo = site_logo_data_uri() ?: '';
         $modes = course_fee_structure_all($course);
         if ($items !== [] && course_fee_mode_total($modes['online']) <= 0 && course_fee_mode_total($modes['physical']) <= 0) {
             $modes['online'] = $items;
@@ -502,7 +502,9 @@ if (!function_exists('course_fee_structure_document_html')) {
 
         return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:720px;margin:0 auto;background:#ffffff;color:#111827;padding:46px 52px;">'
             . '<div style="display:table;width:100%;margin-bottom:42px;">'
-            . '<div style="display:table-cell;width:120px;vertical-align:middle;"><img src="' . htmlspecialchars($logo) . '" alt="Dazu Hub" style="max-height:78px;max-width:100px;object-fit:contain;"></div>'
+            . '<div style="display:table-cell;width:120px;vertical-align:middle;">'
+            . ($logo !== '' ? '<img src="' . htmlspecialchars($logo) . '" alt="Dazu Hub" style="max-height:78px;max-width:100px;object-fit:contain;">' : '')
+            . '</div>'
             . '<div style="display:table-cell;vertical-align:middle;"><h1 style="margin:0;font-size:24px;letter-spacing:.02em;">DAZU HUB</h1>'
             . '<p style="margin:8px 0 0;font-size:13px;font-weight:800;text-transform:uppercase;color:#374151;">Fee Structure</p></div>'
             . '</div>'
