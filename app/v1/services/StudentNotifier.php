@@ -96,12 +96,11 @@ class StudentNotifier {
         return $result;
     }
 
-    public function sendRegistrationReceived(array $reg, array $course = []): array {
-        @ignore_user_abort(true);
-        if (function_exists('set_time_limit')) {
-            @set_time_limit(90);
-        }
-
+    /**
+     * @return array{attachments:list<array{path:string,name:string}>,temps:list<string>,course:?array}
+     */
+    public function buildEnrolmentPack(array $reg, array $course = []): array
+    {
         $course = $this->courseForRegistration($reg, $course);
         $temps = [];
         $attachments = [];
@@ -136,6 +135,19 @@ class StudentNotifier {
         } catch (Throwable $e) {
             error_log('[StudentNotifier] fee structure skipped: ' . $e->getMessage());
         }
+
+        return ['attachments' => $attachments, 'temps' => $temps, 'course' => $course];
+    }
+
+    public function sendRegistrationReceived(array $reg, array $course = []): array {
+        @ignore_user_abort(true);
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(90);
+        }
+
+        $pack = $this->buildEnrolmentPack($reg, $course);
+        $attachments = $pack['attachments'];
+        $temps = $pack['temps'];
 
         error_log('[StudentNotifier] enrolment pack for ' . ($reg['email'] ?? '') . ': ' . implode(', ', array_column($attachments, 'name')));
 

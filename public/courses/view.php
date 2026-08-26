@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
 require_once __DIR__ . '/../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../app/v1/helpers/course_share.php';
 require_once __DIR__ . '/../../app/v1/helpers/course_catalog.php';
+require_once __DIR__ . '/../../app/v1/helpers/enrolment_offer.php';
 require_once __DIR__ . '/../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../app/v1/services/CourseRegistrationHandler.php';
@@ -75,6 +76,14 @@ $allowCourseChange = true;
 $reg_success = false;
 $reg_error = null;
 $issued_reg_no = '';
+$enrolment_offer_email = '';
+
+if (!empty($_GET['applied']) && enrolment_offer_consume_show()) {
+    $offer = enrolment_offer_get();
+    $reg_success = true;
+    $issued_reg_no = (string) ($offer['registration_no'] ?? '');
+    $enrolment_offer_email = (string) ($offer['email'] ?? '');
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($courseChangeError !== null) {
@@ -83,11 +92,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $handler = new CourseRegistrationHandler($pdo);
         $result = $handler->process($_POST, $_FILES, $course, null);
         if ($result['ok']) {
-            $reg_success = true;
-            $issued_reg_no = $result['registration_no'] ?? '';
-        } else {
-            $reg_error = $result['error'] ?? 'Registration failed.';
+            redirect(url('courses/view.php?id=' . (int) $courseId . '&applied=1'));
+            exit;
         }
+        $reg_error = $result['error'] ?? 'Registration failed.';
     }
 }
 
