@@ -74,12 +74,12 @@ $referrer    = $referrer ?? null;
             <div class="crf-mode-opt">
                 <input type="radio" id="<?php echo $pfx; ?>_online" name="study_mode" value="online" required
                        <?php echo (!isset($_POST['study_mode']) || $_POST['study_mode'] === 'online') ? 'checked' : ''; ?>>
-                <label for="<?php echo $pfx; ?>_online"><span class="em">💻</span><strong>Online</strong><span>KSh 1,000 fee</span></label>
+                <label for="<?php echo $pfx; ?>_online"><span class="em">💻</span><strong>Online</strong><span>No registration fee</span></label>
             </div>
             <div class="crf-mode-opt">
                 <input type="radio" id="<?php echo $pfx; ?>_physical" name="study_mode" value="physical"
                        <?php echo (isset($_POST['study_mode']) && $_POST['study_mode'] === 'physical') ? 'checked' : ''; ?>>
-                <label for="<?php echo $pfx; ?>_physical"><span class="em">🏫</span><strong>Physical</strong><span>KSh 1,500 + ID</span></label>
+                <label for="<?php echo $pfx; ?>_physical"><span class="em">🏫</span><strong>Physical</strong><span>KSh 1,000 + ID</span></label>
             </div>
         </div>
     </div>
@@ -103,10 +103,10 @@ $referrer    = $referrer ?? null;
     </div>
 
     <div class="crf-fee" data-fee="<?php echo $fee; ?>" data-months="<?php echo $mo; ?>">
-        <div class="crf-fee-row"><span>Registration fee</span><strong id="<?php echo $pfx; ?>_rfee">KSh 1,000</strong></div>
+        <div class="crf-fee-row"><span>Registration fee</span><strong id="<?php echo $pfx; ?>_rfee">KSh 0</strong></div>
         <div class="crf-fee-row"><span id="<?php echo $pfx; ?>_ilabel">First installment</span><strong id="<?php echo $pfx; ?>_iamt">KSh <?php echo number_format($fee / $mo); ?></strong></div>
         <hr>
-        <div class="crf-fee-total"><span>Pay now</span><span class="amt" id="<?php echo $pfx; ?>_total">KSh <?php echo number_format(1000 + $fee / $mo); ?></span></div>
+        <div class="crf-fee-total"><span>Pay now</span><span class="amt" id="<?php echo $pfx; ?>_total">KSh <?php echo number_format($fee / $mo); ?></span></div>
     </div>
 
     <div class="crf-pay-note">
@@ -146,7 +146,7 @@ $referrer    = $referrer ?? null;
         var plan='monthly', mode='online';
         document.querySelectorAll('#'+pfx+'Form input[name="payment_plan"]').forEach(function(r){ if(r.checked) plan=r.value; });
         document.querySelectorAll('#'+pfx+'Form input[name="study_mode"]').forEach(function(r){ if(r.checked) mode=r.value; });
-        var regFee = mode==='physical' ? 1500 : 1000;
+        var regFee = mode==='physical' ? 1000 : 0;
         var count  = plan==='monthly' ? Math.max(1,mo) : (plan==='3months' ? 3 : 1);
         var inst   = fee / count;
         var label  = plan==='full' ? 'Full course fee' : 'First of '+count+' installment'+(count>1?'s':'');

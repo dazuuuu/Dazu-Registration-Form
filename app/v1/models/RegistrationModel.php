@@ -9,8 +9,9 @@ class RegistrationModel {
         $this->db = $pdo;
     }
 
-    public const REG_FEE_ONLINE   = 1000;
-    public const REG_FEE_PHYSICAL = 1500;
+    /** Online students have no registration fee. Physical students pay KSh 1,000. */
+    public const REG_FEE_ONLINE   = 0;
+    public const REG_FEE_PHYSICAL = 1000;
 
     /**
      * Pure calculation, no DB access — keep this trustworthy in isolation.

@@ -12,24 +12,26 @@ class StudentEmailTemplate {
     public static function render(string $event, array $data): array {
         switch ($event) {
             case 'registration_received':
-                $regNo = trim((string) ($data['registration_no'] ?? ''));
+                $name = trim((string) ($data['full_name'] ?? ''));
+                $first = $name !== '' ? explode(' ', $name)[0] : '';
+                $greeting = $first !== '' ? 'Hi ' . self::e($first) . ',' : 'Hi,';
                 return [
-                    'You are enrolled — ' . ($data['company_name'] ?? 'Dazu Hub Institute'),
-                    self::layout(
-                        'Enrolment confirmed',
-                        '<p>Hi ' . self::e($data['full_name']) . ',</p>'
-                        . '<p>Thank you for enrolling at <strong>' . self::e($data['company_name']) . '</strong>. '
-                        . 'We have saved your place on <strong>' . self::e($data['course_title']) . '</strong>.</p>'
-                        . ($regNo !== ''
-                            ? '<div style="background:#f1f6f5;border-radius:8px;padding:16px;margin:16px 0;">'
-                                . '<strong>Your registration number</strong><br>'
-                                . '<span style="font-size:22px;font-weight:bold;letter-spacing:0.04em;color:#15A24A;">'
-                                . self::e($regNo) . '</span>'
-                                . '</div>'
-                            : '')
-                        . '<p>Keep this number for payments and student records. Our team will follow up with next steps.</p>'
-                        . self::courseBlock($data)
-                    ),
+                    'Welcome to Dazu institute',
+                    '<p style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111827;">'
+                    . $greeting . '</p>'
+                    . '<p style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111827;">Welcome to Dazu institute.</p>'
+                    . '<p style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111827;">Please find the attached files.</p>',
+                ];
+
+            case 'fee_structure':
+                $name = trim((string) ($data['full_name'] ?? ''));
+                $first = $name !== '' ? explode(' ', $name)[0] : '';
+                $greeting = $first !== '' ? 'Hi ' . self::e($first) . ',' : 'Hi,';
+                return [
+                    'Fee structure — Dazu institute',
+                    '<p style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111827;">'
+                    . $greeting . '</p>'
+                    . '<p style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#111827;">Please find the attached fee structure.</p>',
                 ];
 
             case 'registration_form':

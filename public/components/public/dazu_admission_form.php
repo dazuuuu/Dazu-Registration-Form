@@ -19,6 +19,7 @@ $referrer = $referrer ?? null;
 $allowCourseChange = $allowCourseChange ?? false;
 $courseChoices = $courseChoices ?? [];
 $issued_reg_no = $issued_reg_no ?? '';
+$enrolment_offer_email = $enrolment_offer_email ?? '';
 $showCourseSelect = $allowCourseChange && count($courseChoices) > 1;
 $courseChangeUrl = $courseChangeUrl ?? url('courses/view.php');
 $studyMode = $_POST['study_mode'] ?? 'online';
@@ -33,11 +34,42 @@ $studyMode = $_POST['study_mode'] ?? 'online';
   <p class="text-xs font-bold uppercase tracking-wider text-green-700">Your registration number</p>
   <?php endif; ?>
   <p class="text-sm text-green-700 max-w-md mx-auto">
-    We emailed a confirmation to the address you entered. Keep your registration number for records and payments.
+    Download your documents or send them to your email. This prompt only appears once after you apply.
   </p>
+  <div class="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+    <a href="<?php echo htmlspecialchars(url('courses/enrolment-pack.php')); ?>" class="px-6 py-3 bg-[#15A24A] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl">Download</a>
+    <button type="button" id="dazuEnrolmentEmailBtn" class="px-6 py-3 border border-green-300 bg-white text-green-800 text-xs font-extrabold uppercase tracking-wider rounded-xl">Send to email</button>
+  </div>
+  <p id="dazuEnrolmentEmailStatus" class="text-xs font-semibold text-green-700 min-h-[1.25rem]"></p>
   <a href="<?php echo url('/'); ?>" class="inline-block px-6 py-3 bg-green-600 text-white text-xs font-extrabold uppercase tracking-wider rounded-xl">Back to Home</a>
 </div>
+<form id="dazuEnrolmentEmailForm" method="POST" action="<?php echo htmlspecialchars(url('courses/enrolment-pack.php')); ?>" class="hidden">
+  <?php echo csrf_field(); ?>
+</form>
+<script>
+(function(){
+  var emailBtn = document.getElementById('dazuEnrolmentEmailBtn');
+  var statusEl = document.getElementById('dazuEnrolmentEmailStatus');
+  var form = document.getElementById('dazuEnrolmentEmailForm');
+  if (!emailBtn || !form) return;
+  emailBtn.addEventListener('click', function(){
+    emailBtn.disabled = true;
+    statusEl.textContent = 'Sending…';
+    fetch(form.action, { method: 'POST', body: new FormData(form), credentials: 'same-origin' })
+      .then(function(r){ return r.json(); })
+      .then(function(data){
+        statusEl.textContent = data.message || (data.ok ? 'Sent.' : 'Could not send.');
+        if (!data.ok) emailBtn.disabled = false;
+      })
+      .catch(function(){
+        statusEl.textContent = 'Could not send. Use Download instead.';
+        emailBtn.disabled = false;
+      });
+  });
+})();
+</script>
 <?php else: ?>
+
 
 <div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-10">
   <div class="border-b border-slate-100 pb-6 mb-8">
@@ -60,8 +92,6 @@ $studyMode = $_POST['study_mode'] ?? 'online';
   $fee_compact = false;
   $fee_show_download = true;
   include __DIR__ . '/dazu_course_fee_breakdown.php';
-  $brochure_compact = false;
-  include __DIR__ . '/dazu_course_brochure_cta.php';
   $courseResourceHtml = trim(ob_get_clean());
   ?>
   <?php if ($courseResourceHtml !== ''): ?>

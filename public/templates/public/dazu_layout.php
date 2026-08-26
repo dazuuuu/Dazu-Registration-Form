@@ -43,6 +43,9 @@ if (!function_exists('dazu_asset_v')) {
             $page_description = mb_strimwidth(strip_tags((string) ($course['overview'] ?? $course['description'] ?? '')), 0, 160, '…');
         }
     }
+    if (empty($og_image)) {
+        $og_image = seo_public_preview_image($page_key ?? null);
+    }
     echo seo_head_tags(
         html_entity_decode((string) ($page_title ?? 'Dazu hub Institute'), ENT_QUOTES, 'UTF-8'),
         (string) ($page_description ?? ''),

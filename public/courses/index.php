@@ -108,7 +108,7 @@ ob_start();
         <p class="text-slate-500 text-sm mt-1">Add courses in the admin panel or check back soon.</p>
       </div>
     <?php else: ?>
-      <div id="dazu-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
+      <div id="dazu-courses-grid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 items-stretch">
         <?php foreach ($courses as $course):
             $catId = (int) ($course['_display_category_id'] ?? 0);
             // All (0) hides nothing, so the page is correct before JS runs.

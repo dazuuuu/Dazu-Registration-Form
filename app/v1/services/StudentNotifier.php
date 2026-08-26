@@ -3,6 +3,8 @@
 require_once __DIR__ . '/Mailer.php';
 require_once __DIR__ . '/StudentEmailTemplate.php';
 require_once __DIR__ . '/RegistrationFormGenerator.php';
+require_once __DIR__ . '/AdmissionLetterGenerator.php';
+require_once __DIR__ . '/../helpers/course_fee_structure.php';
 
 class StudentNotifier {
     private $pdo;
@@ -62,7 +64,16 @@ class StudentNotifier {
         return $this->mailer;
     }
 
-    private function send(string $email, string $name, string $event, array $data, ?string $attachmentPath = null, ?string $attachmentName = null): array {
+    private function send(
+        string $email,
+        string $name,
+        string $event,
+        array $data,
+        ?string $attachmentPath = null,
+        ?string $attachmentName = null,
+        array $attachments = [],
+        bool $embedLogo = true
+    ): array {
         if (!$this->enabled) {
             error_log('[StudentNotifier] mail skipped — SMTP not enabled for ' . $event);
             return ['ok' => false, 'message' => 'mail disabled', 'skipped' => true];
@@ -72,7 +83,10 @@ class StudentNotifier {
         $sendCfg['enabled'] = true;
         $mailer = $this->mailer ?? new Mailer($sendCfg);
         if ($attachmentPath && is_file($attachmentPath)) {
-            $result = $mailer->sendWithAttachment($email, $name, $subject, $html, $attachmentPath, $attachmentName ?: basename($attachmentPath));
+            $attachments[] = ['path' => $attachmentPath, 'name' => $attachmentName ?: basename($attachmentPath)];
+        }
+        if ($attachments !== [] || !$embedLogo) {
+            $result = $mailer->sendWithAttachments($email, $name, $subject, $html, $attachments, $embedLogo);
         } else {
             $result = $mailer->send($email, $name, $subject, $html);
         }
@@ -82,21 +96,125 @@ class StudentNotifier {
         return $result;
     }
 
-    public function sendRegistrationReceived(array $reg): array {
-        $tmp = RegistrationFormGenerator::writeTempPdf($reg);
+    /**
+     * @return array{attachments:list<array{path:string,name:string}>,temps:list<string>,course:?array}
+     */
+    public function buildEnrolmentPack(array $reg, array $course = []): array
+    {
+        $course = $this->courseForRegistration($reg, $course);
+        $temps = [];
+        $attachments = [];
+
+        try {
+            $brochure = $course ? course_brochure_absolute_path($course) : null;
+            if ($brochure) {
+                $attachments[] = ['path' => $brochure, 'name' => course_brochure_download_name($course)];
+            }
+        } catch (Throwable $e) {
+            error_log('[StudentNotifier] brochure attach skipped: ' . $e->getMessage());
+        }
+
+        try {
+            $letter = AdmissionLetterGenerator::writeTempPdf($reg, $course ?? []);
+            if ($letter) {
+                $temps[] = $letter;
+                $attachments[] = ['path' => $letter, 'name' => AdmissionLetterGenerator::fileName($reg)];
+            }
+        } catch (Throwable $e) {
+            error_log('[StudentNotifier] admission letter skipped: ' . $e->getMessage());
+        }
+
+        try {
+            if ($course) {
+                $fees = course_fee_structure_write_temp_pdf($course);
+                if ($fees) {
+                    $temps[] = $fees;
+                    $attachments[] = ['path' => $fees, 'name' => course_fee_structure_file_name($course)];
+                }
+            }
+        } catch (Throwable $e) {
+            error_log('[StudentNotifier] fee structure skipped: ' . $e->getMessage());
+        }
+
+        return ['attachments' => $attachments, 'temps' => $temps, 'course' => $course];
+    }
+
+    public function sendRegistrationReceived(array $reg, array $course = []): array {
+        @ignore_user_abort(true);
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(90);
+        }
+
+        $pack = $this->buildEnrolmentPack($reg, $course);
+        $attachments = $pack['attachments'];
+        $temps = $pack['temps'];
+
+        error_log('[StudentNotifier] enrolment pack for ' . ($reg['email'] ?? '') . ': ' . implode(', ', array_column($attachments, 'name')));
+
         try {
             return $this->send(
-                $reg['email'],
-                $reg['full_name'],
+                (string) $reg['email'],
+                (string) $reg['full_name'],
                 'registration_received',
                 $this->baseData($reg),
-                $tmp,
-                RegistrationFormGenerator::fileName($reg)
+                null,
+                null,
+                $attachments,
+                false
             );
         } finally {
-            if ($tmp && is_file($tmp)) {
+            foreach ($temps as $tmp) {
+                if ($tmp && is_file($tmp)) {
+                    @unlink($tmp);
+                }
+            }
+        }
+    }
+
+    public function sendCourseFeeStructure(array $reg): array
+    {
+        $course = $this->courseForRegistration($reg);
+        if (!$course) {
+            return ['ok' => false, 'message' => 'Course not found for this application.'];
+        }
+        $tmp = course_fee_structure_write_temp_pdf($course);
+        if (!$tmp) {
+            return ['ok' => false, 'message' => 'Could not generate the fee structure PDF.'];
+        }
+        try {
+            return $this->send(
+                (string) $reg['email'],
+                (string) $reg['full_name'],
+                'fee_structure',
+                $this->baseData($reg),
+                $tmp,
+                course_fee_structure_file_name($course),
+                [],
+                false
+            );
+        } finally {
+            if (is_file($tmp)) {
                 @unlink($tmp);
             }
+        }
+    }
+
+    private function courseForRegistration(array $reg, array $course = []): ?array
+    {
+        if ($course !== [] && !empty($course['id'])) {
+            return $course;
+        }
+        $courseId = (int) ($reg['course_id'] ?? $course['id'] ?? 0);
+        if ($courseId <= 0) {
+            return null;
+        }
+        try {
+            require_once __DIR__ . '/../models/CourseModel.php';
+            $model = new \Models\CourseModel($this->pdo);
+            $found = $model->getById($courseId);
+            return is_array($found) ? $found : null;
+        } catch (Throwable $e) {
+            return $course !== [] ? $course : null;
         }
     }
 

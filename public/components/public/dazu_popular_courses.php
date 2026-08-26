@@ -58,7 +58,7 @@ $showSearch = false;   // the homepage section is a showcase, not a search page
     <?php if (empty($popularCourses)): ?>
       <p class="text-slate-500 text-sm font-semibold py-8 text-center">No courses available yet. Add courses in the admin panel.</p>
     <?php else: ?>
-      <div id="dazu-home-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 text-left items-stretch mt-8">
+      <div id="dazu-home-courses-grid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 text-left items-stretch mt-8">
         <?php foreach ($popularCourses as $course):
             $catId = (int) ($course['_display_category_id'] ?? 0);
             // All (0) hides nothing, so the page is correct before JS runs.

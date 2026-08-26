@@ -218,6 +218,73 @@ if (!function_exists('upload_pdf')) {
     }
 }
 
+if (!function_exists('validate_video_upload')) {
+    /**
+     * @return array{ok:bool, ext?:string, error?:string}
+     */
+    function validate_video_upload(array $file, int $maxBytes = 52428800): array
+    {
+        if (!isset($file['error']) || is_array($file['error'])) {
+            return ['ok' => false, 'error' => 'Invalid upload parameters.'];
+        }
+        if ($file['error'] === UPLOAD_ERR_NO_FILE) {
+            return ['ok' => false, 'error' => 'No file was selected.'];
+        }
+        if ($file['error'] !== UPLOAD_ERR_OK) {
+            return ['ok' => false, 'error' => 'Upload failed.'];
+        }
+        if (($file['size'] ?? 0) > $maxBytes) {
+            return ['ok' => false, 'error' => 'Video exceeds ' . round($maxBytes / 1048576, 1) . ' MB.'];
+        }
+
+        $mimeToExt = [
+            'video/mp4' => 'mp4',
+            'video/webm' => 'webm',
+            'video/quicktime' => 'mov',
+        ];
+        $mime = '';
+        if (function_exists('finfo_open')) {
+            $finfo = @finfo_open(FILEINFO_MIME_TYPE);
+            if ($finfo) {
+                $mime = (string) @finfo_file($finfo, $file['tmp_name']);
+                @finfo_close($finfo);
+            }
+        }
+        if (!isset($mimeToExt[$mime])) {
+            return ['ok' => false, 'error' => 'Unsupported video type. Use MP4, WebM or MOV.'];
+        }
+        return ['ok' => true, 'ext' => $mimeToExt[$mime]];
+    }
+}
+
+if (!function_exists('upload_video')) {
+    /**
+     * @return array{ok:bool, path?:string, error?:string}
+     */
+    function upload_video(array $file, string $absDir, string $webDir, int $maxBytes = 52428800): array
+    {
+        $v = validate_video_upload($file, $maxBytes);
+        if (!$v['ok']) {
+            return $v;
+        }
+        if (!defined('UPLOAD_TEST_MODE') && !is_uploaded_file($file['tmp_name'])) {
+            return ['ok' => false, 'error' => 'Security check failed on the uploaded file.'];
+        }
+        if (!is_dir($absDir) && !@mkdir($absDir, 0775, true) && !is_dir($absDir)) {
+            return ['ok' => false, 'error' => 'Could not create the upload folder.'];
+        }
+        $name = time() . '_' . bin2hex(random_bytes(6)) . '.' . $v['ext'];
+        $dest = rtrim($absDir, '/\\') . DIRECTORY_SEPARATOR . $name;
+        $moved = defined('UPLOAD_TEST_MODE')
+            ? @copy($file['tmp_name'], $dest)
+            : @move_uploaded_file($file['tmp_name'], $dest);
+        if (!$moved) {
+            return ['ok' => false, 'error' => 'Could not save the uploaded file.'];
+        }
+        return ['ok' => true, 'path' => rtrim($webDir, '/') . '/' . $name];
+    }
+}
+
 /* ====================================================================
    VIEW HELPERS
    ==================================================================== */

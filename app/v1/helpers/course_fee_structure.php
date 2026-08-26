@@ -117,6 +117,43 @@ if (!function_exists('course_fee_structure_decode')) {
     }
 }
 
+if (!function_exists('course_fee_registration_amount')) {
+    /** Physical students: KSh 1,000. Online students: none. */
+    function course_fee_registration_amount(string $mode): float
+    {
+        require_once __DIR__ . '/../models/RegistrationModel.php';
+        return (float) \Models\RegistrationModel::registrationFeeFor($mode === 'physical' ? 'physical' : 'online');
+    }
+}
+
+if (!function_exists('course_fee_mode_with_registration')) {
+    /**
+     * Adds the institute registration fee to a mode's additional items when it applies
+     * and the course JSON does not already include a registration line.
+     *
+     * @param array $mode
+     * @return array{tuition_total:float,per_semester:float,additional:list<array{label:string,amount:float}>}
+     */
+    function course_fee_mode_with_registration(array $mode, string $studyMode): array
+    {
+        $mode = course_fee_mode_decode($mode);
+        $regFee = course_fee_registration_amount($studyMode);
+        if ($regFee <= 0) {
+            return $mode;
+        }
+        foreach ($mode['additional'] as $item) {
+            if (stripos((string) ($item['label'] ?? ''), 'registration') !== false) {
+                return $mode;
+            }
+        }
+        $mode['additional'][] = [
+            'label' => 'Registration fee (physical students)',
+            'amount' => $regFee,
+        ];
+        return $mode;
+    }
+}
+
 if (!function_exists('course_fee_mode_decode')) {
     /**
      * @return array{tuition_total:float,per_semester:float,additional:list<array{label:string,amount:float}>}
@@ -317,6 +354,57 @@ if (!function_exists('course_brochure_url')) {
     }
 }
 
+if (!function_exists('course_brochure_absolute_path')) {
+    function course_brochure_absolute_path(array $course): ?string
+    {
+        $rel = ltrim(trim((string) ($course['brochure_path'] ?? '')), '/');
+        if ($rel === '' || preg_match('#^https?://#i', $rel)) {
+            return null;
+        }
+        if (!defined('PROJECT_ROOT')) {
+            require_once __DIR__ . '/../config/paths.php';
+        }
+        $candidates = [
+            public_path($rel),
+            PROJECT_ROOT . '/public/' . $rel,
+        ];
+        foreach ($candidates as $abs) {
+            if (is_string($abs) && is_file($abs)) {
+                return $abs;
+            }
+        }
+        return null;
+    }
+}
+
+if (!function_exists('course_brochure_download_name')) {
+    function course_brochure_download_name(array $course): string
+    {
+        $slug = preg_replace('/[^a-zA-Z0-9_-]/', '-', strtolower(trim((string) ($course['abbreviation'] ?? 'course')))) ?: 'course';
+        return $slug . '-brochure.pdf';
+    }
+}
+
+if (!function_exists('course_fee_structure_file_name')) {
+    function course_fee_structure_file_name(array $course): string
+    {
+        $slug = preg_replace('/[^a-zA-Z0-9_-]/', '-', strtolower(trim((string) ($course['abbreviation'] ?? 'course')))) ?: 'course';
+        return $slug . '-fee-structure.pdf';
+    }
+}
+
+if (!function_exists('course_fee_structure_write_temp_pdf')) {
+    function course_fee_structure_write_temp_pdf(array $course): ?string
+    {
+        $pdf = course_fee_structure_render_pdf($course);
+        if ($pdf === null || $pdf === '') {
+            return null;
+        }
+        $path = rtrim(sys_get_temp_dir(), '/\\') . DIRECTORY_SEPARATOR . uniqid('fee-structure-', true) . '.pdf';
+        return file_put_contents($path, $pdf) !== false ? $path : null;
+    }
+}
+
 if (!function_exists('course_fee_structure_download_url')) {
     function course_fee_structure_download_url(int $courseId, bool $download = true): string
     {
@@ -368,10 +456,14 @@ if (!function_exists('course_fee_structure_document_html')) {
         require_once __DIR__ . '/payment_credentials.php';
         $title = (string) ($course['title'] ?? 'Course');
         $abbr = strtoupper(trim((string) ($course['abbreviation'] ?? '')));
-        $logo = site_logo_data_uri() ?: site_logo_url();
+        $logo = site_logo_data_uri() ?: '';
         $modes = course_fee_structure_all($course);
         if ($items !== [] && course_fee_mode_total($modes['online']) <= 0 && course_fee_mode_total($modes['physical']) <= 0) {
             $modes['online'] = $items;
+        }
+        $modes['online'] = course_fee_mode_with_registration($modes['online'] ?? [], 'online');
+        if (course_fee_mode_total($modes['physical'] ?? []) > 0) {
+            $modes['physical'] = course_fee_mode_with_registration($modes['physical'] ?? [], 'physical');
         }
         $classSchedules = [
             'online' => '8am, 12pm, 6pm',
@@ -451,7 +543,9 @@ if (!function_exists('course_fee_structure_document_html')) {
 
         return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:720px;margin:0 auto;background:#ffffff;color:#111827;padding:46px 52px;">'
             . '<div style="display:table;width:100%;margin-bottom:42px;">'
-            . '<div style="display:table-cell;width:120px;vertical-align:middle;"><img src="' . htmlspecialchars($logo) . '" alt="Dazu Hub" style="max-height:78px;max-width:100px;object-fit:contain;"></div>'
+            . '<div style="display:table-cell;width:120px;vertical-align:middle;">'
+            . ($logo !== '' ? '<img src="' . htmlspecialchars($logo) . '" alt="Dazu Hub" style="max-height:78px;max-width:100px;object-fit:contain;">' : '')
+            . '</div>'
             . '<div style="display:table-cell;vertical-align:middle;"><h1 style="margin:0;font-size:24px;letter-spacing:.02em;">DAZU HUB</h1>'
             . '<p style="margin:8px 0 0;font-size:13px;font-weight:800;text-transform:uppercase;color:#374151;">Fee Structure</p></div>'
             . '</div>'
@@ -483,21 +577,13 @@ if (!function_exists('course_fee_structure_render_pdf')) {
             . course_fee_structure_document_html($course)
             . '</body></html>';
 
-        $autoload = null;
-        if (defined('PROJECT_ROOT') && is_file(PROJECT_ROOT . '/vendor/autoload.php')) {
-            $autoload = PROJECT_ROOT . '/vendor/autoload.php';
-        } elseif (is_file(dirname(__DIR__, 2) . '/vendor/autoload.php')) {
-            $autoload = dirname(__DIR__, 2) . '/vendor/autoload.php';
-        }
-        if ($autoload) {
-            require_once $autoload;
-        }
-        if (!class_exists('Dompdf\\Dompdf')) {
+        require_once __DIR__ . '/dompdf.php';
+        if (!dazu_load_dompdf()) {
             return null;
         }
         try {
             $dompdf = new \Dompdf\Dompdf([
-                'isRemoteEnabled' => true,
+                'isRemoteEnabled' => false,
                 'isHtml5ParserEnabled' => true,
             ]);
             $dompdf->loadHtml($html);

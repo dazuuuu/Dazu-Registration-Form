@@ -8,6 +8,10 @@ if (!isset($course) || !empty($course['is_free'])) {
 }
 require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
 $modes = course_fee_structure_all($course);
+$modes['online'] = course_fee_mode_with_registration($modes['online'] ?? [], 'online');
+if (course_fee_mode_total($modes['physical'] ?? []) > 0) {
+    $modes['physical'] = course_fee_mode_with_registration($modes['physical'] ?? [], 'physical');
+}
 $hasOnline = course_fee_mode_total($modes['online'] ?? []) > 0;
 $hasPhysical = course_fee_mode_total($modes['physical'] ?? []) > 0;
 $compact = !empty($fee_compact);
