@@ -4,6 +4,7 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $current_dir = basename(dirname($_SERVER['PHP_SELF']));
 $role = $_SESSION['role'] ?? '';
 $role_id = $_SESSION['role_id'] ?? 0;
+$is_class_schedule_page = $current_dir === 'settings' && ($_GET['section'] ?? '') === 'schedule';
 
 // Determine active menu
 function isActive($path, $current_dir, $current_page) {
@@ -274,12 +275,17 @@ function isSmsSection($section) {
             </a>
             
             <!-- Settings -->
-            <a href="<?php echo url('admin/settings/index.php'); ?>" 
-               class="nav-link <?php echo isActive('settings', $current_dir, $current_page) ? 'active' : ''; ?>">
+            <a href="<?php echo url('admin/settings/index.php'); ?>"
+               class="nav-link <?php echo isActive('settings', $current_dir, $current_page) && !$is_class_schedule_page ? 'active' : ''; ?>">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
-            
+            <a href="<?php echo url('admin/settings/edit.php?section=schedule'); ?>"
+               class="nav-link <?php echo $is_class_schedule_page ? 'active' : ''; ?>">
+                <i class="fas fa-calendar-days"></i>
+                <span>Class Schedule</span>
+            </a>
+
             <!-- Logout -->
             <a href="<?php echo url('auth/logout.php'); ?>" class="nav-link text-danger">
                 <i class="fas fa-sign-out-alt"></i>

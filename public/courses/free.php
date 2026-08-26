@@ -111,12 +111,12 @@ ob_start();
         <p class="text-slate-500 text-sm mt-1">Check back soon, or browse our <a href="<?php echo url('courses/index.php'); ?>" class="text-green-600 font-bold">full course list</a>.</p>
       </div>
     <?php else: ?>
-      <div id="dazu-free-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
+      <div id="dazu-free-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
         <?php foreach ($courses as $course):
             $catId = (int) ($course['_display_category_id'] ?? 0);
             $hidden = ($activeCategoryId !== 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
         ?>
-          <div class="dazu-course-list-item <?php echo $hidden; ?>"
+          <div class="dazu-course-list-item h-full <?php echo $hidden; ?>"
                data-category-id="<?php echo $catId; ?>"
                data-search="<?php echo htmlspecialchars($course['_search_blob'] ?? '', ENT_QUOTES); ?>">
             <?php include __DIR__ . '/../components/public/dazu_course_card.php'; ?>

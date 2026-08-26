@@ -8,16 +8,34 @@ if (!isset($course) || !empty($course['is_free'])) {
 }
 require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
 $modes = course_fee_structure_all($course);
-$hasOnline = !empty($modes['online']);
-$hasPhysical = !empty($modes['physical']);
+$hasOnline = course_fee_mode_total($modes['online'] ?? []) > 0;
+$hasPhysical = course_fee_mode_total($modes['physical'] ?? []) > 0;
 $compact = !empty($fee_compact);
+$showDownload = $fee_show_download ?? true;
 $courseId = (int) ($course['id'] ?? 0);
 $downloadUrl = $courseId > 0 ? course_fee_structure_download_url($courseId, true) : '';
 $viewUrl = $courseId > 0 ? course_fee_structure_download_url($courseId, false) : '';
 $fallbackTotal = (float) ($course['course_fee'] ?? 0);
 
-$renderList = static function (array $items, bool $compact): void {
-    foreach ($items as $item) {
+$renderList = static function (array $mode, bool $compact, array $course): void {
+    $mode = course_fee_mode_decode($mode);
+    $semesters = max(1, (int) ($course['semester_count'] ?? 1));
+    $per = course_fee_mode_per_semester($course, $mode);
+    if ($per > 0) {
+        $label = $semesters . ' semester' . ($semesters === 1 ? '' : 's') . ' x Ksh ' . number_format($per);
+        if ($compact) {
+            echo '<div class="flex items-center justify-between text-[10px] font-semibold text-slate-500">';
+            echo '<span class="truncate pr-2">Tuition</span>';
+            echo '<span class="text-slate-700 whitespace-nowrap">' . htmlspecialchars($label) . '</span>';
+            echo '</div>';
+        } else {
+            echo '<div class="flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-700 border-b border-slate-100 last:border-b-0">';
+            echo '<span>Tuition</span>';
+            echo '<span class="font-bold text-slate-900">KES ' . number_format($mode['tuition_total']) . '</span>';
+            echo '</div>';
+        }
+    }
+    foreach ($mode['additional'] as $item) {
         if ($compact) {
             echo '<div class="flex items-center justify-between text-[10px] font-semibold text-slate-500">';
             echo '<span class="truncate pr-2">' . htmlspecialchars($item['label']) . '</span>';
@@ -36,14 +54,14 @@ $renderList = static function (array $items, bool $compact): void {
   <div class="space-y-2">
     <?php if ($hasOnline): ?>
       <div>
-        <span class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Online — Ksh <?php echo number_format(course_fee_structure_total($modes['online'])); ?></span>
-        <?php $renderList($modes['online'], true); ?>
+        <span class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Online — Ksh <?php echo number_format(course_fee_mode_total($modes['online'])); ?></span>
+        <?php $renderList($modes['online'], true, $course); ?>
       </div>
     <?php endif; ?>
     <?php if ($hasPhysical): ?>
       <div>
-        <span class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Physical — Ksh <?php echo number_format(course_fee_structure_total($modes['physical'])); ?></span>
-        <?php $renderList($modes['physical'], true); ?>
+        <span class="block text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Physical — Ksh <?php echo number_format(course_fee_mode_total($modes['physical'])); ?></span>
+        <?php $renderList($modes['physical'], true, $course); ?>
       </div>
     <?php endif; ?>
     <?php if (!$hasOnline && !$hasPhysical): ?>
@@ -52,6 +70,7 @@ $renderList = static function (array $items, bool $compact): void {
         <span class="text-slate-700 whitespace-nowrap">Ksh <?php echo number_format($fallbackTotal); ?></span>
       </div>
     <?php endif; ?>
+    <?php if ($showDownload): ?>
     <div class="grid grid-cols-1 gap-2">
       <?php if ($downloadUrl !== ''): ?>
         <a href="<?php echo htmlspecialchars($downloadUrl); ?>" onclick="event.stopPropagation();"
@@ -61,6 +80,7 @@ $renderList = static function (array $items, bool $compact): void {
         </a>
       <?php endif; ?>
     </div>
+    <?php endif; ?>
   </div>
 <?php else: ?>
   <div>
@@ -68,13 +88,13 @@ $renderList = static function (array $items, bool $compact): void {
     <?php if ($hasOnline): ?>
       <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Online classes</p>
       <div class="border border-slate-200 rounded-xl overflow-hidden mb-3">
-        <?php $renderList($modes['online'], false); ?>
+        <?php $renderList($modes['online'], false, $course); ?>
       </div>
     <?php endif; ?>
     <?php if ($hasPhysical): ?>
       <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 mb-1">Physical classes</p>
       <div class="border border-slate-200 rounded-xl overflow-hidden">
-        <?php $renderList($modes['physical'], false); ?>
+        <?php $renderList($modes['physical'], false, $course); ?>
       </div>
     <?php endif; ?>
     <?php if (!$hasOnline && !$hasPhysical): ?>
@@ -85,6 +105,7 @@ $renderList = static function (array $items, bool $compact): void {
         </div>
       </div>
     <?php endif; ?>
+    <?php if ($showDownload): ?>
     <div class="mt-2 flex flex-wrap gap-3">
       <?php if ($downloadUrl !== ''): ?>
         <a href="<?php echo htmlspecialchars($downloadUrl); ?>"
@@ -98,5 +119,6 @@ $renderList = static function (array $items, bool $compact): void {
            class="inline-flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-500 hover:text-slate-800 hover:underline">View</a>
       <?php endif; ?>
     </div>
+    <?php endif; ?>
   </div>
 <?php endif; ?>

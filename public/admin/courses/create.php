@@ -24,7 +24,7 @@ try {
 }
 
 $error = null;
-$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'requirements' => '', 'overview' => '', 'duration_months' => '', 'weeks_of_study' => '', 'days_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'course_fee' => '', 'category_id' => ''];
+$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'requirements' => '', 'overview' => '', 'duration_months' => '', 'weeks_of_study' => '', 'days_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'semester_count' => '', 'course_fee' => '', 'category_id' => ''];
 $fee_modes = ['online' => [], 'physical' => []];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -76,6 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'days_of_study'   => $_POST['days_of_study'] ?? null,
                 'hours_of_study'  => $_POST['hours_of_study'] ?? null,
                 'study_schedule'  => $_POST['study_schedule'] ?? null,
+                'semester_count'  => $_POST['semester_count'] ?? 1,
                 'course_fee'      => $feeTotal > 0 ? $feeTotal : ($_POST['course_fee'] ?? 0),
                 'fee_structure_modes' => $fee_modes,
                 'is_free'         => false,
@@ -173,6 +174,12 @@ ob_start();
                     <label class="form-label">Study schedule <span class="text-muted small">(optional notes)</span></label>
                     <input type="text" name="study_schedule" class="form-control" maxlength="150"
                            placeholder="e.g. Mon, Wed, Fri evenings" value="<?php echo htmlspecialchars($old['study_schedule'] ?? ''); ?>">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Number of semesters</label>
+                    <input type="number" name="semester_count" class="form-control" min="1" max="40" step="1"
+                           placeholder="e.g. 6" value="<?php echo htmlspecialchars($old['semester_count'] ?? ''); ?>">
+                    <small class="text-muted">Used to calculate per-semester fees when the per-semester field is blank.</small>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Course Fee (KSh)</label>

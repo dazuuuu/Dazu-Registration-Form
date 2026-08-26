@@ -525,12 +525,13 @@ class SmsModuleService
     }
 
     /**
-     * Reset portal password and email fresh login credentials to the student.
+     * Email fresh login credentials to the student.
      * Creates or links a portal account first when missing (legacy SmS records).
+     * Existing accounts keep their chosen password unless $resetExistingPassword is true.
      *
      * @return array{ok:bool, error?:string, email?:string}
      */
-    public function resendStudentCredentials(int $id): array
+    public function resendStudentCredentials(int $id, bool $resetExistingPassword = false): array
     {
         $linked = $this->ensurePortalAccountForStudent($id);
         if (empty($linked['ok'])) {
@@ -569,6 +570,12 @@ class SmsModuleService
             : bin2hex(random_bytes(8));
 
         if (empty($linked['temp_password'])) {
+            if (!$resetExistingPassword) {
+                return [
+                    'ok' => false,
+                    'error' => 'This student already has a portal password. Use the reset password action only if they cannot recover it themselves.',
+                ];
+            }
             $hash = password_hash($tempPassword, PASSWORD_DEFAULT);
             try {
                 $this->pdo->prepare(

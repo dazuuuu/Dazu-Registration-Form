@@ -1,6 +1,6 @@
 <?php
 /**
- * Admin dual fee-structure repeaters (online + physical).
+ * Admin dual fee structure fields (online + physical).
  * Expects $fee_modes = ['online' => [...], 'physical' => [...]].
  */
 $fee_modes = $fee_modes ?? ['online' => [], 'physical' => []];
@@ -11,10 +11,11 @@ $blocks = [
 ?>
 <div class="col-12">
     <label class="form-label">Fee structure</label>
-    <p class="text-muted small mb-3">Set a separate breakdown for online and physical classes. The online total is stored as the default course fee; registration uses the total for the study mode the student picks.</p>
+    <p class="text-muted small mb-3">Set total tuition for the whole course. Per-semester fees are optional; if left blank, the system divides total tuition by the number of semesters. Additional charges are added to the total.</p>
     <div class="row g-3">
         <?php foreach ($blocks as $mode => $heading):
-            $rows = $fee_modes[$mode] ?? [];
+            $modeData = course_fee_mode_decode($fee_modes[$mode] ?? []);
+            $rows = $modeData['additional'] ?? [];
             if ($rows === []) {
                 $rows = [['label' => '', 'amount' => '']];
             }
@@ -25,6 +26,19 @@ $blocks = [
                     <strong><?php echo htmlspecialchars($heading); ?></strong>
                     <span class="small text-muted">Total: <strong class="fee-mode-total">KSh 0</strong></span>
                 </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-sm-6">
+                        <label class="form-label small mb-1">Total tuition (KSh)</label>
+                        <input type="number" name="fee_<?php echo $mode; ?>_total" class="form-control form-control-sm fee-tuition-total" min="0" step="1"
+                               placeholder="e.g. 360000" value="<?php echo htmlspecialchars((string) ($modeData['tuition_total'] ?: '')); ?>">
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label small mb-1">Per semester (optional)</label>
+                        <input type="number" name="fee_<?php echo $mode; ?>_per_semester" class="form-control form-control-sm fee-per-semester" min="0" step="1"
+                               placeholder="Auto-calculated" value="<?php echo htmlspecialchars((string) ($modeData['per_semester'] ?: '')); ?>">
+                    </div>
+                </div>
+                <div class="small fw-semibold text-muted mb-2">Additional charges</div>
                 <div class="d-flex flex-column gap-2 fee-structure-rows">
                     <?php foreach ($rows as $item): ?>
                     <div class="row g-2 align-items-center fee-structure-row">
@@ -58,6 +72,7 @@ $blocks = [
                         </div>
                     </div>
                 </template>
+                <p class="small text-muted mt-2 mb-0">Per semester preview: <strong class="fee-semester-preview">KSh 0</strong></p>
             </div>
         </div>
         <?php endforeach; ?>
@@ -67,14 +82,29 @@ $blocks = [
 (function () {
   function fmt(n) { return 'KSh ' + Math.round(n).toLocaleString('en-KE'); }
   var feeInput = document.querySelector('input[name="course_fee"]');
+  var semesterInput = document.querySelector('input[name="semester_count"]');
+  function semesters() {
+    var v = semesterInput ? parseInt(semesterInput.value, 10) : 0;
+    return v > 0 ? v : 1;
+  }
   function sumBlock(block) {
-    var total = 0;
+    var tuitionEl = block.querySelector('.fee-tuition-total');
+    var perEl = block.querySelector('.fee-per-semester');
+    var tuition = tuitionEl ? parseFloat(String(tuitionEl.value).replace(/,/g, '')) : 0;
+    if (isNaN(tuition) || tuition < 0) tuition = 0;
+    var total = tuition;
+    var extra = 0;
     block.querySelectorAll('.fee-item-amount').forEach(function (el) {
       var v = parseFloat(String(el.value).replace(/,/g, ''));
-      if (!isNaN(v) && v > 0) total += v;
+      if (!isNaN(v) && v > 0) extra += v;
     });
+    total += extra;
     var label = block.querySelector('.fee-mode-total');
     if (label) label.textContent = fmt(total);
+    var per = perEl ? parseFloat(String(perEl.value).replace(/,/g, '')) : 0;
+    if (isNaN(per) || per <= 0) per = tuition / semesters();
+    var preview = block.querySelector('.fee-semester-preview');
+    if (preview) preview.textContent = fmt(per || 0);
     return total;
   }
   function syncCourseFee() {
@@ -109,10 +139,9 @@ $blocks = [
       row.remove();
       syncCourseFee();
     });
-    block.addEventListener('input', function (e) {
-      if (e.target.classList.contains('fee-item-amount')) syncCourseFee();
-    });
+    block.addEventListener('input', syncCourseFee);
   });
+  if (semesterInput) semesterInput.addEventListener('input', syncCourseFee);
   syncCourseFee();
 })();
 </script>

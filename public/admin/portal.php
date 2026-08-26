@@ -3,6 +3,7 @@
 require_once __DIR__ . '/../../app/v1/config/paths.php';
 require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../../app/v1/helpers/functions.php';
+require_once __DIR__ . '/../../app/v1/models/UserModel.php';
 
 // If already logged in as admin, redirect to admin profile
 if (isLoggedIn() && isAdmin()) {
@@ -18,9 +19,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($email) || empty($password)) {
         $error = 'Email and password are required';
     } else {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email");
-        $stmt->execute([':email' => $email]);
-        $user = $stmt->fetch();
+        $userModel = new UserModel($pdo);
+        $user = $userModel->getUserByEmail($email);
 
         if (!$user) {
             $error = 'Invalid credentials';
@@ -37,6 +37,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role'] = $user['role_name'];
             $_SESSION['role_id'] = $user['role_id'];
             $_SESSION['logged_in'] = true;
+
+            if (!empty($user['must_change_password'])) {
+                redirect(url('auth/change_password.php'));
+            }
 
             redirect(url('admin/dashboard.php'));
         }
@@ -94,7 +98,7 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
             </div>
 
             <div class="wp-auth-row">
-                <a href="<?php echo url('forgot-password'); ?>" class="wp-auth-forgot">Forgot password?</a>
+                <a href="<?php echo url('auth/forgot_password.php'); ?>" class="wp-auth-forgot">Forgot password?</a>
             </div>
 
             <button type="submit" class="wp-auth-submit">

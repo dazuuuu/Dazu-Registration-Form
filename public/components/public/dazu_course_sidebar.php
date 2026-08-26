@@ -2,6 +2,7 @@
 /** Left column — selected program details. Requires enriched $course */
 if (!isset($course)) return;
 require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
+require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
 $category = dazu_course_category($course['abbreviation'] ?? '');
 $syllabus = dazu_course_syllabus($course);
 $requirements = dazu_course_requirements($course);
@@ -9,6 +10,19 @@ $months = (int) ($course['duration_months'] ?? 0);
 $weeks = (int) ($course['weeks_of_study'] ?? 0);
 $hours = (int) ($course['hours_of_study'] ?? 0);
 $schedule = trim((string) ($course['study_schedule'] ?? ''));
+$onlineSchedule = '8am, 12pm, 6pm';
+$physicalSchedule = '5am';
+$scheduleNote = '';
+if (isset($pdo) && $pdo instanceof PDO) {
+    try {
+        $siteSettings = new SettingModel($pdo);
+        $onlineSchedule = trim((string) ($siteSettings->get('class_schedule_online', '8am, 12pm, 6pm') ?? '8am, 12pm, 6pm'));
+        $physicalSchedule = trim((string) ($siteSettings->get('class_schedule_physical', '5am') ?? '5am'));
+        $scheduleNote = trim((string) ($siteSettings->get('class_schedule_note', '') ?? ''));
+    } catch (Throwable $e) {
+        $scheduleNote = '';
+    }
+}
 $isFree = !empty($course['is_free']);
 $fee = number_format((float) ($course['course_fee'] ?? 0));
 $enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => null];
@@ -65,15 +79,6 @@ $enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => n
         </span>
       </div>
       <?php endif; ?>
-      <?php if ($schedule !== ''): ?>
-      <div class="p-3 bg-slate-50 border border-slate-200/60 rounded-xl col-span-2">
-        <span class="block text-slate-400 uppercase tracking-widest text-[9px] font-extrabold mb-1">Study Schedule</span>
-        <span class="text-xs font-bold text-slate-900 flex items-center gap-1">
-          <svg class="h-3.5 w-3.5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-          <?php echo htmlspecialchars($schedule); ?>
-        </span>
-      </div>
-      <?php endif; ?>
       <?php if (!empty($enrollWindow['label'])): ?>
       <div class="p-3 bg-slate-50 border border-slate-200/60 rounded-xl col-span-2">
         <span class="block text-slate-400 uppercase tracking-widest text-[9px] font-extrabold mb-1">Application Window</span>
@@ -85,7 +90,39 @@ $enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => n
       <?php endif; ?>
     </div>
 
-    <?php $fee_compact = false; include __DIR__ . '/dazu_course_fee_breakdown.php'; ?>
+    <?php if ($schedule !== '' || $onlineSchedule !== '' || $physicalSchedule !== ''): ?>
+    <details class="group border border-slate-200 rounded-xl bg-white overflow-hidden">
+      <summary class="list-none cursor-pointer flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50">
+        <span class="inline-flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-600">
+          <svg class="h-4 w-4 text-[#15A24A]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+          View class schedule
+        </span>
+        <svg class="h-4 w-4 text-slate-400 transition group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </summary>
+      <div class="border-t border-slate-100 px-4 py-4 space-y-3 text-xs text-slate-700">
+        <?php if ($onlineSchedule !== ''): ?>
+          <div class="rounded-xl border border-green-100 bg-green-50 px-3 py-3">
+            <span class="block text-[9px] font-extrabold uppercase tracking-widest text-green-700 mb-1">Online classes</span>
+            <span class="block font-bold text-slate-950"><?php echo htmlspecialchars($onlineSchedule); ?></span>
+          </div>
+        <?php endif; ?>
+        <?php if ($physicalSchedule !== ''): ?>
+          <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+            <span class="block text-[9px] font-extrabold uppercase tracking-widest text-slate-500 mb-1">Physical classes</span>
+            <span class="block font-bold text-slate-950"><?php echo htmlspecialchars($physicalSchedule); ?></span>
+          </div>
+        <?php endif; ?>
+        <?php if ($schedule !== ''): ?>
+          <div class="text-slate-500 font-medium"><?php echo htmlspecialchars($schedule); ?></div>
+        <?php endif; ?>
+        <?php if ($scheduleNote !== ''): ?>
+          <div class="text-[11px] text-slate-500 leading-relaxed border-t border-slate-100 pt-3"><?php echo htmlspecialchars($scheduleNote); ?></div>
+        <?php endif; ?>
+      </div>
+    </details>
+    <?php endif; ?>
+
+    <?php $fee_compact = false; $fee_show_download = false; include __DIR__ . '/dazu_course_fee_breakdown.php'; ?>
     <?php $brochure_compact = false; include __DIR__ . '/dazu_course_brochure_cta.php'; ?>
 
     <div>
