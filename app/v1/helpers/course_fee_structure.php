@@ -117,6 +117,43 @@ if (!function_exists('course_fee_structure_decode')) {
     }
 }
 
+if (!function_exists('course_fee_registration_amount')) {
+    /** Physical students: KSh 1,000. Online students: none. */
+    function course_fee_registration_amount(string $mode): float
+    {
+        require_once __DIR__ . '/../models/RegistrationModel.php';
+        return (float) \Models\RegistrationModel::registrationFeeFor($mode === 'physical' ? 'physical' : 'online');
+    }
+}
+
+if (!function_exists('course_fee_mode_with_registration')) {
+    /**
+     * Adds the institute registration fee to a mode's additional items when it applies
+     * and the course JSON does not already include a registration line.
+     *
+     * @param array $mode
+     * @return array{tuition_total:float,per_semester:float,additional:list<array{label:string,amount:float}>}
+     */
+    function course_fee_mode_with_registration(array $mode, string $studyMode): array
+    {
+        $mode = course_fee_mode_decode($mode);
+        $regFee = course_fee_registration_amount($studyMode);
+        if ($regFee <= 0) {
+            return $mode;
+        }
+        foreach ($mode['additional'] as $item) {
+            if (stripos((string) ($item['label'] ?? ''), 'registration') !== false) {
+                return $mode;
+            }
+        }
+        $mode['additional'][] = [
+            'label' => 'Registration fee (physical students)',
+            'amount' => $regFee,
+        ];
+        return $mode;
+    }
+}
+
 if (!function_exists('course_fee_mode_decode')) {
     /**
      * @return array{tuition_total:float,per_semester:float,additional:list<array{label:string,amount:float}>}
@@ -423,6 +460,10 @@ if (!function_exists('course_fee_structure_document_html')) {
         $modes = course_fee_structure_all($course);
         if ($items !== [] && course_fee_mode_total($modes['online']) <= 0 && course_fee_mode_total($modes['physical']) <= 0) {
             $modes['online'] = $items;
+        }
+        $modes['online'] = course_fee_mode_with_registration($modes['online'] ?? [], 'online');
+        if (course_fee_mode_total($modes['physical'] ?? []) > 0) {
+            $modes['physical'] = course_fee_mode_with_registration($modes['physical'] ?? [], 'physical');
         }
         $classSchedules = [
             'online' => '8am, 12pm, 6pm',

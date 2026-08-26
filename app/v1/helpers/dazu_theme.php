@@ -384,7 +384,8 @@ if (!function_exists('dazu_fee_quote')) {
         require_once __DIR__ . '/course_fee_structure.php';
         $fee = course_fee_for_mode($course, $studyMode);
         $mo = max(1, (int) ($course['duration_months'] ?? 1));
-        $regFee = $studyMode === 'physical' ? 1500 : 1000;
+        require_once __DIR__ . '/../models/RegistrationModel.php';
+        $regFee = \Models\RegistrationModel::registrationFeeFor($studyMode);
         $count = match ($paymentPlan) {
             '3months' => 3,
             'full' => 1,

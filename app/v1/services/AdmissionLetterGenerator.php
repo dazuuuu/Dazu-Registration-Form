@@ -2,10 +2,8 @@
 // app/v1/services/AdmissionLetterGenerator.php
 // Admission letter PDF — same visual language as the course fee-structure document.
 
-require_once __DIR__ . '/../helpers/currency.php';
 require_once __DIR__ . '/../helpers/site_logo.php';
 require_once __DIR__ . '/../helpers/course_duration.php';
-require_once __DIR__ . '/../helpers/payment_credentials.php';
 
 class AdmissionLetterGenerator
 {
@@ -27,11 +25,6 @@ class AdmissionLetterGenerator
         $studyMode = ($reg['study_mode'] ?? '') === 'physical' ? 'Physical classes' : 'Online classes';
         $issued = date('d M Y');
         $duration = $course !== [] ? course_study_summary($course) : ((int) ($reg['duration_months'] ?? $course['duration_months'] ?? 0) . ' months');
-        $isFree = !empty($course['is_free']) || !empty($reg['is_free']);
-        $payment = function_exists('payment_credentials')
-            ? payment_credentials()
-            : ['business_short_code' => '880100', 'account_number' => '681158', 'phone' => '0722 922 454'];
-
         $rows = [
             ['Student name', $student],
             ['Registration no.', $regNo],
@@ -41,10 +34,6 @@ class AdmissionLetterGenerator
             ['Study mode', $studyMode],
             ['Programme duration', $duration ?: '—'],
         ];
-        if (!$isFree) {
-            $rows[] = ['Registration fee', format_price($reg['registration_fee'] ?? 0)];
-            $rows[] = ['Course fee', format_price($reg['course_fee'] ?? 0)];
-        }
 
         $body = '';
         $i = 0;
@@ -71,7 +60,7 @@ class AdmissionLetterGenerator
             . ($abbr !== '' ? ' (' . self::e($abbr) . ')' : '')
             . '</h2>'
             . '<p style="margin:0 0 34px;font-size:12px;line-height:1.65;color:#374151;max-width:600px;">'
-            . 'This letter confirms that <strong>' . self::e($student) . '</strong> has been admitted to Dazu Hub Institute for the programme named above. Please keep this letter with your course brochure and fee structure.'
+            . 'This letter confirms that <strong>' . self::e($student) . '</strong> has been admitted to Dazu Hub Institute for the programme named above. Course fees, the physical-student registration fee, and payment details are on the fee structure issued with this letter.'
             . '</p>'
             . '<div style="display:table;width:100%;background:#f5f6f8;border-radius:10px;margin-bottom:28px;">'
             . '<div style="display:table-cell;width:50%;padding:18px 20px;"><div style="font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:8px;">Registration number</div><div style="font-size:12px;">' . self::e($regNo !== '' ? $regNo : '—') . '</div></div>'
@@ -87,13 +76,6 @@ class AdmissionLetterGenerator
             . '<div style="display:table-cell;padding:15px 18px;font-size:13px;font-weight:800;text-transform:uppercase;">Admission status</div>'
             . '<div style="display:table-cell;padding:15px 18px;font-size:13px;font-weight:800;text-align:right;">Enrolled</div></div>'
             . '</div>'
-            . (!$isFree
-                ? '<div style="display:table;width:100%;background:#f5f6f8;border-radius:10px;margin-top:30px;">'
-                    . '<div style="display:table-cell;padding:14px 18px;width:33%;"><strong style="display:block;font-size:11px;text-transform:uppercase;">Payment details</strong><span style="font-size:11px;">M-PESA Paybill: ' . self::e((string) ($payment['paybill'] ?? $payment['business_short_code'] ?? '880100')) . '</span></div>'
-                    . '<div style="display:table-cell;padding:14px 18px;width:34%;font-size:11px;vertical-align:bottom;">Account: ' . self::e((string) ($payment['account_number'] ?? '681158')) . '</div>'
-                    . '<div style="display:table-cell;padding:14px 18px;width:33%;font-size:11px;text-align:right;vertical-align:bottom;">Phone: ' . self::e((string) ($payment['phone'] ?? '0722 922 454')) . '</div>'
-                    . '</div>'
-                : '')
             . '<p style="margin:10px 0 0;font-size:9px;color:#6b7280;">Issued ' . self::e($issued) . ' - dazuhub.ac.ke</p>'
             . '</div></div>';
     }
