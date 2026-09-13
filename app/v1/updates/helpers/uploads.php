@@ -1,11 +1,18 @@
 <?php
-// app/v1/updates/helpers/uploads.php
+// app/helpers/uploads.php
 //
 // Security-conscious image upload + CSRF helpers, plus view helpers
 // for resolving the logo / hero URLs. Safe to include more than once.
 
 if (!defined('BASE_URL')) {
     require_once __DIR__ . '/../config/paths.php';
+}
+
+if (!defined('MAX_IMAGE_UPLOAD_BYTES')) {
+    define('MAX_IMAGE_UPLOAD_BYTES', 150 * 1024 * 1024);
+}
+if (!defined('MAX_VIDEO_UPLOAD_BYTES')) {
+    define('MAX_VIDEO_UPLOAD_BYTES', 1024 * 1024 * 1024);
 }
 
 /* ====================================================================
@@ -51,7 +58,7 @@ if (!function_exists('validate_image_upload')) {
     function validate_image_upload(
         array $file,
         array $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'],
-        int $maxBytes = 26214400        // 25 MB
+        int $maxBytes = MAX_IMAGE_UPLOAD_BYTES
     ): array {
         if (!isset($file['error']) || is_array($file['error'])) {
             return ['ok' => false, 'error' => 'Invalid upload parameters.'];
@@ -134,7 +141,7 @@ if (!function_exists('upload_image')) {
         string $absDir,
         string $webDir,
         array $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'],
-        int $maxBytes = 26214400
+        int $maxBytes = MAX_IMAGE_UPLOAD_BYTES
     ): array {
         $v = validate_image_upload($file, $allowedExt, $maxBytes);
         if (!$v['ok']) {
@@ -277,7 +284,7 @@ if (!function_exists('validate_video_upload')) {
     /**
      * @return array{ok:bool, ext?:string, error?:string}
      */
-    function validate_video_upload(array $file, int $maxBytes = 52428800): array
+    function validate_video_upload(array $file, int $maxBytes = MAX_VIDEO_UPLOAD_BYTES): array
     {
         if (!isset($file['error']) || is_array($file['error'])) {
             return ['ok' => false, 'error' => 'Invalid upload parameters.'];
@@ -312,11 +319,93 @@ if (!function_exists('validate_video_upload')) {
     }
 }
 
+if (!function_exists('video_ffmpeg_binary')) {
+    /**
+     * Locate FFmpeg without invoking a shell. FFMPEG_PATH can be set by the host
+     * when FFmpeg is installed somewhere else.
+     */
+    function video_ffmpeg_binary(): ?string
+    {
+        $configured = getenv('FFMPEG_PATH');
+        $candidates = array_filter([
+            is_string($configured) ? $configured : null,
+            '/usr/bin/ffmpeg',
+            '/usr/local/bin/ffmpeg',
+            '/opt/homebrew/bin/ffmpeg',
+        ]);
+
+        foreach ($candidates as $candidate) {
+            if (is_file($candidate) && is_executable($candidate)) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+}
+
+if (!function_exists('compress_video_upload')) {
+    /**
+     * Transcode to a browser-friendly MP4 while preserving aspect ratio and
+     * avoiding upscaling. CPU usage is deliberately bounded for web requests.
+     */
+    function compress_video_upload(string $source, string $destination): array
+    {
+        $ffmpeg = video_ffmpeg_binary();
+        if ($ffmpeg === null || !function_exists('proc_open')) {
+            return ['ok' => false, 'error' => 'Video compression is not available on this server. Please contact the administrator.'];
+        }
+
+        $command = [
+            $ffmpeg,
+            '-nostdin',
+            '-hide_banner',
+            '-loglevel', 'error',
+            '-y',
+            '-i', $source,
+            '-map_metadata', '0',
+            '-map', '0:v:0',
+            '-map', '0:a?',
+            '-vf', "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2",
+            '-c:v', 'libx264',
+            '-preset', 'medium',
+            '-crf', '24',
+            '-threads', '2',
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            '-movflags', '+faststart',
+            $destination,
+        ];
+        $descriptors = [
+            0 => ['file', '/dev/null', 'r'],
+            1 => ['file', '/dev/null', 'a'],
+            2 => ['file', '/dev/null', 'a'],
+        ];
+
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(0);
+        }
+
+        $process = @proc_open($command, $descriptors, $pipes);
+        if (!is_resource($process)) {
+            return ['ok' => false, 'error' => 'The video compressor could not be started.'];
+        }
+
+        $exitCode = proc_close($process);
+        if ($exitCode !== 0 || !is_file($destination) || filesize($destination) === 0) {
+            @unlink($destination);
+            return ['ok' => false, 'error' => 'The video could not be compressed. Please verify the file and try again.'];
+        }
+
+        return ['ok' => true];
+    }
+}
+
 if (!function_exists('upload_video')) {
     /**
      * @return array{ok:bool, path?:string, error?:string}
      */
-    function upload_video(array $file, string $absDir, string $webDir, int $maxBytes = 52428800): array
+    function upload_video(array $file, string $absDir, string $webDir, int $maxBytes = MAX_VIDEO_UPLOAD_BYTES): array
     {
         $v = validate_video_upload($file, $maxBytes);
         if (!$v['ok']) {
@@ -328,14 +417,14 @@ if (!function_exists('upload_video')) {
         if (!is_dir($absDir) && !@mkdir($absDir, 0775, true) && !is_dir($absDir)) {
             return ['ok' => false, 'error' => 'Could not create the upload folder.'];
         }
-        $name = time() . '_' . bin2hex(random_bytes(6)) . '.' . $v['ext'];
+        $name = time() . '_' . bin2hex(random_bytes(6)) . '.mp4';
         $dest = rtrim($absDir, '/\\') . DIRECTORY_SEPARATOR . $name;
-        $moved = defined('UPLOAD_TEST_MODE')
-            ? @copy($file['tmp_name'], $dest)
-            : @move_uploaded_file($file['tmp_name'], $dest);
-        if (!$moved) {
-            return ['ok' => false, 'error' => 'Could not save the uploaded file.'];
+
+        $compressed = compress_video_upload($file['tmp_name'], $dest);
+        if (!$compressed['ok']) {
+            return $compressed;
         }
+
         return ['ok' => true, 'path' => rtrim($webDir, '/') . '/' . $name];
     }
 }

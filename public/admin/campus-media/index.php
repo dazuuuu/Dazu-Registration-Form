@@ -122,7 +122,7 @@ ob_start();
           <div>
             <label class="form-label">Photo or video *</label>
             <input type="file" name="media" class="form-control" accept="image/*,video/mp4,video/webm,video/quicktime" required>
-            <div class="form-text">Images up to 5 MB. Videos up to 50 MB.</div>
+            <div class="form-text">Images up to 150 MB. Videos up to 1 GB are automatically compressed for fast playback.</div>
           </div>
           <div>
             <label class="form-label">Title</label>

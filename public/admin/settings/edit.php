@@ -7,6 +7,8 @@ require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';        // BASE_URL + helpers
 require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
+require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
+require_once __DIR__ . '/../../../app/v1/models/CourseCategoryModel.php';
 
 // --- Admin guard ------------------------------------------------------
 Middleware::requireAdmin();
@@ -23,7 +25,7 @@ $DIRS = [
 ];
 
 $section = $_GET['section'] ?? 'logo';
-if (!in_array($section, ['logo', 'hero', 'headers', 'contact', 'schedule', 'receipt'], true)) {
+if (!in_array($section, ['logo', 'hero', 'headers', 'contact', 'schedule', 'receipt', 'popular_courses'], true)) {
     $section = 'logo';
 }
 
@@ -208,6 +210,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect_back('receipt', 'success', 'Receipt settings saved.');
     }
 
+    // ---- POPULAR COURSES TOGGLE ------------------------------------
+    if ($action === 'toggle_popular') {
+        $courseModel = new \Models\CourseModel($pdo);
+        $id = (int) ($_POST['course_id'] ?? 0);
+        $show = ($_POST['set_popular'] ?? '0') === '1';
+        if ($id > 0) {
+            $courseModel->setShowOnHomepage($id, $show);
+            redirect_back('popular_courses', 'success', $show ? 'Course added to homepage.' : 'Course removed from homepage.');
+        }
+        redirect_back('popular_courses', 'error', 'Invalid course.');
+    }
+
     redirect_back($section, 'error', 'Unknown action.');
 }
 
@@ -223,7 +237,19 @@ $logoUrl     = settings_asset_url($settings->get('logo_path'));
 $heroSlides  = $settings->getHeroSlides(false);
 $pageHeaders = $settings->getAllPageHeaders();
 
-$titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners', 'contact' => 'Contact & Map', 'schedule' => 'Class Schedule', 'receipt' => 'Receipts'];
+$titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners', 'contact' => 'Contact & Map', 'schedule' => 'Class Schedule', 'receipt' => 'Receipts', 'popular_courses' => 'Popular Courses'];
+
+// Popular courses data
+$courseModel = new \Models\CourseModel($pdo);
+try {
+    $catModel = new \Models\CourseCategoryModel($pdo);
+    $allCategoriesForPopular = $catModel->getAll(false);
+} catch (\Throwable $e) {
+    $allCategoriesForPopular = [];
+}
+$allActiveCoursesForPopular = $courseModel->getAll(true);
+$homepageCoursesForPopular = $courseModel->getHomepageCourses();
+$homepageCourseIds = array_map(static fn($c) => (int) $c['id'], $homepageCoursesForPopular);
 $contactPhone = $settings->get('contact_phone', '+254 750 116 600');
 $contactEmail = $settings->get('contact_email', 'admin@dazuhub.com');
 $contactAddress = $settings->get('contact_address', 'Witeithie House, Room 529, Thika Town');
@@ -312,6 +338,7 @@ ob_start();
     <a class="tab <?php echo $section === 'contact' ? 'active' : ''; ?>" href="edit.php?section=contact"><i class="fa-solid fa-map-location-dot"></i> Contact &amp; map</a>
     <a class="tab <?php echo $section === 'schedule' ? 'active' : ''; ?>" href="edit.php?section=schedule"><i class="fa-solid fa-calendar-days"></i> Class schedule</a>
     <a class="tab <?php echo $section === 'receipt' ? 'active' : ''; ?>" href="edit.php?section=receipt"><i class="fa-solid fa-receipt"></i> Receipts</a>
+    <a class="tab <?php echo $section === 'popular_courses' ? 'active' : ''; ?>" href="edit.php?section=popular_courses"><i class="fa-solid fa-star"></i> Popular Courses</a>
   </div>
 
   <?php if ($flash): ?>
@@ -663,6 +690,133 @@ ob_start();
       <div class="divider"></div>
       <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save receipt settings</button>
     </form>
+  <?php endif; ?>
+
+  <?php /* ===================== POPULAR COURSES ===================== */ ?>
+  <?php if ($section === 'popular_courses'): ?>
+    <div class="panel">
+      <h2><i class="fa-solid fa-star text-warning me-2"></i>Popular Courses (Homepage)</h2>
+      <p class="hint">Choose which courses appear on the homepage. Only courses marked here will be displayed. If none are selected, all active courses are shown.</p>
+
+      <div class="field" style="margin-bottom:14px;">
+        <input type="text" id="popular-courses-search" placeholder="Search courses by title, abbreviation, or category…" autocomplete="off" style="max-width:460px;">
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+        <!-- LEFT: Available courses -->
+        <div>
+          <h6 style="font-weight:700; font-size:.92rem; margin:0 0 10px; color:#3a4250;">Available Courses <span id="available-count" class="text-muted" style="font-weight:400;"></span></h6>
+          <div id="available-courses-list" style="display:flex; flex-direction:column; gap:8px; max-height:520px; overflow-y:auto; padding-right:4px;">
+            <?php foreach ($allActiveCoursesForPopular as $course):
+              if (in_array((int) $course['id'], $homepageCourseIds, true)) continue;
+            ?>
+              <div class="popular-course-row" data-search="<?php echo htmlspecialchars(strtolower(($course['title'] ?? '') . ' ' . ($course['abbreviation'] ?? '') . ' ' . ($course['category_name'] ?? ''))); ?>">
+                <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e6e9f0; border-radius:10px; background:#fafbfd;">
+                  <?php
+                    $cover = !empty($course['cover_image']) ? settings_asset_url($course['cover_image']) : url('assets/images/courses/default-course.jpg');
+                  ?>
+                  <img src="<?php echo htmlspecialchars($cover); ?>" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:8px; flex-shrink:0; border:1px solid #e6e9f0;">
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; font-size:.88rem; color:#101319; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?php echo htmlspecialchars($course['title']); ?></div>
+                    <div style="font-size:.78rem; color:#8a93a3;">
+                      <?php echo htmlspecialchars($course['abbreviation'] ?? ''); ?>
+                      <?php if (!empty($course['category_name'])): ?>
+                        · <?php echo htmlspecialchars($course['category_name']); ?>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                  <form method="POST" style="margin:0;">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="toggle_popular">
+                    <input type="hidden" name="course_id" value="<?php echo (int) $course['id']; ?>">
+                    <input type="hidden" name="set_popular" value="1">
+                    <button type="submit" class="btn btn-sm btn-outline-success" title="Add to homepage" style="padding:4px 10px; font-size:.78rem;">
+                      <i class="fas fa-plus me-1"></i>Add
+                    </button>
+                  </form>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+          <div id="available-empty" style="display:none; color:#8a93a3; font-size:.85rem; padding:16px 0; text-align:center;">No matching courses found.</div>
+        </div>
+
+        <!-- RIGHT: Homepage courses -->
+        <div>
+          <h6 style="font-weight:700; font-size:.92rem; margin:0 0 10px; color:#3a4250;">On Homepage <span class="badge text-bg-warning" style="font-size:.75rem;"><?php echo count($homepageCoursesForPopular); ?></span></h6>
+          <div id="homepage-courses-list" style="display:flex; flex-direction:column; gap:8px; max-height:520px; overflow-y:auto; padding-right:4px;">
+            <?php if (empty($homepageCoursesForPopular)): ?>
+              <div style="color:#8a93a3; font-size:.85rem; padding:16px 0; text-align:center; border:1.5px dashed #d7dce6; border-radius:10px;">No popular courses selected yet.<br>All active courses will show on the homepage.</div>
+            <?php else: ?>
+              <?php foreach ($homepageCoursesForPopular as $course): ?>
+                <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #fde68a; border-radius:10px; background:#fffbeb;">
+                  <?php
+                    $cover = !empty($course['cover_image']) ? settings_asset_url($course['cover_image']) : url('assets/images/courses/default-course.jpg');
+                  ?>
+                  <img src="<?php echo htmlspecialchars($cover); ?>" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:8px; flex-shrink:0; border:1px solid #fde68a;">
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; font-size:.88rem; color:#101319; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?php echo htmlspecialchars($course['title']); ?></div>
+                    <div style="font-size:.78rem; color:#8a93a3;">
+                      <?php echo htmlspecialchars($course['abbreviation'] ?? ''); ?>
+                      <?php if (!empty($course['category_name'])): ?>
+                        · <?php echo htmlspecialchars($course['category_name']); ?>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                  <form method="POST" style="margin:0;">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="toggle_popular">
+                    <input type="hidden" name="course_id" value="<?php echo (int) $course['id']; ?>">
+                    <input type="hidden" name="set_popular" value="0">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove from homepage" style="padding:4px 10px; font-size:.78rem;">
+                      <i class="fas fa-times me-1"></i>Remove
+                    </button>
+                  </form>
+                </div>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    (function() {
+      const input = document.getElementById('popular-courses-search');
+      const list = document.getElementById('available-courses-list');
+      const emptyMsg = document.getElementById('available-empty');
+      const countEl = document.getElementById('available-count');
+      const rows = list ? list.querySelectorAll('.popular-course-row') : [];
+
+      function updateCount() {
+        let visible = 0;
+        rows.forEach(r => { if (r.style.display !== 'none') visible++; });
+        if (countEl) countEl.textContent = '(' + visible + ')';
+        if (emptyMsg) emptyMsg.style.display = visible === 0 ? 'block' : 'none';
+      }
+      updateCount();
+
+      if (input) {
+        input.addEventListener('input', function() {
+          const q = this.value.trim().toLowerCase();
+          rows.forEach(function(row) {
+            const blob = row.getAttribute('data-search') || '';
+            row.style.display = (!q || blob.includes(q)) ? '' : 'none';
+          });
+          updateCount();
+        });
+      }
+    })();
+    </script>
+
+    <style>
+      @media (max-width: 767.98px) {
+        .panel > div[style*="grid-template-columns"] {
+          display: flex !important;
+          flex-direction: column !important;
+        }
+      }
+    </style>
   <?php endif; ?>
 
 </div>
