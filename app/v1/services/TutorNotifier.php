@@ -5,7 +5,7 @@ require_once __DIR__ . '/TutorEmailTemplate.php';
 
 class TutorNotifier {
     private $mailer;
-    private $companyName = 'Dazu Hub Institute';
+    private $companyName = 'Dazu Training Institute';
 
     public function __construct(?Mailer $mailer = null) {
         $cfg = require __DIR__ . '/../config/mail.php';

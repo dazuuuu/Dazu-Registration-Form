@@ -1,7 +1,7 @@
 <?php
 // app/helpers/uploads.php
 //
-// Security-conscious image upload + CSRF helpers, plus small view helpers
+// Security-conscious image upload + CSRF helpers, plus view helpers
 // for resolving the logo / hero URLs. Safe to include more than once.
 
 if (!defined('BASE_URL')) {
@@ -50,8 +50,8 @@ if (!function_exists('validate_image_upload')) {
      */
     function validate_image_upload(
         array $file,
-        array $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'],
-        int $maxBytes = 5242880        // 5 MB
+        array $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'],
+        int $maxBytes = 26214400        // 25 MB
     ): array {
         if (!isset($file['error']) || is_array($file['error'])) {
             return ['ok' => false, 'error' => 'Invalid upload parameters.'];
@@ -64,7 +64,7 @@ if (!function_exists('validate_image_upload')) {
                 return ['ok' => false, 'error' => 'No file was selected.'];
             case UPLOAD_ERR_INI_SIZE:
             case UPLOAD_ERR_FORM_SIZE:
-                return ['ok' => false, 'error' => 'The file is too large.'];
+                return ['ok' => false, 'error' => 'The file is too large for the server upload limit.'];
             default:
                 return ['ok' => false, 'error' => 'Upload failed (code ' . $file['error'] . ').'];
         }
@@ -74,10 +74,11 @@ if (!function_exists('validate_image_upload')) {
         }
 
         $mimeToExt = [
-            'image/jpeg' => 'jpg',
-            'image/png'  => 'png',
-            'image/webp' => 'webp',
-            'image/gif'  => 'gif',
+            'image/jpeg'    => 'jpg',
+            'image/png'     => 'png',
+            'image/webp'    => 'webp',
+            'image/gif'     => 'gif',
+            'image/avif'    => 'avif',
             'image/svg+xml' => 'svg',
         ];
 
@@ -94,7 +95,7 @@ if (!function_exists('validate_image_upload')) {
         if ($mime === 'image/svg+xml' || strtolower(pathinfo((string) ($file['name'] ?? ''), PATHINFO_EXTENSION)) === 'svg') {
             $bytes = @file_get_contents($file['tmp_name']);
             if ($bytes === false || stripos($bytes, '<svg') === false || preg_match('/<script\b/i', $bytes)) {
-                return ['ok' => false, 'error' => 'That SVG logo is not valid.'];
+                return ['ok' => false, 'error' => 'That SVG file is not valid.'];
             }
             $mime = 'image/svg+xml';
         } else {
@@ -106,7 +107,7 @@ if (!function_exists('validate_image_upload')) {
         }
 
         if (!isset($mimeToExt[$mime])) {
-            return ['ok' => false, 'error' => 'Unsupported image type. Use JPG, PNG, WebP, GIF or SVG.'];
+            return ['ok' => false, 'error' => 'Unsupported image type. Use JPG, PNG, WebP, AVIF, GIF or SVG.'];
         }
 
         $ext = $mimeToExt[$mime];
@@ -120,7 +121,10 @@ if (!function_exists('validate_image_upload')) {
 
 if (!function_exists('upload_image')) {
     /**
-     * Validate, then store the uploaded image with a random safe name.
+     * Validate, optimize (if raster) and store the uploaded image.
+     * Large raster images are automatically scaled down to max 1920px and
+     * compressed into lightweight WebP for lightning-fast site delivery.
+     *
      * @param string $absDir  absolute destination dir
      * @param string $webDir  web path (relative to /public) saved in DB, no trailing slash
      * @return array{ok:bool, path?:string, error?:string}
@@ -129,8 +133,8 @@ if (!function_exists('upload_image')) {
         array $file,
         string $absDir,
         string $webDir,
-        array $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif'],
-        int $maxBytes = 5242880
+        array $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'],
+        int $maxBytes = 26214400
     ): array {
         $v = validate_image_upload($file, $allowedExt, $maxBytes);
         if (!$v['ok']) {
@@ -147,6 +151,57 @@ if (!function_exists('upload_image')) {
             return ['ok' => false, 'error' => 'Could not create the upload folder.'];
         }
 
+        $ext = $v['ext'];
+        $canOptimize = extension_loaded('gd') && in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'avif'], true);
+
+        if ($canOptimize) {
+            $raw = @file_get_contents($file['tmp_name']);
+            $srcImg = $raw !== false ? @imagecreatefromstring($raw) : false;
+            if ($srcImg !== false) {
+                $srcW = imagesx($srcImg);
+                $srcH = imagesy($srcImg);
+
+                // Downscale if wider or taller than 1920px
+                $maxDim = 1920;
+                $targetW = $srcW;
+                $targetH = $srcH;
+                if ($srcW > $maxDim || $srcH > $maxDim) {
+                    if ($srcW >= $srcH) {
+                        $targetW = $maxDim;
+                        $targetH = (int) round(($srcH * $maxDim) / $srcW);
+                    } else {
+                        $targetH = $maxDim;
+                        $targetW = (int) round(($srcW * $maxDim) / $srcH);
+                    }
+                }
+
+                $dstImg = imagecreatetruecolor($targetW, $targetH);
+                imagealphablending($dstImg, false);
+                imagesavealpha($dstImg, true);
+                $transparent = imagecolorallocatealpha($dstImg, 0, 0, 0, 127);
+                imagefilledrectangle($dstImg, 0, 0, $targetW, $targetH, $transparent);
+                imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $targetW, $targetH, $srcW, $srcH);
+
+                $outExt = function_exists('imagewebp') ? 'webp' : ($ext === 'png' ? 'png' : 'jpg');
+                $name = time() . '_' . bin2hex(random_bytes(6)) . '.' . $outExt;
+                $dest = rtrim($absDir, '/\\') . DIRECTORY_SEPARATOR . $name;
+
+                $saved = false;
+                if ($outExt === 'webp') {
+                    $saved = @imagewebp($dstImg, $dest, 85);
+                } elseif ($outExt === 'png') {
+                    $saved = @imagepng($dstImg, $dest, 7);
+                } else {
+                    $saved = @imagejpeg($dstImg, $dest, 85);
+                }
+
+                if ($saved) {
+                    return ['ok' => true, 'path' => rtrim($webDir, '/') . '/' . $name];
+                }
+            }
+        }
+
+        // Standard move/copy fallback
         $name = time() . '_' . bin2hex(random_bytes(6)) . '.' . $v['ext'];
         $dest = rtrim($absDir, '/\\') . DIRECTORY_SEPARATOR . $name;
 
@@ -238,8 +293,8 @@ if (!function_exists('validate_video_upload')) {
         }
 
         $mimeToExt = [
-            'video/mp4' => 'mp4',
-            'video/webm' => 'webm',
+            'video/mp4'       => 'mp4',
+            'video/webm'      => 'webm',
             'video/quicktime' => 'mov',
         ];
         $mime = '';
@@ -289,16 +344,31 @@ if (!function_exists('upload_video')) {
    VIEW HELPERS
    ==================================================================== */
 if (!function_exists('settings_asset_url')) {
-    /** Turn a stored relative path (uploads/hero/x.png) into a full web URL. */
+    /** Turn a stored relative path (uploads/hero/x.png) into a full web URL with cache busting. */
     function settings_asset_url(?string $relPath): ?string
     {
         if ($relPath === null || $relPath === '') {
             return null;
         }
-        // Already absolute (http or leading slash)? Leave it.
-        if (preg_match('#^(https?:)?/#', $relPath)) {
+        if (preg_match('#^https?://#i', $relPath)) {
             return $relPath;
         }
-        return rtrim(BASE_URL, '/') . '/' . ltrim($relPath, '/');
+
+        $cleanRel = ltrim(preg_replace('#^/Registration-System/public/#', '', $relPath), '/');
+        if (defined('WEB_ROOT') && WEB_ROOT !== '' && str_starts_with($cleanRel, ltrim(WEB_ROOT, '/') . '/')) {
+            $cleanRel = substr($cleanRel, strlen(ltrim(WEB_ROOT, '/') . '/'));
+        }
+
+        $fullUrl = function_exists('url') ? url($cleanRel) : (rtrim(BASE_URL, '/') . '/' . $cleanRel);
+
+        $abs = function_exists('public_path') ? public_path($cleanRel) : null;
+        if ($abs && is_file($abs)) {
+            $mtime = @filemtime($abs);
+            if ($mtime) {
+                $fullUrl .= (str_contains($fullUrl, '?') ? '&' : '?') . 'v=' . $mtime;
+            }
+        }
+
+        return $fullUrl;
     }
 }

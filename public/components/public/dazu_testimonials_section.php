@@ -23,20 +23,22 @@ $gradients = [
 <section class="bg-white" id="testimonials">
 
     <!-- Video Testimonials -->
-    <div class="bg-slate-950 py-24 md:py-32">
+    <div class="bg-white py-20 md:py-28">
       <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
-        <div class="text-center mb-16">
-          <h2 class="text-3xl md:text-5xl font-extrabold text-white tracking-tight">
+        <div class="text-center mb-14">
+          <span class="inline-block px-3 py-1 bg-green-50 text-[#15A24A] text-[11px] font-extrabold uppercase tracking-widest rounded-full border border-green-100 mb-4">
+            Student Stories
+          </span>
+          <h2 class="text-3xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
             Hear From Our Students
           </h2>
-          <div class="h-1.5 w-28 bg-[#15A24A] mx-auto mt-8 rounded-full"></div>
-          <p class="text-slate-400 text-base md:text-lg font-semibold leading-relaxed max-w-3xl mx-auto mt-12">
+          <p class="text-slate-500 text-base font-medium leading-relaxed max-w-2xl mx-auto mt-5">
             Real stories from our graduates who have transformed their careers through our hands-on training programs.
           </p>
         </div>
 
     <?php if ($playable): ?>
-      <div id="dazu-video-row">
+      <div id="dazu-video-row" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <?php foreach ($playable as $i => $t):
             $embed = testimonial_video_embed_url($t);
             $thumb = testimonial_video_thumb($t);
@@ -47,62 +49,60 @@ $gradients = [
             $duration = $t['duration'] ?? '0:18';
             $embedQs = (str_contains($embed, '?') ? '&' : '?') . 'autoplay=1&modestbranding=1&rel=0';
         ?>
-          <article class="dazu-vcard group rounded-xl overflow-hidden border-2 border-slate-950 bg-slate-950 shadow-sm hover:-translate-y-0.5 transition-transform"
+          <article class="dazu-vcard group rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative"
+                   style="aspect-ratio: 3/4;"
                    data-dazu-vcard
                    data-embed="<?php echo htmlspecialchars($embed); ?>"
                    data-name="<?php echo htmlspecialchars($name); ?>"
                    data-track="<?php echo htmlspecialchars($track); ?>">
+
             <!-- Inline player -->
-            <div class="dazu-vplayer hidden">
+            <div class="dazu-vplayer hidden absolute inset-0 z-20">
               <iframe class="dazu-viframe w-full h-full border-0"
                       data-src="<?php echo htmlspecialchars($embed . $embedQs); ?>"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowfullscreen
                       title="<?php echo htmlspecialchars($name); ?> testimonial"></iframe>
-              <div class="absolute top-1.5 right-1.5 z-30 flex items-center gap-1">
-                <button type="button" class="dazu-vpause w-7 h-7 rounded-full bg-black/70 text-white text-[10px] hover:bg-black/90 flex items-center justify-center" aria-label="Pause" title="Pause">
+              <div class="absolute top-2 right-2 z-30 flex items-center gap-1">
+                <button type="button" class="dazu-vpause w-7 h-7 rounded-full bg-black/60 text-white text-[10px] hover:bg-black/80 flex items-center justify-center" aria-label="Pause" title="Pause">
                   <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
                 </button>
-                <button type="button" class="dazu-vexpand w-7 h-7 rounded-full bg-black/70 text-white hover:bg-black/90 flex items-center justify-center" aria-label="Expand" title="Expand">
+                <button type="button" class="dazu-vexpand w-7 h-7 rounded-full bg-black/60 text-white hover:bg-black/80 flex items-center justify-center" aria-label="Expand" title="Expand">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                 </button>
               </div>
             </div>
 
-            <!-- Poster -->
-            <div class="dazu-vposter">
+            <!-- Poster / thumbnail background -->
+            <div class="dazu-vposter absolute inset-0">
               <?php if ($thumb): ?>
                 <img src="<?php echo htmlspecialchars($thumb); ?>" alt="<?php echo htmlspecialchars($name); ?>"
-                     class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+                     class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
               <?php else: ?>
                 <div class="absolute inset-0" style="background:<?php echo htmlspecialchars($gradient); ?>"></div>
               <?php endif; ?>
-              <div class="absolute inset-0" style="background:linear-gradient(to bottom right, rgba(15,23,42,0.8), rgba(2,6,23,0.9))"></div>
 
-              <button type="button" class="dazu-vplay absolute inset-0 flex items-center justify-center z-10"
-                      aria-label="Play <?php echo htmlspecialchars($name); ?>">
-                <span class="w-9 h-9 bg-[#15A24A] text-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform border border-white/20 shadow-lg">
-                  <svg class="w-3.5 h-3.5 fill-white ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <!-- Centered play button -->
+              <button type="button" class="dazu-vplay absolute inset-0 flex items-center justify-center z-10 cursor-pointer" aria-label="Play <?php echo htmlspecialchars($name); ?>">
+                <span class="w-14 h-14 bg-white/90 text-slate-900 rounded-full flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-300 backdrop-blur-sm">
+                  <svg class="w-5 h-5 fill-slate-900 ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                 </span>
               </button>
 
-              <div class="absolute bottom-0 left-0 right-0 z-10 p-2 bg-black/55 backdrop-blur-sm border-t border-white/5">
-                <span class="text-[7px] font-extrabold uppercase tracking-widest text-green-300 block truncate"><?php echo htmlspecialchars($track); ?></span>
-                <h4 class="text-[10px] font-extrabold text-white leading-tight truncate"><?php echo htmlspecialchars($name); ?></h4>
-                <div class="flex items-center justify-between mt-0.5">
-                  <p class="text-[8px] text-slate-300 truncate mr-1 hidden sm:block"><?php echo htmlspecialchars($title); ?></p>
-                  <span class="flex items-center gap-0.5 text-[8px] text-slate-300 shrink-0 bg-white/10 px-1 py-0.5 rounded">
-                    <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <?php echo htmlspecialchars($duration); ?>
-                  </span>
-                </div>
+              <!-- Bottom caption gradient overlay -->
+              <div class="absolute bottom-0 left-0 right-0 z-10 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12">
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-green-400 block mb-0.5"><?php echo htmlspecialchars($track); ?></span>
+                <h4 class="text-sm font-extrabold text-white leading-snug"><?php echo htmlspecialchars($name); ?></h4>
+                <?php if ($title): ?>
+                  <p class="text-[11px] text-slate-300 mt-0.5 line-clamp-2"><?php echo htmlspecialchars($title); ?></p>
+                <?php endif; ?>
               </div>
             </div>
           </article>
         <?php endforeach; ?>
       </div>
     <?php else: ?>
-      <div class="max-w-[1120px] mx-auto text-center px-6 py-16 md:py-20 border border-dashed border-slate-700 rounded-3xl text-slate-400 text-sm md:text-base font-semibold">
+      <div class="max-w-[1120px] mx-auto text-center px-6 py-16 md:py-20 border border-dashed border-slate-200 rounded-3xl text-slate-400 text-sm md:text-base font-semibold">
         Video testimonials will appear here when approved video records are published from the administration portal.
       </div>
     <?php endif; ?>
@@ -115,7 +115,7 @@ $gradients = [
       <div class="max-w-2xl mx-auto space-y-4 text-center mb-16">
         <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Proven Outcomes</span>
         <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-950">Student Success Stories</h2>
-        <p class="text-slate-500 text-sm font-medium leading-relaxed max-w-lg mx-auto">Read how Dazu Hub alumni launched their high-growth technology careers right here in Thika.</p>
+        <p class="text-slate-500 text-sm font-medium leading-relaxed max-w-lg mx-auto">Read how Dazu Training Institute alumni launched high-growth technology careers through our Nairobi, Thika, and online learning paths.</p>
       </div>
 
       <div class="max-w-[1120px] mx-auto" id="dazu-text-testimonials">

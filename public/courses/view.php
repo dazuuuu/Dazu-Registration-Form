@@ -56,12 +56,12 @@ if (!course_is_shareable($course)) {
     exit;
 }
 
-$page_title = ($course['title'] ?? 'Course') . ' — Apply | Dazu hub Institute';
+$page_title = ($course['title'] ?? 'Course') . ' — Apply | Dazu Training Institute';
 $page_description = mb_strimwidth(strip_tags($course['overview'] ?? $course['description'] ?? ''), 0, 160, '…');
 $og_image = course_og_image_url($course);
 $og_url = course_share_url((int) $course['id']);
 $share_url = $og_url;
-$share_title = 'Apply for ' . $course['title'] . ' at Dazu hub Institute';
+$share_title = 'Apply for ' . $course['title'] . ' at Dazu Training Institute';
 
 require_once __DIR__ . '/../../app/v1/helpers/seo.php';
 if (seo_is_social_crawler() && $_SERVER['REQUEST_METHOD'] !== 'POST') {

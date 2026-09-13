@@ -11,7 +11,7 @@ $logoPath = url('assets/images/logo/logo.png');
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title><?php echo htmlspecialchars($page_title ?? 'Dazu Hub Institute'); ?></title>
+<title><?php echo htmlspecialchars($page_title ?? 'Dazu Training Institute'); ?></title>
 <meta name="description" content="<?php echo htmlspecialchars($page_description ?? ''); ?>">
 <?php
 require_once __DIR__ . '/../../../app/v1/helpers/seo.php';
@@ -19,7 +19,7 @@ if (empty($og_image)) {
     $og_image = seo_public_preview_image($page_key ?? null);
 }
 echo seo_head_tags(
-    (string) ($page_title ?? 'Dazu Hub Institute'),
+    (string) ($page_title ?? 'Dazu Training Institute'),
     (string) ($page_description ?? ''),
     $og_image ?? null
 );
@@ -38,10 +38,10 @@ echo seo_head_tags(
 
 <header class="dh-standalone-header">
     <div class="dh-container dh-standalone-header-inner">
-        <a href="<?php echo url('/'); ?>" class="dh-brand" aria-label="Dazu Hub Institute">
-            <img src="<?php echo $logoPath; ?>" alt="Dazu Hub" class="dh-brand-logo" height="40"
+        <a href="<?php echo url('/'); ?>" class="dh-brand" aria-label="Dazu Training Institute">
+            <img src="<?php echo $logoPath; ?>" alt="Dazu Training Institute" class="dh-brand-logo" height="40"
                  onerror="this.style.display='none';this.nextElementSibling.style.display='inline';">
-            <span class="dh-brand-name" style="display:none;">Dazu <strong>Hub</strong></span>
+            <span class="dh-brand-name" style="display:none;">Dazu <strong>Training Institute</strong></span>
         </a>
         <div class="dh-standalone-actions">
             <button class="dh-theme-btn" id="dhThemeToggle" aria-label="Toggle theme">
@@ -59,7 +59,7 @@ echo seo_head_tags(
 
 <footer class="dh-standalone-footer">
     <div class="dh-container">
-        <small>&copy; <?php echo date('Y'); ?> Dazu Hub Institute · <a href="<?php echo url('/'); ?>">dazuhub.ac.ke</a></small>
+        <small>&copy; <?php echo date('Y'); ?> Dazu Training Institute · <a href="<?php echo url('/'); ?>">dazuhub.ac.ke</a></small>
     </div>
 </footer>
 

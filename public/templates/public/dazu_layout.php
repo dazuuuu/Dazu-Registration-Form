@@ -32,12 +32,12 @@ if (!function_exists('dazu_asset_v')) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?php echo htmlspecialchars($page_title ?? 'Dazu hub Institute'); ?></title>
-  <meta name="description" content="<?php echo htmlspecialchars($page_description ?? 'Practical tech training in Thika Town — software, cybersecurity, data analytics and AI.'); ?>">
+  <title><?php echo htmlspecialchars($page_title ?? 'Dazu Training Institute'); ?></title>
+  <meta name="description" content="<?php echo htmlspecialchars($page_description ?? 'Practical tech training in Nairobi, Thika and online — software, cybersecurity, data analytics and AI.'); ?>">
   <?php
     require_once __DIR__ . '/../../../app/v1/helpers/seo.php';
     require_once __DIR__ . '/../../../app/v1/helpers/site_logo.php';
-    if (!empty($course) && is_array($course)) {
+    if (empty($og_image) && !empty($course) && is_array($course)) {
         $og_image = course_og_image_url($course);
         if (empty($page_description)) {
             $page_description = mb_strimwidth(strip_tags((string) ($course['overview'] ?? $course['description'] ?? '')), 0, 160, '…');
@@ -47,7 +47,7 @@ if (!function_exists('dazu_asset_v')) {
         $og_image = seo_public_preview_image($page_key ?? null);
     }
     echo seo_head_tags(
-        html_entity_decode((string) ($page_title ?? 'Dazu hub Institute'), ENT_QUOTES, 'UTF-8'),
+        html_entity_decode((string) ($page_title ?? 'Dazu Training Institute'), ENT_QUOTES, 'UTF-8'),
         (string) ($page_description ?? ''),
         $og_image ?? null,
         $og_url ?? null

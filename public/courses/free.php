@@ -1,7 +1,7 @@
 <?php
 // public/courses/free.php — same layout as courses/index.php, filtered to is_free courses.
-$page_title = 'Free Courses — Dazu hub Institute';
-$page_description = 'Free technology courses at Dazu hub Institute — no payment required, just apply.';
+$page_title = 'Free Courses — Dazu Training Institute';
+$page_description = 'Free technology courses at Dazu Training Institute — no payment required, just apply.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';

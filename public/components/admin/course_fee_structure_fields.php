@@ -83,6 +83,18 @@ $blocks = [
   function fmt(n) { return 'KSh ' + Math.round(n).toLocaleString('en-KE'); }
   var feeInput = document.querySelector('input[name="course_fee"]');
   var semesterInput = document.querySelector('input[name="semester_count"]');
+  var durationInput = document.querySelector('input[name="duration_months"]');
+  if (durationInput && semesterInput) {
+    durationInput.addEventListener('input', function() {
+      var m = parseInt(durationInput.value, 10);
+      if (!isNaN(m) && m >= 3) {
+        semesterInput.value = Math.round(m / 3);
+      } else if (!isNaN(m) && m <= 1) {
+        semesterInput.value = 1;
+      }
+      syncCourseFee();
+    });
+  }
   function semesters() {
     var v = semesterInput ? parseInt(semesterInput.value, 10) : 0;
     return v > 0 ? v : 1;

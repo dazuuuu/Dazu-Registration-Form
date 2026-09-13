@@ -232,7 +232,7 @@ $contactMapEmbed = $settings->get('contact_map_embed', '');
 $contactMapLink = $settings->get('contact_map_link', '');
 $contactMapTitle = $settings->get('contact_map_title', 'Witeithie House, Thika');
 $contactMapSubtitle = $settings->get('contact_map_subtitle', 'Room 529 (5th Floor)');
-$contactMapBlurb = $settings->get('contact_map_blurb', 'Located directly within Thika Town, near principal transport stages, making daily commutes seamless for local students.');
+$contactMapBlurb = $settings->get('contact_map_blurb', 'Visit our Thika campus for physical labs, or contact admissions for Nairobi classes and online learning options.');
 $classScheduleOnline = $settings->get('class_schedule_online', '8am, 12pm, 6pm');
 $classSchedulePhysical = $settings->get('class_schedule_physical', '5am');
 $classScheduleNote = $settings->get('class_schedule_note', '');
@@ -362,66 +362,66 @@ ob_start();
 
   <?php /* ============================ HERO ============================ */ ?>
   <?php if ($section === 'hero'): ?>
-    <form class="panel" method="POST" enctype="multipart/form-data">
-      <?php echo csrf_field(); ?>
-      <input type="hidden" name="action" value="add_hero">
-      <h2>Add a hero slide</h2>
-      <p class="hint">These slides appear in the homepage hero carousel. Upload an image or video; both use the same layout.</p>
-
-      <div class="field">
-        <label>Media</label>
-        <div class="file-drop">
-          <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-          <input type="file" name="media" accept="image/*,video/mp4,video/webm,video/quicktime" required>
-        </div>
-      </div>
-      <div class="row">
-        <div class="field" style="margin:0;">
-          <label>Media caption / alt text <span class="text-muted small">(optional)</span></label>
-          <input type="text" name="caption" placeholder="e.g. Student working in the lab">
-        </div>
-        <div class="field" style="margin:0;">
-          <label>Order</label>
-          <input type="number" name="sort_order" value="0">
-        </div>
-      </div>
-      <div class="divider"></div>
-      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-plus"></i> Add slide</button>
-    </form>
-
     <div class="panel">
-      <h2>Current slides</h2>
-      <p class="hint">Uncheck “Active” to hide a slide without deleting it.</p>
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <div>
+          <h2>Homepage Hero Slides</h2>
+          <p class="hint mb-1">Manage the hero slides appearing on the homepage opening section. The first active slide (Order 0) is your main opening hero image.</p>
+        </div>
+      </div>
+      <div class="p-2 mb-3 rounded bg-light border text-muted small d-flex align-items-center gap-2">
+        <i class="fa-solid fa-bolt text-success"></i>
+        <span><strong>Speed Optimization:</strong> All uploaded photos are automatically downscaled and converted to ultra-lightweight WebP format to ensure rapid page loads.</span>
+      </div>
+
       <?php if (empty($heroSlides)): ?>
         <p class="empty">No slides yet. The homepage will use its built-in fallback images until you add some.</p>
       <?php else: ?>
-        <?php foreach ($heroSlides as $s): ?>
+        <?php foreach ($heroSlides as $idx => $s): ?>
           <?php
             $slideExt = strtolower(pathinfo(parse_url((string) ($s['image_path'] ?? ''), PHP_URL_PATH) ?: (string) ($s['image_path'] ?? ''), PATHINFO_EXTENSION));
             $slideType = (($s['media_type'] ?? '') === 'video' || in_array($slideExt, ['mp4', 'webm', 'mov'], true)) ? 'video' : 'image';
+            $isPrimary = ($idx === 0);
           ?>
-          <div class="slide">
-            <?php if ($slideType === 'video'): ?>
-              <video src="<?php echo htmlspecialchars(settings_asset_url($s['image_path'])); ?>" muted playsinline style="width:120px;height:74px;object-fit:cover;border-radius:8px;"></video>
-            <?php else: ?>
-              <img src="<?php echo htmlspecialchars(settings_asset_url($s['image_path'])); ?>" alt="">
-            <?php endif; ?>
+          <div class="slide" style="<?php echo $isPrimary ? 'border: 2px solid #15A24A; background: #fcfdfc;' : ''; ?>">
+            <div style="position:relative;">
+              <?php if ($slideType === 'video'): ?>
+                <video src="<?php echo htmlspecialchars(settings_asset_url($s['image_path'])); ?>" muted playsinline style="width:120px;height:74px;object-fit:cover;border-radius:8px;"></video>
+              <?php else: ?>
+                <img src="<?php echo htmlspecialchars(settings_asset_url($s['image_path'])); ?>" alt="" style="width:120px;height:74px;object-fit:cover;border-radius:8px;">
+              <?php endif; ?>
+              <?php if ($isPrimary): ?>
+                <span class="badge bg-success" style="position:absolute;top:-8px;left:-6px;font-size:0.65rem;box-shadow:0 2px 4px rgba(0,0,0,0.15);">Main Hero</span>
+              <?php endif; ?>
+            </div>
             <form method="POST" enctype="multipart/form-data" class="meta">
               <?php echo csrf_field(); ?>
               <input type="hidden" name="action" value="update_hero">
               <input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>">
               <input type="hidden" name="media_type" value="<?php echo htmlspecialchars($slideType); ?>">
+
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <span class="small fw-bold text-dark">
+                  <?php echo $isPrimary ? '🌟 Primary Homepage Slide (Opens First)' : 'Slide ' . ($idx + 1) . ' (Carousel)'; ?>
+                </span>
+                <label class="chk mb-0"><input type="checkbox" name="is_active" <?php echo $s['is_active'] ? 'checked' : ''; ?>> Active</label>
+              </div>
+
               <div class="inline">
-                <input type="text" name="caption" value="<?php echo htmlspecialchars($s['caption'] ?? ''); ?>" placeholder="Media caption / alt text">
-                <input type="number" name="sort_order" value="<?php echo (int) $s['sort_order']; ?>" title="Order">
-                <label class="chk"><input type="checkbox" name="is_active" <?php echo $s['is_active'] ? 'checked' : ''; ?>> Active</label>
+                <input type="text" name="caption" value="<?php echo htmlspecialchars($s['caption'] ?? ''); ?>" placeholder="Alt text / Caption (e.g. Student working on laptop)">
+                <input type="number" name="sort_order" value="<?php echo (int) $s['sort_order']; ?>" title="Order (0 = first)" style="width:80px;">
               </div>
-              <div class="file-drop" style="padding:10px;">
-                <i class="fa-solid fa-repeat" style="color:var(--brand-sky);"></i>
-                <input type="file" name="media" accept="image/*,video/mp4,video/webm,video/quicktime">
+
+              <div class="file-drop" style="padding:10px 14px;">
+                <i class="fa-solid fa-cloud-arrow-up" style="color:var(--brand-primary, #15A24A);font-size:1.1rem;"></i>
+                <div style="flex:1;">
+                  <div class="small fw-semibold text-dark">Replace image/video:</div>
+                  <input type="file" name="media" accept="image/*,video/mp4,video/webm,video/quicktime" style="width:100%;">
+                </div>
               </div>
-              <div>
-                <button class="btn btn-ghost" type="submit"><i class="fa-solid fa-rotate"></i> Update</button>
+
+              <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-primary btn-sm" type="submit"><i class="fa-solid fa-check"></i> Save Slide Changes</button>
               </div>
             </form>
             <div class="actions">
@@ -429,13 +429,40 @@ ob_start();
                 <?php echo csrf_field(); ?>
                 <input type="hidden" name="action" value="delete_hero">
                 <input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>">
-                <button class="btn btn-danger" type="submit"><i class="fa-solid fa-trash"></i></button>
+                <button class="btn btn-danger btn-sm" type="submit" title="Delete slide"><i class="fa-solid fa-trash"></i></button>
               </form>
             </div>
           </div>
         <?php endforeach; ?>
       <?php endif; ?>
     </div>
+
+    <form class="panel" method="POST" enctype="multipart/form-data">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="action" value="add_hero">
+      <h2>Add another hero slide</h2>
+      <p class="hint">Add a secondary slide to the homepage hero carousel. Upload an image or video.</p>
+
+      <div class="field">
+        <label>Media file</label>
+        <div class="file-drop">
+          <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-primary, #15A24A);"></i>
+          <input type="file" name="media" accept="image/*,video/mp4,video/webm,video/quicktime" required>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="margin:0;">
+          <label>Caption / alt text <span class="text-muted small">(optional)</span></label>
+          <input type="text" name="caption" placeholder="e.g. Students collaborating in campus lab">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Sort Order</label>
+          <input type="number" name="sort_order" value="<?php echo count($heroSlides); ?>">
+        </div>
+      </div>
+      <div class="divider"></div>
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-plus"></i> Add new slide</button>
+    </form>
   <?php endif; ?>
 
   <?php /* ========================= PAGE HEADERS ========================= */ ?>

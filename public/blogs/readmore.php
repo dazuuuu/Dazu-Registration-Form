@@ -71,7 +71,7 @@ function blog_youtube_id(string $url): string {
 
 $authorLabel = trim($blog['author_display'] ?? '');
 if ($authorLabel === '') {
-    $authorLabel = $blog['author_name'] ?? 'Dazu Hub';
+    $authorLabel = $blog['author_name'] ?? 'Dazu Training Institute';
 }
 
 $publishedRaw = $blog['published_at'] ?? $blog['created_at'] ?? null;
@@ -79,7 +79,7 @@ $publishedLabel = $publishedRaw ? date('F j, Y', strtotime($publishedRaw)) : '';
 $readMinutes = max(1, (int) ceil(str_word_count(strip_tags($blog['content'] ?? '')) / 200));
 $views = (int) ($blog['view_count'] ?? 0);
 
-$page_title = ($blog['meta_title'] ?? $blog['title']) . ' — Dazu hub Institute';
+$page_title = ($blog['meta_title'] ?? $blog['title']) . ' — Dazu Training Institute';
 $page_description = $blog['meta_description'] ?? mb_strimwidth(strip_tags($blog['excerpt'] ?? $blog['content'] ?? ''), 0, 160, '…');
 
 $shareUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http')
@@ -340,7 +340,7 @@ ob_start();
 
           <div class="p-6 bg-[#15A24A] rounded-2xl text-white">
             <p class="text-sm font-extrabold leading-snug">Ready to start your tech career?</p>
-            <p class="text-xs text-green-100 mt-2 font-medium">Explore our hands-on courses at Dazu Hub, Thika Town.</p>
+            <p class="text-xs text-green-100 mt-2 font-medium">Explore our hands-on courses in Nairobi, Thika, and online.</p>
             <a href="<?php echo url('courses/index.php'); ?>" class="mt-4 inline-block w-full text-center py-3 bg-white text-[#15A24A] text-xs font-extrabold uppercase tracking-wider rounded-lg hover:bg-green-50">
               View Courses →
             </a>

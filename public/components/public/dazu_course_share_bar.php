@@ -1,7 +1,7 @@
 <?php
 /** Share bar — requires $share_url, $share_title. Optional $course for preview text. */
 $shareUrl = $share_url ?? '';
-$shareTitle = $share_title ?? 'Dazu hub Institute Course';
+$shareTitle = $share_title ?? 'Dazu Training Institute Course';
 $inputId = $input_id ?? 'dazuShareUrl';
 $shareCourse = $course ?? [];
 if (!function_exists('course_share_invite_text')) {

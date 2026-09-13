@@ -48,7 +48,7 @@ if (!function_exists('seo_image_url')) {
 if (!function_exists('seo_head_tags')) {
     function seo_head_tags(?string $title, ?string $description, ?string $image = null, ?string $url = null): string
     {
-        $title = $title !== null && $title !== '' ? $title : 'Dazu hub Institute';
+        $title = $title !== null && $title !== '' ? $title : 'Dazu Training Institute';
         $description = $description !== null && $description !== ''
             ? $description
             : 'Practical tech training in Thika Town — software, cybersecurity, data analytics and AI.';
@@ -61,7 +61,7 @@ if (!function_exists('seo_head_tags')) {
 
         return
             '<link rel="canonical" href="' . $e($url) . '">' . "\n"
-            . '<meta property="og:site_name" content="Dazu hub Institute">' . "\n"
+            . '<meta property="og:site_name" content="Dazu Training Institute">' . "\n"
             . '<meta property="og:type" content="website">' . "\n"
             . '<meta property="og:title" content="' . $e($title) . '">' . "\n"
             . '<meta property="og:description" content="' . $e($description) . '">' . "\n"
@@ -78,6 +78,86 @@ if (!function_exists('seo_head_tags')) {
             . '<meta name="twitter:image" content="' . $e($image) . '">' . "\n"
             . '<link rel="image_src" href="' . $e($image) . '">' . "\n"
             . '<meta itemprop="image" content="' . $e($image) . '">' . "\n";
+    }
+}
+
+if (!function_exists('seo_page_key_from_request')) {
+    function seo_page_key_from_request(): string
+    {
+        $path = trim(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/', '/');
+        $path = preg_replace('#/index\.php$#', '', $path) ?: '';
+        $first = explode('/', $path)[0] ?? '';
+        return $first === '' ? 'home' : strtolower((string) $first);
+    }
+}
+
+if (!function_exists('seo_home_hero_image')) {
+    function seo_home_hero_image(): ?string
+    {
+        try {
+            if (!class_exists('SettingModel')) {
+                require_once __DIR__ . '/../models/SettingModel.php';
+            }
+            if (!function_exists('settings_asset_url')) {
+                require_once __DIR__ . '/uploads.php';
+            }
+            global $pdo;
+            if (!isset($pdo) || !$pdo instanceof PDO) {
+                require_once __DIR__ . '/../config/db_connect.php';
+            }
+            if (!isset($pdo) || !$pdo instanceof PDO) {
+                return null;
+            }
+            $slides = (new SettingModel($pdo))->getHeroSlides(true);
+            foreach ($slides as $slide) {
+                $path = trim((string) ($slide['image_path'] ?? ''));
+                $ext = strtolower(pathinfo(parse_url($path, PHP_URL_PATH) ?: $path, PATHINFO_EXTENSION));
+                $isVideo = (($slide['media_type'] ?? '') === 'video') || in_array($ext, ['mp4', 'webm', 'mov'], true);
+                if ($path !== '' && !$isVideo) {
+                    return seo_image_url(settings_asset_url($path));
+                }
+            }
+        } catch (Throwable $e) {
+            return null;
+        }
+        return null;
+    }
+}
+
+if (!function_exists('seo_page_header_image')) {
+    function seo_page_header_image(string $pageKey): ?string
+    {
+        try {
+            if (!class_exists('SettingModel')) {
+                require_once __DIR__ . '/../models/SettingModel.php';
+            }
+            if (!function_exists('settings_asset_url')) {
+                require_once __DIR__ . '/uploads.php';
+            }
+            global $pdo;
+            if (!isset($pdo) || !$pdo instanceof PDO) {
+                require_once __DIR__ . '/../config/db_connect.php';
+            }
+            if (!isset($pdo) || !$pdo instanceof PDO) {
+                return null;
+            }
+            $header = (new SettingModel($pdo))->getPageHeader($pageKey);
+            $image = trim((string) ($header['image_path'] ?? ''));
+            return $image !== '' ? seo_image_url(settings_asset_url($image)) : null;
+        } catch (Throwable $e) {
+            return null;
+        }
+    }
+}
+
+if (!function_exists('seo_public_preview_image')) {
+    function seo_public_preview_image(?string $pageKey = null): ?string
+    {
+        $pageKey = $pageKey !== null && $pageKey !== '' ? $pageKey : seo_page_key_from_request();
+        if ($pageKey === 'home') {
+            return seo_home_hero_image();
+        }
+        return seo_page_header_image($pageKey);
     }
 }
 
@@ -99,10 +179,10 @@ if (!function_exists('seo_emit_course_share_preview')) {
     /** Minimal HTML for WhatsApp/Facebook crawlers so the preview card always has cover + title + description. */
     function seo_emit_course_share_preview(array $course, string $url): void
     {
-        $title = trim((string) ($course['title'] ?? 'Dazu hub Institute')) . ' — Dazu hub Institute';
+        $title = trim((string) ($course['title'] ?? 'Dazu Training Institute')) . ' — Dazu Training Institute';
         $description = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($course['overview'] ?? $course['description'] ?? ''))));
         if ($description === '') {
-            $description = 'Apply for this course at Dazu hub Institute, Thika Town.';
+            $description = 'Apply for this course at Dazu Training Institute, Thika Town.';
         }
         if (function_exists('mb_strimwidth')) {
             $description = mb_strimwidth($description, 0, 180, '…');

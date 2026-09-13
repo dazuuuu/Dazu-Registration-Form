@@ -48,7 +48,7 @@ if (!function_exists('seo_image_url')) {
 if (!function_exists('seo_head_tags')) {
     function seo_head_tags(?string $title, ?string $description, ?string $image = null, ?string $url = null): string
     {
-        $title = $title !== null && $title !== '' ? $title : 'Dazu hub Institute';
+        $title = $title !== null && $title !== '' ? $title : 'Dazu Training Institute';
         $description = $description !== null && $description !== ''
             ? $description
             : 'Practical tech training in Thika Town — software, cybersecurity, data analytics and AI.';
@@ -61,7 +61,7 @@ if (!function_exists('seo_head_tags')) {
 
         return
             '<link rel="canonical" href="' . $e($url) . '">' . "\n"
-            . '<meta property="og:site_name" content="Dazu hub Institute">' . "\n"
+            . '<meta property="og:site_name" content="Dazu Training Institute">' . "\n"
             . '<meta property="og:type" content="website">' . "\n"
             . '<meta property="og:title" content="' . $e($title) . '">' . "\n"
             . '<meta property="og:description" content="' . $e($description) . '">' . "\n"
@@ -179,10 +179,10 @@ if (!function_exists('seo_emit_course_share_preview')) {
     /** Minimal HTML for WhatsApp/Facebook crawlers so the preview card always has cover + title + description. */
     function seo_emit_course_share_preview(array $course, string $url): void
     {
-        $title = trim((string) ($course['title'] ?? 'Dazu hub Institute')) . ' — Dazu hub Institute';
+        $title = trim((string) ($course['title'] ?? 'Dazu Training Institute')) . ' — Dazu Training Institute';
         $description = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($course['overview'] ?? $course['description'] ?? ''))));
         if ($description === '') {
-            $description = 'Apply for this course at Dazu hub Institute, Thika Town.';
+            $description = 'Apply for this course at Dazu Training Institute, Thika Town.';
         }
         if (function_exists('mb_strimwidth')) {
             $description = mb_strimwidth($description, 0, 180, '…');

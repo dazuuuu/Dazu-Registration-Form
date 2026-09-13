@@ -218,7 +218,7 @@ ob_start();
         <p class="text-muted small mb-3">Invite friends to join <strong><?php echo htmlspecialchars($reg['course_title']); ?></strong>. They'll see the course details and can register directly.</p>
         <?php
         $share_url = course_share_url((int) $reg['course_id'], $reg['registration_no'] ?? null);
-        $share_title = 'Join me at Dazu Hub — ' . ($reg['course_title'] ?? 'tech course');
+        $share_title = 'Join me at Dazu Training Institute — ' . ($reg['course_title'] ?? 'tech course');
         $input_id = 'studentCourseShare';
         ?>
         <div class="input-group mb-2">

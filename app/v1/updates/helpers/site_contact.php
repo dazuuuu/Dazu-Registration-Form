@@ -19,8 +19,8 @@ if (!function_exists('site_contact_settings')) {
             'contact_map_link' => '',
             'contact_map_title' => 'Witeithie House, Thika',
             'contact_map_subtitle' => 'Room 529 (5th Floor)',
-            'contact_map_blurb' => 'Located directly within Thika Town, near principal transport stages, making daily commutes seamless for local students.',
-            'site_name' => 'Dazu Hub Institute',
+            'contact_map_blurb' => 'Visit our Thika campus for physical labs, or contact admissions for Nairobi classes and online learning options.',
+            'site_name' => 'Dazu Training Institute',
         ];
 
         try {

@@ -81,9 +81,9 @@ if (!empty($_GET['applied']) && enrolment_offer_consume_show()) {
     $enrolment_offer_email = (string) ($offer['email'] ?? '');
 }
 
-$page_title = ($course['title'] ?? 'Course') . ' — Register | Dazu hub Institute';
+$page_title = ($course['title'] ?? 'Course') . ' — Register | Dazu Training Institute';
 $share_url = course_share_url((int) $course['id'], $referralNo);
-$share_title = 'Join me at Dazu hub — ' . $course['title'];
+$share_title = 'Join me at Dazu Training Institute — ' . $course['title'];
 $og_image = course_og_image_url($course);
 $og_url = $share_url;
 $page_description = mb_strimwidth(strip_tags($course['overview'] ?? $course['description'] ?? ''), 0, 160, '…');
@@ -99,7 +99,7 @@ ob_start();
   <div class="max-w-[1280px] mx-auto px-4 md:px-8">
     <a href="<?php echo url('/'); ?>" class="mb-8 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-500 hover:text-green-600">
       <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-      Dazu hub Institute
+      Dazu Training Institute
     </a>
 
     <?php $input_id = 'shareUrlMain'; include __DIR__ . '/../components/public/dazu_course_share_bar.php'; ?>

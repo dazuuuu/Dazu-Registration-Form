@@ -495,6 +495,30 @@ class SmsModuleService
             ]);
         }
 
+        $targetUserId = (int) ($existing['user_id'] ?? 0);
+        if ($targetUserId <= 0 && !empty($existing['registration_id'])) {
+            $uStmt = $this->pdo->prepare('SELECT user_id FROM registrations WHERE id = :id LIMIT 1');
+            $uStmt->execute([':id' => (int) $existing['registration_id']]);
+            $targetUserId = (int) $uStmt->fetchColumn();
+        }
+        if ($targetUserId > 0) {
+            $userEmail = trim($data['email'] ?? '') ?: null;
+            if ($userEmail) {
+                try {
+                    $this->pdo->prepare('UPDATE users SET email = :email WHERE id = :uid')->execute([':email' => $userEmail, ':uid' => $targetUserId]);
+                } catch (\Throwable $e) {}
+            }
+            $nameParts = explode(' ', trim($data['name']), 2);
+            try {
+                $this->pdo->prepare('UPDATE user_profiles SET first_name = :fn, last_name = :ln, phone = :phone WHERE user_id = :uid')->execute([
+                    ':fn' => $nameParts[0],
+                    ':ln' => $nameParts[1] ?? '',
+                    ':phone' => trim($data['phone'] ?? '') ?: null,
+                    ':uid' => $targetUserId,
+                ]);
+            } catch (\Throwable $e) {}
+        }
+
         $student = $this->getStudent($id);
         $delta = round($newPaid - $oldPaid, 2);
         if ($delta > 0) {
@@ -589,12 +613,21 @@ class SmsModuleService
         }
 
         $notifier = new StudentNotifier($this->pdo, null, true);
-        $result = $notifier->sendCredentials([
+        $reg = [
+            'id' => $student['registration_id'] ?? $student['id'] ?? null,
+            'registration_id' => $student['registration_id'] ?? null,
             'email' => $email,
+            'student_email' => $email,
+            'login_email' => $email,
             'full_name' => $student['name'],
+            'phone' => $student['phone'] ?? '',
             'registration_no' => $regNo,
+            'course_id' => $student['course_id'] ?? null,
             'course_title' => $student['course_title'] ?? '',
-        ], $tempPassword);
+            'username' => $regNo,
+            'temp_password' => $tempPassword,
+        ];
+        $result = $notifier->sendCredentials($reg, $tempPassword);
 
         if (empty($result['ok'])) {
             return [
@@ -606,6 +639,112 @@ class SmsModuleService
         $this->log('credentials_resent', 'Resent login credentials to ' . $email, 'student', $id);
 
         return ['ok' => true, 'email' => $email];
+    }
+
+    public function emailStudentAdmission(int $id): array
+    {
+        $student = $this->getStudent($id);
+        if (!$student) {
+            return ['ok' => false, 'error' => 'Student not found.'];
+        }
+        $email = strtolower(trim($student['email'] ?? ''));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'error' => 'Add a valid student email address first.'];
+        }
+
+        $regNo = trim($student['registration_no'] ?? '');
+        if ($regNo === '' || str_starts_with($regNo, 'SMS-')) {
+            $regNo = 'DH' . str_pad((string)($student['id'] ?? 1), 3, '0', STR_PAD_LEFT) . '/' . date('y');
+        }
+
+        $reg = [
+            'id' => $student['registration_id'] ?? $student['id'] ?? null,
+            'registration_id' => $student['registration_id'] ?? null,
+            'email' => $email,
+            'student_email' => $email,
+            'login_email' => $email,
+            'full_name' => $student['name'],
+            'phone' => $student['phone'] ?? '',
+            'registration_no' => $regNo,
+            'course_id' => $student['course_id'] ?? null,
+            'course_title' => $student['course_title'] ?? '',
+            'username' => $regNo,
+        ];
+
+        $notifier = new StudentNotifier($this->pdo, null, true);
+        $result = $notifier->sendAdmissionLetter($reg);
+        if (empty($result['ok'])) {
+            return ['ok' => false, 'error' => 'Could not email admission letter: ' . ($result['message'] ?? 'Check SMTP settings.')];
+        }
+
+        $this->log('admission_emailed', 'Emailed admission letter and fee structure to ' . $email, 'student', $id);
+        return ['ok' => true, 'email' => $email];
+    }
+
+    public function emailStudentDocumentsPack(int $id): array
+    {
+        $student = $this->getStudent($id);
+        if (!$student) {
+            return ['ok' => false, 'error' => 'Student not found.'];
+        }
+        $email = strtolower(trim($student['email'] ?? ''));
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'error' => 'Add a valid student email address first.'];
+        }
+
+        $regNo = trim($student['registration_no'] ?? '');
+        if ($regNo === '' || str_starts_with($regNo, 'SMS-')) {
+            $regNo = 'DH' . str_pad((string)($student['id'] ?? 1), 3, '0', STR_PAD_LEFT) . '/' . date('y');
+        }
+
+        $reg = [
+            'id' => $student['registration_id'] ?? $student['id'] ?? null,
+            'registration_id' => $student['registration_id'] ?? null,
+            'email' => $email,
+            'student_email' => $email,
+            'login_email' => $email,
+            'full_name' => $student['name'],
+            'phone' => $student['phone'] ?? '',
+            'registration_no' => $regNo,
+            'course_id' => $student['course_id'] ?? null,
+            'course_title' => $student['course_title'] ?? '',
+            'username' => $regNo,
+            'study_mode' => $student['study_mode'] ?? 'online',
+            'duration' => $student['duration'] ?? '',
+            'cost' => $student['cost'] ?? 0,
+        ];
+
+        $notifier = new StudentNotifier($this->pdo, null, true);
+        $result = $notifier->sendStudentDocumentsPack($reg);
+        if (empty($result['ok'])) {
+            return ['ok' => false, 'error' => 'Could not email student documents: ' . ($result['message'] ?? 'Check SMTP settings.')];
+        }
+
+        $this->log('documents_pack_emailed', 'Emailed complete documents pack (admission letter, fee structure & brochure) to ' . $email, 'student', $id);
+        return ['ok' => true, 'email' => $email];
+    }
+
+    public function emailLatestReceipt(int $studentId, string $emailTo = 'student'): array
+    {
+        $student = $this->getStudent($studentId);
+        if (!$student) {
+            return ['ok' => false, 'error' => 'Student not found.'];
+        }
+        $receipts = $this->studentReceipts($studentId);
+        if (empty($receipts)) {
+            return ['ok' => false, 'error' => 'No receipts found for this student.'];
+        }
+        $latest = $receipts[0];
+        $targetEmail = $emailTo === 'parent' ? ($student['parent_email'] ?? '') : ($student['email'] ?? '');
+        if (empty($targetEmail) || !filter_var($targetEmail, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'error' => "A valid {$emailTo} email address is required to send receipt."];
+        }
+        $sent = $this->emailReceipt($student, $latest, false, $targetEmail);
+        return [
+            'ok' => (bool) $sent,
+            'email' => $targetEmail,
+            'receipt_no' => $latest['receipt_no'],
+        ];
     }
 
     /**
@@ -952,7 +1091,7 @@ class SmsModuleService
         .footer{margin-top:24px;padding-top:14px;border-top:1px solid #111;font-size:11px;color:#333;text-align:center}
         </style></head><body><div class="wrap">
         <div class="head">' . $logo . '
-        <h1>' . htmlspecialchars($co['company_name'] ?? 'Dazu Hub Institute') . '</h1>';
+        <h1>' . htmlspecialchars($co['company_name'] ?? 'Dazu Training Institute') . '</h1>';
         if (!empty($co['phone'])) {
             $html .= '<p>' . htmlspecialchars($co['phone']) . '</p>';
         }
@@ -1075,49 +1214,87 @@ class SmsModuleService
     {
         if (!empty($this->studentCredentials['temp_password']) && !empty($student['email'])) {
             $notifier = new StudentNotifier($this->pdo, null, true);
+            $regNo = $this->studentCredentials['username'] ?? ($student['registration_no'] ?? '');
+            if ($regNo === '' || str_starts_with($regNo, 'SMS-')) {
+                $regNo = 'DH' . str_pad((string)($student['id'] ?? 1), 3, '0', STR_PAD_LEFT) . '/' . date('y');
+            }
+            $tempPassword = $this->studentCredentials['temp_password'] ?? '';
             $reg = [
+                'id' => $student['registration_id'] ?? $student['id'] ?? null,
+                'registration_id' => $student['registration_id'] ?? null,
                 'email' => $student['email'],
+                'student_email' => $student['email'],
+                'login_email' => $student['email'],
                 'full_name' => $student['name'],
-                'registration_no' => $this->studentCredentials['username'] ?? ($student['registration_no'] ?? ('SMS-' . $student['id'])),
+                'phone' => $student['phone'] ?? '',
+                'registration_no' => $regNo,
+                'course_id' => $student['course_id'] ?? null,
                 'course_title' => $student['course_title'] ?? '',
+                'username' => $regNo,
+                'temp_password' => $tempPassword,
             ];
-            $result = $notifier->sendCredentials($reg, $this->studentCredentials['temp_password']);
+            $result = $notifier->sendRegistrationApproved($reg, $tempPassword);
             if (!empty($result['ok'])) {
-                $this->log('credentials_emailed', 'Emailed login credentials to ' . $student['email'], 'student', (int) $student['id']);
+                $this->log('credentials_emailed', 'Emailed admission letter and credentials to ' . $student['email'], 'student', (int) $student['id']);
             } else {
                 error_log('[SmsModule] credentials email failed for ' . $student['email'] . ': ' . ($result['message'] ?? 'unknown'));
             }
         }
-        $this->emailReceipt($student, $receipt, true);
         if (!empty($student['parent_email'])) {
             $this->emailReceipt($student, $receipt, false, $student['parent_email'], $student['name'] . ' (parent)');
         }
     }
 
-    public function emailReceipt(array $student, array $receipt, bool $isOnboarding = false, ?string $toEmail = null, ?string $toName = null): void
+    public function emailReceipt(array $student, array $receipt, bool $isOnboarding = false, ?string $toEmail = null, ?string $toName = null): bool
     {
         $email = $toEmail ?: ($student['email'] ?? '');
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            return;
+            return false;
         }
         $cfg = require __DIR__ . '/../config/mail.php';
         if (empty($cfg['enquiry_mail_enabled']) && empty($cfg['enabled']) && empty($cfg['password_reset_enabled'])) {
             error_log('[SmsModule] mail skipped — SMTP not enabled');
-            return;
+            return false;
         }
         $sendCfg = $cfg;
         $sendCfg['enabled'] = true;
+        require_once __DIR__ . '/Mailer.php';
         $mailer = new Mailer($sendCfg);
-        $subject = ($receipt['receipt_type'] ?? 'receipt') === 'arrears' ? 'Fee arrears notice' : 'Payment receipt';
-        $subject .= ' — ' . ($receipt['receipt_no'] ?? '');
-        $body = '<p>Dear ' . htmlspecialchars($toName ?: $student['name']) . ',</p><p>Please find your ' . htmlspecialchars($subject) . ' attached.</p>';
+        $receiptNo = $receipt['receipt_no'] ?? '';
+        $recipientName = $toName ?: ($student['name'] ?? 'Student');
+        $subject = (($receipt['receipt_type'] ?? 'receipt') === 'arrears' ? 'Fee Arrears Notice' : 'Payment Receipt')
+            . ' — ' . $receiptNo . ' | Dazu Training Institute';
+
+        $body = '<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;color:#1e293b;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">'
+            . '<div style="background:#0f766e;padding:18px 20px;text-align:center;">'
+            . '<h2 style="color:#ffffff;margin:0;font-size:18px;font-weight:800;letter-spacing:0.5px;">DAZU TRAINING INSTITUTE</h2>'
+            . '<div style="color:#ccfbf1;font-size:10px;font-weight:700;letter-spacing:1px;margin-top:4px;">ACCOUNTS &amp; FINANCE OFFICE</div>'
+            . '</div>'
+            . '<div style="padding:22px 20px;">'
+            . '<p style="margin:0 0 12px;font-weight:700;color:#0f172a;font-size:14px;">Dear ' . htmlspecialchars($recipientName) . ',</p>'
+            . '<p style="margin:0 0 14px;line-height:1.6;color:#334155;font-size:13px;">Please find attached your official payment receipt <strong>' . htmlspecialchars($receiptNo) . '</strong> from Dazu Training Institute.</p>'
+            . '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:12px 14px;margin-bottom:16px;font-size:12.5px;">'
+            . '<div style="margin-bottom:4px;"><strong>Student Name:</strong> ' . htmlspecialchars($student['name'] ?? '') . '</div>'
+            . '<div style="margin-bottom:4px;"><strong>Course:</strong> ' . htmlspecialchars($student['course_title'] ?? '—') . '</div>'
+            . '<div style="margin-bottom:4px;"><strong>Receipt Number:</strong> ' . htmlspecialchars($receiptNo) . '</div>'
+            . '<div><strong>Outstanding Balance:</strong> KES ' . number_format((float)($receipt['balance'] ?? 0), 2) . '</div>'
+            . '</div>'
+            . '<p style="margin:0 0 16px;line-height:1.5;color:#64748b;font-size:12px;">This is a system-generated official payment receipt. For any billing questions, contact accounts at 0722 922 454 or admissions@dazuhub.ac.ke.</p>'
+            . '<p style="margin:0;font-size:12.5px;color:#0f172a;font-weight:700;">Accounts &amp; Finance Office<br><span style="font-weight:400;color:#64748b;">Dazu Training Institute</span></p>'
+            . '</div>'
+            . '<div style="padding:10px 20px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:11px;text-align:center;">'
+            . 'Dazu Training Institute &bull; dazuhub.ac.ke'
+            . '</div>'
+            . '</div>';
+
         $file = $this->absoluteReceiptPath($receipt['file_path'] ?? '');
         if ($file && is_file($file)) {
-            $mailer->sendWithAttachment($email, $toName ?: $student['name'], $subject, $body, $file, basename($file));
+            $sent = $mailer->sendWithAttachment($email, $recipientName, $subject, $body, $file, basename($file));
         } else {
-            $mailer->send($email, $toName ?: $student['name'], $subject, $body);
+            $sent = $mailer->send($email, $recipientName, $subject, $body);
         }
-        $this->log('receipt_emailed', 'Emailed receipt to ' . $email, 'receipt', (int) ($receipt['id'] ?? 0));
+        $this->log('receipt_emailed', 'Emailed receipt ' . $receiptNo . ' to ' . $email, 'receipt', (int) ($receipt['id'] ?? 0));
+        return (bool) $sent;
     }
 
     public function whatsappUrl(string $phone, array $student, array $receipt = []): string
@@ -1249,8 +1426,8 @@ class SmsModuleService
         $sendCfg = $cfg;
         $sendCfg['enabled'] = true;
         $mailer = new Mailer($sendCfg);
-        $body = '<p>Hi ' . htmlspecialchars($p['name']) . ',</p><p>Thank you for your interest in Dazu Hub Institute. We will contact you soon.</p>';
-        $mailer->send($p['email'], $p['name'], 'Thanks for contacting Dazu Hub Institute', $body);
+        $body = '<p>Hi ' . htmlspecialchars($p['name']) . ',</p><p>Thank you for your interest in Dazu Training Institute. We will contact you soon.</p>';
+        $mailer->send($p['email'], $p['name'], 'Thanks for contacting Dazu Training Institute', $body);
     }
 
     public function runProspectReminders(): array

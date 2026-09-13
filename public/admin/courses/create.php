@@ -24,7 +24,7 @@ try {
 }
 
 $error = null;
-$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'requirements' => '', 'overview' => '', 'duration_months' => '', 'weeks_of_study' => '', 'days_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'semester_count' => '', 'course_fee' => '', 'category_id' => ''];
+$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'requirements' => '', 'overview' => '', 'duration_months' => '', 'weeks_of_study' => '', 'days_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'semester_count' => '', 'course_fee' => '', 'category_id' => '', 'show_on_homepage' => 0];
 $fee_modes = ['online' => [], 'physical' => []];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -82,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'is_free'         => false,
                 'cover_image'     => $coverPath,
                 'brochure_path'   => $brochurePath,
+                'show_on_homepage' => isset($_POST['show_on_homepage']) ? 1 : 0,
             ], SessionModel::get('user_id'));
 
             if ($result['ok']) {
@@ -198,6 +199,17 @@ ob_start();
                     <label class="form-label">Course brochure (PDF)</label>
                     <input type="file" name="brochure" class="form-control" accept="application/pdf">
                     <small class="text-muted">Optional. Students can download this from the course page.</small>
+                </div>
+
+                <div class="col-12">
+                    <div class="form-check form-switch p-3 bg-light rounded border">
+                        <input class="form-check-input" type="checkbox" name="show_on_homepage" id="show_on_homepage" value="1"
+                               <?php echo !empty($old['show_on_homepage']) ? 'checked' : ''; ?>>
+                        <label class="form-check-label fw-bold text-dark ms-2" for="show_on_homepage">
+                            <i class="fas fa-home text-primary me-1"></i> Show this course on the front-page (Homepage)
+                        </label>
+                        <div class="form-text text-muted ps-1">When enabled, this course is featured directly on the front-page. All other courses appear when visitors click "View All Courses".</div>
+                    </div>
                 </div>
 
                 <div class="col-12">

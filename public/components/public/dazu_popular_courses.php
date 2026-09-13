@@ -79,7 +79,7 @@ $showSearch = false;   // the homepage section is a showcase, not a search page
       </div>
     <?php endif; ?>
 
-    <div class="text-center mt-10">
+    <div class="text-center mt-12 mb-6" style="margin-top: 3.5rem; margin-bottom: 2rem;">
       <a href="<?php echo url('courses/index.php'); ?>"
          class="inline-flex items-center justify-center gap-2 rounded-full px-8 py-4 bg-[#15A24A] hover:bg-[#128a3e] text-white text-xs font-extrabold uppercase tracking-widest shadow-lg shadow-green-200 transition-all hover:-translate-y-0.5 focus:outline-none focus:ring-4 focus:ring-green-100">
         View All Courses <span aria-hidden="true">&rarr;</span>

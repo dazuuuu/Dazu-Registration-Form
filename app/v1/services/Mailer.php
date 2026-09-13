@@ -80,8 +80,10 @@ class Mailer {
             $this->applyIdentity($mail, $replyToEmail, $replyToName);
             $mail->addAddress($toEmail, $toName);
 
-            // Embed the admin branding logo (Settings → Branding). cid:ismanlogo
-            $this->embedLogo($mail);
+            // Embed the branding logo only if the template actually references cid:ismanlogo
+            if (strpos($htmlBody, 'cid:ismanlogo') !== false) {
+                $this->embedLogo($mail);
+            }
 
             $mail->isHTML(true);
             $mail->Subject = $subject;
@@ -201,7 +203,7 @@ class Mailer {
             $this->applyTransport($mail);
             $this->applyIdentity($mail);
             $mail->addAddress($toEmail, $toName);
-            if ($embedLogo) {
+            if ($embedLogo && strpos($htmlBody, 'cid:ismanlogo') !== false) {
                 $this->embedLogo($mail);
             }
             foreach ($files as $file) {
@@ -259,7 +261,7 @@ class Mailer {
         ?string $replyToName = null
     ): void {
         $mail->CharSet = 'UTF-8';
-        $fromName = (string) ($this->cfg['from_name'] ?? 'Dazu Hub Institute');
+        $fromName = (string) ($this->cfg['from_name'] ?? 'Dazu Training Institute');
         $configuredFrom = trim((string) ($this->cfg['from_email'] ?? ''));
         $username = trim((string) ($this->cfg['username'] ?? ''));
         $host = strtolower((string) ($this->cfg['host'] ?? ''));

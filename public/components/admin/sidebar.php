@@ -19,9 +19,9 @@ function isStoreActive($current_dir) {
     return $current_dir == 'store' || $current_dir == 'categories' || $current_dir == 'products';
 }
 
-// New System group: registration, courses, tutors, payments
+// New System group: registration, courses, tutors, payments, resources, partners, testimonials
 function isSystemActive($current_dir) {
-    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'payments', 'resources'], true);
+    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'payments', 'resources', 'partners', 'testimonials'], true);
 }
 
 // Courses sub-section: paid (admin/courses) and free (admin/free-courses) are fully
@@ -35,7 +35,7 @@ function isWebsiteActive($current_dir) {
     if (isSmsActive()) {
         return false;
     }
-    return in_array($current_dir, ['orders', 'enquiries', 'projects', 'services', 'blogs', 'gallery', 'testimonials', 'team'], true)
+    return in_array($current_dir, ['orders', 'enquiries', 'projects', 'services', 'blogs', 'gallery', 'campus-media', 'team'], true)
         || isStoreActive($current_dir);
 }
 
@@ -61,7 +61,7 @@ function isSmsSection($section) {
         </button>
         <h3>
             <i class="fas fa-shield-alt me-2"></i>
-            Dazu Hub Admin
+            Dazu Training Institute Admin
         </h3>
         <small>Welcome, <?php echo htmlspecialchars($_SESSION['username'] ?? 'Guest'); ?></small>
         <small class="d-block mt-1">
@@ -143,6 +143,16 @@ function isSmsSection($section) {
                             <i class="fas fa-folder-open"></i>
                             <span>Resources &amp; IDs</span>
                         </a>
+                        <a href="<?php echo url('admin/partners/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'partners' ? 'active' : ''; ?>">
+                            <i class="fas fa-handshake"></i>
+                            <span>Partners</span>
+                        </a>
+                        <a href="<?php echo url('admin/testimonials/index.php'); ?>"
+                           class="nav-link <?php echo isActive('testimonials', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-star"></i>
+                            <span>Testimonials</span>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -223,22 +233,21 @@ function isSmsSection($section) {
                             <i class="fas fa-blog"></i>
                             <span>Blog Posts</span>
                         </a>
-                        <a href="<?php echo url('admin/gallery/index.php'); ?>" 
+                        <a href="<?php echo url('admin/gallery/index.php'); ?>"
                            class="nav-link <?php echo isActive('gallery', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-images"></i>
                             <span>Gallery</span>
                         </a>
-                        <a href="<?php echo url('admin/testimonials/index.php'); ?>" 
-                           class="nav-link <?php echo isActive('testimonials', $current_dir, $current_page) ? 'active' : ''; ?>">
-                            <i class="fas fa-star"></i>
-                            <span>Testimonials</span>
+                        <a href="<?php echo url('admin/campus-media/index.php'); ?>"
+                           class="nav-link <?php echo isActive('campus-media', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-camera-retro"></i>
+                            <span>Campus Media</span>
                         </a>
                         <a href="<?php echo url('admin/team/index.php'); ?>"
                            class="nav-link <?php echo isActive('team', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-users"></i>
                             <span>Team</span>
                         </a>
-
                         <!-- STORE SUB-SECTION (nested collapse, unchanged from original) -->
                         <div class="nav-item">
                             <a href="#storeMenu" class="nav-link <?php echo isStoreActive($current_dir) ? 'active' : ''; ?>" 

@@ -1,6 +1,6 @@
 <?php
-$page_title = 'Our Technology Courses — Dazu hub Institute';
-$page_description = 'Browse software, cybersecurity, data analytics and AI courses at Dazu hub Institute, Thika Town.';
+$page_title = 'Our Technology Courses — Dazu Training Institute';
+$page_description = 'Browse software, cybersecurity, data analytics and AI courses at Dazu Training Institute in Nairobi, Thika and online.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
@@ -88,6 +88,11 @@ ob_start();
       <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mt-4">Our Technology Courses</h1>
       <p class="text-slate-600 font-medium leading-relaxed mt-3">Every track we run is listed below. Search or filter by category, then open a course to view details and apply online.</p>
     </div>
+
+    <?php
+      $courseMatchCourses = $courses;
+      include __DIR__ . '/../components/public/dazu_course_match_section.php';
+    ?>
 
     <?php if (!empty($courseCategories)): ?>
       <?php

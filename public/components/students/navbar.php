@@ -8,7 +8,7 @@ $portalLocked = $portal_locked ?? false;
 <nav class="student-navbar">
     <div class="container-fluid d-flex justify-content-between align-items-center">
         <a href="<?php echo url('students/dashboard/index.php'); ?>" class="student-brand">
-            <i class="fas fa-graduation-cap me-2"></i>Dazu Hub Institute
+            <i class="fas fa-graduation-cap me-2"></i>Dazu Training Institute
         </a>
 
         <div class="d-flex align-items-center gap-3 d-none d-lg-flex student-nav-desktop">

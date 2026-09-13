@@ -268,18 +268,73 @@ if (!function_exists('course_fee_mode_total')) {
     }
 }
 
+if (!function_exists('course_semesters_count')) {
+    /**
+     * Standard: 1 semester goes for 3 months.
+     * Courses >= 3 months are broken down into semesters (e.g. 18 months = 6 semesters, 6 months = 2 semesters).
+     * Courses for 1 or 2 months are short/modular courses, not multi-semester.
+     */
+    function course_semesters_count(array $course): int
+    {
+        $months = (int) ($course['duration_months'] ?? 0);
+        if ($months >= 3) {
+            return max(1, (int) round($months / 3));
+        }
+        $stored = (int) ($course['semester_count'] ?? 0);
+        if ($stored > 1) {
+            return $stored;
+        }
+        return 1;
+    }
+}
+
+if (!function_exists('course_is_short_course')) {
+    function course_is_short_course(array $course): bool
+    {
+        $months = (int) ($course['duration_months'] ?? 0);
+        if ($months <= 0 && function_exists('course_duration_values')) {
+            $v = course_duration_values($course);
+            if ($v['months'] > 0) {
+                $months = $v['months'];
+            } elseif ($v['weeks'] > 0 || $v['days'] > 0 || $v['hours'] > 0) {
+                return true;
+            }
+        }
+        return $months <= 1;
+    }
+}
+
 if (!function_exists('course_fee_mode_per_semester')) {
-    function course_fee_mode_per_semester(array $course, array $mode): float
+    function course_fee_mode_per_semester(array $course, array $mode = []): float
     {
         $manual = course_fee_money_value($mode['per_semester'] ?? 0);
         if ($manual > 0) {
             return $manual;
         }
-        $semesters = max(1, (int) ($course['semester_count'] ?? 0));
+        $months = (int) ($course['duration_months'] ?? 0);
+        $semesters = course_semesters_count($course);
         $tuition = course_fee_money_value($mode['tuition_total'] ?? 0);
-        return $tuition > 0 ? round($tuition / $semesters, 2) : 0.0;
+        if ($tuition <= 0) {
+            $tuition = (float) ($course['course_fee'] ?? 0);
+        }
+
+        // For long diploma courses (18 months at 20k/month = 60k per 3-month semester)
+        if ($months >= 18 && ($tuition == 300000 || $tuition == 360000 || $tuition <= 0)) {
+            return 60000.0;
+        }
+
+        // Standard 20k per month fallback if tuition is unset
+        if ($tuition <= 0 && $months > 0) {
+            return round($months >= 3 ? (3 * 20000.0) : ($months * 20000.0), 2);
+        }
+
+        if ($semesters > 0 && $tuition > 0) {
+            return round($tuition / $semesters, 2);
+        }
+        return $tuition > 0 ? round($tuition, 2) : 0.0;
     }
 }
+
 
 if (!function_exists('course_fee_structure_all')) {
     /**
@@ -480,28 +535,52 @@ if (!function_exists('course_fee_structure_document_html')) {
         } catch (Throwable $e) {
             // Fall back to the site-wide defaults above.
         }
-        $semesters = max(1, (int) ($course['semester_count'] ?? 0));
+        $months = (int) ($course['duration_months'] ?? 0);
+        $isOneMonth = course_is_short_course($course);
+        $semesters = $isOneMonth ? 1 : course_semesters_count($course);
         $duration = course_study_summary($course);
         $overview = trim(strip_tags((string) ($course['overview'] ?? $course['description'] ?? '')));
         $overview = $overview !== '' ? mb_strimwidth($overview, 0, 320, '...') : 'This course equips students with practical, job-ready skills through hands-on training and real-world projects.';
-        $semesterLength = $semesters > 0 && (int) ($course['duration_months'] ?? 0) > 0
-            ? round(((int) $course['duration_months']) / $semesters, 1) . ' months per semester'
-            : 'Calculated across ' . $semesters . ' semester' . ($semesters === 1 ? '' : 's');
+        if ($isOneMonth) {
+            $structureLabel = 'Study format';
+            $structureValue = 'Full 1-Month Intensive Course';
+        } else {
+            $structureLabel = 'Semester structure';
+            $structureValue = '3 months per semester (' . $semesters . ' semester' . ($semesters === 1 ? '' : 's') . ' total)';
+        }
         $payment = function_exists('payment_credentials')
             ? payment_credentials()
             : ['business_short_code' => '880100', 'account_number' => '681158', 'phone' => '0722 922 454'];
 
-        $renderMode = static function (string $heading, array $mode) use ($course, $semesters, $classSchedules): string {
+        $renderMode = static function (string $heading, array $mode) use ($course, $semesters, $isOneMonth, $months, $classSchedules): string {
             $mode = course_fee_mode_decode($mode);
             $perSemester = course_fee_mode_per_semester($course, $mode);
             $tuitionTotal = course_fee_money_value($mode['tuition_total'] ?? 0);
             $rows = '';
-            for ($i = 1; $i <= $semesters; $i++) {
-                $rows .= '<tr><td style="padding:13px 18px;background:' . ($i % 2 === 0 ? '#ffffff' : '#fafafa') . ';font-size:13px;">Semester ' . $i . '</td>'
-                    . '<td style="padding:13px 18px;background:' . ($i % 2 === 0 ? '#ffffff' : '#fafafa') . ';text-align:right;font-size:13px;font-weight:800;">'
-                    . htmlspecialchars(format_price($perSemester)) . '</td></tr>';
+            if ($isOneMonth) {
+                $amount = $tuitionTotal > 0 ? $tuitionTotal : (course_fee_mode_total($mode) > 0 ? course_fee_mode_total($mode) : (float) ($course['course_fee'] ?? 0));
+                $rows .= '<tr><td style="padding:13px 18px;background:#fafafa;font-size:13px;font-weight:600;">Course Tuition (1 Month)</td>'
+                    . '<td style="padding:13px 18px;background:#fafafa;text-align:right;font-size:13px;font-weight:800;">'
+                    . htmlspecialchars(format_price($amount)) . '</td></tr>';
+            } else {
+                for ($i = 1; $i <= $semesters; $i++) {
+                    $ordinal = match ($i) {
+                        1 => '1st Semester',
+                        2 => '2nd Semester',
+                        3 => '3rd Semester',
+                        4 => '4th Semester',
+                        5 => '5th Semester',
+                        6 => '6th Semester',
+                        default => "Semester {$i}",
+                    };
+                    $rows .= '<tr><td style="padding:13px 18px;background:' . ($i % 2 === 0 ? '#ffffff' : '#fafafa') . ';font-size:13px;">' . $ordinal . ' <span style="font-size:11px;color:#6b7280;font-weight:normal;">(3 months)</span></td>'
+                        . '<td style="padding:13px 18px;background:' . ($i % 2 === 0 ? '#ffffff' : '#fafafa') . ';text-align:right;font-size:13px;font-weight:800;">'
+                        . htmlspecialchars(format_price($perSemester)) . '</td></tr>';
+                }
             }
+            $additionalSum = 0.0;
             foreach ($mode['additional'] as $item) {
+                $additionalSum += (float) ($item['amount'] ?? 0);
                 $rows .= '<tr><td style="padding:13px 18px;background:#ffffff;font-size:13px;">' . htmlspecialchars((string) $item['label']) . '</td>'
                     . '<td style="padding:13px 18px;background:#ffffff;text-align:right;font-size:13px;font-weight:800;">' . htmlspecialchars(format_price($item['amount'])) . '</td></tr>';
             }
@@ -509,10 +588,29 @@ if (!function_exists('course_fee_structure_document_html')) {
                 $rows = '<tr><td style="padding:13px 18px;background:#fafafa;font-size:13px;">Course fee</td>'
                     . '<td style="padding:13px 18px;background:#fafafa;text-align:right;font-size:13px;font-weight:800;">' . htmlspecialchars(format_price(course_fee_mode_total($mode))) . '</td></tr>';
             }
-            $total = course_fee_mode_total($mode);
-            $monthly = $tuitionTotal > 0 && (int) ($course['duration_months'] ?? 0) > 0
-                ? round($tuitionTotal / max(1, (int) $course['duration_months']))
-                : 0;
+            $total = $isOneMonth
+                ? (($tuitionTotal > 0 ? $tuitionTotal : (float) ($course['course_fee'] ?? 0)) + $additionalSum)
+                : (($perSemester * $semesters) + $additionalSum);
+            if ($total <= 0) {
+                $total = course_fee_mode_total($mode);
+            }
+            $monthly = $isOneMonth
+                ? 0
+                : ($months > 0 ? round(($perSemester * $semesters) / $months) : round($perSemester / 3));
+
+            $monthlyHtml = '';
+            if (!$isOneMonth && $monthly > 0) {
+                $monthlyHtml = '<div style="margin-top:18px;font-size:12px;color:#111827;"><strong style="display:block;text-transform:uppercase;margin-bottom:8px;">Monthly payment option</strong>'
+                    . htmlspecialchars(format_price($monthly)) . ' per month x ' . max(1, $months) . ' months'
+                    . ($additionalSum > 0 ? '<br>+ additional charges (' . htmlspecialchars(format_price($additionalSum)) . ') = ' . htmlspecialchars(format_price($total)) . ' total' : '')
+                    . '<p style="font-style:italic;color:#6b7280;margin:12px 0 0;">Each semester runs for 3 months.</p></div>';
+            } elseif ($isOneMonth) {
+                $monthlyHtml = '<div style="margin-top:18px;font-size:12px;color:#111827;"><strong style="display:block;text-transform:uppercase;margin-bottom:8px;">Payment terms</strong>'
+                    . 'Full payment for the 1-month training programme.'
+                    . ($additionalSum > 0 ? '<br>Course tuition: ' . htmlspecialchars(format_price($total - $additionalSum)) . ' + additional charges: ' . htmlspecialchars(format_price($additionalSum)) . ' = ' . htmlspecialchars(format_price($total)) . ' total' : '')
+                    . '</div>';
+            }
+
             $scheduleKey = strtolower($heading) === 'physical classes' ? 'physical' : 'online';
             $schedule = trim((string) ($classSchedules[$scheduleKey] ?? ''));
             return '<div style="page-break-inside:avoid;margin-top:24px;">'
@@ -525,10 +623,7 @@ if (!function_exists('course_fee_structure_document_html')) {
                 . '<div style="display:table;width:100%;background:#111827;color:#ffffff;border-radius:7px;margin-top:0;">'
                 . '<div style="display:table-cell;padding:15px 18px;font-size:13px;font-weight:800;text-transform:uppercase;">Total program fees</div>'
                 . '<div style="display:table-cell;padding:15px 18px;font-size:13px;font-weight:800;text-align:right;">' . htmlspecialchars(format_price($total)) . '</div></div>'
-                . ($monthly > 0 ? '<div style="margin-top:18px;font-size:12px;color:#111827;"><strong style="display:block;text-transform:uppercase;margin-bottom:8px;">Monthly payment option</strong>'
-                . htmlspecialchars(format_price($monthly)) . ' per month x ' . (int) ($course['duration_months'] ?? 0) . ' months'
-                . ($mode['additional'] ? '<br>+ additional charges = ' . htmlspecialchars(format_price($total)) . ' total' : '')
-                . '<p style="font-style:italic;color:#6b7280;margin:12px 0 0;">Each semester runs for the stated semester length.</p></div>' : '')
+                . $monthlyHtml
                 . '</div>';
         };
         $sections = '';
@@ -544,10 +639,10 @@ if (!function_exists('course_fee_structure_document_html')) {
         return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:720px;margin:0 auto;background:#ffffff;color:#111827;padding:46px 52px;">'
             . '<div style="display:table;width:100%;margin-bottom:42px;">'
             . '<div style="display:table-cell;width:120px;vertical-align:middle;">'
-            . ($logo !== '' ? '<img src="' . htmlspecialchars($logo) . '" alt="Dazu Hub" style="max-height:78px;max-width:100px;object-fit:contain;">' : '')
+            . ($logo !== '' ? '<img src="' . htmlspecialchars($logo) . '" alt="Dazu Training Institute" style="max-height:78px;max-width:100px;object-fit:contain;">' : '')
             . '</div>'
-            . '<div style="display:table-cell;vertical-align:middle;"><h1 style="margin:0;font-size:24px;letter-spacing:.02em;">DAZU HUB</h1>'
-            . '<p style="margin:8px 0 0;font-size:13px;font-weight:800;text-transform:uppercase;color:#374151;">Fee Structure</p></div>'
+            . '<div style="display:table-cell;vertical-align:middle;"><h1 style="margin:0;font-size:24px;letter-spacing:.02em;">DAZU TRAINING INSTITUTE</h1>'
+            . '<p style="margin:8px 0 0;font-size:13px;font-weight:800;text-transform:uppercase;color:#374151;">Fee Structure Statement</p></div>'
             . '</div>'
             . '<div style="border-top:1px solid #d1d5db;padding-top:30px;">'
             . '<h2 style="margin:0 0 18px;font-size:17px;">' . htmlspecialchars($title)
@@ -555,8 +650,8 @@ if (!function_exists('course_fee_structure_document_html')) {
             . '</h2>'
             . '<p style="margin:0 0 34px;font-size:12px;line-height:1.65;color:#374151;max-width:600px;">' . htmlspecialchars($overview) . '</p>'
             . '<div style="display:table;width:100%;background:#f5f6f8;border-radius:10px;margin-bottom:28px;">'
-            . '<div style="display:table-cell;width:50%;padding:18px 20px;"><div style="font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:8px;">Program duration</div><div style="font-size:12px;">' . htmlspecialchars($duration ?: ((int) ($course['duration_months'] ?? 0) . ' months')) . '</div></div>'
-            . '<div style="display:table-cell;width:50%;padding:18px 20px;"><div style="font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:8px;">Semester length</div><div style="font-size:12px;">' . htmlspecialchars($semesterLength) . '</div></div>'
+            . '<div style="display:table-cell;width:50%;padding:18px 20px;"><div style="font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:8px;">Program duration</div><div style="font-size:12px;">' . htmlspecialchars($duration ?: ($months > 0 ? $months . ' months' : '1 month')) . '</div></div>'
+            . '<div style="display:table-cell;width:50%;padding:18px 20px;"><div style="font-size:11px;font-weight:800;text-transform:uppercase;margin-bottom:8px;">' . htmlspecialchars($structureLabel) . '</div><div style="font-size:12px;">' . htmlspecialchars($structureValue) . '</div></div>'
             . '</div>'
             . $sections
             . '<div style="display:table;width:100%;background:#f5f6f8;border-radius:10px;margin-top:30px;">'
@@ -564,7 +659,7 @@ if (!function_exists('course_fee_structure_document_html')) {
             . '<div style="display:table-cell;padding:14px 18px;width:34%;font-size:11px;vertical-align:bottom;">Account: ' . htmlspecialchars((string) ($payment['account_number'] ?? '681158')) . '</div>'
             . '<div style="display:table-cell;padding:14px 18px;width:33%;font-size:11px;text-align:right;vertical-align:bottom;">Phone: ' . htmlspecialchars((string) ($payment['phone'] ?? '0722 922 454')) . '</div>'
             . '</div>'
-            . '<p style="margin:10px 0 0;font-size:9px;color:#6b7280;">Issued ' . htmlspecialchars(date('d M Y')) . ' - dazuhub.ac.ke</p>'
+            . '<p style="margin:10px 0 0;font-size:9px;color:#6b7280;">Issued ' . htmlspecialchars(date('d M Y')) . ' - Dazu Training Institute</p>'
             . '</div></div>';
     }
 }

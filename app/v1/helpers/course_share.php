@@ -63,7 +63,7 @@ if (!function_exists('course_share_invite_text')) {
         $title = trim((string) ($course['title'] ?? 'this course'));
         $headline = $headline !== null && $headline !== ''
             ? $headline
-            : ('Apply for ' . $title . ' at Dazu hub Institute');
+            : ('Apply for ' . $title . ' at Dazu Training Institute');
         $desc = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($course['overview'] ?? $course['description'] ?? ''))));
         if (function_exists('mb_strimwidth')) {
             $desc = mb_strimwidth($desc, 0, 180, '…');

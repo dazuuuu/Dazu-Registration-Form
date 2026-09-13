@@ -1,6 +1,6 @@
 <?php
-$page_title = 'Contact Dazu Hub — Dazu hub Institute';
-$page_description = 'Contact Dazu hub Institute — tuition, study plans, campus labs in Thika Town.';
+$page_title = 'Contact Dazu Training Institute — Dazu Training Institute';
+$page_description = 'Contact Dazu Training Institute — tuition, study plans, Nairobi classes, Thika campus labs, and online learning.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
@@ -64,8 +64,8 @@ ob_start();
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="max-w-2xl mb-16">
       <span class="text-green-600 text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-green-50 border border-green-200 rounded-full">Get in Touch</span>
-      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mt-4">Contact Dazu Hub</h1>
-      <p class="text-slate-600 font-medium leading-relaxed mt-3">Have questions about tuition fees, study plans, or physical computer labs? Talk directly with our registrar or visit us in Thika Town.</p>
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mt-4">Contact Dazu Training Institute</h1>
+      <p class="text-slate-600 font-medium leading-relaxed mt-3">Have questions about tuition fees, study plans, physical labs, Nairobi classes, or online learning? Talk directly with our registrar.</p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
@@ -83,7 +83,7 @@ ob_start();
             </li>
             <li class="flex items-start gap-4">
               <div class="p-3 bg-white border border-slate-200 text-green-600 rounded-xl"><svg class="dazu-icon h-5 w-5" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
-              <div><span class="block text-slate-400 uppercase tracking-wider text-[10px] font-bold">Campus Location</span><span class="text-base font-bold text-slate-900"><?php echo htmlspecialchars($c['contact_address']); ?></span></div>
+              <div><span class="block text-slate-400 uppercase tracking-wider text-[10px] font-bold">Locations & Study Modes</span><span class="text-base font-bold text-slate-900"><?php echo htmlspecialchars($c['contact_address']); ?>; Nairobi classes and online learning available</span></div>
             </li>
             <li class="flex items-start gap-4">
               <div class="p-3 bg-white border border-slate-200 text-green-600 rounded-xl"><svg class="dazu-icon h-5 w-5" width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
@@ -125,7 +125,7 @@ ob_start();
             <div class="p-8 border border-green-200 bg-green-50 rounded-2xl text-center space-y-3">
               <svg class="dazu-icon h-12 w-12 text-green-600 mx-auto" width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
               <h4 class="text-lg font-bold text-slate-900">Message Delivered Successfully!</h4>
-              <p class="text-xs text-slate-600">Thank you for contacting Dazu Hub Institute. We will call your phone number shortly.</p>
+              <p class="text-xs text-slate-600">Thank you for contacting Dazu Training Institute. We will call your phone number shortly.</p>
             </div>
           <?php else: ?>
             <?php if ($form_error): ?>

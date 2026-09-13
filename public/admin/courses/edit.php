@@ -253,6 +253,17 @@ ob_start();
                 </div>
 
                 <div class="col-12">
+                    <div class="form-check form-switch p-3 bg-light rounded border">
+                        <input class="form-check-input" type="checkbox" name="show_on_homepage" id="show_on_homepage" value="1"
+                               <?php echo !empty($course['show_on_homepage']) ? 'checked' : ''; ?>>
+                        <label class="form-check-label fw-bold text-dark ms-2" for="show_on_homepage">
+                            <i class="fas fa-home text-primary me-1"></i> Show this course on the front-page (Homepage)
+                        </label>
+                        <div class="form-text text-muted ps-1">When enabled, this course is featured directly on the front-page. All other courses appear when visitors click "View All Courses".</div>
+                    </div>
+                </div>
+
+                <div class="col-12">
                     <label class="form-label">Overview</label>
                     <textarea name="overview" class="form-control" rows="2"><?php echo htmlspecialchars($course['overview']); ?></textarea>
                 </div>

@@ -44,13 +44,15 @@ class CourseCategoryModel {
         }
 
         $stmt = $this->db->prepare(
-            'INSERT INTO course_categories (name, slug, icon_path, sort_order, is_active)
-             VALUES (:name, :slug, :icon_path, :sort_order, :is_active)'
+            'INSERT INTO course_categories (name, slug, icon_path, description, featured_image, sort_order, is_active)
+             VALUES (:name, :slug, :icon_path, :description, :featured_image, :sort_order, :is_active)'
         );
         $stmt->execute([
             ':name' => $name,
             ':slug' => $slug,
             ':icon_path' => $data['icon_path'] ?? null,
+            ':description' => !empty($data['description']) ? trim((string)$data['description']) : null,
+            ':featured_image' => $data['featured_image'] ?? null,
             ':sort_order' => (int) ($data['sort_order'] ?? 0),
             ':is_active' => !empty($data['is_active']) ? 1 : 0,
         ]);
@@ -72,15 +74,21 @@ class CourseCategoryModel {
             return ['ok' => false, 'error' => 'That slug is already used by another category.'];
         }
 
-        $iconPath = $data['icon_path'] ?? $existing['icon_path'];
+        $iconPath = array_key_exists('icon_path', $data) ? $data['icon_path'] : $existing['icon_path'];
+        $featuredImage = array_key_exists('featured_image', $data) ? $data['featured_image'] : ($existing['featured_image'] ?? null);
+        $description = array_key_exists('description', $data) ? trim((string)$data['description']) : ($existing['description'] ?? null);
+
         $stmt = $this->db->prepare(
             'UPDATE course_categories SET name = :name, slug = :slug, icon_path = :icon_path,
+             description = :description, featured_image = :featured_image,
              sort_order = :sort_order, is_active = :is_active WHERE id = :id'
         );
         $stmt->execute([
             ':name' => $name,
             ':slug' => $slug,
             ':icon_path' => $iconPath,
+            ':description' => $description,
+            ':featured_image' => $featuredImage,
             ':sort_order' => (int) ($data['sort_order'] ?? $existing['sort_order']),
             ':is_active' => !empty($data['is_active']) ? 1 : 0,
             ':id' => $id,

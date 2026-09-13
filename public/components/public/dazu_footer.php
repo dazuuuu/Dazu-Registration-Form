@@ -13,14 +13,14 @@ $contact = site_contact_settings();
     <div class="grid grid-cols-2 md:grid-cols-4 gap-12 mb-16">
       <div class="space-y-6 col-span-2 md:col-span-1">
         <a href="<?php echo url('/'); ?>" class="flex items-center gap-2 group">
-          <img src="<?php echo htmlspecialchars($footerLogo); ?>" alt="Dazu Hub Logo" class="h-12 w-12 rounded-lg object-cover shrink-0 transition-transform duration-300 group-hover:scale-105" referrerpolicy="no-referrer">
+          <img src="<?php echo htmlspecialchars($footerLogo); ?>" alt="Dazu Training Institute Logo" class="h-12 w-12 rounded-lg object-cover shrink-0 transition-transform duration-300 group-hover:scale-105" referrerpolicy="no-referrer">
           <div class="leading-none">
-            <div class="text-xl font-extrabold text-white tracking-tight">Dazu<span class="text-[#22C55E] ml-1">hub</span></div>
+            <div class="text-xl font-extrabold text-white tracking-tight">Dazu<span class="text-[#22C55E] ml-1">Training</span></div>
             <div class="text-[10px] text-slate-400 font-extrabold tracking-tight mt-1">Institute</div>
           </div>
         </a>
         <p class="text-sm leading-relaxed text-slate-400">
-          Empowering future tech leaders with highly practical, project-based technological education in Thika Town. Transform your potential today.
+          Empowering future tech leaders with highly practical, project-based technology education in Nairobi, Thika, and online. Transform your potential today.
         </p>
       </div>
       <div class="space-y-6">
@@ -64,7 +64,7 @@ $contact = site_contact_settings();
       </div>
     </div>
     <div class="border-t border-slate-900 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
-      <p>&copy; <?php echo $year; ?> Dazu hub Institute. All rights reserved.</p>
+      <p>&copy; <?php echo $year; ?> Dazu Training Institute. All rights reserved.</p>
       <div class="flex gap-6">
         <a href="<?php echo url('contact'); ?>" class="hover:text-white transition-colors duration-200">Support</a>
         <a href="<?php echo url('about'); ?>" class="hover:text-white transition-colors duration-200">Terms of Study</a>

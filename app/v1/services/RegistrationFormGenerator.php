@@ -124,12 +124,12 @@ class RegistrationFormGenerator
             }
             global $pdo;
             if (!isset($pdo)) {
-                return 'Dazu Hub Institute';
+                return 'Dazu Training Institute';
             }
             $settings = new SettingModel($pdo);
-            return trim((string) $settings->get('site_name', '')) ?: 'Dazu Hub Institute';
+            return trim((string) $settings->get('site_name', '')) ?: 'Dazu Training Institute';
         } catch (Throwable $e) {
-            return 'Dazu Hub Institute';
+            return 'Dazu Training Institute';
         }
     }
 

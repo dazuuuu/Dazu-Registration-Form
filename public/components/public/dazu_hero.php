@@ -23,7 +23,7 @@ $heroFallback = is_file(public_path('assets/app/hero.png'))
 $heroStats = $heroStats ?? ['courses' => 0, 'students' => 0];
 
 /* Shown on every slide. */
-$heroChecks = ['Get Certified', 'Gain Job-ready Skills', 'Great Life'];
+$heroChecks = ['Nairobi Classes', 'Thika Campus', 'Online Learning'];
 
 /* Floating cards. A zero count is dropped rather than shown as "0+". */
 $heroCards = array_values(array_filter([
@@ -48,19 +48,19 @@ $defaultHeroSlides = [
         'eyebrow'  => 'Future-Proof Your Career',
         'accent'   => 'Master Tech Skills',                     // green
         'title'    => 'with Real-World Projects.', // navy
-        'text'     => 'Master Web & Software Development, Python, Data Analytics, and Cybersecurity with industry-focused training and hands-on experience.',
+        'text'     => 'Master Web & Software Development, Python, Data Analytics, and Cybersecurity with industry-focused training in Nairobi, Thika, and online.',
         'image'    => 'hero-1',
-        'imageAlt' => 'Student working on data analytics and design at Dazu hub Institute',
+        'imageAlt' => 'Student working on data analytics and design at Dazu Training Institute',
         'cta1'     => ['label' => 'Get Started', 'url' => url('apply/index.php')],
         'cta2'     => ['label' => 'Our Courses', 'url' => url('courses/index.php')],
     ],
     [
-        'eyebrow'  => 'Online E-Learning Course',
+        'eyebrow'  => 'Campus & Online Learning',
         'accent'   => 'Learn & Build.',
         'title'    => 'AI & Digital Skills for Everyone',
-        'text'     => 'Build practical skills in AI, technology, and professional short courses designed for today\'s job market.',
+        'text'     => 'Build practical AI, technology, and professional skills through flexible physical and online classes designed for today\'s job market.',
         'image'    => 'hero-2',
-        'imageAlt' => 'Dazu hub Institute student with a laptop',
+        'imageAlt' => 'Dazu Training Institute student with a laptop',
         'video'    => 'hero-2', // public/assets/videos/hero/hero-2.mp4|webm — falls back to the image above until added
         'cta1'     => ['label' => 'Get Started', 'url' => url('apply/index.php')],
         'cta2'     => ['label' => 'Our Courses', 'url' => url('courses/index.php')],
@@ -84,7 +84,7 @@ if (isset($pdo) && $pdo instanceof PDO) {
                     'text' => $copy['text'],
                     'image' => $isVideo ? '' : $mediaPath,
                     'video_path' => $isVideo ? $mediaPath : '',
-                    'imageAlt' => trim((string) ($row['caption'] ?? '')) ?: 'Dazu hub Institute hero media',
+                    'imageAlt' => trim((string) ($row['caption'] ?? '')) ?: 'Dazu Training Institute hero media',
                     'cta1' => $copy['cta1'],
                     'cta2' => $copy['cta2'],
                 ];
@@ -293,7 +293,7 @@ if (isset($pdo) && $pdo instanceof PDO) {
 }
 </style>
 
-<section class="dazu-hero" id="dazu-hero" aria-roledescription="carousel" aria-label="Dazu hub Institute highlights">
+<section class="dazu-hero" id="dazu-hero" aria-roledescription="carousel" aria-label="Dazu Training Institute highlights">
   <div class="dazu-hero__inner">
     <div id="dazu-hero-slides">
       <?php foreach ($heroSlides as $i => $slide):

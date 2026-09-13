@@ -56,7 +56,7 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Portal — Dazu Hub Institute</title>
+    <title>Admin Portal — Dazu Training Institute</title>
 
     <link rel="stylesheet" href="../assets/css/theme.css">
     <link rel="stylesheet" href="../assets/css/auth.css">
@@ -67,13 +67,13 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
 
 <div class="wp-auth-wrap">
 
-    <a class="wp-auth-logo" href="<?php echo url('/'); ?>" aria-label="Dazu Hub Institute — Home">
+    <a class="wp-auth-logo" href="<?php echo url('/'); ?>" aria-label="Dazu Training Institute — Home">
         <?php if ($logoExists): ?>
-            <img src="<?php echo $logoPath; ?>" alt="Dazu Hub Institute logo">
+            <img src="<?php echo $logoPath; ?>" alt="Dazu Training Institute logo">
         <?php else: ?>
             <span class="wp-auth-logo-mark"><i class="fas fa-user-shield"></i></span>
         <?php endif; ?>
-        <span class="wp-auth-logo-name">Dazu Hub</span>
+        <span class="wp-auth-logo-name">Dazu Training Institute</span>
     </a>
 
     <div class="wp-auth-card">

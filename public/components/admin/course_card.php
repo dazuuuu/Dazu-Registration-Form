@@ -21,6 +21,9 @@ $editUrl = url('admin/' . ($isFree ? 'free-courses' : 'courses') . '/edit.php?id
   <div class="admin-course-card__img-wrap">
     <img src="<?= htmlspecialchars($cover) ?>" alt="<?= htmlspecialchars($course['title'] ?? '') ?>" class="admin-course-card__img">
     <span class="badge <?= $isActive ? 'bg-success' : 'bg-secondary' ?> admin-course-card__status"><?= $isActive ? 'Active' : 'Inactive' ?></span>
+    <?php if (!empty($course['show_on_homepage'])): ?>
+      <span class="badge bg-primary admin-course-card__homepage" style="position:absolute; top:10px; right:10px; z-index:2; font-size:11px;"><i class="fas fa-home me-1"></i>Front-page</span>
+    <?php endif; ?>
     <?php if ($isFree): ?>
       <span class="badge bg-warning text-dark admin-course-card__category" style="left:auto; right:10px; top:38px;">Free</span>
     <?php endif; ?>
@@ -63,11 +66,14 @@ $editUrl = url('admin/' . ($isFree ? 'free-courses' : 'courses') . '/edit.php?id
                 echo '<div class="small text-muted mt-1">' . htmlspecialchars($label) . '</div>';
                 echo '<ul class="list-unstyled small mb-0">';
                 if ((float) ($modeData['tuition_total'] ?? 0) > 0) {
-                    $semesters = max(1, (int) ($course['semester_count'] ?? 1));
+                    $isOneMonth = course_is_short_course($course);
+                    $semesters = $isOneMonth ? 1 : course_semesters_count($course);
                     $perSemester = course_fee_mode_per_semester($course, $modeData);
                     $tuitionLabel = 'Tuition';
                     if ($perSemester > 0) {
-                        $tuitionLabel .= ' (' . $semesters . ' sem x KSh ' . number_format($perSemester, 0) . ')';
+                        $tuitionLabel .= $isOneMonth
+                            ? ' (1 mo x KSh ' . number_format($perSemester, 0) . ')'
+                            : ' (' . $semesters . ' sem x KSh ' . number_format($perSemester, 0) . ')';
                     }
                     echo '<li class="d-flex justify-content-between gap-2"><span>' . htmlspecialchars($tuitionLabel) . '</span><span>KSh ' . number_format((float) $modeData['tuition_total'], 0) . '</span></li>';
                 }
@@ -98,6 +104,15 @@ $editUrl = url('admin/' . ($isFree ? 'free-courses' : 'courses') . '/edit.php?id
     <a href="<?= htmlspecialchars(course_whatsapp_share_url($course)) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-success" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
     <a href="<?= course_share_url((int)$course['id']) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success" title="Share link"><i class="fas fa-share-nodes"></i></a>
     <?php endif; ?>
+    <form method="POST" class="d-inline" onsubmit="return confirm('<?= !empty($course['show_on_homepage']) ? 'Remove from front-page?' : 'Show on front-page?' ?>');">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="toggle_homepage_id" value="<?= (int)$course['id'] ?>">
+      <input type="hidden" name="set_homepage" value="<?= !empty($course['show_on_homepage']) ? '0' : '1' ?>">
+      <input type="hidden" name="redirect_query" value="<?= htmlspecialchars($_SERVER['QUERY_STRING'] ?? '') ?>">
+      <button type="submit" class="btn btn-sm <?= !empty($course['show_on_homepage']) ? 'btn-primary' : 'btn-outline-secondary' ?>" title="<?= !empty($course['show_on_homepage']) ? 'Featured on front-page (click to remove)' : 'Show on front-page' ?>">
+        <i class="fas fa-home"></i>
+      </button>
+    </form>
     <a href="<?= htmlspecialchars($editUrl) ?>" class="btn btn-sm btn-primary"><i class="fas fa-edit me-1"></i>Edit</a>
     <form method="POST" class="d-inline" onsubmit="return confirm('<?= $isActive ? 'Deactivate' : 'Activate' ?> this course?');">
       <?php echo csrf_field(); ?>

@@ -1,6 +1,6 @@
 <?php
-$page_title = 'Share Your Story — Dazu hub Institute';
-$page_description = 'Submit your Dazu Hub testimonial — text or video — for the homepage.';
+$page_title = 'Share Your Story — Dazu Training Institute';
+$page_description = 'Submit your Dazu Training Institute testimonial — text or video — for the homepage.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
@@ -62,7 +62,7 @@ ob_start();
       <div class="space-y-2 text-center">
         <span class="text-green-600 text-[10px] uppercase tracking-widest font-extrabold px-2.5 py-1 bg-green-50 border border-green-200 rounded-full">Alumni Voices</span>
         <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight pt-2">Share Your Testimonial</h1>
-        <p class="text-xs text-slate-500 font-medium">Tell future students about your Dazu Hub experience. Approved stories appear on our homepage.</p>
+        <p class="text-xs text-slate-500 font-medium">Tell future students about your Dazu Training Institute experience. Approved stories appear on our homepage.</p>
       </div>
 
       <?php if (!$open): ?>
@@ -136,7 +136,7 @@ ob_start();
 
           <div id="field-text" class="space-y-2">
             <label class="block text-xs font-bold uppercase tracking-widest text-slate-500" id="label-story">Your Story *</label>
-            <textarea name="testimonial_text" rows="5" placeholder="Share how Dazu Hub helped your career..."
+            <textarea name="testimonial_text" rows="5" placeholder="Share how Dazu Training Institute helped your career..."
                       class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-green-600"><?php echo htmlspecialchars($_POST['testimonial_text'] ?? ''); ?></textarea>
           </div>
 

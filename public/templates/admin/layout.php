@@ -27,7 +27,7 @@ if (isset($pdo)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Admin — <?php echo $page_title ?? 'Dazu Hub Institute'; ?></title>
+    <title>Admin — <?php echo $page_title ?? 'Dazu Training Institute'; ?></title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">

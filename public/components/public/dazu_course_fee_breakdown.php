@@ -23,22 +23,30 @@ $fallbackTotal = (float) ($course['course_fee'] ?? 0);
 
 $renderList = static function (array $mode, bool $compact, array $course): void {
     $mode = course_fee_mode_decode($mode);
-    $semesters = max(1, (int) ($course['semester_count'] ?? 1));
+    $isOneMonth = course_is_short_course($course);
+    $semesters = $isOneMonth ? 1 : course_semesters_count($course);
     $per = course_fee_mode_per_semester($course, $mode);
     if ($per > 0) {
-        $label = $semesters . ' semester' . ($semesters === 1 ? '' : 's') . ' x Ksh ' . number_format($per);
+        $label = $isOneMonth
+            ? '1 month x Ksh ' . number_format($per)
+            : $semesters . ' semester' . ($semesters === 1 ? '' : 's') . ' x Ksh ' . number_format($per);
         if ($compact) {
             echo '<div class="flex items-center justify-between text-[10px] font-semibold text-slate-500">';
             echo '<span class="truncate pr-2">Tuition</span>';
             echo '<span class="text-slate-700 whitespace-nowrap">' . htmlspecialchars($label) . '</span>';
             echo '</div>';
         } else {
+            $tuitionTotal = (float) ($mode['tuition_total'] ?? 0);
+            if ($tuitionTotal <= 0) {
+                $tuitionTotal = $isOneMonth ? $per : ($per * $semesters);
+            }
             echo '<div class="flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-700 border-b border-slate-100 last:border-b-0">';
-            echo '<span>Tuition</span>';
-            echo '<span class="font-bold text-slate-900">KES ' . number_format($mode['tuition_total']) . '</span>';
+            echo '<span>Tuition' . ($isOneMonth ? ' (1 Month)' : ' (' . $semesters . ' Semesters)') . '</span>';
+            echo '<span class="font-bold text-slate-900">KES ' . number_format($tuitionTotal) . '</span>';
             echo '</div>';
         }
     }
+
     foreach ($mode['additional'] as $item) {
         if ($compact) {
             echo '<div class="flex items-center justify-between text-[10px] font-semibold text-slate-500">';

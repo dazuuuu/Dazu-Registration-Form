@@ -31,8 +31,8 @@ class CourseModel {
         $classSchedules = $this->classScheduleFields($data);
 
         try {
-            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, brochure_path, description, requirements, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, semester_count, class_schedule_online, class_schedule_physical, course_fee, fee_structure, is_free, start_date, end_date, is_active, created_by)
-                    VALUES (:title, :abbreviation, :category_id, :cover_image, :brochure_path, :description, :requirements, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :semester_count, :class_schedule_online, :class_schedule_physical, :course_fee, :fee_structure, :is_free, :start_date, :end_date, 1, :created_by)";
+            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, brochure_path, description, requirements, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, semester_count, class_schedule_online, class_schedule_physical, course_fee, fee_structure, is_free, start_date, end_date, show_on_homepage, is_active, created_by)
+                    VALUES (:title, :abbreviation, :category_id, :cover_image, :brochure_path, :description, :requirements, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :semester_count, :class_schedule_online, :class_schedule_physical, :course_fee, :fee_structure, :is_free, :start_date, :end_date, :show_on_homepage, 1, :created_by)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':title'            => trim($data['title']),
@@ -56,6 +56,7 @@ class CourseModel {
                 ':is_free'          => $isFree ? 1 : 0,
                 ':start_date'       => $dates['start_date'],
                 ':end_date'         => $dates['end_date'],
+                ':show_on_homepage' => !empty($data['show_on_homepage']) ? 1 : 0,
                 ':created_by'       => $this->resolveCreatedBy($createdBy),
             ]);
         } catch (\PDOException $e) {
@@ -186,6 +187,10 @@ class CourseModel {
             $fields .= ", brochure_path = :brochure_path";
             $params[':brochure_path'] = $data['brochure_path'];
         }
+        if (array_key_exists('show_on_homepage', $data)) {
+            $fields .= ", show_on_homepage = :show_on_homepage";
+            $params[':show_on_homepage'] = !empty($data['show_on_homepage']) ? 1 : 0;
+        }
 
         $sql = "UPDATE courses SET $fields WHERE id = :id";
         $stmt = $this->db->prepare($sql);
@@ -250,6 +255,23 @@ class CourseModel {
     public function setActive(int $id, bool $active): bool {
         $stmt = $this->db->prepare("UPDATE courses SET is_active = :a WHERE id = :id");
         return $stmt->execute([':a' => $active ? 1 : 0, ':id' => $id]);
+    }
+
+    public function setShowOnHomepage(int $id, bool $show): bool {
+        $stmt = $this->db->prepare("UPDATE courses SET show_on_homepage = :s WHERE id = :id");
+        return $stmt->execute([':s' => $show ? 1 : 0, ':id' => $id]);
+    }
+
+    public function getHomepageCourses(bool $activeOnly = true): array {
+        $sql = "SELECT c.*, cc.name AS category_name, cc.slug AS category_slug, cc.icon_path AS category_icon
+                FROM courses c
+                LEFT JOIN course_categories cc ON cc.id = c.category_id
+                WHERE c.show_on_homepage = 1";
+        if ($activeOnly) {
+            $sql .= " AND c.is_active = 1";
+        }
+        $sql .= " ORDER BY c.title ASC";
+        return $this->db->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function getById(int $id): ?array {

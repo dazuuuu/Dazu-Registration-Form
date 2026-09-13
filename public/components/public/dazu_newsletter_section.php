@@ -8,7 +8,7 @@ if (!function_exists('csrf_field')) {
     <div class="max-w-2xl mx-auto text-center space-y-3">
       <span class="text-green-600 text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-green-50 border border-green-200 rounded-full">Stay In The Loop</span>
       <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">Get Course Updates &amp; Tech Tips</h2>
-      <p class="text-slate-600 font-medium leading-relaxed">Subscribe for new course launches, campus events, and career tips from Dazu Hub Institute. No spam, unsubscribe anytime.</p>
+      <p class="text-slate-600 font-medium leading-relaxed">Subscribe for new course launches, campus events, and career tips from Dazu Training Institute. No spam, unsubscribe anytime.</p>
     </div>
 
     <form id="dazu-newsletter-form" class="mt-8 max-w-lg mx-auto flex flex-col sm:flex-row gap-3" novalidate>

@@ -4,7 +4,7 @@
 // Requires: $share_url, optional $share_title
 
 if (empty($share_url)) return;
-$share_title = $share_title ?? 'Register for this course at Dazu Hub Institute';
+$share_title = $share_title ?? 'Register for this course at Dazu Training Institute';
 $input_id = $input_id ?? 'courseShareUrl';
 if (!function_exists('course_share_invite_text')) {
     require_once __DIR__ . '/../../../app/v1/helpers/course_share.php';

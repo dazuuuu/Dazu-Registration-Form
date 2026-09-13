@@ -1,5 +1,5 @@
 <?php
-// app/v1/helpers/contact.php — Dazu Hub public contact + WhatsApp sharing
+// app/v1/helpers/contact.php — Dazu Training Institute public contact + WhatsApp sharing
 
 if (!function_exists('site_contact_setting_value')) {
     function site_contact_setting_value(string $key, string $default = ''): string
@@ -123,7 +123,7 @@ if (!function_exists('student_login_whatsapp_url')) {
 
         $loginUrl = $credentials['login_url'] ?? '';
         $text = "Hi {$studentName},\n\n"
-            . "Your Dazu Hub student portal account is ready.\n\n"
+            . "Your Dazu Training Institute student portal account is ready.\n\n"
             . "Student ID: " . ($credentials['reg_no'] ?? $credentials['username'] ?? '') . "\n"
             . "Login email: " . ($credentials['login_email'] ?? '') . "\n"
             . "Password: " . ($credentials['temp_password'] ?? '') . "\n"
@@ -149,7 +149,7 @@ if (!function_exists('course_whatsapp_share_url')) {
             $pageUrl = course_view_url($course);
         }
 
-        $text = "Hi Dazu Hub Institute, I'm interested in the course: {$title}\n\n{$pageUrl}";
+        $text = "Hi Dazu Training Institute, I'm interested in the course: {$title}\n\n{$pageUrl}";
         return whatsapp_chat_url($text);
     }
 }

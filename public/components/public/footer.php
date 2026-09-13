@@ -1,9 +1,9 @@
 <?php
-// public/components/public/footer.php — Dazu Hub Institute
+// public/components/public/footer.php — Dazu Training Institute
 $year = date('Y');
 require_once __DIR__ . '/../../../app/v1/helpers/site_logo.php';
 require_once __DIR__ . '/../../../app/v1/helpers/site_contact.php';
-$logoPath = site_logo_url(url('assets/images/logo/logo.png'));
+$logoPath = site_logo_url(url('assets/images/logo/logo.webp'));
 $contact = site_contact_settings();
 ?>
 <footer class="dh-footer">
@@ -13,12 +13,12 @@ $contact = site_contact_settings();
             <!-- Brand col -->
             <div class="dh-footer-brand">
                 <a href="<?php echo url('/'); ?>" class="dh-footer-logo-link">
-                    <img src="<?php echo $logoPath; ?>" alt="Dazu Hub Institute"
+                    <img src="<?php echo $logoPath; ?>" alt="Dazu Training Institute"
                          height="40" class="dh-footer-logo"
                          onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
                     <span class="dh-footer-logo-fallback" style="display:none;">
                         <span class="dh-footer-logo-mark">&lt;/&gt;</span>
-                        <span class="dh-footer-logo-text">Dazu <strong>Hub</strong></span>
+                        <span class="dh-footer-logo-text">Dazu <strong>Training Institute</strong></span>
                     </span>
                 </a>
                 <p class="dh-footer-tagline">
@@ -100,7 +100,7 @@ $contact = site_contact_settings();
 
     <div class="dh-footer-bottom">
         <div class="dh-container dh-footer-bottom-inner">
-            <small>&copy; <?php echo $year; ?> Dazu Hub Institute. All rights reserved.</small>
+            <small>&copy; <?php echo $year; ?> Dazu Training Institute. All rights reserved.</small>
             <div class="dh-footer-bottom-links">
                 <a href="#">Privacy Policy</a>
                 <a href="#">Terms &amp; Conditions</a>

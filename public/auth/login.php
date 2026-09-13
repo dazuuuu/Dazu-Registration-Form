@@ -24,17 +24,17 @@ if (isLoggedIn()) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = trim($_POST['email'] ?? '');
+    $loginInput = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    if ($email === '' || $password === '') {
-        $error = 'Email and password are required.';
+    if ($loginInput === '' || $password === '') {
+        $error = 'Email or registration number and password are required.';
     } else {
-        $user = $userModel->getUserByEmail($email);
+        $user = $userModel->getUserByIdentifier($loginInput);
 
         if (!$user || !password_verify($password, $user['password_hash'])) {
-            $error = 'Invalid email or password.';
-            $userModel->logLoginAttempt($email, $_SERVER['REMOTE_ADDR'] ?? '');
+            $error = 'Invalid email/registration number or password.';
+            $userModel->logLoginAttempt($loginInput, $_SERVER['REMOTE_ADDR'] ?? '');
         } elseif (empty($user['is_active'])) {
             $error = 'Account is deactivated. Contact the administrator.';
         } else {
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$page_title = 'Sign In — Dazu hub Institute';
+$page_title = 'Sign In — Dazu Training Institute';
 $standalone = true;
 ob_start();
 ?>
@@ -70,7 +70,7 @@ ob_start();
   <div class="max-w-md w-full mx-auto px-4">
     <div class="bg-white border border-slate-200 rounded-2xl p-8 md:p-10 space-y-8 shadow-sm">
       <div class="space-y-2 text-center">
-        <span class="text-green-600 text-[10px] uppercase tracking-widest font-extrabold px-2.5 py-1 bg-green-50 border border-green-200 rounded-full">Dazu Hub Portal</span>
+        <span class="text-green-600 text-[10px] uppercase tracking-widest font-extrabold px-2.5 py-1 bg-green-50 border border-green-200 rounded-full">Dazu Training Institute</span>
         <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight pt-2">Sign In</h1>
         <p class="text-xs text-slate-400 font-semibold">Students and tutors sign in here. Admins use the admin portal link below.</p>
       </div>
@@ -84,8 +84,9 @@ ob_start();
 
       <form method="POST" class="space-y-6">
         <div class="space-y-2">
-          <label class="block text-xs font-bold uppercase tracking-widest text-slate-500" for="email">Email</label>
-          <input type="email" id="email" name="email" required autocomplete="username"
+          <label class="block text-xs font-bold uppercase tracking-widest text-slate-500" for="email">Email or Registration Number</label>
+          <input type="text" id="email" name="email" required autocomplete="username"
+                 placeholder="e.g. student@gmail.com or DH061/26"
                  value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"
                  class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-green-600">
         </div>
@@ -102,7 +103,6 @@ ob_start();
 
       <div class="text-center space-y-3 text-xs text-slate-500">
         <a href="<?php echo url('courses/index.php'); ?>" class="text-green-600 font-bold hover:underline block">New student? Apply here</a>
-        <!--a href="<?php echo url('admin/portal.php'); ?>" class="text-slate-600 hover:text-green-600 font-semibold block">Admin login →</a-->
         <a href="<?php echo url('/'); ?>" class="text-slate-400 hover:text-slate-600 block">← Back to website</a>
       </div>
     </div>

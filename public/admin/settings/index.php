@@ -10,7 +10,7 @@ Middleware::requireAdmin();
 
 $settings = new SettingModel($pdo);
 $logoUrl = settings_asset_url($settings->get('logo_path'));
-$siteName = $settings->get('site_name', 'Dazu Hub');
+$siteName = $settings->get('site_name', 'Dazu Training Institute');
 $heroSlides = $settings->getHeroSlides(false);
 $pageHeaders = $settings->getAllPageHeaders();
 $classScheduleOnline = trim((string) $settings->get('class_schedule_online', '8am, 12pm, 6pm'));
