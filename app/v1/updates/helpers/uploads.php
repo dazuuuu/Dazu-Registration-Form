@@ -165,6 +165,23 @@ if (!function_exists('upload_image')) {
             $raw = @file_get_contents($file['tmp_name']);
             $srcImg = $raw !== false ? @imagecreatefromstring($raw) : false;
             if ($srcImg !== false) {
+                if (function_exists('exif_read_data')) {
+                    $exif = @exif_read_data($file['tmp_name']);
+                    if (!empty($exif['Orientation'])) {
+                        switch ($exif['Orientation']) {
+                            case 3:
+                                $srcImg = imagerotate($srcImg, 180, 0);
+                                break;
+                            case 6:
+                                $srcImg = imagerotate($srcImg, -90, 0);
+                                break;
+                            case 8:
+                                $srcImg = imagerotate($srcImg, 90, 0);
+                                break;
+                        }
+                    }
+                }
+
                 $srcW = imagesx($srcImg);
                 $srcH = imagesy($srcImg);
 

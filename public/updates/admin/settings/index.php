@@ -5,10 +5,13 @@ require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
+require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 
 Middleware::requireAdmin();
 
 $settings = new SettingModel($pdo);
+$courseModel = new \Models\CourseModel($pdo);
+$popularCourses = $courseModel->getHomepageCourses();
 $logoUrl = settings_asset_url($settings->get('logo_path'));
 $siteName = $settings->get('site_name', 'Dazu Training Institute');
 $heroSlides = $settings->getHeroSlides(false);
@@ -32,6 +35,7 @@ $settingCards = [
     ['title' => 'Page Banners', 'subtitle' => count($pageHeaders) . ' page' . (count($pageHeaders) === 1 ? '' : 's'), 'icon' => 'fa-heading', 'color' => 'warning', 'url' => url('admin/settings/edit.php?section=headers'), 'button' => 'Edit banners'],
     ['title' => 'Contact & Map', 'subtitle' => 'Phone, email, campus map embed', 'icon' => 'fa-map-location-dot', 'color' => 'success', 'url' => url('admin/settings/edit.php?section=contact'), 'button' => 'Edit contact'],
     ['title' => 'Class Schedule', 'subtitle' => 'Shared online and physical class times', 'icon' => 'fa-calendar-days', 'color' => 'primary', 'url' => url('admin/settings/edit.php?section=schedule'), 'button' => 'Edit schedule'],
+    ['title' => 'Popular Courses', 'subtitle' => count($popularCourses) . ' course' . (count($popularCourses) === 1 ? '' : 's') . ' on homepage', 'icon' => 'fa-star', 'color' => 'warning', 'url' => url('admin/settings/edit.php?section=popular_courses'), 'button' => 'Manage popular'],
     ['title' => 'SmS Receipts', 'subtitle' => 'Logo, address, footer for PDF receipts', 'icon' => 'fa-receipt', 'color' => 'secondary', 'url' => url('admin/settings/edit.php?section=receipt'), 'button' => 'Edit receipts'],
 ];
 
@@ -120,6 +124,19 @@ ob_start();
                 </div>
               <?php endforeach; ?>
             </div>
+          <?php elseif ($card['title'] === 'Popular Courses'): ?>
+            <?php if (!empty($popularCourses)): ?>
+              <div class="d-flex flex-wrap gap-1">
+                <?php foreach (array_slice($popularCourses, 0, 5) as $pc): ?>
+                  <span class="badge text-bg-warning"><?php echo htmlspecialchars($pc['title']); ?></span>
+                <?php endforeach; ?>
+                <?php if (count($popularCourses) > 5): ?>
+                  <span class="badge text-bg-light border text-muted">+<?php echo count($popularCourses) - 5; ?> more</span>
+                <?php endif; ?>
+              </div>
+            <?php else: ?>
+              <div class="small text-muted">No courses marked as popular yet. All courses show on homepage.</div>
+            <?php endif; ?>
           <?php elseif ($card['title'] === 'Class Schedule'): ?>
             <div class="small text-muted">
               <div class="d-flex justify-content-between gap-2 py-1 border-bottom">
