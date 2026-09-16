@@ -1,0 +1,726 @@
+<?php
+// public/templates/admin/layout.php
+if (session_status() === PHP_SESSION_NONE) session_start();
+if (!function_exists('url')) {
+    require_once __DIR__ . '/../../../app/v1/config/paths.php';
+}
+
+// Check authentication
+if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
+    header('Location: ' . url('auth/login.php'));
+    exit();
+}
+
+$pending_migration_count = 0;
+$pending_migration_error = null;
+if (isset($pdo)) {
+    try {
+        require_once __DIR__ . '/../../../app/v1/services/MigrationService.php';
+        $pending_migration_count = (new MigrationService($pdo))->pendingCount();
+    } catch (Throwable $e) {
+        $pending_migration_error = $e->getMessage();
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Admin — <?php echo $page_title ?? 'Dazu Training Institute'; ?></title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="<?php echo asset('css/admin-terminal.css'); ?>">
+    <script>
+    (function () {
+        var base = <?php echo json_encode(WEB_ROOT === '' ? '' : rtrim(WEB_ROOT, '/')); ?>;
+        window.url = function (path) {
+            path = String(path || '').replace(/^\//, '');
+            return (base ? base + '/' : '/') + path;
+        };
+    })();
+    </script>
+    
+    <style>
+        /* ============================================================
+           ADMIN THEME - FULLY RESPONSIVE
+        ============================================================ */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: #f5f5f5;
+            color: #1a1a1a;
+            overflow-x: hidden;
+        }
+        
+        /* Admin Wrapper */
+        .admin-wrapper {
+            display: flex;
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        /* Sidebar Styles - Matches sidebar.php */
+        .admin-sidebar {
+            width: 280px;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            position: fixed;
+            left: 0;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+        }
+        
+        /* Sidebar Toggle Button (Mobile) */
+        .sidebar-toggle {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            z-index: 1002;
+            width: 45px;
+            height: 45px;
+            border-radius: 8px;
+            background: #1a1a1a;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .sidebar-toggle:hover {
+            background: #333;
+            transform: scale(1.05);
+        }
+        
+        /* Sidebar Overlay */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .sidebar-overlay.active {
+            display: block;
+            opacity: 1;
+        }
+        
+        /* Main Content Area */
+        .admin-content {
+            flex: 1;
+            margin-left: 280px;
+            padding: 25px 30px;
+            min-height: 100vh;
+            background: #f5f5f5;
+            transition: margin-left 0.3s ease;
+            width: calc(100% - 280px);
+        }
+        
+        /* Top Bar */
+        .top-bar {
+            background: #fff;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid #e0e0e0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin: 0;
+        }
+        
+        .breadcrumb {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            font-size: 0.8rem;
+        }
+        
+        .breadcrumb-item a {
+            color: #666;
+            text-decoration: none;
+        }
+        
+        .breadcrumb-item a:hover {
+            color: #1a1a1a;
+        }
+        
+        .breadcrumb-item.active {
+            color: #1a1a1a;
+            font-weight: 500;
+        }
+        
+        /* User Dropdown */
+        .user-dropdown .btn {
+            background: #fff;
+            border: 1px solid #e0e0e0;
+            color: #1a1a1a;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 0.85rem;
+        }
+        
+        .user-dropdown .btn:hover {
+            background: #f5f5f5;
+            border-color: #ccc;
+        }
+        
+        .dropdown-menu {
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .dropdown-item {
+            padding: 8px 16px;
+            font-size: 0.85rem;
+            color: #1a1a1a;
+        }
+        
+        .dropdown-item i {
+            width: 20px;
+            margin-right: 8px;
+            color: #666;
+        }
+        
+        .dropdown-item:hover {
+            background: #f5f5f5;
+        }
+        
+        /* Alert Styles */
+        .alert {
+            border-radius: 8px;
+            border: none;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .alert-danger {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        /* Cards */
+        .card {
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+        
+        .card-header {
+            background: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        /* Tables */
+        .table {
+            color: #1a1a1a;
+            margin-bottom: 0;
+        }
+        
+        .table thead th {
+            background: #fafafa;
+            border-bottom: 2px solid #e0e0e0;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Buttons */
+        .btn-primary {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+        }
+        
+        .btn-primary:hover {
+            background: #333;
+            border-color: #333;
+        }
+        
+        .btn-outline-primary {
+            color: #1a1a1a;
+            border-color: #ccc;
+        }
+        
+        .btn-outline-primary:hover {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+            color: #fff;
+        }
+        
+        /* Form Controls */
+        .form-control:focus,
+        .form-select:focus {
+            border-color: #1a1a1a;
+            box-shadow: 0 0 0 0.2rem rgba(0,0,0,0.1);
+        }
+        
+        /* Scrollbar */
+        .admin-sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .admin-sidebar::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+        
+        .admin-sidebar::-webkit-scrollbar-thumb {
+            background: #444;
+            border-radius: 3px;
+        }
+        
+        .admin-sidebar::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        
+        /* ============================================================
+           RESPONSIVE BREAKPOINTS
+        ============================================================ */
+        
+        /* Tablet Landscape */
+        @media (max-width: 992px) {
+            .sidebar-toggle {
+                display: flex;
+            }
+            
+            .admin-sidebar {
+                transform: translateX(-100%);
+            }
+            
+            .admin-sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .admin-content {
+                margin-left: 0;
+                padding: 20px;
+                width: 100%;
+            }
+            
+            .top-bar {
+                margin-top: 55px;
+            }
+        }
+        
+        /* Tablet Portrait */
+        @media (max-width: 768px) {
+            .admin-content {
+                padding: 15px;
+            }
+            
+            .top-bar {
+                flex-direction: column;
+                align-items: stretch;
+                margin-top: 55px;
+                gap: 12px;
+            }
+            
+            .top-bar > div:first-child {
+                text-align: center;
+            }
+            
+            .user-dropdown {
+                text-align: center;
+            }
+            
+            .page-title {
+                font-size: 1.3rem;
+            }
+            
+            .breadcrumb {
+                justify-content: center;
+            }
+            
+            .card-header {
+                padding: 12px 15px;
+            }
+            
+            .card-body {
+                padding: 15px;
+            }
+            
+            /* Make tables scrollable on mobile */
+            .table-responsive {
+                margin: 0 -15px;
+                width: calc(100% + 30px);
+                padding: 0 15px;
+            }
+            
+            /* Adjust button sizes for mobile */
+            .btn {
+                padding: 8px 16px;
+                font-size: 0.85rem;
+            }
+            
+            /* Form adjustments */
+            .form-control,
+            .form-select {
+                font-size: 16px; /* Prevents zoom on mobile */
+            }
+        }
+        
+        /* Mobile Small */
+        @media (max-width: 576px) {
+            .admin-content {
+                padding: 10px;
+            }
+            
+            .top-bar {
+                margin-top: 50px;
+                padding: 12px 15px;
+            }
+            
+            .page-title {
+                font-size: 1.2rem;
+            }
+            
+            .sidebar-toggle {
+                top: 10px;
+                left: 10px;
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+            
+            .card-header {
+                padding: 10px 12px;
+                font-size: 0.95rem;
+            }
+            
+            .card-body {
+                padding: 12px;
+            }
+            
+            /* Stack buttons on mobile */
+            .btn-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .btn-group .btn {
+                width: 100%;
+                border-radius: 6px !important;
+            }
+            
+            /* Adjust modal for mobile */
+            .modal-dialog {
+                margin: 10px;
+            }
+            
+            .modal-body {
+                padding: 15px;
+            }
+        }
+        
+        /* Desktop Large */
+        @media (min-width: 1400px) {
+            .container-fluid {
+                max-width: 1400px;
+                margin: 0 auto;
+            }
+            
+            .admin-content {
+                padding: 30px 40px;
+            }
+        }
+        
+        /* Print Styles */
+        @media print {
+            .admin-sidebar,
+            .sidebar-toggle,
+            .user-dropdown,
+            .mobile-menu-toggle,
+            .btn,
+            .no-print {
+                display: none !important;
+            }
+            
+            .admin-content {
+                margin-left: 0 !important;
+                padding: 0 !important;
+            }
+            
+            .card {
+                break-inside: avoid;
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        }
+        
+        /* Loading States */
+        .loading {
+            position: relative;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 30px;
+            height: 30px;
+            margin: -15px 0 0 -15px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #1a1a1a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Utility Classes */
+        .text-truncate-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .cursor-pointer {
+            cursor: pointer;
+        }
+        
+        /* Animation for content */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+    
+    <?php if (isset($extra_css)): ?>
+        <?php echo $extra_css; ?>
+    <?php endif; ?>
+</head>
+<body class="admin-mode-simple">
+<script>
+(function () {
+    var mode = localStorage.getItem('dazu_admin_ui_mode');
+    document.body.className = 'admin-mode-' + (mode === 'dev' ? 'dev' : 'simple');
+})();
+</script>
+    <div class="admin-wrapper">
+        <!-- Include Admin Sidebar -->
+        <?php include_once __DIR__ . '/../../components/admin/sidebar.php'; ?>
+        
+        <!-- Main Content Area -->
+        <div class="admin-content fade-in">
+            <!-- Top Bar -->
+            <div class="top-bar">
+                <div>
+                    <h1 class="page-title"><?php echo $page_title ?? 'Dashboard'; ?></h1>
+                    <?php if (isset($breadcrumbs)): ?>
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mt-2">
+                                <li class="breadcrumb-item"><a href="<?php echo url('admin/dashboard.php'); ?>">Dashboard</a></li>
+                                <?php foreach ($breadcrumbs as $crumb): ?>
+                                    <li class="breadcrumb-item <?php echo isset($crumb['active']) ? 'active' : ''; ?>">
+                                        <?php if (isset($crumb['url']) && !isset($crumb['active'])): ?>
+                                            <a href="<?php echo $crumb['url']; ?>"><?php echo $crumb['label']; ?></a>
+                                        <?php else: ?>
+                                            <?php echo $crumb['label']; ?>
+                                        <?php endif; ?>
+                                    </li>
+                                <?php endforeach; ?>
+                            </ol>
+                        </nav>
+                    <?php endif; ?>
+                </div>
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="admin-mode-toggle" role="group" aria-label="Admin UI mode">
+                        <button type="button" data-admin-mode="simple" title="Standard admin panel">Simple</button>
+                        <button type="button" data-admin-mode="dev" title="Terminal command mode">Dev</button>
+                    </div>
+                    <div class="user-dropdown dropdown">
+                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-circle me-2"></i>
+                        <?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin'); ?>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="<?php echo url('profile/admin/'); ?>">
+                            <i class="fas fa-user"></i> My Profile
+                        </a></li>
+                        <?php if (isset($_SESSION['role_id']) && $_SESSION['role_id'] <= 2): ?>
+                        <li><a class="dropdown-item" href="<?php echo url('admin/settings/index.php'); ?>">
+                            <i class="fas fa-cog"></i> Settings
+                        </a></li>
+                        <?php endif; ?>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="<?php echo url('auth/logout.php'); ?>">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a></li>
+                    </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Flash Messages -->
+            <?php if (isset($_SESSION['flash']['success'])): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <?php echo $_SESSION['flash']['success']; unset($_SESSION['flash']['success']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (isset($_SESSION['flash']['error'])): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <?php echo $_SESSION['flash']['error']; unset($_SESSION['flash']['error']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+            
+            <?php if (isset($_SESSION['flash']['warning'])): ?>
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <?php echo $_SESSION['flash']['warning']; unset($_SESSION['flash']['warning']); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($pending_migration_count > 0): ?>
+                <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2" role="alert">
+                    <div>
+                        <i class="fas fa-download me-2"></i>
+                        <strong>System update available.</strong>
+                        <?php echo number_format($pending_migration_count); ?> database migration<?php echo $pending_migration_count === 1 ? '' : 's'; ?> pending.
+                    </div>
+                    <a class="btn btn-sm btn-warning" href="<?php echo url('admin/system/updates.php'); ?>">
+                        <i class="fas fa-database me-1"></i> Update now
+                    </a>
+                </div>
+            <?php elseif ($pending_migration_error): ?>
+                <div class="alert alert-danger" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Could not check system updates: <?php echo htmlspecialchars($pending_migration_error); ?>
+                </div>
+            <?php endif; ?>
+            
+            <!-- Page Content -->
+            <?php echo $content; ?>
+        </div>
+    </div>
+
+    <div id="adminTerminalShell" class="admin-terminal-shell" aria-label="Admin terminal">
+        <div class="admin-terminal-header">
+            <div class="dots" aria-hidden="true">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+            </div>
+            <span class="admin-terminal-title">dazu@hub — admin shell</span>
+            <button type="button" id="adminTerminalToSimple" class="admin-terminal-mode-btn">← Simple UI</button>
+        </div>
+        <div id="adminTerminalOutput" class="admin-terminal-output" role="log" aria-live="polite"></div>
+        <div class="admin-terminal-input-wrap">
+            <span class="admin-terminal-prompt-label">dazu@hub:~$</span>
+            <input type="text" id="adminTerminalInput" class="admin-terminal-input"
+                   autocomplete="off" spellcheck="false" aria-label="Terminal command"
+                   placeholder="try: menu, open students, edit courses, save">
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+    window.ADMIN_TERMINAL_USER = <?php echo json_encode($_SESSION['username'] ?? 'admin'); ?>;
+    window.ADMIN_TERMINAL_ROUTES = <?php echo json_encode([
+        'dashboard' => url('admin/dashboard.php'),
+        'registrations' => url('admin/registrations/index.php?status=pending'),
+        'students' => url('admin/sms/students/index.php'),
+        'courses' => url('admin/courses/index.php'),
+        'free-courses' => url('admin/free-courses/index.php'),
+        'tutors' => url('admin/tutors/index.php'),
+        'payments' => url('admin/payments/index.php'),
+        'orders' => url('admin/orders/index.php'),
+        'enquiries' => url('admin/enquiries/index.php'),
+        'projects' => url('admin/projects/index.php'),
+        'services' => url('admin/services/index.php'),
+        'blogs' => url('admin/blogs/index.php'),
+        'gallery' => url('admin/gallery/index.php'),
+        'testimonials' => url('admin/testimonials/index.php'),
+        'store-products' => url('admin/store/products/index.php'),
+        'store-categories' => url('admin/store/categories/index.php'),
+        'store' => url('admin/store/products/index.php'),
+        'settings' => url('admin/settings/index.php'),
+        'updates' => url('admin/system/updates.php'),
+        'update' => url('admin/system/updates.php'),
+        'profile' => url('profile/admin/'),
+        'logout' => url('auth/logout.php'),
+    ], JSON_UNESCAPED_SLASHES); ?>;
+    </script>
+    <script src="<?php echo asset('js/admin-terminal.js'); ?>"></script>
+
+    <?php if (isset($extra_js)): ?>
+        <?php echo $extra_js; ?>
+    <?php endif; ?>
+</body>
+</html>

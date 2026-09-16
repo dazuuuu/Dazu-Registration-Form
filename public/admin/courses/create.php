@@ -24,16 +24,17 @@ try {
 }
 
 $error = null;
-$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'requirements' => '', 'overview' => '', 'duration_months' => '', 'weeks_of_study' => '', 'days_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'course_fee' => '', 'category_id' => ''];
-$fee_items = [];
+$old = ['title' => '', 'abbreviation' => '', 'description' => '', 'requirements' => '', 'overview' => '', 'duration_months' => '', 'weeks_of_study' => '', 'days_of_study' => '', 'hours_of_study' => '', 'study_schedule' => '', 'semester_count' => '', 'course_fee' => '', 'category_id' => '', 'show_on_homepage' => 0];
+$fee_modes = ['online' => [], 'physical' => []];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         $error = 'Security check failed, please try again.';
     } else {
         $old = $_POST;
-        $fee_items = course_fee_structure_from_post($_POST);
+        $fee_modes = course_fee_structure_modes_from_post($_POST);
         $coverPath = null;
+        $brochurePath = null;
 
         if (!empty($_FILES['cover_image']['name'])) {
             $upload = upload_image(
@@ -48,9 +49,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        if (!$error && !empty($_FILES['brochure']['name'])) {
+            $brochure = upload_pdf(
+                $_FILES['brochure'],
+                __DIR__ . '/../../uploads/courses/brochures',
+                'uploads/courses/brochures'
+            );
+            if (!$brochure['ok']) {
+                $error = $brochure['error'];
+            } else {
+                $brochurePath = $brochure['path'];
+            }
+        }
+
         if (!$error) {
-            $fee_items = course_fee_structure_from_post($_POST);
-            $feeTotal = course_fee_structure_total($fee_items);
+            $feeTotal = course_fee_structure_catalog_total($fee_modes, $_POST['course_fee'] ?? 0);
             $result = $courseModel->create([
                 'title'           => $_POST['title'] ?? '',
                 'abbreviation'    => $_POST['abbreviation'] ?? '',
@@ -63,10 +76,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'days_of_study'   => $_POST['days_of_study'] ?? null,
                 'hours_of_study'  => $_POST['hours_of_study'] ?? null,
                 'study_schedule'  => $_POST['study_schedule'] ?? null,
+                'semester_count'  => $_POST['semester_count'] ?? 1,
                 'course_fee'      => $feeTotal > 0 ? $feeTotal : ($_POST['course_fee'] ?? 0),
-                'fee_structure_items' => $fee_items,
+                'fee_structure_modes' => $fee_modes,
                 'is_free'         => false,
                 'cover_image'     => $coverPath,
+                'brochure_path'   => $brochurePath,
+                'show_on_homepage' => isset($_POST['show_on_homepage']) ? 1 : 0,
             ], SessionModel::get('user_id'));
 
             if ($result['ok']) {
@@ -161,6 +177,12 @@ ob_start();
                            placeholder="e.g. Mon, Wed, Fri evenings" value="<?php echo htmlspecialchars($old['study_schedule'] ?? ''); ?>">
                 </div>
                 <div class="col-md-6">
+                    <label class="form-label">Number of semesters</label>
+                    <input type="number" name="semester_count" class="form-control" min="1" max="40" step="1"
+                           placeholder="e.g. 6" value="<?php echo htmlspecialchars($old['semester_count'] ?? ''); ?>">
+                    <small class="text-muted">Used to calculate per-semester fees when the per-semester field is blank.</small>
+                </div>
+                <div class="col-md-6">
                     <label class="form-label">Course Fee (KSh)</label>
                     <input type="number" name="course_fee" class="form-control" min="1" step="1" required
                            value="<?php echo htmlspecialchars($old['course_fee'] ?? ''); ?>">
@@ -172,6 +194,22 @@ ob_start();
                 <div class="col-12">
                     <label class="form-label">Cover Image</label>
                     <input type="file" name="cover_image" class="form-control" accept="image/jpeg,image/png,image/webp">
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Course brochure (PDF)</label>
+                    <input type="file" name="brochure" class="form-control" accept="application/pdf">
+                    <small class="text-muted">Optional. Students can download this from the course page.</small>
+                </div>
+
+                <div class="col-12">
+                    <div class="form-check form-switch p-3 bg-light rounded border">
+                        <input class="form-check-input" type="checkbox" name="show_on_homepage" id="show_on_homepage" value="1"
+                               <?php echo !empty($old['show_on_homepage']) ? 'checked' : ''; ?>>
+                        <label class="form-check-label fw-bold text-dark ms-2" for="show_on_homepage">
+                            <i class="fas fa-home text-primary me-1"></i> Show this course on the front-page (Homepage)
+                        </label>
+                        <div class="form-text text-muted ps-1">When enabled, this course is featured directly on the front-page. All other courses appear when visitors click "View All Courses".</div>
+                    </div>
                 </div>
 
                 <div class="col-12">

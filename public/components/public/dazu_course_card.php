@@ -6,37 +6,25 @@ if (!isset($course) || !function_exists('dazu_course_apply_url')) {
 $img = dazu_course_image_url($course);
 $ratingVal = (float) ($course['rating'] ?? 4.8);
 $reviews = dazu_course_rating_count($course['abbreviation'] ?? '');
-$months = (int) ($course['duration_months'] ?? 0);
-$weeks = (int) ($course['weeks_of_study'] ?? 0);
-$hours = (int) ($course['hours_of_study'] ?? 0);
-$schedule = trim((string) ($course['study_schedule'] ?? ''));
 $isFree = !empty($course['is_free']);
-$fee = number_format((float) ($course['course_fee'] ?? 0));
 $enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => null];
 $title = htmlspecialchars($course['title'] ?? '');
 $overview = htmlspecialchars($course['overview'] ?? $course['description'] ?? '');
-$category = htmlspecialchars($course['category_name'] ?? dazu_course_category($course['abbreviation'] ?? ''));
 $applyUrl = dazu_course_apply_url($course);
-$duration = $months > 0 ? $months . ' Month' . ($months === 1 ? '' : 's') : 'Flexible';
-$abbr = strtoupper(trim($course['abbreviation'] ?? ''));
 $cardId = (int) ($course['id'] ?? 0);
 ?>
-<article class="dazu-course-card group relative bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col justify-between h-full cursor-pointer hover:border-[#15A24A] transition-all duration-300 select-none shadow-sm"
+<article class="dazu-course-card group relative bg-white border border-slate-200 rounded-2xl overflow-hidden flex flex-col h-full min-h-[360px] sm:min-h-[420px] cursor-pointer hover:border-[#15A24A] transition-all duration-300 select-none shadow-sm"
          onclick="window.location.href='<?php echo htmlspecialchars($applyUrl); ?>'">
-  <div class="relative h-44 w-full overflow-hidden bg-slate-100">
+  <div class="relative h-32 sm:h-44 w-full overflow-hidden bg-slate-100">
     <img src="<?php echo htmlspecialchars($img); ?>" alt="<?php echo $title; ?>"
          class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
          referrerpolicy="no-referrer" loading="lazy">
-    <span class="absolute top-3 left-3 text-[10px] font-bold text-white bg-[#15A24A] px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm"><?php echo $category; ?></span>
     <?php if ($isFree): ?>
       <span class="absolute top-3 right-3 text-[10px] font-bold text-white bg-rose-500 px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">Free</span>
     <?php endif; ?>
-    <div class="absolute bottom-3 right-3 p-2 bg-white/90 backdrop-blur-sm text-[#15A24A] border border-green-100 rounded-lg shadow-sm">
-      <?php echo dazu_course_icon_svg($abbr); ?>
-    </div>
   </div>
 
-  <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
+  <div class="p-3 sm:p-5 flex-1 flex flex-col">
     <div class="space-y-2">
       <div class="flex items-center gap-1.5 text-xs">
         <div class="flex items-center text-amber-500">
@@ -44,30 +32,9 @@ $cardId = (int) ($course['id'] ?? 0);
         </div>
         <span class="font-bold text-slate-800"><?php echo number_format($ratingVal, 1); ?></span>
         <span class="text-slate-400 font-semibold">(<?php echo $reviews; ?>)</span>
-        <span class="text-slate-300">•</span>
-        <span class="text-slate-500 font-bold uppercase tracking-wider text-[10px]"><?php echo htmlspecialchars($duration); ?></span>
       </div>
-      <h3 class="font-extrabold text-slate-900 text-base tracking-tight group-hover:text-[#15A24A] transition-colors duration-150 line-clamp-1"><?php echo $title; ?></h3>
-      <p class="text-slate-500 text-xs font-semibold leading-relaxed line-clamp-2"><?php echo $overview; ?></p>
-      <?php if ($weeks > 0 || $hours > 0 || $schedule !== ''): ?>
-        <div class="flex items-center gap-2 flex-wrap">
-          <?php if ($weeks > 0): ?>
-            <span class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
-              <?php echo $weeks; ?> Week<?php echo $weeks === 1 ? '' : 's'; ?>
-            </span>
-          <?php endif; ?>
-          <?php if ($hours > 0): ?>
-            <span class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
-              <?php echo $hours; ?> Hr<?php echo $hours === 1 ? '' : 's'; ?>
-            </span>
-          <?php endif; ?>
-          <?php if ($schedule !== ''): ?>
-            <span class="text-[10px] font-bold text-slate-500 bg-slate-50 border border-slate-200 rounded-full px-2 py-0.5">
-              <?php echo htmlspecialchars($schedule); ?>
-            </span>
-          <?php endif; ?>
-        </div>
-      <?php endif; ?>
+      <h3 class="font-extrabold text-slate-900 text-sm sm:text-base tracking-tight group-hover:text-[#15A24A] transition-colors duration-150 line-clamp-2 min-h-[2.5rem]"><?php echo $title; ?></h3>
+      <p class="text-slate-500 text-xs font-semibold leading-relaxed line-clamp-2 sm:line-clamp-3 min-h-[3.5rem] sm:min-h-[4.5rem]"><?php echo $overview; ?></p>
       <?php if (!empty($enrollWindow['label'])): ?>
         <div class="flex items-center gap-1.5 text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-full px-2.5 py-1 w-fit">
           <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3M5 11h14M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
@@ -76,21 +43,19 @@ $cardId = (int) ($course['id'] ?? 0);
       <?php endif; ?>
     </div>
 
-    <div class="pt-4 border-t border-slate-100 space-y-3">
-      <div class="flex items-center justify-between">
-        <div>
-          <span class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tuition Fee</span>
-          <span class="text-[#15A24A] font-extrabold text-sm sm:text-base"><?php echo $isFree ? 'FREE' : 'Ksh ' . $fee; ?></span>
-        </div>
-        <a href="<?php echo htmlspecialchars($applyUrl); ?>"
-           onclick="event.stopPropagation();"
-           class="px-4 py-2 bg-[#15A24A] hover:bg-[#128a3e] text-white text-xs font-bold rounded-lg transition-colors shadow-sm flex items-center gap-1"
-           id="course-apply-btn-<?php echo $cardId; ?>">
-          Apply Now
-          <svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
-        </a>
-      </div>
-      <?php if (!$isFree): $fee_compact = true; include __DIR__ . '/dazu_course_fee_breakdown.php'; endif; ?>
+    <div class="mt-auto pt-3 sm:pt-4 border-t border-slate-100 grid grid-cols-2 gap-1.5 sm:gap-2">
+      <a href="<?php echo htmlspecialchars($applyUrl); ?>"
+         onclick="event.stopPropagation();"
+         class="px-2 sm:px-3 py-2 sm:py-2.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-[9px] sm:text-[11px] font-extrabold rounded-lg transition-colors flex items-center justify-center gap-1.5 uppercase tracking-wide sm:tracking-wider">
+        View Course
+      </a>
+      <a href="<?php echo htmlspecialchars($applyUrl); ?>"
+         onclick="event.stopPropagation();"
+         class="px-2 sm:px-3 py-2 sm:py-2.5 bg-[#15A24A] hover:bg-[#128a3e] text-white text-[9px] sm:text-[11px] font-extrabold rounded-lg transition-colors shadow-sm flex items-center justify-center gap-1.5 uppercase tracking-wide sm:tracking-wider"
+         id="course-apply-btn-<?php echo $cardId; ?>">
+        Apply
+        <svg class="hidden sm:block h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+      </a>
     </div>
   </div>
 </article>

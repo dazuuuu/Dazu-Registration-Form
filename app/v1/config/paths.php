@@ -124,9 +124,24 @@ if (!function_exists('settings_asset_url')) {
         if (preg_match('#^https?://#i', $storedPath)) {
             return $storedPath;
         }
-        if ($storedPath[0] === '/') {
-            return $storedPath;
+
+        // Clean relative path for filesystem checks
+        $cleanRel = ltrim(preg_replace('#^/Registration-System/public/#', '', $storedPath), '/');
+        if (WEB_ROOT !== '' && str_starts_with($cleanRel, ltrim(WEB_ROOT, '/') . '/')) {
+            $cleanRel = substr($cleanRel, strlen(ltrim(WEB_ROOT, '/') . '/'));
         }
-        return url(ltrim($storedPath, '/'));
+
+        $fullUrl = url($cleanRel);
+
+        // Append file modification time to bust browser / service worker cache
+        $abs = public_path($cleanRel);
+        if (is_file($abs)) {
+            $mtime = @filemtime($abs);
+            if ($mtime) {
+                $fullUrl .= (str_contains($fullUrl, '?') ? '&' : '?') . 'v=' . $mtime;
+            }
+        }
+
+        return $fullUrl;
     }
 }

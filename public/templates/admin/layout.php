@@ -27,7 +27,7 @@ if (isset($pdo)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Admin — <?php echo $page_title ?? 'Dazu Hub Institute'; ?></title>
+    <title>Admin — <?php echo $page_title ?? 'Dazu Training Institute'; ?></title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -566,14 +566,6 @@ if (isset($pdo)) {
 })();
 </script>
     <div class="admin-wrapper">
-        <!-- Sidebar Overlay (Mobile) -->
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
-        
-        <!-- Sidebar Toggle Button (Mobile) -->
-        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Sidebar">
-            <i class="fas fa-bars"></i>
-        </button>
-        
         <!-- Include Admin Sidebar -->
         <?php include_once __DIR__ . '/../../components/admin/sidebar.php'; ?>
         
@@ -697,98 +689,6 @@ if (isset($pdo)) {
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Mobile Sidebar Script -->
-    <script>
-        (function() {
-            'use strict';
-            
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const sidebar = document.querySelector('.admin-sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            
-            function openSidebar() {
-                if (sidebar) sidebar.classList.add('active');
-                if (overlay) overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
-                
-                // Save state
-                localStorage.setItem('adminSidebarOpen', 'true');
-            }
-            
-            function closeSidebar() {
-                if (sidebar) sidebar.classList.remove('active');
-                if (overlay) overlay.classList.remove('active');
-                document.body.style.overflow = '';
-                
-                // Save state
-                localStorage.setItem('adminSidebarOpen', 'false');
-            }
-            
-            function toggleSidebar() {
-                if (sidebar && sidebar.classList.contains('active')) {
-                    closeSidebar();
-                } else {
-                    openSidebar();
-                }
-            }
-            
-            // Toggle button click
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', toggleSidebar);
-            }
-            
-            // Overlay click
-            if (overlay) {
-                overlay.addEventListener('click', closeSidebar);
-            }
-            
-            // Close on escape key
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && sidebar && sidebar.classList.contains('active')) {
-                    closeSidebar();
-                }
-            });
-            
-            // Handle window resize - close sidebar when switching to desktop
-            let resizeTimer;
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(function() {
-                    if (window.innerWidth > 992 && sidebar && sidebar.classList.contains('active')) {
-                        closeSidebar();
-                    }
-                }, 250);
-            });
-            
-            // Close sidebar when clicking on a link (mobile only)
-            if (sidebar) {
-                const sidebarLinks = sidebar.querySelectorAll('.nav-link');
-                sidebarLinks.forEach(function(link) {
-                    link.addEventListener('click', function() {
-                        if (window.innerWidth <= 992) {
-                            setTimeout(closeSidebar, 150);
-                        }
-                    });
-                });
-            }
-            
-            // Restore sidebar state on page load (desktop only)
-            if (window.innerWidth > 992) {
-                // On desktop, sidebar is always visible
-                if (sidebar) sidebar.classList.remove('active');
-            } else {
-                // On mobile, check saved state
-                const savedState = localStorage.getItem('adminSidebarOpen');
-                if (savedState === 'true' && sidebar) {
-                    setTimeout(function() {
-                        sidebar.classList.add('active');
-                        if (overlay) overlay.classList.add('active');
-                    }, 100);
-                }
-            }
-        })();
-    </script>
     
     <script>
     window.ADMIN_TERMINAL_USER = <?php echo json_encode($_SESSION['username'] ?? 'admin'); ?>;

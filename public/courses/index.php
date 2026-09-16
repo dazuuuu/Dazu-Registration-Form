@@ -1,6 +1,6 @@
 <?php
-$page_title = 'Our Technology Courses — Dazu hub Institute';
-$page_description = 'Browse software, cybersecurity, data analytics and AI courses at Dazu hub Institute, Thika Town.';
+$page_title = 'Our Technology Courses — Dazu Training Institute';
+$page_description = 'Browse software, cybersecurity, data analytics and AI courses at Dazu Training Institute in Nairobi, Thika and online.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
@@ -89,6 +89,11 @@ ob_start();
       <p class="text-slate-600 font-medium leading-relaxed mt-3">Every track we run is listed below. Search or filter by category, then open a course to view details and apply online.</p>
     </div>
 
+    <?php
+      $courseMatchCourses = $courses;
+      include __DIR__ . '/../components/public/dazu_course_match_section.php';
+    ?>
+
     <?php if (!empty($courseCategories)): ?>
       <?php
       $tabsId = 'dazu-courses-page-cat-tabs';
@@ -108,13 +113,13 @@ ob_start();
         <p class="text-slate-500 text-sm mt-1">Add courses in the admin panel or check back soon.</p>
       </div>
     <?php else: ?>
-      <div id="dazu-courses-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-start">
+      <div id="dazu-courses-grid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 items-stretch">
         <?php foreach ($courses as $course):
             $catId = (int) ($course['_display_category_id'] ?? 0);
             // All (0) hides nothing, so the page is correct before JS runs.
             $hidden = ($activeCategoryId !== 0 && $catId !== $activeCategoryId) ? 'dazu-filter-hidden' : '';
         ?>
-          <div class="dazu-course-list-item <?php echo $hidden; ?>"
+          <div class="dazu-course-list-item h-full <?php echo $hidden; ?>"
                data-category-id="<?php echo $catId; ?>"
                data-search="<?php echo htmlspecialchars($course['_search_blob'] ?? '', ENT_QUOTES); ?>">
             <?php include __DIR__ . '/../components/public/dazu_course_card.php'; ?>

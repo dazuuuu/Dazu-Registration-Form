@@ -25,7 +25,7 @@ class CourseUpdateNotifier {
             $this->mailCfg['enabled'] = true;
         }
         $this->enabled = !empty($this->mailCfg['enabled']) || $forceEnabled;
-        $this->companyName = $this->mailCfg['from_name'] ?? 'Dazu Hub Institute';
+        $this->companyName = $this->mailCfg['from_name'] ?? 'Dazu Training Institute';
 
         try {
             require_once __DIR__ . '/../models/SettingModel.php';

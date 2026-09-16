@@ -1,6 +1,6 @@
 <?php
-$page_title = 'The Dazu Hub Blog — Dazu hub Institute';
-$page_description = 'Tech guides, campus life, career tips and AI trends from Dazu hub Institute, Thika Town.';
+$page_title = 'The Dazu Training Institute Blog — Dazu Training Institute';
+$page_description = 'Tech guides, campus life, career tips and AI trends from Dazu Training Institute in Nairobi, Thika and online.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
@@ -50,7 +50,7 @@ try {
             'title' => $b['title'],
             'category' => $b['category_name'] ?? 'Tech Guides',
             'summary' => $b['excerpt'] ?: mb_strimwidth(strip_tags($b['content'] ?? ''), 0, 160, '…'),
-            'author' => $b['author_name'] ?? 'Dazu Hub',
+            'author' => $b['author_name'] ?? 'Dazu Training Institute',
             'read_time' => max(1, (int) ceil($wordCount / 200)) . ' min read',
             'url' => url('blogs/readmore.php?slug=' . rawurlencode($b['slug'])),
             'image' => $b['featured_image'] ?? '',
@@ -81,8 +81,8 @@ ob_start();
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 space-y-16">
     <div class="max-w-2xl">
       <span class="text-green-600 text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-green-50 border border-green-200 rounded-full">Latest Insights</span>
-      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mt-4">The Dazu Hub Blog</h1>
-      <p class="text-slate-600 font-medium leading-relaxed mt-3">Stay updated with modern technologies, cybersecurity practices, coding tips, and inspiring campus activities from our physical labs in Thika.</p>
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mt-4">The Dazu Training Institute Blog</h1>
+      <p class="text-slate-600 font-medium leading-relaxed mt-3">Stay updated with modern technologies, cybersecurity practices, coding tips, and inspiring activities from our Nairobi, Thika, and online learning community.</p>
     </div>
 
     <form method="GET" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center border-b border-slate-100 pb-8">

@@ -1,202 +1,167 @@
 <?php
 // public/admin/settings/index.php
-// Settings overview: branding/logo, hero slides, and page headers.
 
-require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';        // BASE_URL + helpers
+require_once __DIR__ . '/../../../app/v1/init.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
-require_once __DIR__ . '/../../../app/v1/config/db_connect.php';      // provides $pdo
+require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+Middleware::requireAdmin();
 
-// Simple admin check
-if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
-    header('Location: ' . url('auth/login.php'));
-    exit();
-}
-
-$settings    = new SettingModel($pdo);
-$logoUrl     = settings_asset_url($settings->get('logo_path'));
-$siteName    = $settings->get('site_name', 'Prime Investment');
-$heroSlides  = $settings->getHeroSlides(false);   // include inactive in admin
+$settings = new SettingModel($pdo);
+$courseModel = new \Models\CourseModel($pdo);
+$popularCourses = $courseModel->getHomepageCourses();
+$logoUrl = settings_asset_url($settings->get('logo_path'));
+$siteName = $settings->get('site_name', 'Dazu Training Institute');
+$heroSlides = $settings->getHeroSlides(false);
 $pageHeaders = $settings->getAllPageHeaders();
+$classScheduleOnline = trim((string) $settings->get('class_schedule_online', '8am, 12pm, 6pm'));
+$classSchedulePhysical = trim((string) $settings->get('class_schedule_physical', '5am'));
 
 $flash = $_SESSION['flash'] ?? null;
-unset($_SESSION['flash']);
+if (is_array($flash) && isset($flash['type'], $flash['msg'])) {
+    unset($_SESSION['flash']);
+} else {
+    $flash = null;
+}
+
+$page_title = 'Settings';
+$breadcrumbs = [['label' => 'Settings', 'active' => true]];
+
+$settingCards = [
+    ['title' => 'Branding', 'subtitle' => 'Logo & site name', 'icon' => 'fa-image', 'color' => 'primary', 'url' => url('admin/settings/edit.php?section=logo'), 'button' => 'Edit branding'],
+    ['title' => 'Homepage Hero', 'subtitle' => count($heroSlides) . ' slide' . (count($heroSlides) === 1 ? '' : 's'), 'icon' => 'fa-images', 'color' => 'info', 'url' => url('admin/settings/edit.php?section=hero'), 'button' => 'Manage slides'],
+    ['title' => 'Page Banners', 'subtitle' => count($pageHeaders) . ' page' . (count($pageHeaders) === 1 ? '' : 's'), 'icon' => 'fa-heading', 'color' => 'warning', 'url' => url('admin/settings/edit.php?section=headers'), 'button' => 'Edit banners'],
+    ['title' => 'Contact & Map', 'subtitle' => 'Phone, email, campus map embed', 'icon' => 'fa-map-location-dot', 'color' => 'success', 'url' => url('admin/settings/edit.php?section=contact'), 'button' => 'Edit contact'],
+    ['title' => 'Class Schedule', 'subtitle' => 'Shared online and physical class times', 'icon' => 'fa-calendar-days', 'color' => 'primary', 'url' => url('admin/settings/edit.php?section=schedule'), 'button' => 'Edit schedule'],
+    ['title' => 'Popular Courses', 'subtitle' => count($popularCourses) . ' course' . (count($popularCourses) === 1 ? '' : 's') . ' on homepage', 'icon' => 'fa-star', 'color' => 'warning', 'url' => url('admin/settings/edit.php?section=popular_courses'), 'button' => 'Manage popular'],
+    ['title' => 'SmS Receipts', 'subtitle' => 'Logo, address, footer for PDF receipts', 'icon' => 'fa-receipt', 'color' => 'secondary', 'url' => url('admin/settings/edit.php?section=receipt'), 'button' => 'Edit receipts'],
+];
+
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Site Settings — Admin</title>
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/theme.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <style>
-    :root{
-      --brand-sky:#00A1F3; --brand-royal:#0759F8; --brand-gold:#EBA94E;
-      --brand-white:#FFFFFF; --brand-black:#000000;
-    }
-    *{ box-sizing:border-box; }
-    body{
-      margin:0; background:#f5f7fb; color:#101319;
-      font-family:var(--font-body, system-ui, -apple-system, sans-serif);
-    }
-    a{ text-decoration:none; }
-    .admin-topbar{
-      display:flex; align-items:center; gap:14px;
-      background:var(--brand-black); color:#fff;
-      padding:14px 28px;
-    }
-    .admin-topbar .dot{ width:12px;height:12px;border-radius:3px;background:var(--brand-sky); }
-    .admin-topbar h1{ font-size:1rem; font-weight:600; margin:0; letter-spacing:.02em; }
-    .admin-topbar .back{ margin-left:auto; color:rgba(255,255,255,.7); font-size:.85rem; }
-    .admin-topbar .back:hover{ color:var(--brand-gold); }
-    .wrap{ max-width:1040px; margin:0 auto; padding:32px 24px 64px; }
-    .page-head{ margin-bottom:28px; }
-    .page-head h2{ font-family:var(--font-display, Georgia, serif); font-size:1.9rem; margin:0 0 6px; }
-    .page-head p{ color:#5b6472; margin:0; font-size:.92rem; }
-    .flash{ padding:12px 16px; border-radius:10px; margin-bottom:22px; font-size:.9rem; font-weight:500; }
-    .flash.success{ background:#e7f7ee; color:#11704a; border:1px solid #b6e6cd; }
-    .flash.error{ background:#fdecec; color:#a4282b; border:1px solid #f3c0c1; }
-    .cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:20px; }
-    .card{
-      background:#fff; border:1px solid #e6e9f0; border-radius:16px;
-      padding:24px; display:flex; flex-direction:column; gap:16px;
-    }
-    .card-top{ display:flex; align-items:center; gap:12px; }
-    .card-icon{
-      width:44px;height:44px;border-radius:11px; display:flex;align-items:center;justify-content:center;
-      color:#fff; font-size:1.05rem; flex-shrink:0;
-    }
-    .ic-logo{ background:linear-gradient(135deg,var(--brand-royal),var(--brand-sky)); }
-    .ic-hero{ background:linear-gradient(135deg,var(--brand-sky),#36c0ff); }
-    .ic-head{ background:linear-gradient(135deg,var(--brand-gold),#f6c074); }
-    .ic-contact{ background:linear-gradient(135deg,#15A24A,#22c55e); }
-    .card-top h3{ margin:0; font-size:1.05rem; font-weight:700; }
-    .card-top span{ display:block; font-size:.8rem; color:#8a93a3; font-weight:500; }
-    .logo-preview{
-      height:84px; border-radius:10px; border:1px dashed #d7dce6; background:#fafbfd;
-      display:flex; align-items:center; justify-content:center; overflow:hidden;
-    }
-    .logo-preview img{ max-height:60px; max-width:80%; object-fit:contain; }
-    .logo-preview .muted{ color:#9aa3b2; font-size:.85rem; }
-    .thumbs{ display:flex; gap:8px; flex-wrap:wrap; }
-    .thumbs img{ width:62px;height:42px;object-fit:cover;border-radius:7px;border:1px solid #e6e9f0; }
-    .hdr-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
-    .hdr-list li{ display:flex; align-items:center; gap:10px; font-size:.88rem; }
-    .hdr-list .key{ font-weight:600; text-transform:capitalize; }
-    .hdr-list .ok{ color:#11704a; } .hdr-list .no{ color:#b9402f; }
-    .hdr-list .pill{ margin-left:auto; font-size:.72rem; padding:2px 9px; border-radius:20px; background:#eef1f7; color:#5b6472; }
-    .card .btn{
-      margin-top:auto; align-self:flex-start;
-      display:inline-flex; align-items:center; gap:8px;
-      background:var(--brand-royal); color:#fff; border:none;
-      padding:10px 18px; border-radius:9px; font-size:.86rem; font-weight:600; cursor:pointer;
-      transition:background .15s ease, transform .15s ease;
-    }
-    .card .btn:hover{ background:#0546c8; transform:translateY(-1px); }
-    .count{ font-family:var(--font-display, Georgia, serif); font-size:1.6rem; font-weight:800; }
-  </style>
-</head>
-<body>
+<style>
+.settings-card { border: 0; border-radius: 14px; box-shadow: 0 3px 14px rgba(20,35,25,.07); height: 100%; }
+.settings-icon { width: 46px; height: 46px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.settings-logo-preview { height: 90px; border: 1px dashed #d9dee7; border-radius: 10px; background: #f8fafc; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.settings-logo-preview img { max-height: 64px; max-width: 80%; object-fit: contain; }
+.settings-thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
+.settings-thumbs img, .settings-thumbs .video-thumb { width: 64px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid #e5e7eb; }
+.settings-thumbs .video-thumb { display: inline-flex; align-items: center; justify-content: center; background: #111827; color: #fff; }
+.settings-header-list { max-height: 150px; overflow: auto; }
+</style>
 
-<div class="admin-topbar">
-  <span class="dot"></span>
-  <h1><?php echo htmlspecialchars($siteName); ?> · Settings</h1>
-  <a class="back" href="<?php echo BASE_URL; ?>/admin/dashboard.php"><i class="fa-solid fa-arrow-left"></i> Dashboard</a>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <div>
+    <h5 class="mb-1"><i class="fas fa-cog me-2"></i>Site Settings</h5>
+    <div class="text-muted small">Manage branding, homepage media, public page banners, contact details, schedules, and receipts.</div>
+  </div>
+  <a href="<?php echo url('admin/dashboard.php'); ?>" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> Dashboard
+  </a>
 </div>
 
-<div class="wrap">
-  <div class="page-head">
-    <h2>Site Settings</h2>
-    <p>Manage your logo, homepage hero images, and the banner shown on each public page.</p>
+<?php if ($flash): ?>
+  <div class="alert alert-<?php echo $flash['type'] === 'success' ? 'success' : 'danger'; ?> alert-dismissible fade show" role="alert">
+    <?php echo htmlspecialchars($flash['msg']); ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
   </div>
+<?php endif; ?>
 
-  <?php if ($flash): ?>
-    <div class="flash <?php echo $flash['type'] === 'success' ? 'success' : 'error'; ?>">
-      <?php echo htmlspecialchars($flash['msg']); ?>
-    </div>
-  <?php endif; ?>
+<div class="row g-3">
+  <?php foreach ($settingCards as $card): ?>
+    <div class="col-md-6 col-xl-4">
+      <div class="card settings-card">
+        <div class="card-body d-flex flex-column gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <div class="settings-icon bg-<?php echo $card['color']; ?>-subtle text-<?php echo $card['color']; ?>">
+              <i class="fas <?php echo htmlspecialchars($card['icon']); ?>"></i>
+            </div>
+            <div>
+              <h6 class="mb-0 fw-bold"><?php echo htmlspecialchars($card['title']); ?></h6>
+              <div class="small text-muted"><?php echo htmlspecialchars($card['subtitle']); ?></div>
+            </div>
+          </div>
 
-  <div class="cards">
-
-    <!-- Branding / logo -->
-    <div class="card">
-      <div class="card-top">
-        <div class="card-icon ic-logo"><i class="fa-solid fa-image"></i></div>
-        <div><h3>Branding</h3><span>Logo &amp; site name</span></div>
-      </div>
-      <div class="logo-preview">
-        <?php if ($logoUrl): ?>
-          <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="Current logo">
-        <?php else: ?>
-          <span class="muted">No logo uploaded yet</span>
-        <?php endif; ?>
-      </div>
-      <a class="btn" href="edit.php?section=logo"><i class="fa-solid fa-pen"></i> Edit branding</a>
-    </div>
-
-    <!-- Hero slides -->
-    <div class="card">
-      <div class="card-top">
-        <div class="card-icon ic-hero"><i class="fa-solid fa-images"></i></div>
-        <div><h3>Homepage Hero</h3><span><?php echo count($heroSlides); ?> slide<?php echo count($heroSlides) === 1 ? '' : 's'; ?></span></div>
-      </div>
-      <?php if ($heroSlides): ?>
-        <div class="thumbs">
-          <?php foreach (array_slice($heroSlides, 0, 6) as $s): ?>
-            <img src="<?php echo htmlspecialchars(settings_asset_url($s['image_path'])); ?>" alt="">
-          <?php endforeach; ?>
-        </div>
-      <?php else: ?>
-        <p style="color:#8a93a3;font-size:.86rem;margin:0;">No slides yet — the homepage will use its built-in fallback images.</p>
-      <?php endif; ?>
-      <a class="btn" href="edit.php?section=hero"><i class="fa-solid fa-sliders"></i> Manage slides</a>
-    </div>
-
-    <!-- Page headers -->
-    <div class="card">
-      <div class="card-top">
-        <div class="card-icon ic-head"><i class="fa-solid fa-heading"></i></div>
-        <div><h3>Page Banners</h3><span><?php echo count($pageHeaders); ?> page<?php echo count($pageHeaders) === 1 ? '' : 's'; ?></span></div>
-      </div>
-      <ul class="hdr-list">
-        <?php foreach ($pageHeaders as $h): ?>
-          <li>
-            <span class="key"><?php echo htmlspecialchars($h['page_key']); ?></span>
-            <?php if (!empty($h['image_path'])): ?>
-              <span class="pill"><i class="fa-solid fa-check ok"></i> image set</span>
+          <?php if ($card['title'] === 'Branding'): ?>
+            <div class="settings-logo-preview">
+              <?php if ($logoUrl): ?>
+                <img src="<?php echo htmlspecialchars($logoUrl); ?>" alt="Current logo">
+              <?php else: ?>
+                <span class="small text-muted">No logo uploaded yet</span>
+              <?php endif; ?>
+            </div>
+            <div class="small text-muted">Current site name: <strong><?php echo htmlspecialchars($siteName); ?></strong></div>
+          <?php elseif ($card['title'] === 'Homepage Hero'): ?>
+            <?php if ($heroSlides): ?>
+              <div class="settings-thumbs">
+                <?php foreach (array_slice($heroSlides, 0, 6) as $slide): ?>
+                  <?php
+                    $slideExt = strtolower(pathinfo(parse_url((string) ($slide['image_path'] ?? ''), PHP_URL_PATH) ?: (string) ($slide['image_path'] ?? ''), PATHINFO_EXTENSION));
+                    $isVideoSlide = (($slide['media_type'] ?? '') === 'video') || in_array($slideExt, ['mp4', 'webm', 'mov'], true);
+                  ?>
+                  <?php if ($isVideoSlide): ?>
+                    <span class="video-thumb"><i class="fas fa-play"></i></span>
+                  <?php else: ?>
+                    <img src="<?php echo htmlspecialchars(settings_asset_url($slide['image_path'])); ?>" alt="">
+                  <?php endif; ?>
+                <?php endforeach; ?>
+              </div>
             <?php else: ?>
-              <span class="pill"><i class="fa-solid fa-xmark no"></i> no image</span>
+              <div class="small text-muted">No slides yet. The homepage will use fallback images.</div>
             <?php endif; ?>
-          </li>
-        <?php endforeach; ?>
-      </ul>
-      <a class="btn" href="edit.php?section=headers"><i class="fa-solid fa-pen"></i> Edit banners</a>
-    </div>
+          <?php elseif ($card['title'] === 'Page Banners'): ?>
+            <div class="settings-header-list">
+              <?php foreach ($pageHeaders as $header): ?>
+                <div class="d-flex align-items-center justify-content-between small py-1 border-bottom">
+                  <span class="text-capitalize"><?php echo htmlspecialchars($header['page_key']); ?></span>
+                  <?php if (!empty($header['image_path'])): ?>
+                    <span class="badge text-bg-success">image set</span>
+                  <?php else: ?>
+                    <span class="badge text-bg-light border text-muted">no image</span>
+                  <?php endif; ?>
+                </div>
+              <?php endforeach; ?>
+            </div>
+          <?php elseif ($card['title'] === 'Popular Courses'): ?>
+            <?php if (!empty($popularCourses)): ?>
+              <div class="d-flex flex-wrap gap-1">
+                <?php foreach (array_slice($popularCourses, 0, 5) as $pc): ?>
+                  <span class="badge text-bg-warning"><?php echo htmlspecialchars($pc['title']); ?></span>
+                <?php endforeach; ?>
+                <?php if (count($popularCourses) > 5): ?>
+                  <span class="badge text-bg-light border text-muted">+<?php echo count($popularCourses) - 5; ?> more</span>
+                <?php endif; ?>
+              </div>
+            <?php else: ?>
+              <div class="small text-muted">No courses marked as popular yet. All courses show on homepage.</div>
+            <?php endif; ?>
+          <?php elseif ($card['title'] === 'Class Schedule'): ?>
+            <div class="small text-muted">
+              <div class="d-flex justify-content-between gap-2 py-1 border-bottom">
+                <strong class="text-dark">Online</strong>
+                <span class="text-end"><?php echo htmlspecialchars($classScheduleOnline !== '' ? $classScheduleOnline : 'Not set'); ?></span>
+              </div>
+              <div class="d-flex justify-content-between gap-2 py-1">
+                <strong class="text-dark">Physical</strong>
+                <span class="text-end"><?php echo htmlspecialchars($classSchedulePhysical !== '' ? $classSchedulePhysical : 'Not set'); ?></span>
+              </div>
+            </div>
+          <?php else: ?>
+            <div class="small text-muted flex-grow-1"><?php echo htmlspecialchars($card['subtitle']); ?></div>
+          <?php endif; ?>
 
-    <div class="card">
-      <div class="card-top">
-        <div class="card-icon ic-contact"><i class="fa-solid fa-map-location-dot"></i></div>
-        <div><h3>Contact &amp; Map</h3><span>Phone, email, campus map embed</span></div>
+          <div class="mt-auto">
+            <a href="<?php echo htmlspecialchars($card['url']); ?>" class="btn btn-primary btn-sm">
+              <i class="fas fa-pen me-1"></i><?php echo htmlspecialchars($card['button']); ?>
+            </a>
+          </div>
+        </div>
       </div>
-      <p style="font-size:.85rem;color:#5b6472;margin:0;">Configure the contact page directory and Google Maps iframe shown to visitors.</p>
-      <a class="btn" href="edit.php?section=contact"><i class="fa-solid fa-pen"></i> Edit contact</a>
     </div>
-
-    <div class="card">
-      <div class="card-top">
-        <div class="card-icon ic-logo"><i class="fa-solid fa-receipt"></i></div>
-        <div><h3>SmS Receipts</h3><span>Logo, address, footer for PDF receipts</span></div>
-      </div>
-      <p style="font-size:.85rem;color:#5b6472;margin:0;">Customize the professional black &amp; white receipt layout used when onboarding SmS students.</p>
-      <a class="btn" href="edit.php?section=receipt"><i class="fa-solid fa-pen"></i> Edit receipts</a>
-    </div>
-
-  </div>
+  <?php endforeach; ?>
 </div>
-
-</body>
-</html>
+<?php
+$content = ob_get_clean();
+require __DIR__ . '/../../templates/admin/layout.php';

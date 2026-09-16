@@ -31,6 +31,20 @@ class MigrationService
         return array_flip($applied ?: []);
     }
 
+    public function appliedRows(): array
+    {
+        $this->ensureTable();
+        $rows = $this->pdo
+            ->query('SELECT filename, applied_at FROM schema_migrations ORDER BY filename ASC')
+            ->fetchAll(PDO::FETCH_ASSOC);
+
+        $applied = [];
+        foreach ($rows ?: [] as $row) {
+            $applied[(string) $row['filename']] = (string) ($row['applied_at'] ?? '');
+        }
+        return $applied;
+    }
+
     public function migrationFiles(): array
     {
         $files = glob(rtrim($this->migrationsDir, '/') . '/*.sql') ?: [];
@@ -57,6 +71,23 @@ class MigrationService
     public function pendingCount(): int
     {
         return count($this->pending());
+    }
+
+    public function statusRows(): array
+    {
+        $applied = $this->appliedRows();
+        $rows = [];
+        foreach ($this->migrationFiles() as $path) {
+            $filename = basename($path);
+            $rows[] = [
+                'filename' => $filename,
+                'path' => $path,
+                'status' => isset($applied[$filename]) ? 'applied' : 'pending',
+                'applied_at' => $applied[$filename] ?? null,
+                'modified_at' => is_file($path) ? date('Y-m-d H:i:s', (int) filemtime($path)) : null,
+            ];
+        }
+        return $rows;
     }
 
     public function applyPending(?callable $onProgress = null): array

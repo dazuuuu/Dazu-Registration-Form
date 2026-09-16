@@ -11,6 +11,7 @@ use Models\StudentModel;
 
 require_once __DIR__ . '/StudentController.php';
 require_once __DIR__ . '/../helpers/course_duration.php';
+require_once __DIR__ . '/../helpers/registration_number.php';
 
 class ContinuingStudentController {
 
@@ -100,8 +101,8 @@ class ContinuingStudentController {
         try {
             $this->db->beginTransaction();
 
-            $seq = $this->courseModel->claimNextSequence((int) $course['id']);
-            $regNo = sprintf('DH-%s%02d/%s', $course['abbreviation'], $seq, date('Y'));
+            registration_number_lock($this->db);
+            $regNo = registration_number_next($this->db);
 
             $stmt = $this->db->prepare(
                 "INSERT INTO registrations
@@ -183,6 +184,8 @@ class ContinuingStudentController {
             }
             error_log('[ContinuingStudentController::register] ' . $e->getMessage());
             return ['ok' => false, 'error' => 'Registration failed: ' . $e->getMessage()];
+        } finally {
+            registration_number_unlock($this->db);
         }
     }
 

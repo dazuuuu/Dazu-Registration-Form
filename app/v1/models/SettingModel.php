@@ -88,29 +88,77 @@ class SettingModel
         return $row === false ? null : $row;
     }
 
-    public function addHeroSlide(string $imagePath, ?string $caption = null, int $sortOrder = 0): int
+    public function addHeroSlide(string $imagePath, ?string $caption = null, int $sortOrder = 0, array $fields = []): int
     {
-        $stmt = $this->pdo->prepare(
-            "INSERT INTO hero_slides (image_path, caption, sort_order)
-             VALUES (?, ?, ?)"
-        );
-        $stmt->execute([$imagePath, $caption, $sortOrder]);
+        try {
+            $stmt = $this->pdo->prepare(
+                "INSERT INTO hero_slides (image_path, media_type, caption, sort_order)
+                 VALUES (?, ?, ?, ?)"
+            );
+            $stmt->execute([
+                $imagePath,
+                $fields['media_type'] ?? 'image',
+                $caption,
+                $sortOrder,
+            ]);
+        } catch (PDOException $e) {
+            if (stripos($e->getMessage(), 'media_type') === false) {
+                throw $e;
+            }
+            $stmt = $this->pdo->prepare(
+                "INSERT INTO hero_slides (image_path, caption, sort_order)
+                 VALUES (?, ?, ?)"
+            );
+            $stmt->execute([$imagePath, $caption, $sortOrder]);
+        }
         return (int) $this->pdo->lastInsertId();
     }
 
     public function updateHeroSlide(int $id, array $fields): bool
     {
-        $stmt = $this->pdo->prepare(
-            "UPDATE hero_slides
-                SET caption = ?, sort_order = ?, is_active = ?
-              WHERE id = ?"
-        );
-        return $stmt->execute([
-            $fields['caption']    ?? null,
-            (int) ($fields['sort_order'] ?? 0),
-            (int) ($fields['is_active']  ?? 1),
-            $id,
-        ]);
+        try {
+            $stmt = $this->pdo->prepare(
+                "UPDATE hero_slides
+                    SET caption = ?, sort_order = ?, is_active = ?, media_type = ?
+                  WHERE id = ?"
+            );
+            return $stmt->execute([
+                $fields['caption'] ?? null,
+                (int) ($fields['sort_order'] ?? 0),
+                (int) ($fields['is_active'] ?? 1),
+                $fields['media_type'] ?? 'image',
+                $id,
+            ]);
+        } catch (PDOException $e) {
+            if (stripos($e->getMessage(), 'media_type') === false) {
+                throw $e;
+            }
+            $stmt = $this->pdo->prepare(
+                "UPDATE hero_slides
+                    SET caption = ?, sort_order = ?, is_active = ?
+                  WHERE id = ?"
+            );
+            return $stmt->execute([
+                $fields['caption'] ?? null,
+                (int) ($fields['sort_order'] ?? 0),
+                (int) ($fields['is_active'] ?? 1),
+                $id,
+            ]);
+        }
+    }
+
+    public function replaceHeroSlideMedia(int $id, string $path, string $type): bool
+    {
+        try {
+            $stmt = $this->pdo->prepare("UPDATE hero_slides SET image_path = ?, media_type = ? WHERE id = ?");
+            return $stmt->execute([$path, $type, $id]);
+        } catch (PDOException $e) {
+            if (stripos($e->getMessage(), 'media_type') === false) {
+                throw $e;
+            }
+            $stmt = $this->pdo->prepare("UPDATE hero_slides SET image_path = ? WHERE id = ?");
+            return $stmt->execute([$path, $id]);
+        }
     }
 
     /** Deletes the slide and returns its stored image_path (so the caller
