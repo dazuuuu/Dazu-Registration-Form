@@ -4,20 +4,17 @@ require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/TutorModel.php';
-require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../../app/v1/controllers/TutorController.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
 
 use Models\Connection;
 use Models\TutorModel;
-use Models\CourseModel;
 use Controllers\TutorController;
 
 Middleware::requireAdmin();
 
 $pdo = Connection::getInstance()->getConnection();
 $tutorModel = new TutorModel($pdo);
-$courseModel = new CourseModel($pdo);
 $id = (int)($_GET['id'] ?? 0);
 $tutor = $tutorModel->getById($id);
 if (!$tutor) { SessionModel::setFlash('error','Tutor not found.'); header('Location: index.php'); exit(); }
@@ -44,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'bio'        => $_POST['bio'] ?? '',
                 'photo_path' => $photoPath,
                 'is_active'  => isset($_POST['is_active']),
-            ], $_POST['course_ids'] ?? []);
+            ], $_POST['student_ids'] ?? []);
             if ($r['ok']) { SessionModel::setFlash('success','Tutor updated.'); header('Location: view.php?id='.$id); exit(); }
             $error = $r['error'];
         }
@@ -52,8 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $tutor = $tutorModel->getById($id);
 }
 
-$courses = $courseModel->getAll(true);
-$assignedIds = array_column($tutor['courses'], 'id');
+$students = $tutorModel->getRegisteredStudents();
+$assignedStudentIds = $tutorModel->getAssignedStudentIds($id);
 $fullName = $tutorModel->fullName($tutor);
 
 $page_title = $fullName;
@@ -73,13 +70,34 @@ ob_start();
         <?php if ($tutor['photo_path']): ?><img src="<?php echo htmlspecialchars($tutor['photo_path']); ?>" class="mt-2 rounded" height="80"><?php endif; ?>
     </div>
     <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" class="form-control" rows="3"><?php echo htmlspecialchars($tutor['bio'] ?? ''); ?></textarea></div>
-    <div class="col-12"><label class="form-label">Assigned Courses</label>
-        <select name="course_ids[]" class="form-select" multiple size="6">
-            <?php foreach ($courses as $c): ?>
-                <option value="<?php echo (int)$c['id']; ?>" <?php echo in_array($c['id'], $assignedIds) ? 'selected' : ''; ?>><?php echo htmlspecialchars($c['title']); ?></option>
+    <div class="col-12"><label class="form-label">Assigned Students</label>
+        <input type="text" class="form-control mb-2" id="studentFilter" placeholder="Filter students by name, email or course...">
+        <select name="student_ids[]" id="studentSelect" class="form-select" multiple size="8">
+            <?php foreach ($students as $s): ?>
+                <option value="<?php echo (int)$s['user_id']; ?>" data-search="<?php echo htmlspecialchars(strtolower($s['full_name'] . ' ' . $s['email'] . ' ' . $s['course_titles'])); ?>" <?php echo in_array((int)$s['user_id'], $assignedStudentIds, true) ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($s['full_name']); ?> — <?php echo htmlspecialchars($s['email']); ?><?php echo $s['course_titles'] ? ' (' . htmlspecialchars($s['course_titles']) . ')' : ''; ?>
+                </option>
             <?php endforeach; ?>
         </select>
+        <small class="text-muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple students. A tutor can have as many students as needed.</small>
+        <?php if (empty($students)): ?><p class="text-muted small mb-0 mt-1">No registered students yet.</p><?php endif; ?>
     </div>
+    <?php if (!empty($tutor['courses'])): ?>
+    <div class="col-12">
+        <label class="form-label mb-1">Courses (derived from assigned students)</label><br>
+        <?php foreach ($tutor['courses'] as $c): ?>
+            <span class="badge bg-light text-dark border me-1"><?php echo htmlspecialchars($c['title']); ?></span>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+    <script>
+    document.getElementById('studentFilter')?.addEventListener('input', function () {
+        var q = this.value.toLowerCase();
+        document.querySelectorAll('#studentSelect option').forEach(function (opt) {
+            opt.hidden = q !== '' && (opt.dataset.search || '').indexOf(q) === -1;
+        });
+    });
+    </script>
     <div class="col-12"><div class="form-check"><input type="checkbox" name="is_active" value="1" class="form-check-input" id="active" <?php echo $tutor['is_active'] ? 'checked' : ''; ?>><label for="active">Active</label></div></div>
 </div>
 <button type="submit" class="btn btn-primary mt-3">Save Changes</button>

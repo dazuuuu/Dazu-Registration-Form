@@ -21,8 +21,8 @@ class TutorController {
         $this->notifier = new \TutorNotifier();
     }
 
-    public function createAndEmail(array $data, array $courseIds, bool $sendEmail = true): array {
-        $result = $this->tutorModel->create($data, $courseIds);
+    public function createAndEmail(array $data, array $studentIds, bool $sendEmail = true): array {
+        $result = $this->tutorModel->create($data, $studentIds);
         if (!$result['ok']) return $result;
 
         if ($sendEmail) {

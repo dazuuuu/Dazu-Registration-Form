@@ -152,9 +152,14 @@ class DashboardModel {
 
     public function tutorStats(int $tutorId): array {
         $stats = ['students' => 0, 'courses' => 0, 'pending' => 0, 'students_progress' => []];
-        if (!$this->tableExists('course_tutors')) return $stats;
+        if (!$this->tableExists('tutor_students')) return $stats;
 
-        $st = $this->db->prepare("SELECT COUNT(*) FROM course_tutors WHERE tutor_id=?");
+        $st = $this->db->prepare(
+            "SELECT COUNT(DISTINCT r.course_id)
+             FROM tutor_students ts
+             JOIN registrations r ON r.user_id = ts.user_id AND r.status = 'approved'
+             WHERE ts.tutor_id = ?"
+        );
         $st->execute([$tutorId]);
         $stats['courses'] = (int) $st->fetchColumn();
 
@@ -164,9 +169,9 @@ class DashboardModel {
                      JOIN curriculum_units cu ON cu.id=sup.unit_id
                      WHERE sup.registration_id=r.id AND sup.completed_at IS NOT NULL) AS done,
                     (SELECT COUNT(*) FROM curriculum_units cu2 WHERE cu2.course_id=r.course_id AND cu2.is_active=1) AS total
-             FROM registrations r JOIN course_tutors ct ON ct.course_id=r.course_id
+             FROM registrations r JOIN tutor_students ts ON ts.user_id=r.user_id
              JOIN courses c ON c.id=r.course_id
-             WHERE ct.tutor_id=? AND r.status='approved' LIMIT 20"
+             WHERE ts.tutor_id=? AND r.status='approved' LIMIT 20"
         );
         try {
             $students->execute([$tutorId]);
@@ -178,8 +183,8 @@ class DashboardModel {
             $st = $this->db->prepare(
                 "SELECT COUNT(*) FROM student_submissions s
                  JOIN registrations r ON r.id=s.registration_id
-                 JOIN course_tutors ct ON ct.course_id=r.course_id
-                 WHERE ct.tutor_id=? AND s.status='submitted'"
+                 JOIN tutor_students ts ON ts.user_id=r.user_id
+                 WHERE ts.tutor_id=? AND s.status='submitted'"
             );
             $st->execute([$tutorId]);
             $stats['pending'] = (int) $st->fetchColumn();
