@@ -116,6 +116,19 @@ class TutorModel {
     }
 
     /**
+     * True if this registration (approved) belongs to a student directly assigned to the tutor.
+     */
+    public function tutorHasStudent(int $tutorId, int $registrationId): bool {
+        $stmt = $this->db->prepare(
+            "SELECT 1 FROM tutor_students ts"
+             . " JOIN registrations r ON r.user_id = ts.user_id AND r.status = 'approved'"
+             . " WHERE ts.tutor_id = :tid AND r.id = :rid LIMIT 1"
+        );
+        $stmt->execute([':tid' => $tutorId, ':rid' => $registrationId]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /**
      * All registered (approved) students, for the admin assignment picker.
      * One row per student user, with their enrolled course titles concatenated.
      */
@@ -123,7 +136,10 @@ class TutorModel {
         $stmt = $this->db->query(
             "SELECT u.id AS user_id, u.email,
                     COALESCE(NULLIF(TRIM(CONCAT(up.first_name, ' ', up.last_name)), ''), MAX(r.full_name)) AS full_name,
-                    GROUP_CONCAT(DISTINCT c.title ORDER BY c.title SEPARATOR ', ') AS course_titles
+                    GROUP_CONCAT(DISTINCT c.title ORDER BY c.title SEPARATOR ', ') AS course_titles,
+                    GROUP_CONCAT(DISTINCT CONCAT(c.title, '|', COALESCE(CONCAT(NULLIF(c.duration_months, 0), ' months'),
+                        CONCAT(NULLIF(c.weeks_of_study, 0), ' weeks'), CONCAT(NULLIF(c.days_of_study, 0), ' days'), ''))
+                        ORDER BY c.title SEPARATOR '||') AS course_rows
              FROM registrations r
              JOIN users u ON u.id = r.user_id
              JOIN courses c ON c.id = r.course_id
@@ -232,7 +248,8 @@ class TutorModel {
         }
     }
 
-    public function update(int $tutorId, array $data, array $studentIds): array {
+    /** $studentIds null leaves the tutor's students as they are (the payroll-aware screens manage those). */
+    public function update(int $tutorId, array $data, ?array $studentIds = null): array {
         $tutor = $this->getById($tutorId);
         if (!$tutor) return ['ok' => false, 'error' => 'Tutor not found.'];
 
@@ -264,7 +281,7 @@ class TutorModel {
                 ':uid'   => $tutor['user_id'],
             ]);
 
-            $this->syncStudents($tutorId, $studentIds);
+            if ($studentIds !== null) $this->syncStudents($tutorId, $studentIds);
             $this->db->commit();
             return ['ok' => true];
         } catch (\Throwable $e) {
@@ -274,11 +291,30 @@ class TutorModel {
     }
 
     public function syncStudents(int $tutorId, array $studentIds): void {
-        $stmt = $this->db->prepare("DELETE FROM tutor_students WHERE tutor_id = :tid");
-        $stmt->execute([':tid' => $tutorId]);
-        $ins = $this->db->prepare("INSERT INTO tutor_students (tutor_id, user_id) VALUES (:tid, :uid)");
-        foreach (array_unique(array_map('intval', $studentIds)) as $uid) {
-            if ($uid > 0) $ins->execute([':tid' => $tutorId, ':uid' => $uid]);
+        // Only remove students who were deselected and add students who are new. Students who stay keep their
+        // row, so their assigned date, custom rate and pauses are not lost every time a tutor is saved.
+        require_once __DIR__ . '/PayrollModel.php';
+        $payroll = new PayrollModel($this->db);
+        $wanted = array_values(array_unique(array_filter(array_map('intval', $studentIds), fn($v) => $v > 0)));
+        $existing = $this->getAssignedStudentIds($tutorId);
+        $toRemove = array_values(array_diff($existing, $wanted));
+        $toAdd = array_values(array_diff($wanted, $existing));
+
+        if (!$payroll->isInstalled()) {
+            // Payroll updates not applied yet: plain assignment, as before.
+            if ($toRemove) {
+                $in = implode(',', array_fill(0, count($toRemove), '?'));
+                $this->db->prepare("DELETE FROM tutor_students WHERE tutor_id = ? AND user_id IN ($in)")->execute(array_merge([$tutorId], $toRemove));
+            }
+            $ins = $this->db->prepare("INSERT INTO tutor_students (tutor_id, user_id) VALUES (?, ?)");
+            foreach ($toAdd as $uid) $ins->execute([$tutorId, $uid]);
+            return;
+        }
+        foreach ($toRemove as $uid) {
+            $payroll->unassignStudent($tutorId, $uid);
+        }
+        if ($toAdd) {
+            $payroll->assignStudents($tutorId, $toAdd);
         }
     }
 

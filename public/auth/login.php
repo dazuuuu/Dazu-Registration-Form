@@ -18,6 +18,8 @@ if (isLoggedIn()) {
         redirect(url('students/dashboard/index.php'));
     } elseif ($role === 'tutor') {
         redirect(url('tutor/dashboard/index.php'));
+    } elseif ($role === 'employee') {
+        redirect(url('employee/dashboard/index.php'));
     } else {
         redirect(url('profile/client/index.php'));
     }
@@ -55,6 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirect(url('students/dashboard/index.php'));
             } elseif ($user['role_name'] === 'tutor') {
                 redirect(url('tutor/dashboard/index.php'));
+            } elseif ($user['role_name'] === 'employee') {
+                redirect(url('employee/dashboard/index.php'));
             } else {
                 redirect(url('profile/client/index.php'));
             }
@@ -72,7 +76,7 @@ ob_start();
       <div class="space-y-2 text-center">
         <span class="text-green-600 text-[10px] uppercase tracking-widest font-extrabold px-2.5 py-1 bg-green-50 border border-green-200 rounded-full">Dazu Training Institute</span>
         <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight pt-2">Sign In</h1>
-        <p class="text-xs text-slate-400 font-semibold">Students and tutors sign in here. Admins use the admin portal link below.</p>
+        <p class="text-xs text-slate-400 font-semibold">Students, tutors and staff sign in here. Admins use the admin portal link below.</p>
       </div>
 
       <?php if ($error): ?>

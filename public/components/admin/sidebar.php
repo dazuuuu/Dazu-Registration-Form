@@ -21,7 +21,7 @@ function isStoreActive($current_dir) {
 
 // New System group: registration, courses, tutors, payments, resources, partners, testimonials
 function isSystemActive($current_dir) {
-    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'payments', 'resources', 'partners', 'testimonials'], true);
+    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'payroll', 'payments', 'resources', 'partners', 'testimonials'], true);
 }
 
 // Courses sub-section: paid (admin/courses) and free (admin/free-courses) are fully
@@ -132,6 +132,11 @@ function isSmsSection($section) {
                            class="nav-link <?php echo $current_dir == 'tutors' ? 'active' : ''; ?>">
                             <i class="fas fa-chalkboard-teacher"></i>
                             <span>Tutors</span>
+                        </a>
+                        <a href="<?php echo url('admin/payroll/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'payroll' ? 'active' : ''; ?>">
+                            <i class="fas fa-wallet"></i>
+                            <span>Salaries</span>
                         </a>
                         <a href="<?php echo url('admin/payments/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'payments' ? 'active' : ''; ?>">

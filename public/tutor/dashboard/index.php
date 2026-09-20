@@ -43,6 +43,7 @@ ob_start();
 </a>
 <?php endforeach; ?>
 </div></div>
+<?php require __DIR__ . '/payroll_section.php'; ?>
 <?php
 $labels = json_encode(array_map(fn($s) => $s['full_name'], $stats['students_progress']));
 $done = json_encode(array_map('intval', array_column($stats['students_progress'], 'done')));

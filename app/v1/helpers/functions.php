@@ -32,6 +32,9 @@ function getRoleBasedProfileUrl() {
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'tutor') {
         return url('tutor/dashboard/index.php');
     }
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'employee') {
+        return url('employee/dashboard/index.php');
+    }
     return url('profile/client/index.php');
 }
 

@@ -36,6 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($role === 'tutor') {
             redirect(url('tutor/dashboard/index.php'));
         }
+        if ($role === 'employee') {
+            redirect(url('employee/dashboard/index.php'));
+        }
         if ((int) ($_SESSION['role_id'] ?? 99) <= 2) {
             redirect(url('admin/dashboard.php'));
         }

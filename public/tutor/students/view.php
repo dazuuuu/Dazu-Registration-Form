@@ -22,7 +22,7 @@ $regId = (int)($_GET['id'] ?? 0);
 $stmt = $pdo->prepare("SELECT r.*, c.title AS course_title FROM registrations r JOIN courses c ON r.course_id=c.id WHERE r.id=:id AND r.status='approved'");
 $stmt->execute([':id'=>$regId]);
 $student = $stmt->fetch();
-if (!$student || !$tutorModel->tutorTeachesCourse((int)$tutor['id'], (int)$student['course_id'])) {
+if (!$student || !$tutorModel->tutorHasStudent((int)$tutor['id'], $regId)) {
     header('Location: index.php'); exit();
 }
 

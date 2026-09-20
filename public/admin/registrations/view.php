@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../../app/v1/models/RegistrationModel.php';
+require_once __DIR__ . '/../../../app/v1/models/PayrollModel.php';
 require_once __DIR__ . '/../../../app/v1/controllers/RegistrationController.php';
 require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
@@ -17,6 +18,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
 use Models\Connection;
 use Models\CourseModel;
 use Models\RegistrationModel;
+use Models\PayrollModel;
 use Controllers\RegistrationController;
 use Controllers\StudentController;
 
@@ -24,6 +26,9 @@ Middleware::requireAdmin();
 
 $pdo     = Connection::getInstance()->getConnection();
 $regModel = new RegistrationModel($pdo);
+$payroll = new PayrollModel($pdo);
+$tutorsReady = $payroll->isInstalled();
+$tutorChoices = $tutorsReady ? array_values(array_filter($payroll->listTutorNames(), fn($t) => $t['is_active'])) : [];
 
 $id  = (int) ($_GET['id'] ?? 0);
 $reg = $regModel->getById($id);
@@ -113,6 +118,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $result = $controller->approve($id, $waive, $adminId);
 
             if ($result['ok']) {
+                $tutorNote = '';
+                $tutorId = (int)($_POST['tutor_id'] ?? 0);
+                if ($tutorId > 0 && $tutorsReady) {
+                    $stmt = $pdo->prepare('SELECT user_id FROM registrations WHERE id = ?');
+                    $stmt->execute([$id]);
+                    $newUserId = (int)$stmt->fetchColumn();
+                    if ($newUserId > 0) {
+                        $payroll->assignStudents($tutorId, [$newUserId]);
+                        $tutorNote = ' Tutor assigned.';
+                    }
+                }
                 SessionModel::set('student_credentials', [
                     'registration_id' => $id,
                     'reg_no'        => $result['reg_no'],
@@ -122,7 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'login_url'     => url('auth/login.php'),
                 ]);
                 SessionModel::setFlash('success',
-                    'Registration approved. Student account is <strong>active</strong>. Copy the login details below and share with the student (WhatsApp, in person, etc.).'
+                    'Registration approved. Student account is <strong>active</strong>. Copy the login details below and share with the student (WhatsApp, in person, etc.).' . $tutorNote
                 );
                 header('Location: ' . url('admin/registrations/view.php?id=' . $id));
                 exit();
@@ -140,6 +156,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $error = $result['error'];
 
+        } elseif ($action === 'assign_tutor' && $reg['status'] === 'approved' && $reg['user_id']) {
+            $tutorId = (int)($_POST['tutor_id'] ?? 0);
+            if (!$tutorsReady) {
+                $error = 'Apply the pending system update (migration 048) first.';
+            } elseif ($tutorId <= 0) {
+                $error = 'Choose a tutor.';
+            } else {
+                $n = $payroll->assignStudents($tutorId, [(int)$reg['user_id']]);
+                SessionModel::setFlash($n ? 'success' : 'error', $n ? 'Tutor assigned. It now shows on their Tutors page and on Salaries.' : 'This student is already assigned to that tutor.');
+                header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+                exit();
+            }
         } elseif ($action === 'reset_credentials' && $reg['status'] === 'approved') {
             $studentCtrl = new StudentController();
             $result = $studentCtrl->sendCredentials($id);
@@ -545,6 +573,16 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
                         </div>
                     <?php endif; ?>
 
+                    <?php if ($tutorChoices): ?>
+                    <div class="mb-3">
+                        <label class="form-label small mb-1">Assign a tutor <span class="text-muted">(optional, can be done later)</span></label>
+                        <select name="tutor_id" class="form-select form-select-sm">
+                            <option value="">No tutor yet</option>
+                            <?php foreach ($tutorChoices as $t): ?><option value="<?php echo (int)$t['id']; ?>"><?php echo htmlspecialchars($t['full_name']); ?></option><?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php endif; ?>
+
                     <p class="text-muted small mb-3">
                         <?php if (!empty($reg['registration_no'])): ?>
                             This enrolment already has registration number
@@ -600,6 +638,28 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
         </div>
 
         <?php else: ?>
+
+            <?php if ($reg['status'] === 'approved' && $reg['user_id'] && $tutorsReady): $myTutors = $payroll->getStudentTutors((int)$reg['user_id']); ?>
+            <div class="card border-success mb-4">
+                <div class="card-header bg-success text-white fw-semibold"><i class="fas fa-chalkboard-teacher me-1"></i> Tutor</div>
+                <div class="card-body">
+                    <?php if ($myTutors): ?>
+                        <p class="small mb-2">Assigned to: <?php echo implode(', ', array_map(fn($t) => '<a href="' . url('admin/tutors/view.php?id=' . (int)$t['id']) . '"><strong>' . htmlspecialchars($t['full_name']) . '</strong></a>', $myTutors)); ?></p>
+                    <?php else: ?>
+                        <p class="small text-muted mb-2">No tutor assigned yet.</p>
+                    <?php endif; ?>
+                    <form method="POST" class="input-group input-group-sm"><?php echo csrf_field(); ?>
+                        <input type="hidden" name="action" value="assign_tutor">
+                        <select name="tutor_id" class="form-select" required>
+                            <option value="">Choose a tutor…</option>
+                            <?php foreach ($tutorChoices as $t): ?><option value="<?php echo (int)$t['id']; ?>"><?php echo htmlspecialchars($t['full_name']); ?></option><?php endforeach; ?>
+                        </select>
+                        <button class="btn btn-success">Assign</button>
+                    </form>
+                    <div class="form-text">Salary for the tutor starts this month. Pause, move or unassign from the tutor's page.</div>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <?php if ($reg['status'] === 'approved' && $reg['user_id']): ?>
             <div class="card border-primary mb-4">

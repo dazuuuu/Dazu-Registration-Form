@@ -28,6 +28,8 @@ class Middleware {
             $role = SessionModel::get('role');
             if ($role === 'admin' || $role === 'superadmin') {
                 header('Location: ' . url('admin/dashboard.php'));
+            } elseif ($role === 'employee') {
+                header('Location: ' . url('employee/dashboard/index.php'));
             } else {
                 header('Location: ' . url('profile/'));
             }
@@ -41,6 +43,17 @@ class Middleware {
     public static function requireTutor() {
         self::requireAuth();
         if (SessionModel::get('role') !== 'tutor') {
+            header('Location: ' . url('auth/login.php?error=access_denied'));
+            exit();
+        }
+    }
+
+    /**
+     * Require employee role access
+     */
+    public static function requireEmployee() {
+        self::requireAuth();
+        if (SessionModel::get('role') !== 'employee') {
             header('Location: ' . url('auth/login.php?error=access_denied'));
             exit();
         }

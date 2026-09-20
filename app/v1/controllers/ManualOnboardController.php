@@ -137,6 +137,19 @@ class ManualOnboardController {
 
             $this->finalizeEnrollment($registrationId, $course, $enrollment, $resolvedAdmin);
 
+            // Optional: assign the student to a tutor straight away (shows on the Tutors and Salaries pages).
+            if (!empty($data['tutor_id'])) {
+                try {
+                    require_once __DIR__ . '/../models/PayrollModel.php';
+                    $payroll = new \Models\PayrollModel($this->db);
+                    if ($payroll->isInstalled()) {
+                        $payroll->assignStudents((int) $data['tutor_id'], [$userId]);
+                    }
+                } catch (\Throwable $e) {
+                    error_log('[ManualOnboardController] tutor assignment failed: ' . $e->getMessage());
+                }
+            }
+
             return [
                 'ok'            => true,
                 'registration_id' => $registrationId,

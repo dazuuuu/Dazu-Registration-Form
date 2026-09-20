@@ -63,8 +63,8 @@ class TutorController {
         if (!$sub) return ['ok' => false, 'error' => 'Submission not found.'];
 
         $tutor = $this->tutorModel->getByUserId($tutorUserId);
-        if (!$tutor || !$this->tutorModel->tutorTeachesCourse((int) $tutor['id'], (int) $sub['course_id'])) {
-            return ['ok' => false, 'error' => 'You are not assigned to this course.'];
+        if (!$tutor || !$this->tutorModel->tutorHasStudent((int) $tutor['id'], (int) $sub['registration_id'])) {
+            return ['ok' => false, 'error' => 'You are not assigned to this student.'];
         }
 
         if (!$submissionModel->grade($submissionId, $marks, $feedback, $tutorUserId)) {
