@@ -36,6 +36,7 @@ $settingCards = [
     ['title' => 'Contact & Map', 'subtitle' => 'Phone, email, campus map embed', 'icon' => 'fa-map-location-dot', 'color' => 'success', 'url' => url('admin/settings/edit.php?section=contact'), 'button' => 'Edit contact'],
     ['title' => 'Class Schedule', 'subtitle' => 'Shared online and physical class times', 'icon' => 'fa-calendar-days', 'color' => 'primary', 'url' => url('admin/settings/edit.php?section=schedule'), 'button' => 'Edit schedule'],
     ['title' => 'Popular Courses', 'subtitle' => count($popularCourses) . ' course' . (count($popularCourses) === 1 ? '' : 's') . ' on homepage', 'icon' => 'fa-star', 'color' => 'warning', 'url' => url('admin/settings/edit.php?section=popular_courses'), 'button' => 'Manage popular'],
+    ['title' => 'Email (SMTP)', 'subtitle' => 'Mail server used for all system emails', 'icon' => 'fa-envelope', 'color' => 'danger', 'url' => url('admin/settings/mail.php'), 'button' => 'Edit email settings'],
     ['title' => 'SmS Receipts', 'subtitle' => 'Logo, address, footer for PDF receipts', 'icon' => 'fa-receipt', 'color' => 'secondary', 'url' => url('admin/settings/edit.php?section=receipt'), 'button' => 'Edit receipts'],
 ];
 

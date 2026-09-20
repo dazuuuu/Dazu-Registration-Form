@@ -1,5 +1,8 @@
 <?php
 // public/admin/projects/view.php (COMPLETE FIXED VERSION)
+require_once __DIR__ . '/../../../app/v1/config/paths.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+Middleware::requireAdmin();   // admins only (the superadmin has a separate portal)
 require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../../../app/v1/helpers/functions.php';
 require_once __DIR__ . '/../../../app/v1/controllers/ProjectController.php';

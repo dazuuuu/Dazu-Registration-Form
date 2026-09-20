@@ -189,7 +189,7 @@ class RegistrationModel {
             $stmt->execute([':id' => $id]);
         } catch (\PDOException $e) {
             // DB not yet migrated (missing courses.is_free) — fall back rather than fatal,
-            // run databases/migrations/033_course_requirements_and_free_flag.sql to fix.
+            // run app/v1/databases/migrations/033_course_requirements_and_free_flag.sql to fix.
             $stmt = $this->db->prepare(
                 "SELECT r.*, c.title AS course_title, c.abbreviation, c.duration_months
                  FROM registrations r JOIN courses c ON r.course_id = c.id WHERE r.id = :id"

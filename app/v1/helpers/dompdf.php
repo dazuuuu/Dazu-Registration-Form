@@ -12,11 +12,9 @@ if (!function_exists('dazu_load_dompdf')) {
             require_once __DIR__ . '/../config/paths.php';
         }
 
-        $candidates = [
-            PROJECT_ROOT . '/vendor/autoload.php',
-            dirname(__DIR__, 2) . '/vendor/autoload.php',
+        $candidates = array_merge(vendor_autoload_files(), [
             dirname(__DIR__) . '/lib/dompdf/autoload.inc.php',
-        ];
+        ]);
         foreach ($candidates as $path) {
             if (!is_file($path)) {
                 continue;

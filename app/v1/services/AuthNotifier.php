@@ -37,7 +37,7 @@ class AuthNotifier {
         if (!$this->passwordResetEnabled) {
             return [
                 'ok' => false,
-                'message' => 'Password reset email is disabled. Set MAIL_PASSWORD_RESET_ENABLED=true in your .env file.',
+                'message' => 'Password reset email is disabled. Turn email on in Admin portal → Settings → Email.',
             ];
         }
 
@@ -54,7 +54,7 @@ class AuthNotifier {
         if (!empty($result['skipped'])) {
             return [
                 'ok' => false,
-                'message' => 'Email delivery is disabled. Configure SMTP in .env (MAIL_HOST, MAIL_USERNAME, MAIL_PASSWORD).',
+                'message' => 'Email delivery is disabled. Enter the SMTP details in Admin portal → Settings → Email.',
             ];
         }
 

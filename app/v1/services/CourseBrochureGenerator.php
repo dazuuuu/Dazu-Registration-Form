@@ -302,9 +302,14 @@ HTML;
         if (class_exists(\Dompdf\Dompdf::class)) {
             return;
         }
-        $autoload = __DIR__ . '/../../../vendor/autoload.php';
-        if (is_file($autoload)) {
-            require_once $autoload;
+        if (!function_exists('vendor_autoload_files')) {
+            require_once __DIR__ . '/../config/paths.php';
+        }
+        foreach (vendor_autoload_files() as $autoload) {
+            if (is_file($autoload)) {
+                require_once $autoload;
+                break;
+            }
         }
     }
 }

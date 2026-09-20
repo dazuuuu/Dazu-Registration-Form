@@ -1,7 +1,7 @@
 <?php
 // app/services/Mailer.php
 // Thin PHPMailer wrapper. Works whether PHPMailer was installed via Composer
-// (vendor/autoload.php) or dropped in manually at app/lib/PHPMailer/src/.
+// (app/v1/vendor/autoload.php) or dropped in manually at app/v1/lib/PHPMailer/src/.
 
 class Mailer {
     private $cfg;
@@ -24,12 +24,9 @@ class Mailer {
             require_once __DIR__ . '/../config/paths.php';
         }
 
-        $candidates = [
-            PROJECT_ROOT . '/vendor/autoload.php',
-            __DIR__ . '/../../../vendor/autoload.php',
-            __DIR__ . '/../../vendor/autoload.php',
+        $candidates = array_merge(vendor_autoload_files(), [
             __DIR__ . '/../lib/PHPMailer/src/PHPMailer.php',
-        ];
+        ]);
         foreach ($candidates as $path) {
             if (!is_file($path)) {
                 continue;
@@ -69,6 +66,9 @@ class Mailer {
 
         if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
             return ['ok' => false, 'message' => 'PHPMailer is not installed. Upload app/v1/lib/PHPMailer/ or run composer install in the project root.'];
+        }
+        if ($msg = $this->notConfiguredMessage()) {
+            return ['ok' => false, 'message' => $msg];
         }
         if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
             return ['ok' => false, 'message' => 'Invalid recipient email'];
@@ -121,6 +121,10 @@ class Mailer {
         self::loadPhpMailer();
         if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
             error_log('[mailer:batch] PHPMailer is not installed.');
+            return ['sent' => 0, 'failed' => count($messages)];
+        }
+        if ($msg = $this->notConfiguredMessage()) {
+            error_log('[mailer:batch] ' . $msg);
             return ['sent' => 0, 'failed' => count($messages)];
         }
 
@@ -185,6 +189,9 @@ class Mailer {
         if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
             return ['ok' => false, 'message' => 'PHPMailer is not installed.'];
         }
+        if ($msg = $this->notConfiguredMessage()) {
+            return ['ok' => false, 'message' => $msg];
+        }
         if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
             return ['ok' => false, 'message' => 'Invalid recipient email'];
         }
@@ -230,6 +237,18 @@ class Mailer {
         ]);
     }
 
+    /** Message to show when SMTP details have not been entered yet, or null when they have. */
+    private function notConfiguredMessage(): ?string
+    {
+        if (($this->cfg['transport'] ?? 'smtp') !== 'smtp') {
+            return null;
+        }
+        if (trim((string) ($this->cfg['host'] ?? '')) === '' || trim((string) ($this->cfg['username'] ?? '')) === '' || (string) ($this->cfg['password'] ?? '') === '') {
+            return 'Email is not set up yet. An admin needs to enter the SMTP details in Admin portal → Settings → Email.';
+        }
+        return null;
+    }
+
     private function applyTransport(\PHPMailer\PHPMailer\PHPMailer $mail): void
     {
         if (($this->cfg['transport'] ?? 'smtp') !== 'smtp') {
@@ -240,7 +259,9 @@ class Mailer {
         $mail->Port = (int) ($this->cfg['port'] ?? 587);
         $mail->SMTPAuth = true;
         $mail->Username = $this->cfg['username'] ?? '';
-        $mail->Password = str_replace(' ', '', $this->cfg['password'] ?? '');
+        // Gmail shows App Passwords in groups of four with spaces, which must be removed. Other servers keep the password as typed.
+        $password = (string) ($this->cfg['password'] ?? '');
+        $mail->Password = str_contains(strtolower((string) ($this->cfg['host'] ?? '')), 'gmail.com') ? str_replace(' ', '', $password) : $password;
         $enc = $this->cfg['encryption'] ?? 'tls';
         if ($enc) {
             $mail->SMTPSecure = $enc;

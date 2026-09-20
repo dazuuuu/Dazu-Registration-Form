@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if (!empty($result['email_sent'])) $msg .= ' Login credentials emailed.';
                 elseif (!empty($result['email_error'])) $msg .= ' Warning: ' . $result['email_error'];
                 SessionModel::setFlash('success', $msg);
-                header('Location: /Registration-System/public/admin/tutors/view.php?id=' . $result['tutor_id']);
+                header('Location: view.php?id=' . $result['tutor_id']);
                 exit();
             }
             $error = $result['error'];

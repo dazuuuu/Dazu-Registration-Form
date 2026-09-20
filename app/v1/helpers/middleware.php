@@ -26,7 +26,9 @@ class Middleware {
         
         if (SessionModel::has('logged_in') && SessionModel::get('logged_in') === true) {
             $role = SessionModel::get('role');
-            if ($role === 'admin' || $role === 'superadmin') {
+            if ($role === 'superadmin') {
+                header('Location: ' . url('superadmin/dashboard.php'));
+            } elseif ($role === 'admin') {
                 header('Location: ' . url('admin/dashboard.php'));
             } elseif ($role === 'employee') {
                 header('Location: ' . url('employee/dashboard/index.php'));
@@ -44,6 +46,22 @@ class Middleware {
         self::requireAuth();
         if (SessionModel::get('role') !== 'tutor') {
             header('Location: ' . url('auth/login.php?error=access_denied'));
+            exit();
+        }
+    }
+
+    /**
+     * Require the superadmin (role_id 1) and send everyone else to the superadmin login page.
+     */
+    public static function requireSuperPortal() {
+        SessionModel::start();
+        if (!SessionModel::has('logged_in') || SessionModel::get('logged_in') !== true || (int) SessionModel::get('role_id') !== 1) {
+            header('Location: ' . url('superadmin/login.php'));
+            exit();
+        }
+        self::refreshSessionFromDatabase();
+        if ((int) SessionModel::get('role_id') !== 1) {
+            header('Location: ' . url('superadmin/login.php'));
             exit();
         }
     }
@@ -79,6 +97,12 @@ class Middleware {
         self::requireAuth();
         
         $roleId = SessionModel::get('role_id');
+
+        // The superadmin has a separate portal. Admin pages are for admins only.
+        if ((int) $roleId === 1) {
+            header('Location: ' . url('superadmin/dashboard.php'));
+            exit();
+        }
         
         // role_id 1 = superadmin, 2 = admin, 3 = user
         if ($roleId > 2) {

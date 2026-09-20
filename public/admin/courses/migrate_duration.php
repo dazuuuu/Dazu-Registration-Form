@@ -9,7 +9,7 @@ use Models\Connection;
 Middleware::requireAdmin();
 
 $pdo = Connection::getInstance()->getConnection();
-$sqlFile = dirname(__DIR__, 3) . '/databases/migrations/030_course_days_duration.sql';
+$sqlFile = database_path('migrations/030_course_days_duration.sql');
 $messages = [];
 $errors = [];
 

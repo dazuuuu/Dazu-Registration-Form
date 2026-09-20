@@ -11,7 +11,7 @@ class MigrationService
     public function __construct(PDO $pdo, ?string $migrationsDir = null)
     {
         $this->pdo = $pdo;
-        $this->migrationsDir = $migrationsDir ?: dirname(__DIR__, 3) . '/databases/required_migrations';
+        $this->migrationsDir = $migrationsDir ?: (defined('DATABASES_PATH') ? DATABASES_PATH : dirname(__DIR__) . '/databases') . '/required_migrations';
     }
 
     public function ensureTable(): void

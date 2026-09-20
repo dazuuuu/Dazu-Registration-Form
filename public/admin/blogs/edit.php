@@ -1,6 +1,9 @@
 <?php
 // public/admin/blogs/edit.php
 require_once __DIR__ . '/../../../app/v1/config/paths.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+Middleware::requireAdmin();   // admins only (the superadmin has a separate portal)
+require_once __DIR__ . '/../../../app/v1/config/paths.php';
 $page_title = 'Edit Blog Post';
 $breadcrumbs = [
     ['label' => 'Blog', 'url' => 'index.php'],

@@ -5,6 +5,12 @@ if (!function_exists('url')) {
     require_once __DIR__ . '/../../../app/v1/config/paths.php';
 }
 
+// The superadmin has a separate portal.
+if ((int)($_SESSION['role_id'] ?? 0) === 1) {
+    header('Location: ' . url('superadmin/dashboard.php'));
+    exit();
+}
+
 // Check authentication
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
     header('Location: ' . url('auth/login.php'));
@@ -695,11 +701,10 @@ if (isset($pdo)) {
     window.ADMIN_TERMINAL_ROUTES = <?php echo json_encode([
         'dashboard' => url('admin/dashboard.php'),
         'registrations' => url('admin/registrations/index.php?status=pending'),
-        'students' => url('admin/sms/students/index.php'),
+        'students' => url('admin/registrations/index.php?status=approved'),
         'courses' => url('admin/courses/index.php'),
         'free-courses' => url('admin/free-courses/index.php'),
         'tutors' => url('admin/tutors/index.php'),
-        'payments' => url('admin/payments/index.php'),
         'orders' => url('admin/orders/index.php'),
         'enquiries' => url('admin/enquiries/index.php'),
         'projects' => url('admin/projects/index.php'),

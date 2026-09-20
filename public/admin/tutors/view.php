@@ -210,7 +210,7 @@ ob_start();
         </div>
         <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
             <button class="btn btn-primary" id="assignBtn" disabled><i class="fas fa-user-plus me-1"></i>Assign selected (<span id="assignCount">0</span>)</button>
-            <small class="text-muted" id="assignHint">Showing 3 of <?php echo count($available); ?> students. Type a name, course or duration to find the rest, then click a row to select it. Salary of KES 5,000 per month starts for each student assigned.</small>
+            <small class="text-muted" id="assignHint">Showing 3 of <?php echo count($available); ?> students. Type a name, course or duration to find the rest, then click a row to select it.</small>
         </div>
     </form>
     <?php endif; ?>
@@ -268,7 +268,6 @@ ob_start();
         </form>
     <?php endif; ?>
 </div></div>
-<a href="<?php echo url('admin/payroll/tutor.php?id=' . $id); ?>" class="btn btn-outline-primary w-100 mb-4"><i class="fas fa-wallet me-1"></i>Salary and payments</a>
 <?php endif; ?>
 <div class="card border-primary"><div class="card-header bg-primary text-white">Credentials</div><div class="card-body">
 <p class="small text-muted">Reset password and email login details.</p>

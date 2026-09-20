@@ -1,7 +1,7 @@
 <?php
 // app/v1/models/PayrollCalculator.php
 // Pure payroll maths for tutors. No database, no session: give it data, get numbers back,
-// so it can be tested on its own (see tests/payroll_calculator_test.php).
+// so it can be tested on its own (see app/v1/tests/payroll_calculator_test.php).
 //
 // Rules:
 //  - A tutor earns a monthly rate (default KES 5,000, overridable per student) for every month of the

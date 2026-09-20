@@ -149,7 +149,7 @@ class SmsModuleService
                 'severity' => 'danger',
                 'title' => $row['name'],
                 'detail' => ($row['course_title'] ?? 'No course') . ' · Balance KES ' . number_format($bal, 2),
-                'path' => 'admin/sms/students/view.php?id=' . (int) $row['id'],
+                'path' => 'superadmin/sms/students/view.php?id=' . (int) $row['id'],
             ];
         }
 
@@ -166,7 +166,7 @@ class SmsModuleService
                 'severity' => $overdue ? 'danger' : 'warning',
                 'title' => $row['name'],
                 'detail' => ($overdue ? 'Follow-up overdue' : 'Follow-up due') . ' · ' . ($row['intake_or_course'] ?? '—'),
-                'path' => 'admin/sms/prospects/form.php?id=' . (int) $row['id'],
+                'path' => 'superadmin/sms/prospects/form.php?id=' . (int) $row['id'],
             ];
         }
 
@@ -183,7 +183,7 @@ class SmsModuleService
                 'severity' => $overdue ? 'danger' : 'warning',
                 'title' => $row['title'],
                 'detail' => ($row['client_name'] ?? 'Client') . ' · Due ' . $row['due_date'],
-                'path' => 'admin/sms/projects/view.php?id=' . (int) $row['id'],
+                'path' => 'superadmin/sms/projects/view.php?id=' . (int) $row['id'],
             ];
         }
 
@@ -1135,10 +1135,17 @@ class SmsModuleService
 
     private function writePdfFile(string $html, string $absolutePath): bool
     {
-        $autoload = defined('PROJECT_ROOT')
-            ? PROJECT_ROOT . '/vendor/autoload.php'
-            : dirname(__DIR__, 2) . '/vendor/autoload.php';
-        if (!is_file($autoload)) {
+        if (!function_exists('vendor_autoload_files')) {
+            require_once __DIR__ . '/../config/paths.php';
+        }
+        $autoload = null;
+        foreach (vendor_autoload_files() as $candidate) {
+            if (is_file($candidate)) {
+                $autoload = $candidate;
+                break;
+            }
+        }
+        if ($autoload === null) {
             return false;
         }
         require_once $autoload;
@@ -1160,10 +1167,10 @@ class SmsModuleService
 
     private function storageDir(string $sub): string
     {
-        if (!defined('PROJECT_ROOT')) {
+        if (!function_exists('storage_path')) {
             require_once __DIR__ . '/../config/paths.php';
         }
-        $dir = PROJECT_ROOT . '/storage/sms/' . $sub;
+        $dir = storage_path('sms/' . $sub);
         if (!is_dir($dir)) {
             mkdir($dir, 0755, true);
         }
@@ -1209,6 +1216,19 @@ class SmsModuleService
     }
 
     private ?array $studentCredentials = null;
+    private ?array $lastEmailResult = null;
+
+    /** Outcome of the credentials email sent by the last createStudent() call: ['ok'=>bool, 'message'=>string]. */
+    public function lastEmailResult(): array
+    {
+        return $this->lastEmailResult ?? ['ok' => false, 'message' => 'No email was attempted.'];
+    }
+
+    /** Temporary sign-in details of the student created by the last createStudent() call. */
+    public function lastStudentCredentials(): array
+    {
+        return $this->studentCredentials ?? [];
+    }
 
     private function emailStudentOnboarding(array $student, array $receipt): void
     {
@@ -1234,6 +1254,7 @@ class SmsModuleService
                 'temp_password' => $tempPassword,
             ];
             $result = $notifier->sendRegistrationApproved($reg, $tempPassword);
+            $this->lastEmailResult = ['ok' => !empty($result['ok']), 'message' => (string) ($result['message'] ?? '')];
             if (!empty($result['ok'])) {
                 $this->log('credentials_emailed', 'Emailed admission letter and credentials to ' . $student['email'], 'student', (int) $student['id']);
             } else {
@@ -1323,10 +1344,10 @@ class SmsModuleService
         if (!$rel) {
             return null;
         }
-        if (!defined('PROJECT_ROOT')) {
+        if (!function_exists('storage_resolve')) {
             require_once __DIR__ . '/../config/paths.php';
         }
-        return PROJECT_ROOT . '/' . ltrim($rel, '/');
+        return storage_resolve($rel);
     }
 
     // ─── Prospects ───────────────────────────────────────────────

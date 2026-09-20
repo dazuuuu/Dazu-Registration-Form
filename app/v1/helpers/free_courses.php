@@ -1,7 +1,7 @@
 <?php
 // app/v1/helpers/free_courses.php — public-side visibility switch for the free-courses
 // section, backed by the site_settings row seeded in
-// databases/migrations/035_add_course_dates_and_free_toggle.sql.
+// app/v1/databases/migrations/035_add_course_dates_and_free_toggle.sql.
 // Admin toggles it from public/admin/free-courses/index.php.
 
 if (!function_exists('dazu_free_courses_enabled')) {

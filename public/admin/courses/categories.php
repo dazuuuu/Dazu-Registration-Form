@@ -88,7 +88,7 @@ try {
     $categories = $categoryModel->getAll(false);
 } catch (Throwable $e) {
     $categories = [];
-    $error = $error ?: 'Run migration databases/migrations/025_course_categories.sql first.';
+    $error = $error ?: 'Run migration app/v1/databases/migrations/025_course_categories.sql first.';
 }
 
 $editCategory = null;

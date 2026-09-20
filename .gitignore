@@ -4,7 +4,7 @@
 
 # ========================================
 
-/vendor/
+/app/v1/vendor/
 
 # ========================================
 
@@ -144,8 +144,8 @@ yarn-error.log*
 
 # ========================================
 
-/storage/sms/receipts/
-/storage/sms/
+/app/v1/storage/sms/receipts/
+/app/v1/storage/sms/
 
 # ========================================
 
@@ -157,3 +157,6 @@ yarn-error.log*
 *.tar
 *.gz
 *.rar
+
+# SMTP password encryption key (created automatically)
+/app/v1/storage/mail.key

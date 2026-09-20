@@ -21,7 +21,7 @@ function isStoreActive($current_dir) {
 
 // New System group: registration, courses, tutors, payments, resources, partners, testimonials
 function isSystemActive($current_dir) {
-    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'payroll', 'payments', 'resources', 'partners', 'testimonials'], true);
+    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'resources', 'partners', 'testimonials'], true);
 }
 
 // Courses sub-section: paid (admin/courses) and free (admin/free-courses) are fully
@@ -133,15 +133,10 @@ function isSmsSection($section) {
                             <i class="fas fa-chalkboard-teacher"></i>
                             <span>Tutors</span>
                         </a>
-                        <a href="<?php echo url('admin/payroll/index.php'); ?>"
-                           class="nav-link <?php echo $current_dir == 'payroll' ? 'active' : ''; ?>">
-                            <i class="fas fa-wallet"></i>
-                            <span>Salaries</span>
-                        </a>
-                        <a href="<?php echo url('admin/payments/index.php'); ?>"
-                           class="nav-link <?php echo $current_dir == 'payments' ? 'active' : ''; ?>">
-                            <i class="fas fa-money-bill-wave"></i>
-                            <span>Payments</span>
+                        <a href="<?php echo url('admin/registrations/index.php?status=approved'); ?>"
+                           class="nav-link">
+                            <i class="fas fa-user-graduate"></i>
+                            <span>Students</span>
                         </a>
                         <a href="<?php echo url('admin/resources/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'resources' ? 'active' : ''; ?>">
@@ -157,45 +152,6 @@ function isSmsSection($section) {
                            class="nav-link <?php echo isActive('testimonials', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-star"></i>
                             <span>Testimonials</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-
-            <!-- SmS MODULE -->
-            <div class="nav-item">
-                <a href="#smsMenu" class="nav-link <?php echo isSmsActive() ? 'active' : ''; ?>"
-                   data-bs-toggle="collapse" role="button" aria-expanded="<?php echo isSmsActive() ? 'true' : 'false'; ?>">
-                    <i class="fas fa-sms"></i>
-                    <span>SmS</span>
-                    <i class="fas fa-chevron-down ms-auto" style="font-size: 12px;"></i>
-                </a>
-                <div class="collapse <?php echo isSmsActive() ? 'show' : ''; ?>" id="smsMenu">
-                    <div class="ps-4 mt-2">
-                        <a href="<?php echo url('admin/sms/students/index.php'); ?>"
-                           class="nav-link <?php echo isSmsSection('students') ? 'active' : ''; ?>">
-                            <i class="fas fa-user-graduate"></i>
-                            <span>Students</span>
-                        </a>
-                        <a href="<?php echo url('admin/sms/prospects/index.php'); ?>"
-                           class="nav-link <?php echo isSmsSection('prospects') ? 'active' : ''; ?>">
-                            <i class="fas fa-user-clock"></i>
-                            <span>Prospects</span>
-                        </a>
-                        <a href="<?php echo url('admin/sms/projects/index.php'); ?>"
-                           class="nav-link <?php echo isSmsSection('projects') ? 'active' : ''; ?>">
-                            <i class="fas fa-briefcase"></i>
-                            <span>Projects</span>
-                        </a>
-                        <a href="<?php echo url('admin/sms/finance/index.php'); ?>"
-                           class="nav-link <?php echo isSmsSection('finance') ? 'active' : ''; ?>">
-                            <i class="fas fa-chart-line"></i>
-                            <span>Finance</span>
-                        </a>
-                        <a href="<?php echo url('admin/sms/sales/index.php'); ?>"
-                           class="nav-link <?php echo isSmsSection('sales') ? 'active' : ''; ?>">
-                            <i class="fas fa-cash-register"></i>
-                            <span>Sales</span>
                         </a>
                     </div>
                 </div>
@@ -726,7 +682,7 @@ function isSmsSection($section) {
 <script>
 // Persist collapse state per menu group in localStorage
 document.addEventListener('DOMContentLoaded', function() {
-    var groups = ['systemMenu', 'coursesMenu', 'smsMenu', 'websiteMenu', 'storeMenu'];
+    var groups = ['systemMenu', 'coursesMenu', 'websiteMenu', 'storeMenu'];
     groups.forEach(function (id) {
         var link = document.querySelector('a[href="#' + id + '"]');
         var menu = document.getElementById(id);

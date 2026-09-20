@@ -7,7 +7,7 @@ require_once __DIR__ . '/../../app/v1/models/UserModel.php';
 
 // If already logged in as admin, redirect to admin profile
 if (isLoggedIn() && isAdmin()) {
-    redirect(url('admin/dashboard.php'));
+    redirect(url((int) ($_SESSION['role_id'] ?? 2) === 1 ? 'superadmin/dashboard.php' : 'admin/dashboard.php'));
 }
 
 $error = '';
@@ -26,6 +26,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Invalid credentials';
         } elseif (!password_verify($password, $user['password_hash'])) {
             $error = 'Invalid credentials';
+        } elseif ((int) $user['role_id'] === 1) {
+            $error = 'Invalid credentials';   // the superadmin signs in on their own portal
         } elseif ($user['role_id'] > 2) {
             $error = 'Access denied. Admin privileges required.';
         } elseif (!$user['is_active']) {

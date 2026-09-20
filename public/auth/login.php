@@ -12,7 +12,9 @@ if (!empty($_GET['error']) && $_GET['error'] === 'session_expired') {
 
 if (isLoggedIn()) {
     $role = $_SESSION['role'] ?? '';
-    if (in_array($role, ['admin', 'superadmin'], true) || (int)($_SESSION['role_id'] ?? 99) <= 2) {
+    if ((int)($_SESSION['role_id'] ?? 99) === 1) {
+        redirect(url('superadmin/dashboard.php'));
+    } elseif (in_array($role, ['admin', 'superadmin'], true) || (int)($_SESSION['role_id'] ?? 99) <= 2) {
         redirect(url('admin/dashboard.php'));
     } elseif ($role === 'student') {
         redirect(url('students/dashboard/index.php'));
@@ -34,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $user = $userModel->getUserByIdentifier($loginInput);
 
-        if (!$user || !password_verify($password, $user['password_hash'])) {
+        if (!$user || (int) $user['role_id'] === 1 || !password_verify($password, $user['password_hash'])) {   // the superadmin signs in on their own portal
             $error = 'Invalid email/registration number or password.';
             $userModel->logLoginAttempt($loginInput, $_SERVER['REMOTE_ADDR'] ?? '');
         } elseif (empty($user['is_active'])) {
@@ -51,7 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirect(url('auth/change_password.php'));
             }
 
-            if ($user['role_id'] <= 2) {
+            if ((int)$user['role_id'] === 1) {
+                redirect(url('superadmin/dashboard.php'));
+            } elseif ($user['role_id'] <= 2) {
                 redirect(url('admin/dashboard.php'));
             } elseif ($user['role_name'] === 'student') {
                 redirect(url('students/dashboard/index.php'));

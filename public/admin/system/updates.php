@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/../../../app/v1/config/paths.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+Middleware::requireAdmin();   // admins only (the superadmin has a separate portal)
 require_once __DIR__ . '/../../../app/v1/bootstrap.php';
 require_once __DIR__ . '/../../../app/v1/services/MigrationService.php';
 
@@ -98,7 +101,7 @@ ob_start();
   <div class="update-meta-card">
     <small>Total files</small>
     <strong><?php echo number_format(count($migrationRows)); ?></strong>
-    <div class="text-muted small"><code>databases/required_migrations</code></div>
+    <div class="text-muted small"><code>app/v1/databases/required_migrations</code></div>
   </div>
   <div class="update-meta-card">
     <small>Pending</small>

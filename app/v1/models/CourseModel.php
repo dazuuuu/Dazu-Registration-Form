@@ -63,25 +63,25 @@ class CourseModel {
             $missingDateCols = stripos($e->getMessage(), 'start_date') !== false
                 || stripos($e->getMessage(), 'end_date') !== false;
             if ($missingDateCols) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/migrations/035_add_course_dates_and_free_toggle.sql, then retry.'];
+                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/migrations/035_add_course_dates_and_free_toggle.sql, then retry.'];
             }
             $missingNewCols = stripos($e->getMessage(), 'requirements') !== false
                 || stripos($e->getMessage(), 'is_free') !== false;
             if ($missingNewCols) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/migrations/033_course_requirements_and_free_flag.sql, then retry.'];
+                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/migrations/033_course_requirements_and_free_flag.sql, then retry.'];
             }
             $missingStudyCols = stripos($e->getMessage(), 'weeks_of_study') !== false
                 || stripos($e->getMessage(), 'days_of_study') !== false
                 || stripos($e->getMessage(), 'hours_of_study') !== false
                 || stripos($e->getMessage(), 'study_schedule') !== false;
             if (stripos($e->getMessage(), 'fee_structure') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/required_migrations/036_course_fee_structure.sql, then retry.'];
+                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/required_migrations/036_course_fee_structure.sql, then retry.'];
             }
             if (stripos($e->getMessage(), 'semester_count') !== false || stripos($e->getMessage(), 'class_schedule_') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/required_migrations/038_course_semesters_and_class_schedules.sql, then retry.'];
+                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/required_migrations/038_course_semesters_and_class_schedules.sql, then retry.'];
             }
             if (stripos($e->getMessage(), 'brochure_path') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/required_migrations/037_course_brochure.sql, then retry.'];
+                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/required_migrations/037_course_brochure.sql, then retry.'];
             }
             if ($categoryId !== null && stripos($e->getMessage(), 'category_id') !== false) {
                 $sql = "INSERT INTO courses (title, abbreviation, cover_image, description, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, is_active, created_by)
@@ -103,8 +103,8 @@ class CourseModel {
                 ]);
             } elseif ($missingStudyCols) {
                 // DB not yet migrated (missing weeks_of_study/hours_of_study/study_schedule) — save without them
-                // rather than fatal, run databases/migrations/022_add_course_study_duration.sql and
-                // databases/migrations/024_add_course_study_schedule.sql to fix properly.
+                // rather than fatal, run app/v1/databases/migrations/022_add_course_study_duration.sql and
+                // app/v1/databases/migrations/024_add_course_study_schedule.sql to fix properly.
                 $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, description, overview, duration_months, course_fee, is_active, created_by)
                         VALUES (:title, :abbreviation, :category_id, :cover_image, :description, :overview, :duration_months, :course_fee, 1, :created_by)";
                 $stmt = $this->db->prepare($sql);
@@ -200,25 +200,25 @@ class CourseModel {
             $missingDateCols = stripos($e->getMessage(), 'start_date') !== false
                 || stripos($e->getMessage(), 'end_date') !== false;
             if ($missingDateCols) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/migrations/035_add_course_dates_and_free_toggle.sql, then retry.'];
+                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/migrations/035_add_course_dates_and_free_toggle.sql, then retry.'];
             }
             $missingNewCols = stripos($e->getMessage(), 'requirements') !== false
                 || stripos($e->getMessage(), 'is_free') !== false;
             if ($missingNewCols) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/migrations/033_course_requirements_and_free_flag.sql, then retry.'];
+                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/migrations/033_course_requirements_and_free_flag.sql, then retry.'];
             }
             $missingStudyCols = stripos($e->getMessage(), 'weeks_of_study') !== false
                 || stripos($e->getMessage(), 'days_of_study') !== false
                 || stripos($e->getMessage(), 'hours_of_study') !== false
                 || stripos($e->getMessage(), 'study_schedule') !== false;
             if (stripos($e->getMessage(), 'fee_structure') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/required_migrations/036_course_fee_structure.sql, then retry.'];
+                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/required_migrations/036_course_fee_structure.sql, then retry.'];
             }
             if (stripos($e->getMessage(), 'semester_count') !== false || stripos($e->getMessage(), 'class_schedule_') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/required_migrations/038_course_semesters_and_class_schedules.sql, then retry.'];
+                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/required_migrations/038_course_semesters_and_class_schedules.sql, then retry.'];
             }
             if (stripos($e->getMessage(), 'brochure_path') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/required_migrations/037_course_brochure.sql, then retry.'];
+                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/required_migrations/037_course_brochure.sql, then retry.'];
             }
             if ($categoryId !== null && stripos($e->getMessage(), 'category_id') !== false) {
                 $fields = str_replace('category_id = :category_id, ', '', $fields);
@@ -228,8 +228,8 @@ class CourseModel {
                 $stmt->execute($params);
             } elseif ($missingStudyCols) {
                 // DB not yet migrated (missing weeks_of_study/hours_of_study/study_schedule) — save without them
-                // rather than fatal, run databases/migrations/022_add_course_study_duration.sql and
-                // databases/migrations/024_add_course_study_schedule.sql to fix properly.
+                // rather than fatal, run app/v1/databases/migrations/022_add_course_study_duration.sql and
+                // app/v1/databases/migrations/024_add_course_study_schedule.sql to fix properly.
                 $fields = "title = :title, abbreviation = :abbreviation, category_id = :category_id, description = :description,
                            requirements = :requirements, overview = :overview, duration_months = :duration_months, course_fee = :course_fee,
                            is_free = :is_free";

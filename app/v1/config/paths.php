@@ -11,6 +11,84 @@ if (!defined('APP_V1_ROOT')) {
     define('APP_V1_ROOT', dirname(__DIR__));
 }
 
+/*
+ * The one backend lives in app/v1. Everything server-side sits inside it, so nothing outside app/ and public/ needs to know
+ * where things are. Web URLs are unaffected by where these folders are (only public/ is served), so links and permalinks
+ * never depend on them. Always build filesystem paths from the constants and helpers below, never from hard-coded '../..'.
+ *
+ *   BACKEND_ROOT    app/v1                (config, models, controllers, services, helpers, templates, lib)
+ *   DATABASES_PATH  app/v1/databases      (SQL migrations, migrate.php)
+ *   STORAGE_PATH    app/v1/storage        (private files: SMS receipts, the mail key)
+ *   VENDOR_PATH     app/v1/vendor         (Composer packages; composer.json sits beside it)
+ *   TESTS_PATH      app/v1/tests
+ *
+ * Each can be moved with an .env override (APP_STORAGE_PATH, APP_DATABASES_PATH, APP_VENDOR_PATH), e.g. to keep private
+ * files outside the code folder on a shared host.
+ */
+if (!defined('BACKEND_ROOT')) {
+    define('BACKEND_ROOT', APP_V1_ROOT);
+}
+if (!function_exists('dazu_backend_dir')) {
+    function dazu_backend_dir(string $envKey, string $default): string {
+        $o = function_exists('dazu_env') ? dazu_env($envKey) : null;
+        return ($o !== null && $o !== '') ? rtrim(str_replace('\\', '/', (string) $o), '/') : $default;
+    }
+}
+if (!defined('DATABASES_PATH')) {
+    define('DATABASES_PATH', dazu_backend_dir('APP_DATABASES_PATH', BACKEND_ROOT . '/databases'));
+}
+if (!defined('STORAGE_PATH')) {
+    define('STORAGE_PATH', dazu_backend_dir('APP_STORAGE_PATH', BACKEND_ROOT . '/storage'));
+}
+if (!defined('VENDOR_PATH')) {
+    define('VENDOR_PATH', dazu_backend_dir('APP_VENDOR_PATH', BACKEND_ROOT . '/vendor'));
+}
+if (!defined('TESTS_PATH')) {
+    define('TESTS_PATH', BACKEND_ROOT . '/tests');
+}
+
+if (!function_exists('backend_path')) {
+    /** Absolute path inside the backend (app/v1). */
+    function backend_path(string $rel = ''): string {
+        return BACKEND_ROOT . ($rel === '' ? '' : '/' . ltrim($rel, '/'));
+    }
+}
+if (!function_exists('database_path')) {
+    function database_path(string $rel = ''): string {
+        return DATABASES_PATH . ($rel === '' ? '' : '/' . ltrim($rel, '/'));
+    }
+}
+if (!function_exists('storage_path')) {
+    /** Absolute path in private storage. */
+    function storage_path(string $rel = ''): string {
+        return STORAGE_PATH . ($rel === '' ? '' : '/' . ltrim($rel, '/'));
+    }
+}
+if (!function_exists('storage_resolve')) {
+    /**
+     * Turn a path saved in the database ('storage/sms/receipts/x.pdf') into a real file. Files are looked for in the current
+     * storage folder first, then in the old location at the project root, so records saved before the move still open.
+     */
+    function storage_resolve(?string $stored): ?string {
+        if ($stored === null || $stored === '') {
+            return null;
+        }
+        $rel = preg_replace('#^storage/#', '', ltrim(str_replace('\\', '/', $stored), '/'));
+        foreach ([STORAGE_PATH . '/' . $rel, PROJECT_ROOT . '/storage/' . $rel] as $candidate) {
+            if (is_file($candidate)) {
+                return $candidate;
+            }
+        }
+        return STORAGE_PATH . '/' . $rel;   // where it will be (or should be) written
+    }
+}
+if (!function_exists('vendor_autoload_files')) {
+    /** Where a Composer autoloader may be, in order: the current vendor folder, then the old project-root one. */
+    function vendor_autoload_files(): array {
+        return [VENDOR_PATH . '/autoload.php', PROJECT_ROOT . '/vendor/autoload.php'];
+    }
+}
+
 /**
  * Detect URL prefix when public/ is in the request path (local Ampps/subfolder).
  * When public/ is the document root (cPanel), returns empty string.
