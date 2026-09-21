@@ -41,7 +41,7 @@ ob_start();
 <section class="dashboard-hero mb-4">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
     <div><div class="text-uppercase fw-bold small subtle mb-2">Administration centre</div><h2 class="h3 mb-1">Good day, <?php echo htmlspecialchars($_SESSION['username'] ?? 'Administrator'); ?>.</h2><p class="mb-0 subtle">A live snapshot of admissions, learning operations, enquiries, and finance.</p></div>
-    <div class="text-md-end"><div class="subtle small">As of <?php echo date('d M Y, h:i A'); ?></div><a class="btn btn-light btn-sm mt-2" href="<?php echo url('admin/payments/index.php'); ?>"><i class="fa-solid fa-wallet me-1"></i> Open accounting</a></div>
+    <div class="text-md-end"><div class="subtle small">As of <?php echo date('d M Y, h:i A'); ?></div><a class="btn btn-light btn-sm mt-2" href="<?php echo url('admin/payments/index.php'); ?>"><i class="fa-solid fa-wallet me-1"></i> Open accounting</a> <a class="btn btn-warning btn-sm mt-2" href="<?php echo url('admin/sms/students/form.php'); ?>"><i class="fa-solid fa-user-plus me-1"></i> Add student</a></div>
   </div>
 </section>
 
@@ -113,6 +113,7 @@ ob_start();
         <div class="empty-state mb-0">No SmS alerts right now — all balances and follow-ups are clear.</div>
         <?php endif; ?>
         <div class="d-flex flex-wrap gap-2 mt-3 pt-2 border-top">
+          <a class="btn btn-sm btn-success" href="<?php echo url('admin/sms/students/form.php'); ?>"><i class="fa-solid fa-user-plus me-1"></i>Add student</a>
           <a class="btn btn-sm btn-outline-success" href="<?php echo url('admin/sms/students/index.php'); ?>">Students</a>
           <a class="btn btn-sm btn-outline-info" href="<?php echo url('admin/sms/prospects/index.php'); ?>">Prospects</a>
           <a class="btn btn-sm btn-outline-primary" href="<?php echo url('admin/sms/projects/index.php'); ?>">Projects</a>
