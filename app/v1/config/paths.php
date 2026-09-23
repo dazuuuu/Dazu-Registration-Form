@@ -22,7 +22,7 @@ if (!defined('APP_V1_ROOT')) {
  *   VENDOR_PATH     app/v1/vendor         (Composer packages; composer.json sits beside it)
  *   TESTS_PATH      app/v1/tests
  *
- * Each can be moved with an .env override (APP_STORAGE_PATH, APP_DATABASES_PATH, APP_VENDOR_PATH), e.g. to keep private
+ * Each can be moved with a server environment variable (APP_STORAGE_PATH, APP_DATABASES_PATH, APP_VENDOR_PATH), e.g. to keep private
  * files outside the code folder on a shared host.
  */
 if (!defined('BACKEND_ROOT')) {

@@ -45,7 +45,7 @@ class DashboardModel {
         ];
 
         if ($this->tableExists('registrations')) {
-            $stats['students'] = (int) $this->db->query("SELECT COUNT(*) FROM registrations WHERE status='approved'")->fetchColumn();
+            $stats['students'] = (int) $this->db->query("SELECT COUNT(*) FROM registrations WHERE status='approved' AND (registration_no IS NULL OR registration_no NOT LIKE 'PREVIEW-%')")->fetchColumn();
             $stats['pending_regs'] = (int) $this->db->query("SELECT COUNT(*) FROM registrations WHERE status='pending'")->fetchColumn();
             foreach (['pending','approved','rejected'] as $s) {
                 $st = $this->db->prepare("SELECT COUNT(*) FROM registrations WHERE status=?");
@@ -64,7 +64,7 @@ class DashboardModel {
             $stats['expected_fees'] = $stats['total_collected'] + $stats['total_outstanding'];
             $stats['recent_registrations'] = $this->db->query(
                 "SELECT r.id, r.full_name, r.status, r.created_at, c.title AS course_title
-                 FROM registrations r LEFT JOIN courses c ON c.id = r.course_id
+                 FROM registrations r LEFT JOIN courses c ON c.id = r.course_id WHERE (r.registration_no IS NULL OR r.registration_no NOT LIKE 'PREVIEW-%')
                  ORDER BY r.created_at DESC LIMIT 6"
             )->fetchAll();
             $stats['monthly_registrations'] = array_reverse($this->db->query(

@@ -203,14 +203,21 @@ document.getElementById('featured_image').addEventListener('change', function(e)
 document.getElementById('createBlogForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    formData.set('content', $('#content').summernote('code'));
-    
+
     const submitBtn = e.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
     submitBtn.disabled = true;
-    
+
     try {
+        let content = document.getElementById('content').value;
+        try {
+            content = $('#content').summernote('code');
+        } catch (summernoteError) {
+            console.error('Summernote unavailable, falling back to raw textarea value:', summernoteError);
+        }
+        formData.set('content', content);
+
         const response = await fetch(url('api/blog/create.php'), {
             method: 'POST',
             body: formData

@@ -1,5 +1,6 @@
 <?php
-// Sequential student IDs: DH050/26, DH051/26, … (year is two digits).
+// Sequential student IDs: DCH050/26 (certificate) or DDH051/26 (diploma); one running sequence, year is two digits.
+require_once __DIR__ . '/course_duration.php';
 
 if (!function_exists('registration_number_lock')) {
     function registration_number_lock(\PDO $pdo): bool
@@ -25,11 +26,19 @@ if (!function_exists('registration_number_unlock')) {
 
 if (!function_exists('registration_number_next')) {
     /**
-     * Next institute registration number. First number of each calendar year is DH050/{yy}.
+     * Next institute registration number. First number of each calendar year is 050. The prefix follows the course.
      * Callers must hold registration_number_lock() until the number is saved.
      */
-    function registration_number_next(\PDO $pdo): string
+    function registration_number_next(\PDO $pdo, ?int $courseId = null): string
     {
+        $prefix = 'DH';
+        if ($courseId) {
+            $st = $pdo->prepare('SELECT * FROM courses WHERE id = ?');
+            $st->execute([$courseId]);
+            if ($course = $st->fetch()) {
+                $prefix = course_qualification($course) === 'diploma' ? 'DDH' : 'DCH';
+            }
+        }
         $year = date('y');
         $max = 49;
         $stmt = $pdo->query(
@@ -37,19 +46,55 @@ if (!function_exists('registration_number_next')) {
              WHERE registration_no IS NOT NULL AND registration_no != ''"
         );
         foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $no) {
-            if (preg_match('/^DH(\d+)\/(\d{2})$/', (string) $no, $m) && $m[2] === $year) {
+            if (preg_match('/^D[CD]?H(\d+)\/(\d{2})$/', (string) $no, $m) && $m[2] === $year) {
                 $max = max($max, (int) $m[1]);
             }
         }
-        return sprintf('DH%03d/%s', max(50, $max + 1), $year);
+        return sprintf('%s%03d/%s', $prefix, max(50, $max + 1), $year);
     }
 }
 
 if (!function_exists('registration_number_claim')) {
     /** Lock, allocate, and leave the lock held. Pair with registration_number_unlock(). */
-    function registration_number_claim(\PDO $pdo): string
+    function registration_number_claim(\PDO $pdo, ?int $courseId = null): string
     {
         registration_number_lock($pdo);
-        return registration_number_next($pdo);
+        return registration_number_next($pdo, $courseId);
+    }
+}
+
+
+if (!function_exists('registration_number_resync')) {
+    /**
+     * Make the letter in registration numbers match the course: DCH (certificate) or DDH (diploma). Limited to one course or
+     * one registration when given, otherwise every registration. The sign-in username follows the number. Returns how many changed.
+     */
+    function registration_number_resync(\PDO $pdo, ?int $courseId = null, ?int $registrationId = null): int
+    {
+        $sql = "SELECT r.id AS reg_id, r.user_id AS reg_user_id, r.registration_no AS reg_no, c.* FROM registrations r JOIN courses c ON c.id = r.course_id
+                WHERE r.registration_no REGEXP '^D[CD]?H[0-9]+/[0-9]{2}$'";
+        $args = [];
+        if ($courseId !== null) { $sql .= ' AND r.course_id = ?'; $args[] = $courseId; }
+        if ($registrationId !== null) { $sql .= ' AND r.id = ?'; $args[] = $registrationId; }
+        $st = $pdo->prepare($sql);
+        $st->execute($args);
+        $changed = 0;
+        foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $row) {
+            $old = (string) $row['reg_no'];
+            $new = (course_qualification($row) === 'diploma' ? 'DDH' : 'DCH') . substr($old, strpos($old, 'H') + 1);
+            if ($new === $old) {
+                continue;
+            }
+            try {
+                $pdo->prepare('UPDATE registrations SET registration_no = ? WHERE id = ?')->execute([$new, $row['reg_id']]);
+                if (!empty($row['reg_user_id'])) {
+                    $pdo->prepare('UPDATE users SET username = ? WHERE id = ? AND username = ?')->execute([$new, $row['reg_user_id'], $old]);
+                }
+                $changed++;
+            } catch (\Throwable $e) {
+                error_log('[registration_number_resync] ' . $e->getMessage());
+            }
+        }
+        return $changed;
     }
 }

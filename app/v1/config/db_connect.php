@@ -13,7 +13,7 @@ try {
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     http_response_code(500);
-    die('Database connection failed. Check app/v1/config/database.php or .env DB_* settings.');
+    die('Database connection failed. Check the database settings.');
 }
 
 if (session_status() === PHP_SESSION_NONE) {

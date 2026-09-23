@@ -1,9 +1,10 @@
 <?php
 // public/components/public/footer.php — Dazu Training Institute
 $year = date('Y');
+require_once __DIR__ . '/../../../app/v1/helpers/brand.php';
 require_once __DIR__ . '/../../../app/v1/helpers/site_logo.php';
 require_once __DIR__ . '/../../../app/v1/helpers/site_contact.php';
-$logoPath = site_logo_url(url('assets/images/logo/logo.webp'));
+$logoPath = site_logo_url(brand_url('mark'));
 $contact = site_contact_settings();
 ?>
 <footer class="dh-footer">

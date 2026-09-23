@@ -128,9 +128,8 @@ if (!function_exists('validate_image_upload')) {
 
 if (!function_exists('upload_image')) {
     /**
-     * Validate, optimize (if raster) and store the uploaded image.
-     * Large raster images are automatically scaled down to max 1920px and
-     * compressed into lightweight WebP for lightning-fast site delivery.
+     * Validate and store the uploaded image exactly as it was sent: no resizing, no recompression, original format.
+     * Pass $optimize = true only where a scaled-down WebP copy is wanted (nothing does today).
      *
      * @param string $absDir  absolute destination dir
      * @param string $webDir  web path (relative to /public) saved in DB, no trailing slash
@@ -141,7 +140,8 @@ if (!function_exists('upload_image')) {
         string $absDir,
         string $webDir,
         array $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'],
-        int $maxBytes = MAX_IMAGE_UPLOAD_BYTES
+        int $maxBytes = MAX_IMAGE_UPLOAD_BYTES,
+        bool $optimize = false
     ): array {
         $v = validate_image_upload($file, $allowedExt, $maxBytes);
         if (!$v['ok']) {
@@ -159,7 +159,7 @@ if (!function_exists('upload_image')) {
         }
 
         $ext = $v['ext'];
-        $canOptimize = extension_loaded('gd') && in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'avif'], true);
+        $canOptimize = $optimize && extension_loaded('gd') && in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'avif'], true);
 
         if ($canOptimize) {
             $raw = @file_get_contents($file['tmp_name']);
@@ -422,7 +422,7 @@ if (!function_exists('upload_video')) {
     /**
      * @return array{ok:bool, path?:string, error?:string}
      */
-    function upload_video(array $file, string $absDir, string $webDir, int $maxBytes = MAX_VIDEO_UPLOAD_BYTES): array
+    function upload_video(array $file, string $absDir, string $webDir, int $maxBytes = MAX_VIDEO_UPLOAD_BYTES, bool $transcode = false): array
     {
         $v = validate_video_upload($file, $maxBytes);
         if (!$v['ok']) {
@@ -433,6 +433,16 @@ if (!function_exists('upload_video')) {
         }
         if (!is_dir($absDir) && !@mkdir($absDir, 0775, true) && !is_dir($absDir)) {
             return ['ok' => false, 'error' => 'Could not create the upload folder.'];
+        }
+        if (!$transcode) {
+            // Stored exactly as uploaded, no re-encoding.
+            $name = time() . '_' . bin2hex(random_bytes(6)) . '.' . $v['ext'];
+            $dest = rtrim($absDir, '/\\') . DIRECTORY_SEPARATOR . $name;
+            $moved = defined('UPLOAD_TEST_MODE') ? @copy($file['tmp_name'], $dest) : @move_uploaded_file($file['tmp_name'], $dest);
+            if (!$moved) {
+                return ['ok' => false, 'error' => 'Could not save the uploaded file.'];
+            }
+            return ['ok' => true, 'path' => rtrim($webDir, '/') . '/' . $name];
         }
         $name = time() . '_' . bin2hex(random_bytes(6)) . '.mp4';
         $dest = rtrim($absDir, '/\\') . DIRECTORY_SEPARATOR . $name;

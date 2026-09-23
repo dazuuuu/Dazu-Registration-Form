@@ -34,6 +34,7 @@ $settingCards = [
     ['title' => 'Homepage Hero', 'subtitle' => count($heroSlides) . ' slide' . (count($heroSlides) === 1 ? '' : 's'), 'icon' => 'fa-images', 'color' => 'info', 'url' => url('admin/settings/edit.php?section=hero'), 'button' => 'Manage slides'],
     ['title' => 'Page Banners', 'subtitle' => count($pageHeaders) . ' page' . (count($pageHeaders) === 1 ? '' : 's'), 'icon' => 'fa-heading', 'color' => 'warning', 'url' => url('admin/settings/edit.php?section=headers'), 'button' => 'Edit banners'],
     ['title' => 'Contact & Map', 'subtitle' => 'Phone, email, campus map embed', 'icon' => 'fa-map-location-dot', 'color' => 'success', 'url' => url('admin/settings/edit.php?section=contact'), 'button' => 'Edit contact'],
+    ['title' => 'Footer & Social Links', 'subtitle' => 'Footer contact details, social links, copyright', 'icon' => 'fa-shoe-prints', 'color' => 'secondary', 'url' => url('admin/settings/edit.php?section=footer'), 'button' => 'Edit footer'],
     ['title' => 'Class Schedule', 'subtitle' => 'Shared online and physical class times', 'icon' => 'fa-calendar-days', 'color' => 'primary', 'url' => url('admin/settings/edit.php?section=schedule'), 'button' => 'Edit schedule'],
     ['title' => 'Popular Courses', 'subtitle' => count($popularCourses) . ' course' . (count($popularCourses) === 1 ? '' : 's') . ' on homepage', 'icon' => 'fa-star', 'color' => 'warning', 'url' => url('admin/settings/edit.php?section=popular_courses'), 'button' => 'Manage popular'],
     ['title' => 'Email (SMTP)', 'subtitle' => 'Mail server used for all system emails', 'icon' => 'fa-envelope', 'color' => 'danger', 'url' => url('admin/settings/mail.php'), 'button' => 'Edit email settings'],
@@ -118,9 +119,9 @@ ob_start();
                 <div class="d-flex align-items-center justify-content-between small py-1 border-bottom">
                   <span class="text-capitalize"><?php echo htmlspecialchars($header['page_key']); ?></span>
                   <?php if (!empty($header['image_path'])): ?>
-                    <span class="badge text-bg-success">image set</span>
+                    <span class="badge bg-success">image set</span>
                   <?php else: ?>
-                    <span class="badge text-bg-light border text-muted">no image</span>
+                    <span class="badge bg-light text-dark border text-muted">no image</span>
                   <?php endif; ?>
                 </div>
               <?php endforeach; ?>
@@ -129,10 +130,10 @@ ob_start();
             <?php if (!empty($popularCourses)): ?>
               <div class="d-flex flex-wrap gap-1">
                 <?php foreach (array_slice($popularCourses, 0, 5) as $pc): ?>
-                  <span class="badge text-bg-warning"><?php echo htmlspecialchars($pc['title']); ?></span>
+                  <span class="badge bg-warning text-dark"><?php echo htmlspecialchars($pc['title']); ?></span>
                 <?php endforeach; ?>
                 <?php if (count($popularCourses) > 5): ?>
-                  <span class="badge text-bg-light border text-muted">+<?php echo count($popularCourses) - 5; ?> more</span>
+                  <span class="badge bg-light text-dark border text-muted">+<?php echo count($popularCourses) - 5; ?> more</span>
                 <?php endif; ?>
               </div>
             <?php else: ?>

@@ -113,7 +113,7 @@ class RegistrationModel {
         $returning = $phone === 'N/A' ? null : $this->findPossibleReturningStudent($email, $phone);
         $referralNo = !empty($data['referral_registration_no']) ? trim($data['referral_registration_no']) : null;
         $locked = registration_number_lock($this->db);
-        $regNo = registration_number_next($this->db);
+        $regNo = registration_number_next($this->db, (int) $course['id']);
 
         $params = [
             ':reg_no'             => $regNo,
@@ -180,6 +180,51 @@ class RegistrationModel {
         return ['ok' => true, 'id' => (int) $this->db->lastInsertId(), 'registration_no' => $regNo];
     }
 
+    /**
+     * Admin edit of a student's core contact details. Keeps the linked users.email
+     * (used to log in) in step when the registration is already approved.
+     * @return array{ok:bool, error?:string}
+     */
+    public function updateContact(int $id, string $fullName, string $email, string $phone): array {
+        $reg = $this->getById($id);
+        if (!$reg) {
+            return ['ok' => false, 'error' => 'Registration not found.'];
+        }
+        $fullName = trim($fullName);
+        $email = trim($email);
+        $phone = trim($phone);
+        if ($fullName === '' || $email === '' || $phone === '') {
+            return ['ok' => false, 'error' => 'Name, email and phone are all required.'];
+        }
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['ok' => false, 'error' => 'Enter a valid email address.'];
+        }
+
+        try {
+            $this->db->beginTransaction();
+            $this->db->prepare(
+                'UPDATE registrations SET full_name = :name, email = :email, phone = :phone WHERE id = :id'
+            )->execute([':name' => $fullName, ':email' => $email, ':phone' => $phone, ':id' => $id]);
+
+            if (!empty($reg['user_id'])) {
+                $this->db->prepare('UPDATE users SET email = :email WHERE id = :uid')
+                    ->execute([':email' => $email, ':uid' => (int) $reg['user_id']]);
+            }
+
+            $this->db->commit();
+            return ['ok' => true];
+        } catch (\PDOException $e) {
+            if ($this->db->inTransaction()) {
+                $this->db->rollBack();
+            }
+            if ((int) $e->errorInfo[1] === 1062) {
+                return ['ok' => false, 'error' => 'That email is already in use by another account.'];
+            }
+            error_log('[RegistrationModel::updateContact] ' . $e->getMessage());
+            return ['ok' => false, 'error' => 'Could not update details.'];
+        }
+    }
+
     public function getById(int $id): ?array {
         try {
             $stmt = $this->db->prepare(
@@ -240,4 +285,4 @@ class RegistrationModel {
         $stmt->execute([':status' => $status]);
         return $stmt->fetchAll();
     }
-}
+}

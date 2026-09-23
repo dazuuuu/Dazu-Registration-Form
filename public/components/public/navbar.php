@@ -32,7 +32,8 @@ if (!function_exists('dhNavActive')) {
     }
 }
 
-$logoPath = url('assets/images/logo/logo.webp');
+require_once __DIR__ . '/../../../app/v1/helpers/brand.php';
+$logoPath = brand_url('mark');
 $isLoggedIn  = !empty($_SESSION['logged_in']);
 $isAdmin     = $isLoggedIn && isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin','superadmin'], true);
 $isTutor     = $isLoggedIn && isset($_SESSION['role']) && $_SESSION['role'] === 'tutor';

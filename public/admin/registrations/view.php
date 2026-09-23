@@ -115,9 +115,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($action === 'approve') {
             $waive  = isset($_POST['waive_reg_fee']) && $_POST['waive_reg_fee'] === '1';
-            $result = $controller->approve($id, $waive, $adminId);
+            require_once __DIR__ . '/../../../app/v1/helpers/study_location.php';
+            $pickMode = $_POST['study_mode'] ?? '';
+            $pickLoc  = $_POST['study_location'] ?? '';
+            if (!in_array($pickMode, ['online', 'physical'], true) || ($pickMode === 'physical' && study_location_supported($pdo) && !isset(study_locations()[$pickLoc]))) {
+                $result = ['ok' => false, 'error' => 'Choose the mode of study, and the learning location (Thika or Nairobi) for physical classes, before approving.'];
+            } else {
+                $result = $controller->approve($id, $waive, $adminId);
+            }
 
             if ($result['ok']) {
+                study_placement_set($pdo, $id, $pickMode, $pickLoc);
                 $tutorNote = '';
                 $tutorId = (int)($_POST['tutor_id'] ?? 0);
                 if ($tutorId > 0 && $tutorsReady) {
@@ -573,6 +581,9 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
                         </div>
                     <?php endif; ?>
 
+                    <?php require_once __DIR__ . '/../../../app/v1/helpers/study_location.php'; ?>
+                    <div class="row g-2 mb-3"><?php echo study_placement_fields(['study_mode' => $reg['study_mode'] ?? ''], true, 'col-sm-6'); ?></div>
+
                     <?php if ($tutorChoices): ?>
                     <div class="mb-3">
                         <label class="form-label small mb-1">Assign a tutor <span class="text-muted">(optional, can be done later)</span></label>
@@ -590,7 +601,7 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
                             Approval creates the student portal account and keeps that number.
                         <?php else: ?>
                             On approval, a student account is created and the next registration number is issued
-                            (starting from <strong>DH050/<?php echo date('y'); ?></strong>).
+                            (starting from <strong>050/<?php echo date('y'); ?></strong>).
                         <?php endif; ?>
                     </p>
 

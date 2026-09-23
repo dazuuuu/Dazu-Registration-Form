@@ -96,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
 
             if ($result['ok']) {
+                $courseModel->setQualification($id, $_POST['qualification'] ?? null);
                 $notified = 0;
                 try {
                     // No job queue in this codebase — sending is synchronous, so give it
@@ -239,6 +240,15 @@ ob_start();
                     <input type="file" name="cover_image" class="form-control" accept="image/jpeg,image/png,image/webp">
                     <small class="text-muted">Leave blank to keep the current image.</small>
                 </div>
+                <div class="col-md-4">
+                    <label class="form-label">Qualification</label>
+                    <select name="qualification" class="form-select">
+                        <option value="">Automatic (under 18 months = Certificate, otherwise Diploma)</option>
+                        <option value="certificate" <?php echo ($course['qualification'] ?? '') === 'certificate' ? 'selected' : ''; ?>>Certificate</option>
+                        <option value="diploma" <?php echo ($course['qualification'] ?? '') === 'diploma' ? 'selected' : ''; ?>>Diploma</option>
+                    </select>
+                </div>
+
                 <div class="col-12">
                     <label class="form-label">Course brochure (PDF)</label>
                     <?php if (!empty($course['brochure_path'])): ?>

@@ -16,6 +16,25 @@ $pdo     = Connection::getInstance()->getConnection();
 $regModel = new RegistrationModel($pdo);
 
 $status = in_array($_GET['status'] ?? '', ['pending','approved','rejected']) ? $_GET['status'] : 'pending';
+
+// Delete applications straight from the list, no review needed (pending and rejected only; approved students have accounts).
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'delete_selected') {
+    if (!csrf_verify($_POST['csrf_token'] ?? null)) {
+        SessionModel::setFlash('error', 'Security check failed. Please try again.');
+    } else {
+        $ids = isset($_POST['single']) ? [(int) $_POST['single']] : array_map('intval', (array) ($_POST['ids'] ?? []));
+        $deleted = 0;
+        foreach (array_unique($ids) as $rid) {
+            $reg = $rid > 0 ? $regModel->getById($rid) : null;
+            if ($reg && in_array($reg['status'], ['pending', 'rejected'], true) && !empty($regModel->delete($rid)['ok'])) {
+                $deleted++;
+            }
+        }
+        SessionModel::setFlash($deleted ? 'success' : 'error', $deleted ? $deleted . ' application' . ($deleted === 1 ? '' : 's') . ' deleted.' : 'Nothing was deleted. Select at least one pending application.');
+    }
+    header('Location: ?status=' . $status);
+    exit();
+}
 $rows   = $regModel->listByStatus($status);
 
 // Count badges for each tab
@@ -47,12 +66,23 @@ ob_start();
     <?php endforeach; ?>
 </ul>
 
+<?php $canDelete = $status !== 'approved'; ?>
+<form method="POST" id="regListForm">
+<?php echo csrf_field(); ?>
+<input type="hidden" name="action" value="delete_selected">
+<?php if ($canDelete && !empty($rows)): ?>
+<div class="d-flex align-items-center gap-2 mb-2">
+    <button type="submit" class="btn btn-sm btn-danger" id="delSelected" disabled onclick="return confirm('Delete the selected applications? This cannot be undone.');"><i class="fas fa-trash me-1"></i>Delete selected <span id="delCount"></span></button>
+    <span class="small text-muted">Tick the applications you don't need to review, then delete them.</span>
+</div>
+<?php endif; ?>
 <div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
+                        <?php if ($canDelete): ?><th style="width:34px"><input type="checkbox" class="form-check-input" id="selAll" aria-label="Select all"></th><?php endif; ?>
                         <th>Name</th>
                         <th>Course</th>
                         <th>Mode</th>
@@ -67,11 +97,12 @@ ob_start();
                 </thead>
                 <tbody>
                 <?php if (empty($rows)): ?>
-                    <tr><td colspan="9" class="text-center text-muted py-4">
+                    <tr><td colspan="10" class="text-center text-muted py-4">
                         No <?php echo $status; ?> registrations.
                     </td></tr>
                 <?php else: foreach ($rows as $r): ?>
                     <tr>
+                        <?php if ($canDelete): ?><td><input type="checkbox" class="form-check-input row-sel" name="ids[]" value="<?php echo (int)$r['id']; ?>" aria-label="Select"></td><?php endif; ?>
                         <td>
                             <?php echo htmlspecialchars($r['full_name']); ?>
                             <?php if ($r['possible_returning_student']): ?>
@@ -103,6 +134,9 @@ ob_start();
                                class="btn btn-sm btn-outline-primary">
                                 <?php echo $status === 'pending' ? 'Review' : 'View'; ?>
                             </a>
+                            <?php if ($canDelete): ?>
+                            <button type="submit" name="single" value="<?php echo (int)$r['id']; ?>" class="btn btn-sm btn-outline-danger ms-1" title="Delete" onclick="return confirm('Delete this application? This cannot be undone.');"><i class="fas fa-trash"></i></button>
+                            <?php endif; ?>
                         </td>
                     </tr>
                 <?php endforeach; endif; ?>
@@ -111,6 +145,23 @@ ob_start();
         </div>
     </div>
 </div>
+</form>
+<script>
+(function () {
+  var all = document.getElementById('selAll'), btn = document.getElementById('delSelected'), cnt = document.getElementById('delCount');
+  if (!all) return;
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.row-sel'));
+  function sync() {
+    var n = boxes.filter(function (b) { return b.checked; }).length;
+    if (btn) btn.disabled = n === 0;
+    if (cnt) cnt.textContent = n ? '(' + n + ')' : '';
+    all.checked = boxes.length > 0 && n === boxes.length;
+  }
+  all.addEventListener('change', function () { boxes.forEach(function (b) { b.checked = all.checked; }); sync(); });
+  boxes.forEach(function (b) { b.addEventListener('change', sync); });
+  sync();
+})();
+</script>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/../../templates/admin/layout.php';

@@ -7,6 +7,8 @@ sms_require_tables($pdo);
 
 use Models\PayrollModel;
 
+require_once __DIR__ . '/../../../app/v1/helpers/study_location.php';
+require_once __DIR__ . '/../../../app/v1/services/EmailConflictService.php';
 $id = 0;
 $student = null;
 $courses = $sms->coursePricingCatalog();
@@ -79,7 +81,7 @@ ob_start();
   <form method="post" class="row g-3" id="smsStudentForm">
     <?php echo csrf_field(); ?>
     <div class="col-md-6"><label class="form-label">Name *</label><input name="name" required class="form-control" value="<?= htmlspecialchars($student['name'] ?? '') ?>"></div>
-    <div class="col-md-6"><label class="form-label">Email *</label><input type="email" name="email" required class="form-control" value="<?= htmlspecialchars($student['email'] ?? '') ?>" <?= $id ? '' : 'required' ?>></div>
+    <div class="col-md-6"><label class="form-label">Email *</label><input type="email" name="email" required class="form-control" value="<?= htmlspecialchars($student['email'] ?? '') ?>" <?= $id ? '' : 'required' ?>><?= EmailConflictService::checkbox() ?></div>
     <div class="col-md-4"><label class="form-label">Phone *</label><input name="phone" required class="form-control" value="<?= htmlspecialchars($student['phone'] ?? '') ?>"></div>
     <div class="col-md-8"><label class="form-label">Course *</label>
       <select name="course_id" id="courseSelect" class="form-select" required>
@@ -101,6 +103,7 @@ ob_start();
     <div class="col-md-3"><label class="form-label">Start date</label><input type="date" name="start_date" class="form-control" value="<?= htmlspecialchars($student['start_date'] ?? '') ?>"></div>
     <div class="col-md-3"><label class="form-label">Cost (KES)</label><input type="number" step="0.01" min="0" name="cost" id="costField" class="form-control" value="<?= htmlspecialchars($student['cost'] ?? ($selectedCourse['fee'] ?? '0')) ?>" readonly></div>
     <div class="col-md-3"><label class="form-label">Paid (KES)</label><input type="number" step="0.01" min="0" name="paid" class="form-control" value="<?= htmlspecialchars($student['paid'] ?? '0') ?>"></div>
+    <?= study_placement_fields($student ?? [], true, 'col-md-4') ?>
     <div class="col-md-4"><label class="form-label">Parent phone <span class="text-muted small">(optional)</span></label><input name="parent_phone" class="form-control" value="<?= htmlspecialchars($student['parent_phone'] ?? '') ?>"></div>
     <div class="col-md-4"><label class="form-label">Parent email <span class="text-muted small">(optional)</span></label><input type="email" name="parent_email" class="form-control" value="<?= htmlspecialchars($student['parent_email'] ?? '') ?>"></div>
     <div class="col-md-4"><label class="form-label">Status</label>

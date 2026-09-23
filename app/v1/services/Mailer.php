@@ -65,7 +65,7 @@ class Mailer {
         self::loadPhpMailer();
 
         if (!class_exists('PHPMailer\\PHPMailer\\PHPMailer')) {
-            return ['ok' => false, 'message' => 'PHPMailer is not installed. Upload app/v1/lib/PHPMailer/ or run composer install in the project root.'];
+            return ['ok' => false, 'message' => 'Email sending is not set up on this server yet. Please contact the administrator.'];
         }
         if ($msg = $this->notConfiguredMessage()) {
             return ['ok' => false, 'message' => $msg];

@@ -1,3 +1,11 @@
+-- The video-testimonial columns were never created by an earlier migration (only by hand on existing sites), so a fresh
+-- install stopped here. Adding them first; on a database that already has them each ALTER is skipped.
+ALTER TABLE testimonials ADD COLUMN avatar_url VARCHAR(500) DEFAULT NULL;
+ALTER TABLE testimonials ADD COLUMN thumbnail_url VARCHAR(500) DEFAULT NULL;
+ALTER TABLE testimonials ADD COLUMN testimonial_type ENUM('text','video') NOT NULL DEFAULT 'text';
+ALTER TABLE testimonials ADD COLUMN video_url VARCHAR(500) DEFAULT NULL;
+ALTER TABLE testimonials ADD COLUMN video_provider ENUM('youtube','vimeo','upload','none') NOT NULL DEFAULT 'none';
+
 -- Migration: Seed initial video testimonials so they can be managed from the admin panel
 INSERT INTO testimonials (customer_name, customer_initial, rating, testimonial_text, testimonial_type, video_url, video_provider, thumbnail_url, service_tag, role, status, is_featured, sort_order, created_at, approved_at)
 SELECT 'Faith Wambui', 'FW', 5, 'Full-Stack software development graduate sharing her learning journey at Dazu Hub.', 'video', 'https://www.youtube.com/watch?v=EUY5XaeDsCI', 'youtube', 'https://img.youtube.com/vi/EUY5XaeDsCI/hqdefault.jpg', 'Web Development', 'Full-Stack Graduate', 'approved', 1, 1, NOW(), NOW()

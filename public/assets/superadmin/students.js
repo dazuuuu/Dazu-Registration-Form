@@ -8,6 +8,8 @@
   var hintDefault = hint ? hint.innerHTML : '';
   var heads = document.querySelectorAll('#stTable th[data-sort]');
   var manual = null;   // {key, dir} set by clicking a heading
+  var page = 1, size = 14;   // the sheet shows 14 students at a time; Next / Previous move through the rest
+  var pager = document.getElementById('stPager');
 
   var KW = {
     oldest: ['sort', 'date', 1, 'oldest first'], first: ['sort', 'date', 1, 'oldest first'],
@@ -55,21 +57,33 @@
       });
     }
     var fee = 0, paid = 0, bal = 0;
+    var pages = size > 0 ? Math.max(1, Math.ceil(list.length / size)) : 1;
+    if (page > pages) page = pages;
+    var from = size > 0 ? (page - 1) * size : 0, to = size > 0 ? from + size : list.length;
     var frag = document.createDocumentFragment();
     list.forEach(function (r, i) {
-      r.style.display = ''; r.querySelector('.rn').textContent = i + 1;
+      r.querySelector('.rn').textContent = i + 1;
+      r.style.display = (i >= from && i < to) ? '' : 'none';
       fee += parseFloat(r.dataset.fee) || 0; paid += parseFloat(r.dataset.paid) || 0; bal += parseFloat(r.dataset.bal) || 0;
       frag.appendChild(r);
     });
     rows.forEach(function (r) { if (list.indexOf(r) === -1) r.style.display = 'none'; });
+    if (pager) {
+      pager.querySelector('.pg-label').textContent = list.length ? 'Page ' + page + ' of ' + pages + ' · ' + (from + 1) + '–' + Math.min(to, list.length) + ' of ' + list.length : '';
+      pager.querySelector('.pg-prev').disabled = page <= 1;
+      pager.querySelector('.pg-next').disabled = page >= pages;
+    }
     body.insertBefore(frag, empty);
     empty.style.display = list.length === 0 && rows.length ? '' : 'none';
 
     count.textContent = list.length === rows.length ? rows.length + ' students' : list.length + ' of ' + rows.length;
-    document.getElementById('stFootN').textContent = 'Total (' + list.length + ')';
-    document.getElementById('stFootFee').textContent = fmt(fee);
-    document.getElementById('stFootPaid').textContent = fmt(paid);
-    document.getElementById('stFootBal').textContent = fmt(bal);
+    var foot = document.getElementById('stFootN');
+    if (foot) {
+      foot.textContent = 'Total (' + list.length + ')';
+      document.getElementById('stFootFee').textContent = fmt(fee);
+      document.getElementById('stFootPaid').textContent = fmt(paid);
+      document.getElementById('stFootBal').textContent = fmt(bal);
+    }
     if (hint) hint.innerHTML = p.notes.length ? 'Showing: <b>' + p.notes.join(' · ') + '</b>' + (p.terms.length ? ' matching “' + p.terms.join(' ').replace(/</g, '&lt;') + '”' : '') : hintDefault;
 
     heads.forEach(function (h) {
@@ -83,10 +97,15 @@
     h.addEventListener('click', function () {
       var key = h.dataset.sort;
       manual = { key: key, dir: manual && manual.key === key ? -manual.dir : (key === 'name' || key === 'course' || key === 'date' ? 1 : -1) };
-      input.value = ''; render();
+      input.value = ''; page = 1; render();
     });
   });
-  input.addEventListener('input', render);
+  input.addEventListener('input', function () { page = 1; render(); });
+  if (pager) {
+    pager.querySelector('.pg-prev').addEventListener('click', function () { page--; render(); });
+    pager.querySelector('.pg-next').addEventListener('click', function () { page++; render(); });
+    pager.querySelector('.pg-size').addEventListener('change', function () { size = parseInt(this.value, 10) || 0; page = 1; render(); });
+  }
 
   // Manage modal
   var modalEl = document.getElementById('manageModal');

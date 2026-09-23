@@ -377,7 +377,7 @@ class SmsModuleService
             'email'                   => $email,
             'phone'                   => $phone,
             'course_id'               => (int) $data['course_id'],
-            'study_mode'              => 'online',
+            'study_mode'              => in_array($data['study_mode'] ?? '', ['online', 'physical'], true) ? $data['study_mode'] : 'online',
             'payment_plan'            => $paid >= $cost && $cost > 0 ? 'full' : 'monthly',
             'current_learning_month'  => 1,
             'installments_paid'       => 0,
@@ -388,6 +388,7 @@ class SmsModuleService
             'fee_status'              => $paid >= $cost && $cost > 0 ? 'paid_in_full' : ($paid > 0 ? 'partial' : 'current'),
             'payment_reference'       => 'SmS enrollment',
             'must_change_password'    => true,
+            'replace_existing'        => !empty($data['replace_existing']),
         ];
 
         $onboard = new \Controllers\ManualOnboardController();
@@ -397,6 +398,8 @@ class SmsModuleService
         }
 
         $registrationId = (int) $onboardResult['registration_id'];
+        require_once __DIR__ . '/../helpers/study_location.php';
+        study_placement_set($this->pdo, $registrationId, $data['study_mode'] ?? null, $data['study_location'] ?? null);
         $uidStmt = $this->pdo->prepare('SELECT user_id FROM registrations WHERE id = :id LIMIT 1');
         $uidStmt->execute([':id' => $registrationId]);
         $userId = (int) $uidStmt->fetchColumn();
@@ -890,7 +893,7 @@ class SmsModuleService
         try {
             $this->pdo->beginTransaction();
             registration_number_lock($this->pdo);
-            $regNo = registration_number_next($this->pdo);
+            $regNo = registration_number_next($this->pdo, (int) $course['id']);
             $cost = (float) ($student['cost'] ?? $course['course_fee']);
             $paid = (float) ($student['paid'] ?? 0);
 

@@ -132,8 +132,6 @@ session_start();
                                             <li><code>user_profiles</code> - Extended info</li>
                                             <li><code>login_attempts</code> - Security logging</li>
                                         </ul>
-                                        <hr>
-                                        <small>Run SQL from <code>app/v1/databases/migrations/001_create_users_table.sql</code></small>
                                     </div>
                                 </div>
                             </div>

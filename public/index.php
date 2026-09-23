@@ -32,9 +32,9 @@ $videoTestimonials = $testimonialData['video'];
 
 ob_start();
 include __DIR__ . '/components/public/dazu_hero.php';
+include __DIR__ . '/components/public/dazu_partners_section.php';
 include __DIR__ . '/components/public/dazu_stats_bar.php';
 include __DIR__ . '/components/public/dazu_popular_courses.php';
-include __DIR__ . '/components/public/dazu_partners_section.php';
 include __DIR__ . '/components/public/dazu_course_match_section.php';
 include __DIR__ . '/components/public/dazu_campus_media_section.php';
 include __DIR__ . '/components/public/dazu_testimonials_section.php';

@@ -9,7 +9,7 @@ require_once __DIR__ . '/../helpers/mail_settings.php';
  * - password_reset_enabled: OTP / forgot-password emails (on by default)
  *
  * This is the ONE mail configuration file: every mailer in the system reads it.
- * Values saved in the admin portal (Settings -> Email) win; anything left empty there falls back to .env
+ * Values saved in the admin portal (Settings -> Email) win; anything left empty there falls back to the defaults below
  * (MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD, ...).
  */
 return mail_settings_merge([

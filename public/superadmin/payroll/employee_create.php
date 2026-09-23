@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../../app/v1/services/EmployeeNotifier.php';
 use Models\Connection;
 use Models\EmployeeModel;
 
+require_once __DIR__ . '/../../../app/v1/services/EmailConflictService.php';
 Middleware::requireSuperPortal();
 
 $pdo = Connection::getInstance()->getConnection();
@@ -60,7 +61,7 @@ ob_start();
 <form method="POST"><?php echo csrf_field(); ?>
 <div class="row g-3">
     <div class="col-md-6"><label class="form-label">Full name *</label><input name="full_name" class="form-control" value="<?php echo $v('full_name'); ?>" required></div>
-    <div class="col-md-6"><label class="form-label">Email * <span class="text-muted small">(they sign in with this)</span></label><input type="email" name="email" class="form-control" value="<?php echo $v('email'); ?>" required></div>
+    <div class="col-md-6"><label class="form-label">Email * <span class="text-muted small">(they sign in with this)</span></label><input type="email" name="email" class="form-control" value="<?php echo $v('email'); ?>" required><?php echo EmailConflictService::checkbox(); ?></div>
     <div class="col-md-6"><label class="form-label">Role *</label><input name="job_title" class="form-control" list="roles" maxlength="100" placeholder="e.g. Accountant" value="<?php echo $v('job_title'); ?>" required>
         <datalist id="roles"><option>Accountant</option><option>Receptionist</option><option>Cleaner</option><option>Security guard</option><option>Driver</option><option>Administrator</option><option>IT support</option><option>Marketing</option></datalist></div>
     <div class="col-md-6"><label class="form-label">Phone</label><input name="phone" class="form-control" maxlength="30" value="<?php echo $v('phone'); ?>"></div>

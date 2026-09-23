@@ -61,32 +61,42 @@ class ProjectModel {
     // Project Methods
     public function createProject($data) {
         $slug = $this->createSlug($data['small_title'] . '-' . $data['major_title']);
-        $sql = "INSERT INTO projects (category_id, small_title, major_title, project_slug, description, cover_image, status, created_by) 
-                VALUES (:category_id, :small_title, :major_title, :slug, :description, :cover_image, :status, :created_by)";
+        $sql = "INSERT INTO projects (category_id, student_id, small_title, major_title, project_slug, description, cover_image, live_url, languages_used, progress, complexity, project_date, status, created_by)
+                VALUES (:category_id, :student_id, :small_title, :major_title, :slug, :description, :cover_image, :live_url, :languages_used, :progress, :complexity, :project_date, :status, :created_by)";
         $stmt = $this->db->prepare($sql);
         $result = $stmt->execute([
             ':category_id' => $data['category_id'],
+            ':student_id' => !empty($data['student_id']) ? $data['student_id'] : null,
             ':small_title' => $data['small_title'],
             ':major_title' => $data['major_title'],
             ':slug' => $slug,
             ':description' => $data['description'],
             ':cover_image' => $data['cover_image'] ?? null,
+            ':live_url' => $data['live_url'] ?? null,
+            ':languages_used' => $data['languages_used'] ?? null,
+            ':progress' => isset($data['progress']) && $data['progress'] !== '' ? (int) $data['progress'] : 0,
+            ':complexity' => $data['complexity'] ?? 'beginner',
+            ':project_date' => !empty($data['project_date']) ? $data['project_date'] : date('Y-m-d'),
             ':status' => $data['status'] ?? 'draft',
             ':created_by' => $_SESSION['user_id']
         ]);
-        
+
         if ($result) {
             return $this->db->lastInsertId();
         }
         return false;
     }
-    
+
     public function getProjects($status = null) {
-        $sql = "SELECT p.*, c.category_name, u.username as author 
-                FROM projects p 
-                JOIN project_categories c ON p.category_id = c.id 
-                LEFT JOIN users u ON p.created_by = u.id";
-        
+        $sql = "SELECT p.*, c.category_name, u.username as author,
+                       su.username as student_username,
+                       TRIM(CONCAT(IFNULL(sp.first_name, ''), ' ', IFNULL(sp.last_name, ''))) as student_name
+                FROM projects p
+                JOIN project_categories c ON p.category_id = c.id
+                LEFT JOIN users u ON p.created_by = u.id
+                LEFT JOIN users su ON p.student_id = su.id
+                LEFT JOIN user_profiles sp ON sp.user_id = su.id";
+
         if ($status) {
             $sql .= " WHERE p.status = :status";
             $sql .= " ORDER BY p.created_at DESC";
@@ -97,49 +107,69 @@ class ProjectModel {
             $stmt = $this->db->prepare($sql);
             $stmt->execute();
         }
-        
+
         return $stmt->fetchAll();
     }
-    
+
     public function getProjectById($id) {
-        $sql = "SELECT p.*, c.category_name, c.category_slug, u.username as author 
-                FROM projects p 
-                JOIN project_categories c ON p.category_id = c.id 
-                LEFT JOIN users u ON p.created_by = u.id 
+        $sql = "SELECT p.*, c.category_name, c.category_slug, u.username as author,
+                       su.username as student_username,
+                       TRIM(CONCAT(IFNULL(sp.first_name, ''), ' ', IFNULL(sp.last_name, ''))) as student_name
+                FROM projects p
+                JOIN project_categories c ON p.category_id = c.id
+                LEFT JOIN users u ON p.created_by = u.id
+                LEFT JOIN users su ON p.student_id = su.id
+                LEFT JOIN user_profiles sp ON sp.user_id = su.id
                 WHERE p.id = :id";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':id' => $id]);
         return $stmt->fetch();
     }
-    
+
     public function getProjectBySlug($slug) {
-        $sql = "SELECT p.*, c.category_name, c.category_slug, u.username as author 
-                FROM projects p 
-                JOIN project_categories c ON p.category_id = c.id 
-                LEFT JOIN users u ON p.created_by = u.id 
+        $sql = "SELECT p.*, c.category_name, c.category_slug, u.username as author,
+                       su.username as student_username,
+                       TRIM(CONCAT(IFNULL(sp.first_name, ''), ' ', IFNULL(sp.last_name, ''))) as student_name
+                FROM projects p
+                JOIN project_categories c ON p.category_id = c.id
+                LEFT JOIN users u ON p.created_by = u.id
+                LEFT JOIN users su ON p.student_id = su.id
+                LEFT JOIN user_profiles sp ON sp.user_id = su.id
                 WHERE p.project_slug = :slug";
         $stmt = $this->db->prepare($sql);
         $stmt->execute([':slug' => $slug]);
         return $stmt->fetch();
     }
-    
+
     public function updateProject($id, $data) {
-        $sql = "UPDATE projects SET 
+        $sql = "UPDATE projects SET
                 category_id = :category_id,
+                student_id = :student_id,
                 small_title = :small_title,
                 major_title = :major_title,
                 description = :description,
                 cover_image = :cover_image,
+                live_url = :live_url,
+                languages_used = :languages_used,
+                progress = :progress,
+                complexity = :complexity,
+                project_date = :project_date,
                 status = :status
                 WHERE id = :id";
         $stmt = $this->db->prepare($sql);
         return $stmt->execute([
             ':id' => $id,
             ':category_id' => $data['category_id'],
+            ':student_id' => !empty($data['student_id']) ? $data['student_id'] : null,
             ':small_title' => $data['small_title'],
             ':major_title' => $data['major_title'],
             ':description' => $data['description'],
             ':cover_image' => $data['cover_image'],
+            ':live_url' => $data['live_url'] ?? null,
+            ':languages_used' => $data['languages_used'] ?? null,
+            ':progress' => isset($data['progress']) && $data['progress'] !== '' ? (int) $data['progress'] : 0,
+            ':complexity' => $data['complexity'] ?? 'beginner',
+            ':project_date' => $data['project_date'] ?? null,
             ':status' => $data['status']
         ]);
     }
@@ -281,6 +311,21 @@ private function getVideoEmbedCode($url, $type) {
     return '<div class="alert alert-warning">Unable to embed video. <a href="' . htmlspecialchars($url) . '" target="_blank">Click here to watch</a></div>';
 }
     
+    public function addVideo($project_id, $data) {
+        $embed_code = $this->getVideoEmbedCode($data['video_url'], $data['video_type']);
+        $sql = "INSERT INTO project_videos (project_id, video_title, video_url, video_embed_code, video_type, sort_order)
+                VALUES (:project_id, :video_title, :video_url, :video_embed_code, :video_type, :sort_order)";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([
+            ':project_id' => $project_id,
+            ':video_title' => $data['video_title'] ?? '',
+            ':video_url' => $data['video_url'],
+            ':video_embed_code' => $embed_code,
+            ':video_type' => $data['video_type'] ?? 'youtube',
+            ':sort_order' => $data['sort_order'] ?? 0
+        ]);
+    }
+
     public function getVideos($project_id) {
         $sql = "SELECT * FROM project_videos WHERE project_id = :project_id ORDER BY sort_order ASC";
         $stmt = $this->db->prepare($sql);

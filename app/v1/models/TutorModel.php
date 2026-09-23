@@ -193,7 +193,12 @@ class TutorModel {
         $stmt = $this->db->prepare("SELECT id FROM users WHERE email = :email");
         $stmt->execute([':email' => $email]);
         if ($stmt->fetchColumn()) {
-            return ['ok' => false, 'error' => 'A user with this email already exists.'];
+            require_once __DIR__ . '/../services/EmailConflictService.php';
+            if (empty($data['replace_existing'])) {
+                return ['ok' => false, 'error' => 'A user with this email already exists.' . \EmailConflictService::hint()];
+            }
+            $released = \EmailConflictService::release($this->db, $email);
+            if (!$released['ok']) return $released;
         }
 
         $parts = explode(' ', $fullName, 2);
@@ -287,6 +292,30 @@ class TutorModel {
         } catch (\Throwable $e) {
             if ($this->db->inTransaction()) $this->db->rollBack();
             return ['ok' => false, 'error' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Delete a tutor and their sign-in account. Their student assignments, course links, pauses and payroll history go with
+     * them (foreign keys cascade); students, courses and grades are kept.
+     */
+    public function delete(int $tutorId): array {
+        $stmt = $this->db->prepare("SELECT t.user_id FROM tutors t JOIN users u ON u.id = t.user_id WHERE t.id = :id AND u.role_id = :rid");
+        $stmt->execute([':id' => $tutorId, ':rid' => $this->getRoleId()]);
+        $userId = (int) $stmt->fetchColumn();
+        if ($userId <= 0) {
+            return ['ok' => false, 'error' => 'Tutor not found.'];
+        }
+        try {
+            $this->db->beginTransaction();
+            $this->db->prepare("DELETE FROM tutors WHERE id = :id")->execute([':id' => $tutorId]);
+            $this->db->prepare("DELETE FROM users WHERE id = :uid")->execute([':uid' => $userId]);
+            $this->db->commit();
+            return ['ok' => true];
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            error_log('[TutorModel::delete] ' . $e->getMessage());
+            return ['ok' => false, 'error' => 'Could not delete the tutor: ' . $e->getMessage()];
         }
     }
 

@@ -6,6 +6,7 @@ $role = $_SESSION['role'] ?? '';
 $role_id = $_SESSION['role_id'] ?? 0;
 $is_class_schedule_page = $current_dir === 'settings' && ($_GET['section'] ?? '') === 'schedule';
 $is_contact_settings_page = $current_dir === 'settings' && ($_GET['section'] ?? '') === 'contact';
+$is_footer_settings_page = $current_dir === 'settings' && ($_GET['section'] ?? '') === 'footer';
 
 // Determine active menu
 function isActive($path, $current_dir, $current_page) {
@@ -21,7 +22,7 @@ function isStoreActive($current_dir) {
 
 // New System group: registration, courses, tutors, payments, resources, partners, testimonials
 function isSystemActive($current_dir) {
-    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'resources', 'partners', 'testimonials'], true);
+    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'students', 'resources', 'partners', 'testimonials'], true);
 }
 
 // Courses sub-section: paid (admin/courses) and free (admin/free-courses) are fully
@@ -80,6 +81,38 @@ function isSmsSection($section) {
                 <span>Dashboard</span>
             </a>
 
+            <?php
+            $exportMenuOn = $importMenuOn = true;
+            try {
+                require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
+                require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+                $siteSettings = new SettingModel(\Models\Connection::getInstance()->getConnection());
+                $exportMenuOn = $siteSettings->get('site_export_enabled', '1') !== '0';
+                $importMenuOn = $siteSettings->get('site_import_enabled', '1') !== '0';
+            } catch (Throwable $e) {}
+            ?>
+            <?php if (!function_exists('csrf_field')) { require_once __DIR__ . '/../../../app/v1/helpers/uploads.php'; } ?>
+            <form method="POST" action="<?php echo url('admin/preview-portal.php'); ?>" target="_blank" class="m-0"><?php echo csrf_field(); ?>
+                <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent">
+                    <i class="fas fa-eye"></i>
+                    <span>Preview Student Portal</span>
+                </button>
+            </form>
+            <?php if ($exportMenuOn): ?>
+            <a href="<?php echo url('admin/backup.php'); ?>"
+               class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'backup.php' ? 'active' : ''; ?>">
+                <i class="fas fa-box-archive"></i>
+                <span>Export Site</span>
+            </a>
+            <?php endif; ?>
+            <?php if ($importMenuOn): ?>
+            <a href="<?php echo url('admin/import.php'); ?>"
+               class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'import.php' ? 'active' : ''; ?>">
+                <i class="fas fa-file-import"></i>
+                <span>Import Site</span>
+            </a>
+            <?php endif; ?>
+
             <a href="<?php echo url('admin/system/updates.php'); ?>"
                class="nav-link <?php echo $current_dir == 'system' ? 'active' : ''; ?>">
                 <i class="fas fa-database"></i>
@@ -125,6 +158,11 @@ function isSmsSection($section) {
                                         <i class="fas fa-gift"></i>
                                         <span>Free Courses</span>
                                     </a>
+                                    <a href="<?php echo url('admin/courses/classes.php'); ?>"
+                                       class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'classes.php' ? 'active' : ''; ?>">
+                                        <i class="fas fa-layer-group"></i>
+                                        <span>Classes</span>
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -133,10 +171,15 @@ function isSmsSection($section) {
                             <i class="fas fa-chalkboard-teacher"></i>
                             <span>Tutors</span>
                         </a>
-                        <a href="<?php echo url('admin/registrations/index.php?status=approved'); ?>"
-                           class="nav-link">
+                        <a href="<?php echo url('admin/students/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'students' ? 'active' : ''; ?>">
                             <i class="fas fa-user-graduate"></i>
                             <span>Students</span>
+                        </a>
+                        <a href="<?php echo url('admin/students/enroll.php'); ?>"
+                           class="nav-link">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Enrol Student</span>
                         </a>
                         <a href="<?php echo url('admin/resources/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'resources' ? 'active' : ''; ?>">
@@ -247,7 +290,7 @@ function isSmsSection($section) {
             
             <!-- Settings -->
             <a href="<?php echo url('admin/settings/index.php'); ?>"
-               class="nav-link <?php echo isActive('settings', $current_dir, $current_page) && !$is_class_schedule_page && !$is_contact_settings_page ? 'active' : ''; ?>">
+               class="nav-link <?php echo isActive('settings', $current_dir, $current_page) && !$is_class_schedule_page && !$is_contact_settings_page && !$is_footer_settings_page ? 'active' : ''; ?>">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
@@ -255,6 +298,11 @@ function isSmsSection($section) {
                class="nav-link <?php echo $is_contact_settings_page ? 'active' : ''; ?>">
                 <i class="fas fa-address-book"></i>
                 <span>Contact Settings</span>
+            </a>
+            <a href="<?php echo url('admin/settings/edit.php?section=footer'); ?>"
+               class="nav-link <?php echo $is_footer_settings_page ? 'active' : ''; ?>">
+                <i class="fas fa-shoe-prints"></i>
+                <span>Footer &amp; Social Links</span>
             </a>
             <a href="<?php echo url('admin/settings/edit.php?section=schedule'); ?>"
                class="nav-link <?php echo $is_class_schedule_page ? 'active' : ''; ?>">

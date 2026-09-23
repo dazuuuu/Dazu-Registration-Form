@@ -115,10 +115,16 @@ class ProjectController {
         // Prepare data for update
         $updateData = [
             'category_id' => $data['category_id'] ?? $existingProject['category_id'],
+            'student_id' => $data['student_id'] ?? $existingProject['student_id'],
             'small_title' => $data['small_title'] ?? $existingProject['small_title'],
             'major_title' => $data['major_title'] ?? $existingProject['major_title'],
             'description' => $data['description'] ?? $existingProject['description'],
             'cover_image' => $cover_image,
+            'live_url' => $data['live_url'] ?? $existingProject['live_url'],
+            'languages_used' => $data['languages_used'] ?? $existingProject['languages_used'],
+            'progress' => $data['progress'] ?? $existingProject['progress'],
+            'complexity' => $data['complexity'] ?? $existingProject['complexity'],
+            'project_date' => $data['project_date'] ?? $existingProject['project_date'],
             'status' => $data['status'] ?? $existingProject['status']
         ];
         

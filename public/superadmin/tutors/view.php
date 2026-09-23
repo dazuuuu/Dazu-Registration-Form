@@ -36,6 +36,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             SessionModel::setFlash($ok ? 'success' : 'error', $msg);
             header('Location: ' . $self . '#students'); exit();
         };
+        if ($action === 'delete_tutor') {
+            $r = $tutorModel->delete($id);
+            SessionModel::setFlash($r['ok'] ? 'success' : 'error', $r['ok'] ? 'Tutor deleted.' : $r['error']);
+            header('Location: ' . ($r['ok'] ? 'index.php' : 'view.php?id=' . $id)); exit();
+        }
         if ($action === 'send_credentials') {
             $r = (new TutorController())->sendCredentials($id);
             SessionModel::setFlash($r['ok'] ? 'success' : 'error', $r['ok'] ? 'Credentials emailed.' : ($r['error'] ?? 'Failed'));
@@ -115,6 +120,10 @@ ob_start();
 <?php if (!$installed): ?><div class="alert alert-warning">Student status, moving and payroll need the latest system update. Open <strong>System → Updates</strong> and apply it (migration 048), then reload this page.</div><?php endif; ?>
 <div class="row g-4">
 <div class="col-lg-8">
+<div class="card mb-4 border-danger"><div class="card-header fw-semibold text-danger">Delete tutor</div><div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span class="small text-muted">Removes this tutor and their sign-in. Their assigned students stay enrolled and become unassigned, and the tutor's payroll history is removed. To just stop them teaching, untick Active in Edit Tutor instead.</span>
+    <form method="POST" onsubmit="return confirm('Delete this tutor permanently? This cannot be undone.');"><?php echo csrf_field(); ?><input type="hidden" name="action" value="delete_tutor"><button class="btn btn-outline-danger"><i class="fas fa-trash me-1"></i>Delete tutor</button></form>
+</div></div>
 <div class="card mb-4"><div class="card-header fw-semibold">Edit Tutor</div><div class="card-body">
 <form method="POST" enctype="multipart/form-data"><?php echo csrf_field(); ?>
 <div class="row g-3">

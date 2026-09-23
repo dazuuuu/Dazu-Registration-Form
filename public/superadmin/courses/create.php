@@ -86,6 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ], SessionModel::get('user_id'));
 
             if ($result['ok']) {
+                $courseModel->setQualification((int) $result['id'], $_POST['qualification'] ?? null);
                 SessionModel::setFlash('success', 'Course created successfully.');
                 header('Location: ' . url('superadmin/courses/index.php'));
                 exit();
@@ -194,6 +195,15 @@ ob_start();
                     <label class="form-label">Cover Image</label>
                     <input type="file" name="cover_image" class="form-control" accept="image/jpeg,image/png,image/webp">
                 </div>
+                <div class="col-md-4">
+                    <label class="form-label">Qualification</label>
+                    <select name="qualification" class="form-select">
+                        <option value="">Automatic (under 18 months = Certificate, otherwise Diploma)</option>
+                        <option value="certificate" <?php echo ($old['qualification'] ?? '') === 'certificate' ? 'selected' : ''; ?>>Certificate</option>
+                        <option value="diploma" <?php echo ($old['qualification'] ?? '') === 'diploma' ? 'selected' : ''; ?>>Diploma</option>
+                    </select>
+                </div>
+
                 <div class="col-12">
                     <label class="form-label">Course brochure (PDF)</label>
                     <input type="file" name="brochure" class="form-control" accept="application/pdf">

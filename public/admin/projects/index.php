@@ -6,6 +6,7 @@ Middleware::requireAdmin();   // admins only (the superadmin has a separate port
 require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../../../app/v1/helpers/functions.php';
 require_once __DIR__ . '/../../../app/v1/controllers/ProjectController.php';
+require_once __DIR__ . '/../../../app/v1/models/StudentModel.php';
 
 // Check if logged in and is admin
 if (!isLoggedIn()) {
@@ -91,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $categories = $controller->getCategories();
 $projects = $controller->getProjects();
+$students = (new \Models\StudentModel($pdo))->listAllStudentAccounts();
 
 // Page variables
 $page_title = 'Projects Management';
@@ -196,6 +198,12 @@ ob_start();
                                             <h5 class="card-title"><?php echo htmlspecialchars($project['small_title']); ?></h5>
                                             <h6 class="card-subtitle mb-2 text-muted"><?php echo htmlspecialchars($project['major_title']); ?></h6>
                                             <p class="card-text small"><?php echo substr(htmlspecialchars($project['description']), 0, 100); ?>...</p>
+                                            <?php if (!empty($project['student_name']) || !empty($project['student_username'])): ?>
+                                            <p class="card-text small mb-1"><i class="fas fa-user-graduate me-1"></i><?php echo htmlspecialchars(trim($project['student_name']) ?: $project['student_username']); ?></p>
+                                            <?php endif; ?>
+                                            <?php if (!empty($project['languages_used'])): ?>
+                                            <p class="card-text small mb-1"><i class="fas fa-code me-1"></i><?php echo htmlspecialchars($project['languages_used']); ?></p>
+                                            <?php endif; ?>
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <small class="text-muted">
                                                     <i class="fas fa-folder"></i> <?php echo $project['category_name']; ?>
@@ -203,6 +211,10 @@ ob_start();
                                                 <small class="text-muted">
                                                     <i class="fas fa-eye"></i> <?php echo $project['view_count']; ?>
                                                 </small>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center mt-1">
+                                                <small class="text-muted text-capitalize"><i class="fas fa-layer-group"></i> <?php echo htmlspecialchars($project['complexity'] ?? 'beginner'); ?></small>
+                                                <small class="text-muted"><?php echo (int) ($project['progress'] ?? 0); ?>% done</small>
                                             </div>
                                         </div>
                                         <div class="card-footer bg-transparent">
@@ -378,6 +390,46 @@ ob_start();
                     <div class="mb-3">
                         <label class="form-label">Major Title *</label>
                         <input type="text" name="major_title" class="form-control" required placeholder="Main project title">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Student</label>
+                            <select name="student_id" class="form-control">
+                                <option value="">No student mentioned</option>
+                                <?php foreach ($students as $student): ?>
+                                <option value="<?php echo $student['id']; ?>">
+                                    <?php echo htmlspecialchars(trim($student['first_name'] . ' ' . $student['last_name']) ?: $student['username']); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Project Date</label>
+                            <input type="date" name="project_date" class="form-control" value="<?php echo date('Y-m-d'); ?>">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Live / Sandbox URL</label>
+                        <input type="url" name="live_url" class="form-control" placeholder="https://example.com/live-demo">
+                        <small class="text-muted">Opens the project live on the site, like a sandbox preview.</small>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Languages Used</label>
+                            <input type="text" name="languages_used" class="form-control" placeholder="e.g., PHP, JavaScript, MySQL">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Complexity</label>
+                            <select name="complexity" class="form-control">
+                                <option value="beginner">Beginner</option>
+                                <option value="intermediate">Intermediate</option>
+                                <option value="advanced">Advanced</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Progress (%)</label>
+                            <input type="number" name="progress" class="form-control" min="0" max="100" value="0">
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Cover Image</label>

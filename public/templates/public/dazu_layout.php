@@ -6,6 +6,7 @@ if (!function_exists('url')) {
     require_once __DIR__ . '/../../../app/v1/config/paths.php';
 }
 require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
+require_once __DIR__ . '/../../../app/v1/helpers/brand.php';
 
 /**
  * Cache-busted asset URL.
@@ -53,7 +54,7 @@ if (!function_exists('dazu_asset_v')) {
         $og_url ?? null
     );
   ?>
-  <link rel="icon" type="image/jpeg" href="<?php echo htmlspecialchars(site_logo_url()); ?>">
+  <link rel="icon" type="image/png" href="<?php echo htmlspecialchars(site_logo_url(brand_url('mark'))); ?>">
   <link rel="stylesheet" href="<?php echo htmlspecialchars(dazu_tailwind_css()); ?>">
   <link rel="stylesheet" href="<?php echo dazu_asset_v('css/dazu-frontend-theme.css'); ?>">
   <style>svg.dazu-icon{width:1.25rem;height:1.25rem;flex-shrink:0;max-width:100%}</style>

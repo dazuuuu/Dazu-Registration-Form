@@ -108,6 +108,25 @@ class PaymentModel {
         return (int) $this->db->lastInsertId();
     }
 
+    /**
+     * Admin manually records a payment against a student's enrolment (e.g. cash paid in person).
+     * Recorded as already-approved since the admin is the one entering it.
+     */
+    public function recordManual(int $registrationId, float $amount, string $payerReference, int $adminId, ?string $notes = null): int {
+        $stmt = $this->db->prepare(
+            "INSERT INTO payments (registration_id, amount, payer_reference, status, recorded_by, reviewed_by, reviewed_at, notes)
+             VALUES (:rid, :amount, :ref, 'approved', :admin, :admin, NOW(), :notes)"
+        );
+        $stmt->execute([
+            ':rid'    => $registrationId,
+            ':amount' => $amount,
+            ':ref'    => trim($payerReference) !== '' ? trim($payerReference) : 'Recorded by admin',
+            ':admin'  => $adminId,
+            ':notes'  => $notes !== null && trim($notes) !== '' ? trim($notes) : null,
+        ]);
+        return (int) $this->db->lastInsertId();
+    }
+
     public function approve(int $paymentId, int $adminId, string $receiptNo, string $receiptHtml): bool {
         $stmt = $this->db->prepare(
             "UPDATE payments

@@ -8,6 +8,7 @@ require_once __DIR__ . '/../../../app/v1/models/PayrollModel.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
 require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
 require_once __DIR__ . '/../../../app/v1/services/StudentNotifier.php';
+require_once __DIR__ . '/../../../app/v1/helpers/study_location.php';
 
 use Models\Connection;
 use Models\RegistrationModel;
@@ -63,10 +64,10 @@ $tutorSql = $tutorsReady
     : "NULL";
 $rows = $pdo->query(
     "SELECT r.id, r.full_name, r.email, r.phone, r.registration_no, r.created_at, r.course_fee, r.registration_fee, r.registration_fee_waived,
-            c.title AS course_title, $tutorSql AS tutors,
+            c.title AS course_title, r.study_mode, " . study_location_col($pdo) . " AS study_location, $tutorSql AS tutors,
             (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.registration_id = r.id AND p.status = 'approved') AS paid
      FROM registrations r LEFT JOIN courses c ON c.id = r.course_id
-     WHERE r.status = 'approved' ORDER BY r.created_at DESC, r.id DESC LIMIT 3000"
+     WHERE r.status = 'approved' AND r.registration_no NOT LIKE 'PREVIEW-%' ORDER BY r.created_at DESC, r.id DESC LIMIT 3000"
 )->fetchAll();
 
 $students = [];
@@ -116,7 +117,7 @@ ob_start();
                 <th class="rn"><?php echo $n + 1; ?></th>
                 <td class="xl-sticky"><a class="xl-link" href="<?php echo url('superadmin/students/view.php?id=' . (int)$s['id']); ?>"><?php echo htmlspecialchars($s['full_name']); ?></a>
                     <div class="text-muted" style="font-size:.72rem"><?php echo htmlspecialchars((string)$s['registration_no']); ?></div></td>
-                <td class="xl-wrap"><?php echo htmlspecialchars((string)$s['course_title']); ?></td>
+                <td class="xl-wrap"><?php echo htmlspecialchars((string)$s['course_title']); ?><?php if ($pl = study_placement_label($s['study_mode'], $s['study_location'])): ?><div class="text-muted" style="font-size:.72rem"><?php echo htmlspecialchars($pl); ?></div><?php endif; ?></td>
                 <td><?php echo $s['ts'] ? date('d M Y', $s['ts']) : '—'; ?></td>
                 <td class="xl-wrap"><?php echo $s['tutors'] ? htmlspecialchars($s['tutors']) : '<span class="text-muted">—</span>'; ?></td>
                 <td class="num"><?php echo $num($s['fee']); ?></td>
@@ -129,6 +130,15 @@ ob_start();
         </tbody>
         <tfoot><tr><th class="rn"></th><td class="xl-sticky" id="stFootN">Total</td><td></td><td></td><td></td><td class="num" id="stFootFee"></td><td class="num" id="stFootPaid"></td><td class="num" id="stFootBal"></td><td></td></tr></tfoot>
     </table>
+    </div>
+</div>
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-2" id="stPager">
+    <span class="small text-muted pg-label"></span>
+    <div class="d-flex align-items-center gap-2">
+        <select class="form-select form-select-sm pg-size" style="width:auto"><option value="14" selected>14 per page</option><option value="30">30 per page</option><option value="100">100 per page</option><option value="0">All</option></select>
+        <button type="button" class="btn btn-sm btn-outline-secondary pg-prev"><i class="fas fa-chevron-left me-1"></i>Previous</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary pg-next">Next<i class="fas fa-chevron-right ms-1"></i></button>
     </div>
 </div>
 

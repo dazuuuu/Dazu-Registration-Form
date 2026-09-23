@@ -94,7 +94,7 @@ ob_start();
         <div class="space-y-2">
           <label class="block text-xs font-bold uppercase tracking-widest text-slate-500" for="email">Email or Registration Number</label>
           <input type="text" id="email" name="email" required autocomplete="username"
-                 placeholder="e.g. student@gmail.com or DH061/26"
+                 placeholder="e.g. student@gmail.com or DCH061/26"
                  value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"
                  class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-green-600">
         </div>

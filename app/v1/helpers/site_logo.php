@@ -1,6 +1,8 @@
 <?php
 // Site logo from Admin → Settings → Branding (logo_path). Navbar is not driven by this helper.
 
+require_once __DIR__ . '/brand.php';
+
 if (!function_exists('site_logo_rel_path')) {
     function site_logo_rel_path(): ?string
     {
@@ -43,7 +45,7 @@ if (!function_exists('site_logo_url')) {
         }
         return $fallback !== null && $fallback !== ''
             ? $fallback
-            : 'https://i.ibb.co/fzfZFtGc/223025.jpg';
+            : (function_exists('brand_url') ? brand_url('logo') : 'https://i.ibb.co/fzfZFtGc/223025.jpg');
     }
 }
 

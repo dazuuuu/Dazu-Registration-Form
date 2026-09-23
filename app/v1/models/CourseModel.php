@@ -63,25 +63,25 @@ class CourseModel {
             $missingDateCols = stripos($e->getMessage(), 'start_date') !== false
                 || stripos($e->getMessage(), 'end_date') !== false;
             if ($missingDateCols) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/migrations/035_add_course_dates_and_free_toggle.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             $missingNewCols = stripos($e->getMessage(), 'requirements') !== false
                 || stripos($e->getMessage(), 'is_free') !== false;
             if ($missingNewCols) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/migrations/033_course_requirements_and_free_flag.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             $missingStudyCols = stripos($e->getMessage(), 'weeks_of_study') !== false
                 || stripos($e->getMessage(), 'days_of_study') !== false
                 || stripos($e->getMessage(), 'hours_of_study') !== false
                 || stripos($e->getMessage(), 'study_schedule') !== false;
             if (stripos($e->getMessage(), 'fee_structure') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/required_migrations/036_course_fee_structure.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             if (stripos($e->getMessage(), 'semester_count') !== false || stripos($e->getMessage(), 'class_schedule_') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/required_migrations/038_course_semesters_and_class_schedules.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             if (stripos($e->getMessage(), 'brochure_path') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/required_migrations/037_course_brochure.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             if ($categoryId !== null && stripos($e->getMessage(), 'category_id') !== false) {
                 $sql = "INSERT INTO courses (title, abbreviation, cover_image, description, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, is_active, created_by)
@@ -200,25 +200,25 @@ class CourseModel {
             $missingDateCols = stripos($e->getMessage(), 'start_date') !== false
                 || stripos($e->getMessage(), 'end_date') !== false;
             if ($missingDateCols) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/migrations/035_add_course_dates_and_free_toggle.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             $missingNewCols = stripos($e->getMessage(), 'requirements') !== false
                 || stripos($e->getMessage(), 'is_free') !== false;
             if ($missingNewCols) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/migrations/033_course_requirements_and_free_flag.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             $missingStudyCols = stripos($e->getMessage(), 'weeks_of_study') !== false
                 || stripos($e->getMessage(), 'days_of_study') !== false
                 || stripos($e->getMessage(), 'hours_of_study') !== false
                 || stripos($e->getMessage(), 'study_schedule') !== false;
             if (stripos($e->getMessage(), 'fee_structure') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/required_migrations/036_course_fee_structure.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             if (stripos($e->getMessage(), 'semester_count') !== false || stripos($e->getMessage(), 'class_schedule_') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/required_migrations/038_course_semesters_and_class_schedules.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             if (stripos($e->getMessage(), 'brochure_path') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run app/v1/databases/required_migrations/037_course_brochure.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             if ($categoryId !== null && stripos($e->getMessage(), 'category_id') !== false) {
                 $fields = str_replace('category_id = :category_id, ', '', $fields);
@@ -250,6 +250,21 @@ class CourseModel {
             }
         }
         return ['ok' => true];
+    }
+
+    /** Set a course's qualification; '' / null means automatic (by duration). Silently skipped until migration 050 is applied. */
+    public function setQualification(int $id, ?string $qualification): bool {
+        $q = in_array($qualification, ['certificate', 'diploma'], true) ? $qualification : null;
+        try {
+            $ok = $this->db->prepare('UPDATE courses SET qualification = ? WHERE id = ?')->execute([$q, $id]);
+            if ($ok) {
+                require_once __DIR__ . '/../helpers/registration_number.php';
+                registration_number_resync($this->db, $id);
+            }
+            return $ok;
+        } catch (\PDOException $e) {
+            return false;
+        }
     }
 
     public function setActive(int $id, bool $active): bool {

@@ -21,6 +21,11 @@ if (!function_exists('site_contact_settings')) {
             'contact_map_subtitle' => 'Room 529 (5th Floor)',
             'contact_map_blurb' => 'Visit our Thika campus for physical labs, or contact admissions for Nairobi classes and online learning options.',
             'site_name' => 'Dazu Training Institute',
+            'social_facebook' => '',
+            'social_tiktok' => '',
+            'social_youtube' => '',
+            'social_instagram' => '',
+            'footer_copyright' => '',
         ];
 
         try {
@@ -38,8 +43,22 @@ if (!function_exists('site_contact_settings')) {
                     $defaults[$key] = $val;
                 }
             }
+            // Footer lines follow the contact details until the footer itself is edited; once saved, an empty value means "hide it".
+            foreach (['phone', 'email', 'address', 'hours'] as $f) {
+                $raw = $settings->get('footer_' . $f, "\0unset");
+                $defaults['footer_' . $f] = $raw === "\0unset" ? $defaults['contact_' . $f] : (string) $raw;
+            }
+            foreach (['company', 'courses', 'bottom'] as $f) {
+                $defaults['footer_show_' . $f] = $settings->get('footer_show_' . $f, '1') !== '0';
+            }
         } catch (Throwable $e) {
             // use defaults
+        }
+        foreach (['phone', 'email', 'address', 'hours'] as $f) {
+            $defaults['footer_' . $f] = $defaults['footer_' . $f] ?? $defaults['contact_' . $f];
+        }
+        foreach (['company', 'courses', 'bottom'] as $f) {
+            $defaults['footer_show_' . $f] = $defaults['footer_show_' . $f] ?? true;
         }
 
         if ($defaults['contact_map_embed'] === '') {
@@ -49,7 +68,7 @@ if (!function_exists('site_contact_settings')) {
             $defaults['contact_map_link'] = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($defaults['contact_address']);
         }
 
-        $digits = preg_replace('/\D+/', '', $defaults['contact_phone']) ?: '';
+        $digits = preg_replace('/\D+/', '', $defaults['footer_phone'] !== '' ? $defaults['footer_phone'] : $defaults['contact_phone']) ?: '';
         if (strlen($digits) === 10 && $digits[0] === '0') {
             $defaults['contact_phone_tel'] = '+254' . substr($digits, 1);
         } elseif (str_starts_with($digits, '254')) {

@@ -123,7 +123,12 @@ class EmployeeModel
         $stmt = $this->db->prepare("SELECT 1 FROM users WHERE email = :email");
         $stmt->execute([':email' => $email]);
         if ($stmt->fetchColumn()) {
-            return ['ok' => false, 'error' => 'A user with this email already exists.'];
+            require_once __DIR__ . '/../services/EmailConflictService.php';
+            if (empty($data['replace_existing'])) {
+                return ['ok' => false, 'error' => 'A user with this email already exists.' . \EmailConflictService::hint()];
+            }
+            $released = \EmailConflictService::release($this->db, $email);
+            if (!$released['ok']) return $released;
         }
 
         $parts = explode(' ', $fullName, 2);

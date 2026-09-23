@@ -1,12 +1,10 @@
 <?php
-// app/v1/config/database.php — single DB config (also used by db_connect.php)
-
-require_once __DIR__ . '/env.php';
+// app/v1/config/database.php — the database login for this site. Edit these values directly.
 
 return [
-    'host'     => dazu_env('DB_HOST', 'localhost'),
-    'dbname'   => dazu_env('DB_NAME', 'registration_system'),
-    'username' => dazu_env('DB_USER', 'root'),
-    'password' => dazu_env('DB_PASS', ''),
+    'host'     => 'localhost',
+    'dbname'   => 'registration_system',
+    'username' => 'root',
+    'password' => '',
     'charset'  => 'utf8mb4',
 ];

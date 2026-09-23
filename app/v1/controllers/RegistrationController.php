@@ -67,7 +67,7 @@ class RegistrationController {
                 $regNo = $existingNo;
             } else {
                 $lockedNo = registration_number_lock($pdo);
-                $regNo = registration_number_next($pdo);
+                $regNo = registration_number_next($pdo, (int) $reg['course_id']);
             }
 
             // Step 2: create the user account — temporary password, student will be prompted to reset
@@ -218,4 +218,4 @@ class RegistrationController {
         require_once __DIR__ . '/../models/StudentModel.php';
         return new \Models\StudentModel($this->db);
     }
-}
+}

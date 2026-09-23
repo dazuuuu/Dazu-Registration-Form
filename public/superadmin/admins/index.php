@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../../app/v1/services/EmployeeNotifier.php';
 use Models\Connection;
 use Models\AdminAccountModel;
 
+require_once __DIR__ . '/../../../app/v1/services/EmailConflictService.php';
 Middleware::requireSuperPortal();
 
 $pdo = Connection::getInstance()->getConnection();
@@ -23,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
     $id = (int)($_POST['id'] ?? 0);
     if ($action === 'create') {
-        $r = $admins->create((string)($_POST['full_name'] ?? ''), (string)($_POST['email'] ?? ''), (string)($_POST['phone'] ?? ''));
+        $r = $admins->create((string)($_POST['full_name'] ?? ''), (string)($_POST['email'] ?? ''), (string)($_POST['phone'] ?? ''), !empty($_POST['replace_existing']));
         if ($r['ok']) {
             $admin = $admins->get($r['user_id']);
             $msg = 'Admin created.';
@@ -66,7 +67,7 @@ ob_start();
         <div class="card"><div class="card-header fw-semibold">Create an admin</div><div class="card-body">
             <form method="POST"><?php echo csrf_field(); ?><input type="hidden" name="action" value="create">
                 <label class="form-label">Full name</label><input name="full_name" class="form-control mb-3" required>
-                <label class="form-label">Email <span class="text-muted small">(they sign in with this)</span></label><input type="email" name="email" class="form-control mb-3" required inputmode="email">
+                <label class="form-label">Email <span class="text-muted small">(they sign in with this)</span></label><input type="email" name="email" class="form-control mb-1" required inputmode="email"><div class="mb-3"><?php echo EmailConflictService::checkbox(); ?></div>
                 <label class="form-label">Phone <span class="text-muted small">(optional)</span></label><input name="phone" class="form-control mb-3" maxlength="30" inputmode="tel">
                 <div class="form-check mb-3"><input type="checkbox" name="send_email" value="1" class="form-check-input" id="se" checked><label for="se" class="form-check-label">Email their sign-in details</label></div>
                 <button class="btn btn-primary w-100"><i class="fas fa-user-shield me-1"></i>Create admin</button>

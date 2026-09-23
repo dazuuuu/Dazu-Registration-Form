@@ -30,9 +30,6 @@ $marqueeList = array_merge($validPartners, $validPartners);
 ?>
 <section class="py-16 bg-slate-50/70 border-y border-slate-100 overflow-hidden font-sans" id="partners-section">
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 text-center mb-10">
-    <span class="inline-block px-3 py-1 bg-green-50 text-[#15A24A] text-[11px] font-extrabold uppercase tracking-widest rounded-full border border-green-100 mb-3">
-      Trusted By Industry Leaders
-    </span>
     <h3 class="text-2xl md:text-3xl font-extrabold text-slate-900 tracking-tight">
       Our Technology &amp; Placement Partners
     </h3>

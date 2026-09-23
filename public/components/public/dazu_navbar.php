@@ -27,7 +27,9 @@ if (!dazu_free_courses_nav_visible()) {
 
 $isLoggedIn = !empty($_SESSION['logged_in']);
 $role = $_SESSION['role'] ?? '';
+require_once __DIR__ . '/../../../app/v1/helpers/brand.php';
 $contact = site_contact_settings();
+$navSiteName = trim((string) ($contact['site_name'] ?? '')) ?: 'Dazu Training Institute';
 $navCategories = function_exists('dazu_navbar_categories') ? dazu_navbar_categories() : [];
 ?>
 <style>
@@ -164,14 +166,6 @@ $navCategories = function_exists('dazu_navbar_categories') ? dazu_navbar_categor
   overflow: hidden;
   text-overflow: ellipsis;
 }
-/* Search bar: the compiled dazu-tailwind.css lacks pl-8, w-44, left-2.5, top-1/2, -translate-y-1/2 etc. */
-.dazu-search-form { position: relative; }
-.dazu-search-input { box-sizing: border-box; width: 9.5rem; padding: 0.5rem 0.75rem 0.5rem 2rem; }
-@media (min-width: 1280px) { .dazu-search-input { width: 10.5rem; } }
-.dazu-search-form-mobile .dazu-search-input { width: 100%; padding: 0.625rem 0.75rem 0.625rem 2.25rem; }
-.dazu-search-input:focus { outline: none; border-color: #15a24a; box-shadow: 0 0 0 2px rgba(21, 162, 74, 0.3); }
-.dazu-search-icon { position: absolute; left: 0.625rem; top: 50%; transform: translateY(-50%); }
-.dazu-search-form-mobile .dazu-search-icon { left: 0.75rem; }
 </style>
 
 <nav class="sticky top-0 z-50 w-full bg-white border-b border-slate-100 font-sans" id="dazu-main-navbar">
@@ -188,11 +182,7 @@ $navCategories = function_exists('dazu_navbar_categories') ? dazu_navbar_categor
     <div class="flex items-center justify-between h-20">
       <!-- Logo -->
       <a href="<?php echo url('/'); ?>" class="flex items-center gap-2 group focus:outline-none shrink-0" id="nav-logo">
-        <img src="<?php echo asset('images/logo/logo.webp'); ?>" alt="Dazu Training Institute Logo" class="h-14 w-14 rounded-lg object-cover shrink-0 transition-transform duration-300 group-hover:scale-105">
-        <div class="text-left leading-none">
-          <div class="text-xl font-extrabold text-slate-950 tracking-tight">Dazu<span class="text-[#22C55E] ml-1">Training</span></div>
-          <div class="text-[10px] text-slate-500 font-extrabold tracking-tight mt-1">Institute</div>
-        </div>
+        <img src="<?php echo htmlspecialchars(brand_url('logo')); ?>" alt="<?php echo htmlspecialchars($navSiteName); ?>" class="h-12 sm:h-14 w-auto shrink-0 transition-transform duration-300 group-hover:scale-105">
       </a>
 
       <!-- Desktop Navigation Menu -->
@@ -250,17 +240,6 @@ $navCategories = function_exists('dazu_navbar_categories') ? dazu_navbar_categor
 
       <!-- Right Actions (Desktop) -->
       <div class="hidden lg:flex items-center gap-3 shrink-0">
-        <!-- Search bar -->
-        <form action="<?php echo url('courses/index.php'); ?>" method="GET" role="search" class="relative dazu-search-form">
-          <input type="search" name="search"
-                 placeholder="Search courses…"
-                 value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>"
-                 class="dazu-search-input w-44 xl:w-56 pl-8 pr-3 py-2 text-xs font-medium bg-slate-100 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#15A24A]/30 focus:border-[#15A24A] text-slate-700 placeholder-slate-400 transition-all"
-                 aria-label="Search courses">
-          <svg class="dazu-search-icon absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-        </form>
         <a href="tel:<?php echo htmlspecialchars($contact['contact_phone_tel']); ?>" class="text-xs font-extrabold text-slate-700 hover:text-[#15A24A] flex items-center gap-1.5 whitespace-nowrap"><?php echo htmlspecialchars($contact['contact_phone']); ?></a>
         <a href="<?php echo url('apply/index.php'); ?>" class="px-6 py-2.5 text-xs font-extrabold tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-md uppercase transition-colors shrink-0">APPLY</a>
         <?php if ($isLoggedIn && in_array($role, ['admin', 'superadmin'], true)): ?>
@@ -287,17 +266,6 @@ $navCategories = function_exists('dazu_navbar_categories') ? dazu_navbar_categor
   <!-- Mobile Drawer Menu -->
   <div class="lg:hidden hidden border-t border-slate-100 bg-white" id="dazu-mobile-menu">
     <div class="px-4 pt-4 pb-6 space-y-2">
-      <!-- Mobile Search -->
-      <form action="<?php echo url('courses/index.php'); ?>" method="GET" role="search" class="relative mb-1 dazu-search-form dazu-search-form-mobile">
-        <input type="search" name="search"
-               placeholder="Search courses…"
-               value="<?php echo htmlspecialchars($_GET['search'] ?? ''); ?>"
-               class="dazu-search-input w-full pl-9 pr-3 py-2.5 text-xs font-medium bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#15A24A]/30 focus:border-[#15A24A] text-slate-700 placeholder-slate-400"
-               aria-label="Search courses">
-        <svg class="dazu-search-icon absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-        </svg>
-      </form>
       <?php foreach ($menuItems as $item): ?>
         <?php $active = dazu_nav_active($item['key']); ?>
         <?php if ($item['key'] === 'courses'): ?>

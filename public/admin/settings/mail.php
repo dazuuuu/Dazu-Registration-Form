@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Show the saved values (never the password) merged with the .env fallbacks currently in effect.
+// Show the saved values (never the password) merged with the defaults currently in effect.
 $cfg = require __DIR__ . '/../../../app/v1/config/mail.php';
 $saved = mail_settings_read();
 $hasPassword = (string) ($cfg['password'] ?? '') !== '';

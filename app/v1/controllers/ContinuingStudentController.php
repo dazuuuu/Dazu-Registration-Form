@@ -101,8 +101,12 @@ class ContinuingStudentController {
         try {
             $this->db->beginTransaction();
 
-            registration_number_lock($this->db);
-            $regNo = registration_number_next($this->db);
+            // A student keeps one registration number for life — an additional course is not a second identity.
+            $regNo = $prior['registration_no'];
+            if (!$regNo) {
+                registration_number_lock($this->db);
+                $regNo = registration_number_next($this->db, (int) $course['id']);
+            }
 
             $stmt = $this->db->prepare(
                 "INSERT INTO registrations

@@ -128,7 +128,7 @@ ob_start();
               <tr>
                 <td class="migration-code"><?php echo htmlspecialchars($result['filename']); ?></td>
                 <td>
-                  <span class="badge text-bg-<?php echo $result['status'] === 'failed' ? 'danger' : 'success'; ?>">
+                  <span class="badge bg-<?php echo $result['status'] === 'failed' ? 'danger' : 'success'; ?>">
                     <?php echo htmlspecialchars($result['status']); ?>
                   </span>
                 </td>
@@ -186,9 +186,9 @@ ob_start();
                 <td class="migration-code"><?php echo htmlspecialchars($row['filename']); ?></td>
                 <td>
                   <?php if ($row['status'] === 'applied'): ?>
-                    <span class="badge text-bg-success">Applied</span>
+                    <span class="badge bg-success">Applied</span>
                   <?php else: ?>
-                    <span class="badge text-bg-warning">Pending</span>
+                    <span class="badge bg-warning text-dark">Pending</span>
                   <?php endif; ?>
                 </td>
                 <td class="small text-muted">

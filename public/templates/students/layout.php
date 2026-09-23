@@ -182,6 +182,12 @@ $portal_locked = $portal_locked ?? false;
     <?php if (isset($extra_css)): echo $extra_css; endif; ?>
 </head>
 <body>
+<?php if (!empty($_SESSION['preview'])): ?>
+<div style="position:sticky;top:0;z-index:2000;background:#0f172a;color:#fff;padding:8px 16px;font:600 13px system-ui,sans-serif;display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap">
+    <span><i class="fas fa-eye me-1"></i> Preview mode: you are looking at the portal as a temporary student. Nothing here is real.</span>
+    <a href="<?php echo url('students/preview-exit.php'); ?>" style="color:#fff;background:#dc2626;padding:4px 12px;border-radius:6px;text-decoration:none">Exit preview</a>
+</div>
+<?php endif; ?>
 
 <?php require __DIR__ . '/../../components/students/navbar.php'; ?>
 

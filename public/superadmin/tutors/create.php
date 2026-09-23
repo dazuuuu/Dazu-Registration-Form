@@ -11,6 +11,7 @@ use Models\Connection;
 use Models\TutorModel;
 use Controllers\TutorController;
 
+require_once __DIR__ . '/../../../app/v1/services/EmailConflictService.php';
 Middleware::requireSuperPortal();
 
 $pdo = Connection::getInstance()->getConnection();
@@ -35,6 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'email'       => $_POST['email'] ?? '',
                 'phone'       => $_POST['phone'] ?? '',
                 'bio'         => $_POST['bio'] ?? '',
+                'replace_existing' => !empty($_POST['replace_existing']),
                 'photo_path'  => $photoPath,
             ], $_POST['student_ids'] ?? [], isset($_POST['send_email']));
             if ($result['ok']) {
@@ -60,7 +62,7 @@ ob_start();
 <?php echo csrf_field(); ?>
 <div class="row g-3">
     <div class="col-md-6"><label class="form-label">Full Name *</label><input name="full_name" class="form-control" required></div>
-    <div class="col-md-6"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" required></div>
+    <div class="col-md-6"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" required><?php echo EmailConflictService::checkbox(); ?></div>
     <div class="col-md-6"><label class="form-label">Phone</label><input name="phone" class="form-control"></div>
     <div class="col-md-6"><label class="form-label">Photo</label><input type="file" name="photo" class="form-control" accept="image/*"></div>
     <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" class="form-control" rows="3"></textarea></div>

@@ -133,6 +133,7 @@ ob_start();
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
   <h5 class="mb-0"><i class="fas fa-book me-2"></i>Courses <span class="text-muted small fw-normal">(paid)</span></h5>
   <div class="d-flex gap-2">
+    <a href="<?php echo url('superadmin/courses/classes.php'); ?>" class="btn btn-outline-secondary btn-sm">Classes</a>
     <a href="<?php echo url('superadmin/courses/categories.php'); ?>" class="btn btn-outline-secondary btn-sm">
       <i class="fas fa-folder me-1"></i> Categories
     </a>

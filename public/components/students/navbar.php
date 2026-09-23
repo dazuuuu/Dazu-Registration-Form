@@ -51,7 +51,7 @@ $portalLocked = $portal_locked ?? false;
                         </a></li>
                         <li><hr class="dropdown-divider"></li>
                     <?php endif; ?>
-                    <li><a class="dropdown-item text-danger" href="<?php echo url('auth/logout.php'); ?>">
+                    <li><a class="dropdown-item text-danger" href="<?php echo url(!empty($_SESSION['preview']) ? 'students/preview-exit.php' : 'auth/logout.php'); ?>">
                         <i class="fas fa-sign-out-alt me-2"></i> Logout
                     </a></li>
                 </ul>

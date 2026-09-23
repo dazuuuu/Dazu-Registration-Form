@@ -25,7 +25,7 @@ $DIRS = [
 ];
 
 $section = $_GET['section'] ?? 'logo';
-if (!in_array($section, ['logo', 'hero', 'headers', 'contact', 'schedule', 'receipt', 'popular_courses'], true)) {
+if (!in_array($section, ['logo', 'hero', 'headers', 'contact', 'footer', 'schedule', 'receipt', 'popular_courses'], true)) {
     $section = 'logo';
 }
 
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ---- LOGO -------------------------------------------------------
     if ($action === 'save_logo') {
-        $settings->set('site_name', trim($_POST['site_name'] ?? '') ?: 'Ismano');
+        $settings->set('site_name', trim($_POST['site_name'] ?? '') ?: 'Dazu Training Institute');
         $settings->set('logo_alt',  trim($_POST['logo_alt'] ?? '') ?: 'Ismano');
 
         if (!empty($_FILES['logo']['name'])) {
@@ -86,8 +86,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $mediaType = str_starts_with((string) ($_FILES['media']['type'] ?? ''), 'video/') ? 'video' : 'image';
         $res = $mediaType === 'video'
-            ? upload_video($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web'])
-            : upload_image($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web']);
+            ? upload_video($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web'], transcode: false)
+            : upload_image($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web'], optimize: false);
         if (!$res['ok']) {
             redirect_back('hero', 'error', $res['error']);
         }
@@ -117,8 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $oldSlide = $settings->getHeroSlide($id);
                 $newType = str_starts_with((string) ($_FILES['media']['type'] ?? ''), 'video/') ? 'video' : 'image';
                 $res = $newType === 'video'
-                    ? upload_video($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web'])
-                    : upload_image($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web']);
+                    ? upload_video($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web'], transcode: false)
+                    : upload_image($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web'], optimize: false);
                 if (!$res['ok']) {
                     redirect_back('hero', 'error', $res['error']);
                 }
@@ -162,6 +162,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $settings->upsertPageHeader($pageKey, $fields);
         redirect_back('headers', 'success', 'Page banner saved.');
+    }
+
+    if ($action === 'reset_footer') {
+        // Back to the original footer: every footer line and section returns (social links are kept).
+        $st = $pdo->prepare("DELETE FROM site_settings WHERE setting_key LIKE 'footer\\_%'");
+        $st->execute();
+        redirect_back('footer', 'success', 'The footer is back to its original content.');
+    }
+
+    if ($action === 'save_footer') {
+        foreach (['footer_phone', 'footer_email', 'footer_address', 'footer_hours', 'social_facebook', 'social_tiktok', 'social_youtube', 'social_instagram', 'footer_copyright'] as $key) {
+            if (isset($_POST[$key])) {
+                $settings->set($key, trim($_POST[$key]));
+            }
+        }
+        foreach (['company', 'courses', 'bottom'] as $blk) {
+            if (isset($_POST['footer_show_' . $blk])) {
+                $settings->set('footer_show_' . $blk, $_POST['footer_show_' . $blk] === '1' ? '1' : '0');
+            }
+        }
+        redirect_back('footer', 'success', 'Footer saved.');
     }
 
     if ($action === 'save_contact') {
@@ -231,13 +252,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
-$siteName    = $settings->get('site_name', 'Ismano');
+$siteName    = $settings->get('site_name', 'Dazu Training Institute');
 $logoAlt     = $settings->get('logo_alt', 'Ismano');
 $logoUrl     = settings_asset_url($settings->get('logo_path'));
 $heroSlides  = $settings->getHeroSlides(false);
 $pageHeaders = $settings->getAllPageHeaders();
 
-$titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners', 'contact' => 'Contact & Map', 'schedule' => 'Class Schedule', 'receipt' => 'Receipts', 'popular_courses' => 'Popular Courses'];
+$titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners', 'contact' => 'Contact & Map', 'footer' => 'Footer & Social', 'schedule' => 'Class Schedule', 'receipt' => 'Receipts', 'popular_courses' => 'Popular Courses'];
 
 // Popular courses data
 $courseModel = new \Models\CourseModel($pdo);
@@ -258,6 +279,13 @@ $contactMapEmbed = $settings->get('contact_map_embed', '');
 $contactMapLink = $settings->get('contact_map_link', '');
 $contactMapTitle = $settings->get('contact_map_title', 'Witeithie House, Thika');
 $contactMapSubtitle = $settings->get('contact_map_subtitle', 'Room 529 (5th Floor)');
+foreach (['facebook', 'tiktok', 'youtube', 'instagram'] as $__s) { ${'social' . ucfirst($__s)} = $settings->get('social_' . $__s, ''); }
+$footerPhone = $settings->get('footer_phone', $contactPhone);
+$footerEmail = $settings->get('footer_email', $contactEmail);
+$footerAddress = $settings->get('footer_address', $contactAddress);
+$footerHours = $settings->get('footer_hours', $contactHours);
+$footerShow = ['company' => $settings->get('footer_show_company', '1') !== '0', 'courses' => $settings->get('footer_show_courses', '1') !== '0', 'bottom' => $settings->get('footer_show_bottom', '1') !== '0'];
+$footerCopyright = $settings->get('footer_copyright', '');
 $contactMapBlurb = $settings->get('contact_map_blurb', 'Visit our Thika campus for physical labs, or contact admissions for Nairobi classes and online learning options.');
 $classScheduleOnline = $settings->get('class_schedule_online', '8am, 12pm, 6pm');
 $classSchedulePhysical = $settings->get('class_schedule_physical', '5am');
@@ -336,6 +364,7 @@ ob_start();
     <a class="tab <?php echo $section === 'hero' ? 'active' : ''; ?>"    href="edit.php?section=hero"><i class="fa-solid fa-images"></i> Hero</a>
     <a class="tab <?php echo $section === 'headers' ? 'active' : ''; ?>" href="edit.php?section=headers"><i class="fa-solid fa-heading"></i> Page banners</a>
     <a class="tab <?php echo $section === 'contact' ? 'active' : ''; ?>" href="edit.php?section=contact"><i class="fa-solid fa-map-location-dot"></i> Contact &amp; map</a>
+    <a class="tab <?php echo $section === 'footer' ? 'active' : ''; ?>" href="edit.php?section=footer"><i class="fa-solid fa-shoe-prints"></i> Footer &amp; social</a>
     <a class="tab <?php echo $section === 'schedule' ? 'active' : ''; ?>" href="edit.php?section=schedule"><i class="fa-solid fa-calendar-days"></i> Class schedule</a>
     <a class="tab <?php echo $section === 'receipt' ? 'active' : ''; ?>" href="edit.php?section=receipt"><i class="fa-solid fa-receipt"></i> Receipts</a>
     <a class="tab <?php echo $section === 'popular_courses' ? 'active' : ''; ?>" href="edit.php?section=popular_courses"><i class="fa-solid fa-star"></i> Popular Courses</a>
@@ -610,6 +639,65 @@ ob_start();
     </form>
   <?php endif; ?>
 
+  <?php if ($section === 'footer'): ?>
+    <form class="panel" method="POST">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="action" value="save_footer">
+      <h2>Website footer</h2>
+      <p class="hint">Everything shown at the bottom of every public page. Empty a line and it is removed from the footer, nothing else is forced to stay. A social icon shows only when you add its link.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field" style="margin:0;">
+          <label>Phone / WhatsApp</label>
+          <input type="text" name="footer_phone" value="<?php echo htmlspecialchars($footerPhone); ?>">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Email</label>
+          <input type="text" name="footer_email" value="<?php echo htmlspecialchars($footerEmail); ?>">
+        </div>
+      </div>
+      <div class="field">
+        <label>Address / location</label>
+        <input type="text" name="footer_address" value="<?php echo htmlspecialchars($footerAddress); ?>">
+      </div>
+      <div class="field">
+        <label>Office hours</label>
+        <input type="text" name="footer_hours" value="<?php echo htmlspecialchars($footerHours); ?>">
+      </div>
+
+      <div class="divider"></div>
+      <h2 style="font-size:1rem">Social media links</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field" style="margin:0;"><label><i class="fa-brands fa-facebook" style="color:#1877F2"></i> Facebook</label><input type="url" name="social_facebook" value="<?php echo htmlspecialchars($socialFacebook); ?>" placeholder="https://facebook.com/yourpage"></div>
+        <div class="field" style="margin:0;"><label><i class="fa-brands fa-tiktok"></i> TikTok</label><input type="url" name="social_tiktok" value="<?php echo htmlspecialchars($socialTiktok); ?>" placeholder="https://tiktok.com/@yourhandle"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div class="field" style="margin:0;"><label><i class="fa-brands fa-youtube" style="color:#E53935"></i> YouTube</label><input type="url" name="social_youtube" value="<?php echo htmlspecialchars($socialYoutube); ?>" placeholder="https://youtube.com/@yourchannel"></div>
+        <div class="field" style="margin:0;"><label><i class="fa-brands fa-instagram" style="color:#C13584"></i> Instagram</label><input type="url" name="social_instagram" value="<?php echo htmlspecialchars($socialInstagram); ?>" placeholder="https://instagram.com/yourhandle"></div>
+      </div>
+
+      <div class="divider"></div>
+      <h2 style="font-size:1rem">Footer sections</h2>
+      <p class="hint">Untick a section to remove it from the footer completely.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:18px;margin-bottom:14px">
+        <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="hidden" name="footer_show_company" value="0"><input type="checkbox" name="footer_show_company" value="1" onclick="this.previousElementSibling.disabled=this.checked" <?php echo $footerShow['company'] ? 'checked' : ''; ?>> Company links</label>
+        <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="hidden" name="footer_show_courses" value="0"><input type="checkbox" name="footer_show_courses" value="1" onclick="this.previousElementSibling.disabled=this.checked" <?php echo $footerShow['courses'] ? 'checked' : ''; ?>> Courses links</label>
+        <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="hidden" name="footer_show_bottom" value="0"><input type="checkbox" name="footer_show_bottom" value="1" onclick="this.previousElementSibling.disabled=this.checked" <?php echo $footerShow['bottom'] ? 'checked' : ''; ?>> Bottom bar (copyright, Support, Terms)</label>
+      </div>
+      <div class="field">
+        <label>Copyright line <span style="font-weight:400">(bottom of the footer; leave empty for the default)</span></label>
+        <input type="text" name="footer_copyright" value="<?php echo htmlspecialchars($footerCopyright); ?>" placeholder="© <?php echo date('Y'); ?> Dazu Training Institute. All rights reserved.">
+      </div>
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save footer</button>
+    </form>
+    <form method="POST" class="panel" style="margin-top:14px" onsubmit="return confirm('Bring back the original footer content and sections?');">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="action" value="reset_footer">
+      <p class="hint" style="margin-bottom:10px">Removed too much? This brings back every footer line and section (your social links are kept).</p>
+      <button class="btn btn-secondary" type="submit"><i class="fa-solid fa-rotate-left"></i> Restore original footer</button>
+    </form>
+  <?php endif; ?>
+
   <?php if ($section === 'schedule'): ?>
     <form class="panel" method="POST">
       <?php echo csrf_field(); ?>
@@ -743,7 +831,7 @@ ob_start();
 
         <!-- RIGHT: Homepage courses -->
         <div>
-          <h6 style="font-weight:700; font-size:.92rem; margin:0 0 10px; color:#3a4250;">On Homepage <span class="badge text-bg-warning" style="font-size:.75rem;"><?php echo count($homepageCoursesForPopular); ?></span></h6>
+          <h6 style="font-weight:700; font-size:.92rem; margin:0 0 10px; color:#3a4250;">On Homepage <span class="badge bg-warning text-dark" style="font-size:.75rem;"><?php echo count($homepageCoursesForPopular); ?></span></h6>
           <div id="homepage-courses-list" style="display:flex; flex-direction:column; gap:8px; max-height:520px; overflow-y:auto; padding-right:4px;">
             <?php if (empty($homepageCoursesForPopular)): ?>
               <div style="color:#8a93a3; font-size:.85rem; padding:16px 0; text-align:center; border:1.5px dashed #d7dce6; border-radius:10px;">No popular courses selected yet.<br>All active courses will show on the homepage.</div>

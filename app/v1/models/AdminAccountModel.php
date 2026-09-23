@@ -34,7 +34,7 @@ class AdminAccountModel
     }
 
     /** @return array{ok:bool, error?:string, user_id?:int, temp_password?:string} */
-    public function create(string $fullName, string $email, string $phone = ''): array
+    public function create(string $fullName, string $email, string $phone = '', bool $replaceExisting = false): array
     {
         $fullName = trim($fullName);
         $email = strtolower(trim($email));
@@ -44,7 +44,12 @@ class AdminAccountModel
         $stmt = $this->db->prepare("SELECT 1 FROM users WHERE LOWER(email) = ?");
         $stmt->execute([$email]);
         if ($stmt->fetchColumn()) {
-            return ['ok' => false, 'error' => 'A user with this email already exists.'];
+            require_once __DIR__ . '/../services/EmailConflictService.php';
+            if (!$replaceExisting) {
+                return ['ok' => false, 'error' => 'A user with this email already exists.' . \EmailConflictService::hint()];
+            }
+            $released = \EmailConflictService::release($this->db, $email);
+            if (!$released['ok']) return $released;
         }
         $base = substr(preg_replace('/[^a-z0-9]/', '', strtolower(explode('@', $email)[0])), 0, 20) ?: 'admin';
         $username = 'ADM-' . $base;

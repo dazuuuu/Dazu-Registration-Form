@@ -49,7 +49,12 @@ class ManualOnboardController {
         $stmt = $this->db->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
         $stmt->execute([':email' => $email]);
         if ($stmt->fetchColumn()) {
-            return ['ok' => false, 'error' => 'An account with this email already exists. Use the "Existing student" tab instead.'];
+            require_once __DIR__ . '/../services/EmailConflictService.php';
+            if (empty($data['replace_existing'])) {
+                return ['ok' => false, 'error' => 'An account with this email already exists.' . \EmailConflictService::hint()];
+            }
+            $released = \EmailConflictService::release($this->db, $email);
+            if (!$released['ok']) return $released;
         }
 
         $course = $this->courseModel->getById((int) ($data['course_id'] ?? 0));
@@ -74,7 +79,7 @@ class ManualOnboardController {
             $this->db->beginTransaction();
 
             registration_number_lock($this->db);
-            $regNo = registration_number_next($this->db);
+            $regNo = registration_number_next($this->db, (int) $course['id']);
 
             $stmt = $this->db->prepare("SELECT id FROM roles WHERE role_name = 'student' LIMIT 1");
             $stmt->execute();

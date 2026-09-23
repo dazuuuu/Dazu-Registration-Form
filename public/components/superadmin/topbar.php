@@ -25,6 +25,7 @@ $sa_more = [
         ['All courses', 'superadmin/courses/index.php', 'fa-book-open'],
         ['Add a course', 'superadmin/courses/create.php', 'fa-plus'],
         ['Categories', 'superadmin/courses/categories.php', 'fa-tags'],
+        ['Classes', 'superadmin/courses/classes.php', 'fa-graduation-cap'],
     ],
     'Money' => [
         ['Payments', 'superadmin/payments/index.php', 'fa-money-bill-wave'],
@@ -39,6 +40,8 @@ $sa_more = [
     ],
     'System' => [
         ['Settings (PIN)', 'superadmin/settings.php', 'fa-gear'],
+        ['Backup & migrate', 'superadmin/backup.php', 'fa-box-archive'],
+        ['Pull from live', 'superadmin/migrate.php', 'fa-cloud-arrow-down'],
         ['Install app', '#install', 'fa-download'],
         ['Sign out', 'superadmin/logout.php', 'fa-arrow-right-from-bracket'],
     ],

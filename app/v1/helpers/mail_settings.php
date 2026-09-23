@@ -4,9 +4,9 @@
 // the system reads mail configuration from, and it calls mail_settings_merge() below, so everything uses whatever is saved here.
 //
 //  - Values live in the site_settings table (keys mail_host, mail_port, ...).
-//  - The SMTP password is encrypted (AES-256-GCM). The key comes from MAIL_SECRET_KEY in .env, or from app/v1/storage/mail.key,
+//  - The SMTP password is encrypted (AES-256-GCM). The key comes from the server environment or the private storage folder,
 //    which is created automatically the first time a password is saved and is never inside the web root.
-//  - Anything left empty here falls back to the .env value, so existing installs keep working.
+//  - Anything left empty here falls back to the default value, so existing installs keep working.
 
 const MAIL_SETTING_FIELDS = ['host', 'port', 'encryption', 'username', 'password', 'from_email', 'from_name', 'enabled'];
 
@@ -121,7 +121,7 @@ function mail_settings_reset(): void
     mail_settings_read(true);   // any argument bypasses the cache and refills it
 }
 
-/** Called by config/mail.php: saved values win over .env defaults. */
+/** Called by config/mail.php: saved values win over the defaults. */
 function mail_settings_merge(array $cfg): array
 {
     $saved = mail_settings_read();
@@ -183,7 +183,7 @@ function mail_settings_save(PDO $pdo, array $in): array
     if ($pass !== '') {
         $enc = mail_settings_encrypt($pass);
         if ($enc === null) {
-            return ['ok' => false, 'error' => 'Could not encrypt the password: the storage folder is not writable. Make app/v1/storage writable, or set MAIL_SECRET_KEY in .env.'];
+            return ['ok' => false, 'error' => 'Could not encrypt the password: the storage folder is not writable. Make the storage folder writable.'];
         }
         $values['mail_password'] = $enc;
     }

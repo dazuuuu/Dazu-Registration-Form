@@ -51,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $mediaType = str_starts_with((string) ($_FILES['media']['type'] ?? ''), 'video/') ? 'video' : 'image';
         $upload = $mediaType === 'video'
-            ? upload_video($_FILES['media'], $uploadDir['abs'], $uploadDir['web'])
-            : upload_image($_FILES['media'], $uploadDir['abs'], $uploadDir['web']);
+            ? upload_video($_FILES['media'], $uploadDir['abs'], $uploadDir['web'], transcode: false)
+            : upload_image($_FILES['media'], $uploadDir['abs'], $uploadDir['web'], optimize: false);
 
         if (!$upload['ok']) {
             campus_media_flash('error', $upload['error']);
@@ -122,7 +122,7 @@ ob_start();
           <div>
             <label class="form-label">Photo or video *</label>
             <input type="file" name="media" class="form-control" accept="image/*,video/mp4,video/webm,video/quicktime" required>
-            <div class="form-text">Images up to 150 MB. Videos up to 1 GB are automatically compressed for fast playback.</div>
+            <div class="form-text">Images up to 150 MB. Videos up to 1 GB. Files are stored exactly as uploaded.</div>
           </div>
           <div>
             <label class="form-label">Title</label>

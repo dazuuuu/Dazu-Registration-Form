@@ -6,6 +6,7 @@ Middleware::requireAdmin();   // admins only (the superadmin has a separate port
 require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../../../app/v1/helpers/functions.php';
 require_once __DIR__ . '/../../../app/v1/controllers/ProjectController.php';
+require_once __DIR__ . '/../../../app/v1/models/StudentModel.php';
 
 if (!isLoggedIn()) {
     redirect(url('admin/portal.php'));
@@ -104,6 +105,7 @@ if (isset($_GET['ajax']) && $_GET['ajax'] == 1) {
 }
 
 $categories = $controller->getCategories();
+$students = (new \Models\StudentModel($pdo))->listAllStudentAccounts();
 
 $page_title = $project['small_title'] . ' - Edit Project';
 $breadcrumbs = [
@@ -301,6 +303,49 @@ ob_start();
                         </div>
                     </div>
                     
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Student</label>
+                            <select name="student_id" class="form-control">
+                                <option value="">No student mentioned</option>
+                                <?php foreach ($students as $student): ?>
+                                <option value="<?php echo $student['id']; ?>" <?php echo $student['id'] == $project['student_id'] ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars(trim($student['first_name'] . ' ' . $student['last_name']) ?: $student['username']); ?>
+                                </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Project Date</label>
+                            <input type="date" name="project_date" class="form-control" value="<?php echo htmlspecialchars($project['project_date'] ?? ''); ?>">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">Live / Sandbox URL</label>
+                        <input type="url" name="live_url" class="form-control" value="<?php echo htmlspecialchars($project['live_url'] ?? ''); ?>" placeholder="https://example.com/live-demo">
+                        <small class="text-muted">Opens the project live on the site, like a sandbox preview.</small>
+                    </div>
+
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Languages Used</label>
+                            <input type="text" name="languages_used" class="form-control" value="<?php echo htmlspecialchars($project['languages_used'] ?? ''); ?>" placeholder="e.g., PHP, JavaScript, MySQL">
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Complexity</label>
+                            <select name="complexity" class="form-control">
+                                <?php foreach (['beginner', 'intermediate', 'advanced'] as $level): ?>
+                                <option value="<?php echo $level; ?>" <?php echo ($project['complexity'] ?? 'beginner') == $level ? 'selected' : ''; ?>><?php echo ucfirst($level); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Progress (%)</label>
+                            <input type="number" name="progress" class="form-control" min="0" max="100" value="<?php echo (int) ($project['progress'] ?? 0); ?>">
+                        </div>
+                    </div>
+
                     <div class="mb-4">
                         <label class="form-label">Cover Image</label>
                         <input type="file" name="cover_image" class="form-control" accept="image/*" id="coverImage">
@@ -311,7 +356,7 @@ ob_start();
                         </div>
                         <?php endif; ?>
                     </div>
-                    
+
                     <div class="mb-4">
                         <label class="form-label">Description</label>
                         <textarea name="description" class="form-control" rows="8"><?php echo htmlspecialchars($project['description']); ?></textarea>
