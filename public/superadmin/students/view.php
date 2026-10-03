@@ -72,6 +72,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             SessionModel::setFlash('error', $r['error']);
         }
+    } elseif ($action === 'edit_reg_no') {
+        $newRegNo = trim($_POST['new_reg_no'] ?? '');
+        $regId = (int)($_POST['edit_reg_id'] ?? 0);
+        
+        if (empty($newRegNo)) {
+            SessionModel::setFlash('error', 'Registration number cannot be empty.');
+        } else {
+            try {
+                $pdo->beginTransaction();
+                
+                // Update specific enrolment's registration number
+                $st = $pdo->prepare('UPDATE registrations SET registration_no = ? WHERE id = ?');
+                $st->execute([$newRegNo, $regId]);
+                
+                // If it's the primary registration, also update the user login
+                if ($regId === $id && !empty($reg['user_id'])) {
+                    $uSt = $pdo->prepare('UPDATE users SET username = ? WHERE id = ?');
+                    $uSt->execute([$newRegNo, $reg['user_id']]);
+                }
+                
+                $pdo->commit();
+                SessionModel::setFlash('success', 'Registration number updated to ' . htmlspecialchars($newRegNo));
+            } catch (\PDOException $e) {
+                if ($pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+                if ($e->getCode() == 23000) {
+                    SessionModel::setFlash('error', 'That registration number is already in use by another student.');
+                } else {
+                    SessionModel::setFlash('error', 'Could not update registration number.');
+                }
+            }
+        }
     }
     header('Location: ' . $self); exit();
 }
@@ -117,6 +150,7 @@ ob_start();
             <div class="row g-2 small">
                 <div class="col-sm-6"><div class="text-muted">Email</div><div class="text-break"><?php echo htmlspecialchars((string)$reg['email']); ?></div></div>
                 <div class="col-sm-6"><div class="text-muted">Phone</div><div><?php echo htmlspecialchars((string)$reg['phone']); ?></div></div>
+                <div class="col-sm-6"><div class="text-muted">Secondary Phone</div><div><?php echo !empty($reg['secondary_phone']) ? htmlspecialchars((string)$reg['secondary_phone']) : '<span class="text-muted">None</span>'; ?></div></div>
                 <div class="col-sm-6"><div class="text-muted">Courses</div><div><?php echo htmlspecialchars(implode(', ', array_column($enrols, 'course_title'))); ?></div></div>
                 <div class="col-sm-6"><div class="text-muted">Tutor</div><div><?php echo $myTutors ? htmlspecialchars(implode(', ', array_column($myTutors, 'full_name'))) : '<span class="text-muted">None yet</span>'; ?></div></div>
             </div>
@@ -127,7 +161,11 @@ ob_start();
             <div class="table-responsive"><table class="table table-sm align-middle mb-0">
                 <thead><tr><th>Course</th><th class="text-end">Fee</th><th class="text-end">Paid</th><th class="text-end">Balance</th><th></th></tr></thead>
                 <tbody><?php foreach ($enrols as $e): ?><tr>
-                    <td><?php echo htmlspecialchars((string)$e['course_title']); ?><div class="text-muted small"><?php echo htmlspecialchars((string)$e['registration_no']); ?></div>
+                    <td><?php echo htmlspecialchars((string)$e['course_title']); ?>
+                        <div class="text-muted small d-flex align-items-center gap-2">
+                            <?php echo htmlspecialchars((string)$e['registration_no']); ?>
+                            <button type="button" class="btn btn-link p-0 m-0 js-edit-reg-no" data-id="<?php echo (int)$e['id']; ?>" data-regno="<?php echo htmlspecialchars((string)$e['registration_no'], ENT_QUOTES); ?>" data-bs-toggle="modal" data-bs-target="#editRegNoModal" title="Edit Registration Number"><i class="fas fa-edit small text-secondary"></i></button>
+                        </div>
                         <?php if ($e['fee_balance_note'] && strncmp($e['fee_balance_note'], 'Transferred', 11) === 0): ?><div class="text-muted small"><?php echo htmlspecialchars($e['fee_balance_note']); ?></div><?php endif; ?></td>
                     <td class="text-end"><?php echo number_format($e['fee']); ?></td><td class="text-end"><?php echo number_format((float)$e['paid']); ?></td>
                     <td class="text-end fw-bold <?php echo $e['bal'] > 0 ? 'text-danger' : 'text-success'; ?>"><?php echo number_format($e['bal']); ?></td>
@@ -135,6 +173,7 @@ ob_start();
                 </tr><?php endforeach; ?></tbody>
             </table></div>
         </div>
+        <?php $certArea = 'superadmin'; require __DIR__ . '/../../components/certificates/student_card.php'; ?>
         <div class="card mb-3"><div class="card-header fw-semibold">Where they learn</div><div class="card-body">
             <?php if (!study_location_supported($pdo)): ?><p class="small text-muted mb-0">Apply the pending system update to record learning locations.</p><?php else: foreach ($enrols as $e): ?>
             <form method="POST" class="row g-2 align-items-end mb-3"><?php echo csrf_field(); ?><input type="hidden" name="action" value="set_study"><input type="hidden" name="study_reg_id" value="<?php echo (int)$e['id']; ?>">
@@ -185,4 +224,36 @@ ob_start();
     <div class="modal-footer"><button class="btn btn-primary">Transfer</button></div></form></div></div>
 <script>document.querySelectorAll('.js-transfer').forEach(function (b) { b.addEventListener('click', function () { document.getElementById('trFrom').value = b.dataset.from; document.getElementById('trTitle').textContent = b.dataset.title; }); });</script>
 <?php endif; ?>
+
+<div class="modal fade" id="editRegNoModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="POST" class="modal-content">
+            <?php echo csrf_field(); ?>
+            <input type="hidden" name="action" value="edit_reg_no">
+            <input type="hidden" name="edit_reg_id" id="editRegId">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Registration Number</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted">Overriding the registration number updates it here and updates the student's username for logging into the portal.</p>
+                <div class="mb-3">
+                    <label class="form-label">Registration Number</label>
+                    <input type="text" class="form-control" name="new_reg_no" id="newRegNoInput" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary">Save changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+document.querySelectorAll('.js-edit-reg-no').forEach(function(b) {
+    b.addEventListener('click', function() {
+        document.getElementById('editRegId').value = b.dataset.id;
+        document.getElementById('newRegNoInput').value = b.dataset.regno;
+    });
+});
+</script>
 <?php $content = ob_get_clean(); require __DIR__ . '/../../templates/superadmin/layout.php';

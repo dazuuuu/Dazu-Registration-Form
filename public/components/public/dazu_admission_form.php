@@ -122,6 +122,20 @@ $studyMode = $_POST['study_mode'] ?? 'online';
     </div>
 
     <div class="space-y-1.5">
+      <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500" for="<?php echo $pfx; ?>_phone">Primary phone *</label>
+      <input type="tel" id="<?php echo $pfx; ?>_phone" name="phone" required placeholder="E.g. 0712345678"
+             value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>"
+             class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white">
+    </div>
+
+    <div class="space-y-1.5">
+      <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500" for="<?php echo $pfx; ?>_secondary_phone">Secondary phone (optional)</label>
+      <input type="tel" id="<?php echo $pfx; ?>_secondary_phone" name="secondary_phone" placeholder="E.g. 0712345679"
+             value="<?php echo htmlspecialchars($_POST['secondary_phone'] ?? ''); ?>"
+             class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-green-600 focus:bg-white">
+    </div>
+
+    <div class="space-y-1.5">
       <label class="block text-[11px] font-extrabold uppercase tracking-wider text-slate-500" for="<?php echo $pfx; ?>_course">Course *</label>
       <?php if ($showCourseSelect): ?>
         <select id="<?php echo $pfx; ?>_course" name="course_id" required

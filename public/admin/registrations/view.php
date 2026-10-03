@@ -118,10 +118,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             require_once __DIR__ . '/../../../app/v1/helpers/study_location.php';
             $pickMode = $_POST['study_mode'] ?? '';
             $pickLoc  = $_POST['study_location'] ?? '';
+            $depositRaw = trim($_POST['deposit_amount'] ?? '');
+            $deposit = $depositRaw === '' ? null : (float) $depositRaw;
             if (!in_array($pickMode, ['online', 'physical'], true) || ($pickMode === 'physical' && study_location_supported($pdo) && !isset(study_locations()[$pickLoc]))) {
                 $result = ['ok' => false, 'error' => 'Choose the mode of study, and the learning location (Thika or Nairobi) for physical classes, before approving.'];
+            } elseif ($deposit !== null && $deposit < 0) {
+                $result = ['ok' => false, 'error' => 'The deposited amount cannot be negative.'];
             } else {
-                $result = $controller->approve($id, $waive, $adminId);
+                $result = $controller->approve($id, $waive, $adminId, $deposit);
             }
 
             if ($result['ok']) {
@@ -359,6 +363,10 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
                         <?php echo htmlspecialchars($reg['phone']); ?>
                     </div>
                     <div class="col-md-6">
+                        <small class="text-muted d-block">Secondary Phone</small>
+                        <?php echo !empty($reg['secondary_phone']) ? htmlspecialchars($reg['secondary_phone']) : '<span class="text-muted">Not provided</span>'; ?>
+                    </div>
+                    <div class="col-md-6">
                         <small class="text-muted d-block">Study Mode</small>
                         <?php echo $reg['study_mode'] === 'physical' ? '🏫 Physical (Student ID card required)' : '💻 Online'; ?>
                     </div>
@@ -583,6 +591,14 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
 
                     <?php require_once __DIR__ . '/../../../app/v1/helpers/study_location.php'; ?>
                     <div class="row g-2 mb-3"><?php echo study_placement_fields(['study_mode' => $reg['study_mode'] ?? ''], true, 'col-sm-6'); ?></div>
+
+                    <?php $defaultDeposit = ($reg['registration_fee_waived'] ? 0 : (float)$reg['registration_fee']) + $installments['amount']; ?>
+                    <div class="mb-3">
+                        <label class="form-label small mb-1">Amount deposited</label>
+                        <input type="number" name="deposit_amount" class="form-control form-select-sm" min="0" step="0.01"
+                               placeholder="<?php echo number_format($defaultDeposit, 2); ?>">
+                        <div class="form-text">Leave blank to record the full first payment (KSh <?php echo number_format($defaultDeposit); ?>) shown above. A receipt is emailed to the student on approval.</div>
+                    </div>
 
                     <?php if ($tutorChoices): ?>
                     <div class="mb-3">

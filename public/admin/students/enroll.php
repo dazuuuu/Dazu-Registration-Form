@@ -96,8 +96,9 @@ ob_start();
     <?php echo csrf_field(); ?>
     <div class="col-md-6"><label class="form-label">Name *</label><input name="name" required class="form-control" value="<?= htmlspecialchars($student['name'] ?? '') ?>"></div>
     <div class="col-md-6"><label class="form-label">Email *</label><input type="email" name="email" required class="form-control" value="<?= htmlspecialchars($student['email'] ?? '') ?>" <?= $id ? '' : 'required' ?>><?= EmailConflictService::checkbox() ?></div>
-    <div class="col-md-4"><label class="form-label">Phone *</label><input name="phone" required class="form-control" value="<?= htmlspecialchars($student['phone'] ?? '') ?>"></div>
-    <div class="col-md-8"><label class="form-label">Course *</label>
+    <div class="col-md-3"><label class="form-label">Phone *</label><input name="phone" required class="form-control" value="<?= htmlspecialchars($student['phone'] ?? '') ?>"></div>
+    <div class="col-md-3"><label class="form-label">Secondary phone</label><input name="secondary_phone" class="form-control" value="<?= htmlspecialchars($student['secondary_phone'] ?? '') ?>"></div>
+    <div class="col-md-6"><label class="form-label">Course *</label>
       <select name="course_id" id="courseSelect" class="form-select" required>
         <option value="">— Select course —</option>
         <?php foreach ($courses as $c): ?>

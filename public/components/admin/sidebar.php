@@ -74,6 +74,8 @@ function isSmsSection($section) {
     
     <div class="sidebar-nav">
         <div class="nav flex-column">
+            <?php ob_start(); // top-level items are reordered below (Settings → Sidebar Menu Order) ?>
+            <!--nav:dashboard-->
             <!-- Dashboard -->
             <a href="<?php echo url('admin/dashboard.php'); ?>"
                class="nav-link <?php echo $current_page == 'dashboard.php' ? 'active' : ''; ?>">
@@ -91,6 +93,7 @@ function isSmsSection($section) {
                 $importMenuOn = $siteSettings->get('site_import_enabled', '1') !== '0';
             } catch (Throwable $e) {}
             ?>
+            <!--nav:preview-->
             <?php if (!function_exists('csrf_field')) { require_once __DIR__ . '/../../../app/v1/helpers/uploads.php'; } ?>
             <form method="POST" action="<?php echo url('admin/preview-portal.php'); ?>" target="_blank" class="m-0"><?php echo csrf_field(); ?>
                 <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent">
@@ -98,6 +101,7 @@ function isSmsSection($section) {
                     <span>Preview Student Portal</span>
                 </button>
             </form>
+            <!--nav:export-->
             <?php if ($exportMenuOn): ?>
             <a href="<?php echo url('admin/backup.php'); ?>"
                class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'backup.php' ? 'active' : ''; ?>">
@@ -105,6 +109,7 @@ function isSmsSection($section) {
                 <span>Export Site</span>
             </a>
             <?php endif; ?>
+            <!--nav:import-->
             <?php if ($importMenuOn): ?>
             <a href="<?php echo url('admin/import.php'); ?>"
                class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'import.php' ? 'active' : ''; ?>">
@@ -113,6 +118,7 @@ function isSmsSection($section) {
             </a>
             <?php endif; ?>
 
+            <!--nav:updates-->
             <a href="<?php echo url('admin/system/updates.php'); ?>"
                class="nav-link <?php echo $current_dir == 'system' ? 'active' : ''; ?>">
                 <i class="fas fa-database"></i>
@@ -122,6 +128,7 @@ function isSmsSection($section) {
                 <?php endif; ?>
             </a>
 
+            <!--nav:system-->
             <!-- SYSTEM SECTION: registration, courses, students, tutors, payments -->
             <div class="nav-item">
                 <a href="#systemMenu" class="nav-link <?php echo isSystemActive($current_dir) ? 'active' : ''; ?>"
@@ -200,6 +207,15 @@ function isSmsSection($section) {
                 </div>
             </div>
 
+            <!--nav:certificates-->
+            <!-- Certificates (Standalone) -->
+            <a href="<?php echo url('admin/certificates/index.php'); ?>"
+               class="nav-link <?php echo $current_dir == 'certificates' ? 'active' : ''; ?>">
+                <i class="fas fa-certificate"></i>
+                <span>Certificates</span>
+            </a>
+
+            <!--nav:website-->
             <!-- WEBSITE CONTENT SECTION: the original public-site management pages -->
             <div class="nav-item">
                 <a href="#websiteMenu" class="nav-link <?php echo isWebsiteActive($current_dir) ? 'active' : ''; ?>"
@@ -232,11 +248,34 @@ function isSmsSection($section) {
                             <i class="fas fa-cogs"></i>
                             <span>Services</span>
                         </a>
-                        <a href="<?php echo url('admin/blogs/index.php'); ?>" 
-                           class="nav-link <?php echo isActive('blogs', $current_dir, $current_page) ? 'active' : ''; ?>">
-                            <i class="fas fa-blog"></i>
-                            <span>Blog Posts</span>
-                        </a>
+                        <!-- BLOG SUB-SECTION: posts and categories -->
+                        <div class="nav-item">
+                            <a href="#blogMenu" class="nav-link <?php echo $current_dir == 'blogs' ? 'active' : ''; ?>"
+                               data-bs-toggle="collapse" role="button" aria-expanded="<?php echo $current_dir == 'blogs' ? 'true' : 'false'; ?>">
+                                <i class="fas fa-blog"></i>
+                                <span>Blog</span>
+                                <i class="fas fa-chevron-down ms-auto" style="font-size: 12px;"></i>
+                            </a>
+                            <div class="collapse <?php echo $current_dir == 'blogs' ? 'show' : ''; ?>" id="blogMenu">
+                                <div class="ps-4 mt-2">
+                                    <a href="<?php echo url('admin/blogs/index.php'); ?>"
+                                       class="nav-link <?php echo $current_dir == 'blogs' && in_array($current_page, ['index.php', 'edit.php'], true) ? 'active' : ''; ?>">
+                                        <i class="fas fa-list"></i>
+                                        <span>All Posts</span>
+                                    </a>
+                                    <a href="<?php echo url('admin/blogs/create.php'); ?>"
+                                       class="nav-link <?php echo $current_dir == 'blogs' && $current_page == 'create.php' ? 'active' : ''; ?>">
+                                        <i class="fas fa-plus"></i>
+                                        <span>New Post</span>
+                                    </a>
+                                    <a href="<?php echo url('admin/blogs/categories.php'); ?>"
+                                       class="nav-link <?php echo $current_dir == 'blogs' && $current_page == 'categories.php' ? 'active' : ''; ?>">
+                                        <i class="fas fa-folder"></i>
+                                        <span>Categories</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                         <a href="<?php echo url('admin/gallery/index.php'); ?>"
                            class="nav-link <?php echo isActive('gallery', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-images"></i>
@@ -279,8 +318,10 @@ function isSmsSection($section) {
                 </div>
             </div>
             
+            <!--nav:divider-->
             <hr>
             
+            <!--nav:profile-->
             <!-- Profile -->
             <a href="<?php echo url('profile/admin/'); ?>" 
                class="nav-link <?php echo $current_page == 'profile.php' ? 'active' : ''; ?>">
@@ -288,29 +329,38 @@ function isSmsSection($section) {
                 <span>My Profile</span>
             </a>
             
+            <!--nav:settings-->
             <!-- Settings -->
             <a href="<?php echo url('admin/settings/index.php'); ?>"
                class="nav-link <?php echo isActive('settings', $current_dir, $current_page) && !$is_class_schedule_page && !$is_contact_settings_page && !$is_footer_settings_page ? 'active' : ''; ?>">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
+            <!--nav:contact_settings-->
             <a href="<?php echo url('admin/settings/edit.php?section=contact'); ?>"
                class="nav-link <?php echo $is_contact_settings_page ? 'active' : ''; ?>">
                 <i class="fas fa-address-book"></i>
                 <span>Contact Settings</span>
             </a>
+            <!--nav:footer_settings-->
             <a href="<?php echo url('admin/settings/edit.php?section=footer'); ?>"
                class="nav-link <?php echo $is_footer_settings_page ? 'active' : ''; ?>">
                 <i class="fas fa-shoe-prints"></i>
                 <span>Footer &amp; Social Links</span>
             </a>
+            <!--nav:schedule-->
             <a href="<?php echo url('admin/settings/edit.php?section=schedule'); ?>"
                class="nav-link <?php echo $is_class_schedule_page ? 'active' : ''; ?>">
                 <i class="fas fa-calendar-days"></i>
                 <span>Class Schedule</span>
             </a>
 
-            <!-- Logout -->
+            <?php
+            require_once __DIR__ . '/../../../app/v1/helpers/admin_nav.php';
+            echo admin_nav_reorder(ob_get_clean(), admin_nav_order($siteSettings ?? null));
+            ?>
+
+            <!-- Logout (always last) -->
             <a href="<?php echo url('auth/logout.php'); ?>" class="nav-link text-danger">
                 <i class="fas fa-sign-out-alt"></i>
                 <span>Logout</span>

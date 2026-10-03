@@ -53,7 +53,7 @@ $candidates = [
     public_path($rel),
     PROJECT_ROOT . '/public/' . $rel,
 ];
-if (preg_match('#(uploads/courses/covers/[^/?#]+)$#', $rel, $m)) {
+if (preg_match('~(uploads/courses/covers/[^/?#]+)$~', $rel, $m)) {
     array_unshift($candidates, public_path($m[1]));
 }
 

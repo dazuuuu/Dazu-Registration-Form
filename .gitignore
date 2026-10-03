@@ -160,3 +160,6 @@ yarn-error.log*
 
 # SMTP password encryption key (created automatically)
 /app/v1/storage/mail.key
+
+# Runtime cache (schema markers, generated files) — never upload
+/app/v1/storage/cache/

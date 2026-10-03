@@ -29,7 +29,7 @@ ob_start();
         <!-- Breadcrumbs -->
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="/Ismano/public/store/">Store</a></li>
+                <li class="breadcrumb-item"><a href="<?php echo url('store/'); ?>">Store</a></li>
                 <?php if ($product['category_name']): ?>
                     <li class="breadcrumb-item"><a href="?category=<?php echo $product['category_slug']; ?>"><?php echo htmlspecialchars($product['category_name']); ?></a></li>
                 <?php endif; ?>
@@ -128,7 +128,7 @@ ob_start();
                         <div class="col-md-6 col-lg-3">
                             <div class="product-card h-100">
                                 <div class="product-image">
-                                    <a href="details.php?slug=<?php echo $related['slug']; ?>">
+                                    <a href="<?php echo url('store/details.php?slug=' . urlencode((string) $related['slug'])); ?>">
                                         <?php if ($related['featured_image']): ?>
                                             <img src="<?php echo $related['featured_image']; ?>" 
                                                  alt="<?php echo htmlspecialchars($related['name']); ?>">
@@ -141,7 +141,7 @@ ob_start();
                                 </div>
                                 <div class="product-info p-3">
                                     <h3 class="h6 mb-1">
-                                        <a href="details.php?slug=<?php echo $related['slug']; ?>" class="text-decoration-none text-dark">
+                                        <a href="<?php echo url('store/details.php?slug=' . urlencode((string) $related['slug'])); ?>" class="text-decoration-none text-dark">
                                             <?php echo htmlspecialchars($related['name']); ?>
                                         </a>
                                     </h3>
@@ -243,7 +243,7 @@ document.querySelector('.add-to-cart-btn')?.addEventListener('click', async func
     this.disabled = true;
     
     try {
-        const response = await fetch('/Ismano/public/api/store/cart/add.php', {
+        const response = await fetch(<?php echo json_encode(url('api/store/cart/add.php')); ?>, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ product_id: productId, quantity: quantity })
@@ -261,7 +261,7 @@ document.querySelector('.add-to-cart-btn')?.addEventListener('click', async func
             }, 2000);
         } else if (data.require_login) {
             if (confirm('Please login to add items to cart. Go to login page?')) {
-                window.location.href = '/Ismano/public/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
+                window.location.href = <?php echo json_encode(url('login') . '?redirect='); ?> + encodeURIComponent(window.location.pathname);
             } else {
                 this.innerHTML = originalText;
                 this.disabled = false;
@@ -283,7 +283,7 @@ document.querySelector('.save-for-later')?.addEventListener('click', async funct
     const productId = this.dataset.product;
     
     try {
-        const response = await fetch('/Ismano/public/api/store/cart/save_for_later.php', {
+        const response = await fetch(<?php echo json_encode(url('api/store/cart/save_for_later.php')); ?>, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ product_id: productId })
@@ -295,7 +295,7 @@ document.querySelector('.save-for-later')?.addEventListener('click', async funct
             showToast('Saved for later!', 'success');
         } else if (data.require_login) {
             if (confirm('Please login to save items. Go to login page?')) {
-                window.location.href = '/Ismano/public/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
+                window.location.href = <?php echo json_encode(url('login') . '?redirect='); ?> + encodeURIComponent(window.location.pathname);
             }
         } else {
             showToast(data.message || 'Failed to save', 'error');
@@ -333,7 +333,7 @@ function showToast(message, type = 'success') {
 }
 
 function updateCartCount() {
-    fetch('/Ismano/public/api/store/cart/count.php')
+    fetch(<?php echo json_encode(url('api/store/cart/count.php')); ?>)
         .then(res => res.json())
         .then(data => {
             const cartCount = document.querySelector('.cart-count');

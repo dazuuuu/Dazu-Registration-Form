@@ -79,13 +79,14 @@ class SubmissionModel {
     public function getPendingForTutor(int $tutorId): array {
         $stmt = $this->db->prepare(
             "SELECT s.*, r.full_name, r.registration_no, c.title AS course_title,
-                    COALESCE(t.title, p.title) AS item_title, s.submission_type
+                    COALESCE(t.title, p.title, mc.title) AS item_title, s.submission_type
              FROM student_submissions s
              JOIN registrations r ON r.id = s.registration_id
              JOIN courses c ON r.course_id = c.id
-             JOIN tutor_students ts ON ts.user_id = r.user_id AND ts.tutor_id = :tid
+             JOIN tutor_students ts ON ts.user_id = r.id AND ts.tutor_id = :tid
              LEFT JOIN unit_tests t ON s.test_id = t.id
              LEFT JOIN unit_projects p ON s.project_id = p.id
+             LEFT JOIN module_contents mc ON s.module_content_id = mc.id
              WHERE s.status = 'submitted'
              ORDER BY s.submitted_at ASC"
         );
@@ -95,10 +96,11 @@ class SubmissionModel {
 
     public function getForRegistration(int $registrationId): array {
         $stmt = $this->db->prepare(
-            "SELECT s.*, COALESCE(t.title, p.title) AS item_title
+            "SELECT s.*, COALESCE(t.title, p.title, mc.title) AS item_title
              FROM student_submissions s
              LEFT JOIN unit_tests t ON s.test_id = t.id
              LEFT JOIN unit_projects p ON s.project_id = p.id
+             LEFT JOIN module_contents mc ON s.module_content_id = mc.id
              WHERE s.registration_id = :rid ORDER BY s.submitted_at DESC"
         );
         $stmt->execute([':rid' => $registrationId]);
@@ -108,12 +110,13 @@ class SubmissionModel {
     public function getById(int $id): ?array {
         $stmt = $this->db->prepare(
             "SELECT s.*, r.full_name, r.registration_no, r.course_id, c.title AS course_title,
-                    COALESCE(t.title, p.title) AS item_title, t.unit_id AS test_unit_id, p.unit_id AS project_unit_id
+                    COALESCE(t.title, p.title, mc.title) AS item_title, t.unit_id AS test_unit_id, p.unit_id AS project_unit_id
              FROM student_submissions s
              JOIN registrations r ON r.id = s.registration_id
              JOIN courses c ON r.course_id = c.id
              LEFT JOIN unit_tests t ON s.test_id = t.id
              LEFT JOIN unit_projects p ON s.project_id = p.id
+             LEFT JOIN module_contents mc ON s.module_content_id = mc.id
              WHERE s.id = :id"
         );
         $stmt->execute([':id' => $id]);

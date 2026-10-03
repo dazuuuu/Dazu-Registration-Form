@@ -35,6 +35,7 @@ $settingCards = [
     ['title' => 'Page Banners', 'subtitle' => count($pageHeaders) . ' page' . (count($pageHeaders) === 1 ? '' : 's'), 'icon' => 'fa-heading', 'color' => 'warning', 'url' => url('admin/settings/edit.php?section=headers'), 'button' => 'Edit banners'],
     ['title' => 'Contact & Map', 'subtitle' => 'Phone, email, campus map embed', 'icon' => 'fa-map-location-dot', 'color' => 'success', 'url' => url('admin/settings/edit.php?section=contact'), 'button' => 'Edit contact'],
     ['title' => 'Footer & Social Links', 'subtitle' => 'Footer contact details, social links, copyright', 'icon' => 'fa-shoe-prints', 'color' => 'secondary', 'url' => url('admin/settings/edit.php?section=footer'), 'button' => 'Edit footer'],
+    ['title' => 'Sidebar Menu Order', 'subtitle' => 'Drag admin menus into the order you want', 'icon' => 'fa-bars-staggered', 'color' => 'success', 'url' => url('admin/settings/menu.php'), 'button' => 'Arrange menu'],
     ['title' => 'Class Schedule', 'subtitle' => 'Shared online and physical class times', 'icon' => 'fa-calendar-days', 'color' => 'primary', 'url' => url('admin/settings/edit.php?section=schedule'), 'button' => 'Edit schedule'],
     ['title' => 'Popular Courses', 'subtitle' => count($popularCourses) . ' course' . (count($popularCourses) === 1 ? '' : 's') . ' on homepage', 'icon' => 'fa-star', 'color' => 'warning', 'url' => url('admin/settings/edit.php?section=popular_courses'), 'button' => 'Manage popular'],
     ['title' => 'Email (SMTP)', 'subtitle' => 'Mail server used for all system emails', 'icon' => 'fa-envelope', 'color' => 'danger', 'url' => url('admin/settings/mail.php'), 'button' => 'Edit email settings'],
@@ -59,9 +60,14 @@ ob_start();
     <h5 class="mb-1"><i class="fas fa-cog me-2"></i>Site Settings</h5>
     <div class="text-muted small">Manage branding, homepage media, public page banners, contact details, schedules, and receipts.</div>
   </div>
-  <a href="<?php echo url('admin/dashboard.php'); ?>" class="btn btn-outline-secondary btn-sm">
-    <i class="fas fa-arrow-left me-1"></i> Dashboard
-  </a>
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-outline-danger btn-sm" onclick="window.dazuClearCache && dazuClearCache(this)" title="Clears the PHP code cache, server cache files and this browser's cache — use after uploading an update">
+      <i class="fas fa-broom me-1"></i> Clear cache
+    </button>
+    <a href="<?php echo url('admin/dashboard.php'); ?>" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> Dashboard
+    </a>
+  </div>
 </div>
 
 <?php if ($flash): ?>

@@ -81,9 +81,14 @@ class TutorController {
         if ($sub['submission_type'] === 'test' && $sub['test_id']) {
             $t = (new CurriculumModel($this->db))->getTestById((int) $sub['test_id']);
             $maxMarks = (float) ($t['max_marks'] ?? 100);
-        } elseif ($sub['project_id']) {
+        } elseif ($sub['submission_type'] === 'project' && $sub['project_id']) {
             $p = (new CurriculumModel($this->db))->getProjectById((int) $sub['project_id']);
             $maxMarks = (float) ($p['max_marks'] ?? 100);
+        } elseif ($sub['submission_type'] === 'assignment' && $sub['module_content_id']) {
+            $stmt = $this->db->prepare("SELECT max_score FROM module_contents WHERE id = ?");
+            $stmt->execute([(int)$sub['module_content_id']]);
+            $mc = $stmt->fetch();
+            $maxMarks = $mc ? (float)($mc['max_score'] ?? 100) : 100;
         }
 
         $sub['marks'] = $marks;

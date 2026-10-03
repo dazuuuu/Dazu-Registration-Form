@@ -50,6 +50,28 @@ $installments  = RegistrationModel::calculateInstallments(
 );
 $learnStats = (new DashboardModel($pdo))->studentStats((int)$reg['id'], (int)$reg['course_id']);
 
+// Fetch Tutor, Timeline, and Announcements
+$stmt = $pdo->prepare("SELECT ts.*,
+                              COALESCE(NULLIF(TRIM(CONCAT_WS(' ', up.first_name, up.last_name)), ''), u.username) AS tutor_name,
+                              COALESCE(NULLIF(t.phone, ''), up.phone) AS tutor_phone, u.email AS tutor_email
+                       FROM tutor_students ts
+                       JOIN tutors t ON ts.tutor_id = t.id
+                       JOIN users u ON u.id = t.user_id
+                       LEFT JOIN user_profiles up ON up.user_id = u.id
+                       WHERE ts.user_id = ? ORDER BY ts.assigned_at DESC LIMIT 1");
+$stmt->execute([$userId]);
+$tutorData = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+$announcements = [];
+if ($tutorData) {
+    $stmt = $pdo->prepare("SELECT * FROM tutor_announcements WHERE student_id = ? ORDER BY created_at DESC LIMIT 5");
+    $stmt->execute([$userId]);
+    $announcements = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    
+    // Mark as read after fetching for popup logic
+    $pdo->prepare("UPDATE tutor_announcements SET is_read = 1 WHERE student_id = ?")->execute([$userId]);
+}
+
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $portal_locked) {
@@ -134,12 +156,111 @@ ob_start();
 
 <div class="row g-3 mb-4">
     <div class="col-md-8"><div class="card-student"><div class="card-head">Learning progress</div><div class="card-body"><canvas id="studentProgress" height="120"></canvas></div></div></div>
-    <div class="col-md-4"><div class="card-student"><div class="card-body text-center py-4">
+    <div class="col-md-4"><div class="card-student h-100"><div class="card-body text-center py-4 d-flex flex-column justify-content-center">
         <div style="font-size:3rem;font-weight:700;color:var(--brand);"><?php echo $learnStats['progress_pct']; ?>%</div>
         <div class="text-muted">Units completed (<?php echo $learnStats['units_done']; ?> / <?php echo $learnStats['units_total']; ?>)</div>
-        <a href="<?php echo url('students/course/index.php'); ?>" class="btn btn-brand mt-3 w-100">Continue learning</a>
+        
+        <?php if ($tutorData && $tutorData['timeline_days'] > 0): 
+            $startDate = new DateTime($tutorData['start_date']);
+            $endDate = clone $startDate;
+            $endDate->modify('+' . $tutorData['timeline_days'] . ' days');
+            $now = new DateTime();
+            $daysLeft = $now->diff($endDate)->format('%r%a');
+            $timelinePct = min(100, max(0, ($tutorData['timeline_days'] - $daysLeft) / $tutorData['timeline_days'] * 100));
+        ?>
+        <hr class="my-3 border-light">
+        <div class="text-start">
+            <div class="d-flex justify-content-between small text-muted mb-1">
+                <span>Study Timeline</span>
+                <span class="<?php echo $daysLeft < 0 ? 'text-danger fw-bold' : ''; ?>"><?php echo $daysLeft < 0 ? 'Overdue by ' . abs((int)$daysLeft) . ' days' : $daysLeft . ' days remaining'; ?></span>
+            </div>
+            <div class="progress" style="height: 6px;">
+                <div class="progress-bar bg-<?php echo $daysLeft < 10 ? 'warning' : 'info'; ?>" style="width: <?php echo $timelinePct; ?>%"></div>
+            </div>
+            <div class="text-muted small mt-1 text-center">Goal: <?php echo $endDate->format('d M Y'); ?></div>
+        </div>
+        <?php endif; ?>
+
+        <a href="<?php echo url('students/course/index.php'); ?>" class="btn btn-brand mt-auto w-100">Continue learning</a>
     </div></div></div>
 </div>
+
+<?php if ($tutorData): ?>
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card-student h-100">
+            <div class="card-head bg-light"><i class="fas fa-chalkboard-teacher me-2 text-brand"></i>Your Tutor</div>
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <div class="student-avatar" style="width:50px;height:50px;font-size:20px;">
+                            <?php echo substr($tutorData['tutor_name'] ?? 'T', 0, 1); ?>
+                        </div>
+                    </div>
+                    <div>
+                        <h5 class="mb-1"><?php echo htmlspecialchars($tutorData['tutor_name']); ?></h5>
+                        <p class="mb-0 text-muted small"><i class="fas fa-envelope me-1"></i> <?php echo htmlspecialchars($tutorData['tutor_email']); ?></p>
+                        <p class="mb-0 text-muted small"><i class="fas fa-phone me-1"></i> <?php echo htmlspecialchars($tutorData['tutor_phone']); ?></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <?php if (!empty($announcements)): ?>
+    <div class="col-md-6">
+        <div class="card-student h-100">
+            <div class="card-head bg-light d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-bullhorn me-2 text-warning"></i>Announcements</span>
+                <span class="badge bg-danger rounded-pill"><?php echo count(array_filter($announcements, fn($a) => $a['is_read'] == 0)); ?> New</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush" style="max-height: 150px; overflow-y: auto;">
+                    <?php foreach ($announcements as $ann): ?>
+                        <div class="list-group-item <?php echo $ann['is_read'] == 0 ? 'bg-light' : ''; ?>">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1 <?php echo $ann['is_read'] == 0 ? 'fw-bold' : ''; ?>"><?php echo htmlspecialchars($ann['title']); ?></h6>
+                                <small class="text-muted"><?php echo date('M d', strtotime($ann['created_at'])); ?></small>
+                            </div>
+                            <p class="mb-1 small text-muted"><?php echo nl2br(htmlspecialchars($ann['message'])); ?></p>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+</div>
+
+<?php 
+// Show popup for unread announcements
+$unreadCount = count(array_filter($announcements, fn($a) => $a['is_read'] == 0));
+if ($unreadCount > 0):
+?>
+    <div class="modal fade" id="announcementModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header bg-warning bg-opacity-10 border-0">
+                    <h5 class="modal-title text-warning-dark fw-bold"><i class="fas fa-bell me-2"></i>You have <?php echo $unreadCount; ?> new announcement<?php echo $unreadCount > 1 ? 's' : ''; ?></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <?php foreach (array_filter($announcements, fn($a) => $a['is_read'] == 0) as $ann): ?>
+                        <div class="mb-3 border-bottom pb-2">
+                            <h6 class="fw-bold"><?php echo htmlspecialchars($ann['title']); ?> <small class="text-muted float-end"><?php echo date('M d', strtotime($ann['created_at'])); ?></small></h6>
+                            <p class="mb-0 text-muted"><?php echo nl2br(htmlspecialchars($ann['message'])); ?></p>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-brand w-100" data-bs-dismiss="modal">Got it</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <?php $extra_js = ($extra_js ?? '') . "<script>document.addEventListener('DOMContentLoaded', function() { var myModal = new bootstrap.Modal(document.getElementById('announcementModal')); myModal.show(); });</script>"; ?>
+<?php endif; ?>
+<?php endif; ?>
 
 <div class="row g-3 mb-4">
     <div class="col-md-3 col-6">

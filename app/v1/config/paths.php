@@ -157,10 +157,44 @@ if (!defined('WEB_ROOT')) {
     define('WEB_ROOT', rtrim((string) $webRoot, '/') ?: '');
 }
 
+if (!function_exists('dazu_pretty_path')) {
+    /**
+     * Clean public URLs: auth/login.php → login, blogs/index.php → blog, blogs/readmore.php?slug=x → blog/x,
+     * contact/index.php → contact, courses/view.php?id=3 → courses/view?id=3. public/.htaccess maps them back.
+     * Only public website sections are changed — admin, portals, API and file paths are left exactly as given.
+     * PHP's built-in dev server ignores .htaccess, so it keeps the .php paths unless app/v1/tools/dev_router.php is used.
+     */
+    function dazu_pretty_path(string $path): string
+    {
+        if (PHP_SAPI === 'cli-server' && !defined('DAZU_PRETTY_ROUTER')) {
+            return $path;
+        }
+        $query = '';
+        if (($q = strpos($path, '?')) !== false) {
+            $query = substr($path, $q + 1);
+            $path = substr($path, 0, $q);
+        }
+        $fixed = [
+            'index.php' => '', 'auth/login.php' => 'login', 'auth/forgot_password.php' => 'forgot-password',
+            'auth/reset_password.php' => 'reset-password', 'blogs' => 'blog', 'blogs/' => 'blog', 'blogs/index.php' => 'blog',
+        ];
+        if (isset($fixed[$path])) {
+            $path = $fixed[$path];
+        } elseif ($path === 'blogs/readmore.php' && preg_match('/(?:^|&)slug=([^&]+)/', $query, $m)) {
+            $path = 'blog/' . $m[1];
+            $query = trim(preg_replace('/(?:^|&)slug=[^&]+/', '', $query), '&');
+        } elseif (preg_match('#^(about|apply|blogs|contact|courses|gallery|projects|services|store|testimonials|verify)/(?:(.+?)\.php|index\.php)?$#', $path, $m)) {
+            $page = $m[2] ?? '';
+            $path = $m[1] . ($page !== '' && $page !== 'index' ? '/' . $page : '');
+        }
+        return $path . ($query !== '' ? '?' . $query : '');
+    }
+}
+
 /** Web URL from site root (public). Example: url('auth/login.php') */
 if (!function_exists('url')) {
     function url(string $path = ''): string {
-        $path = ltrim($path, '/');
+        $path = dazu_pretty_path(ltrim($path, '/'));
         if (WEB_ROOT === '') {
             return '/' . $path;
         }

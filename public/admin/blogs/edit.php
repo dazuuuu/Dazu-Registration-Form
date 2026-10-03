@@ -296,24 +296,24 @@ function dazu_block_preview(array $s): string {
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Feature this post</label>
+                        <label class="form-label">Show in Popular slider</label>
                         <select name="is_featured" class="form-select">
                             <option value="0" <?php echo $blog['is_featured'] ? '' : 'selected'; ?>>No</option>
                             <option value="1" <?php echo $blog['is_featured'] ? 'selected' : ''; ?>>Yes</option>
                         </select>
-                        <small class="text-muted">Featured posts appear on the homepage</small>
+                        <small class="text-muted">Ticked posts rotate in the slider at the top of the Blog page. If no post is ticked, the slider section is hidden.</small>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Featured Image</label>
+                        <label class="form-label">Cover Image <span class="text-danger">*</span></label>
                         <?php if ($blog['featured_image']): ?>
                         <div class="current-image">
                             <img src="<?php echo htmlspecialchars($blog['featured_image']); ?>" class="preview-image">
                             <small class="text-muted d-block mt-1">Current image</small>
                         </div>
                         <?php endif; ?>
-                        <input type="file" name="featured_image" id="featured_image" class="form-control" accept="image/*">
+                        <input type="file" name="featured_image" id="featured_image" class="form-control" accept="image/jpeg,image/png,image/webp,image/gif" <?php echo empty($blog['featured_image']) ? 'required' : ''; ?>>
                         <img id="imagePreview" class="preview-image" style="display:none;">
-                        <small class="text-muted">Recommended size: 1200x800 pixels</small>
+                        <small class="text-muted"><?php echo empty($blog['featured_image']) ? 'Required — this post has no cover yet. ' : 'Upload only to replace the current cover. '; ?>Landscape, about 1200×800.</small>
                     </div>
                     <button type="submit" class="btn-primary-custom">
                         <i class="fas fa-save me-2"></i> Update Post
@@ -335,6 +335,7 @@ function dazu_block_preview(array $s): string {
                         </option>
                         <?php endforeach; ?>
                     </select>
+                <a href="categories.php" class="small d-inline-block mt-2"><i class="fas fa-folder-plus me-1"></i>Manage categories</a>
                 </div>
             </div>
             

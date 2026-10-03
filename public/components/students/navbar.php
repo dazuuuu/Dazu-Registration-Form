@@ -23,11 +23,15 @@ $portalLocked = $portal_locked ?? false;
                 </a>
                 <a href="<?php echo url('students/payments/index.php'); ?>"
                    class="nav-link-sm <?php echo $current_dir === 'payments' ? 'active' : ''; ?>">
-                    <i class="fas fa-money-bill-wave"></i> <span>Payments</span>
+                    <i class="fas fa-money-bill-wave"></i> <span>Finance</span>
                 </a>
                 <a href="<?php echo url('students/resources/index.php'); ?>"
                    class="nav-link-sm <?php echo $current_dir === 'resources' ? 'active' : ''; ?>">
                     <i class="fas fa-folder-open"></i> <span>Resources</span>
+                </a>
+                <a href="<?php echo url('students/certificates/index.php'); ?>"
+                   class="nav-link-sm <?php echo $current_dir === 'certificates' ? 'active' : ''; ?>">
+                    <i class="fas fa-certificate"></i> <span>Certificates</span>
                 </a>
             <?php endif; ?>
         </div>
@@ -47,7 +51,10 @@ $portalLocked = $portal_locked ?? false;
                             <i class="fas fa-folder-open me-2"></i> Resources
                         </a></li>
                         <li><a class="dropdown-item" href="<?php echo url('students/payments/index.php'); ?>">
-                            <i class="fas fa-receipt me-2"></i> Payment History
+                            <i class="fas fa-receipt me-2"></i> Finance
+                        </a></li>
+                        <li><a class="dropdown-item" href="<?php echo url('students/certificates/index.php'); ?>">
+                            <i class="fas fa-certificate me-2"></i> Certificates
                         </a></li>
                         <li><hr class="dropdown-divider"></li>
                     <?php endif; ?>

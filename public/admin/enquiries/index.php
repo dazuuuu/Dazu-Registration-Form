@@ -12,7 +12,7 @@ $breadcrumbs = [['label' => 'Enquiries', 'active' => true]];
 
 // Get filter parameters
 $status = $_GET['status'] ?? 'all';
-$search = $_GET['search'] ?? null;
+$search = $_GET['search'] ?? '';
 $limit = 20;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;

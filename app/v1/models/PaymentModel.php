@@ -127,6 +127,35 @@ class PaymentModel {
         return (int) $this->db->lastInsertId();
     }
 
+    /**
+     * Correct the amount on an already-recorded payment (e.g. admin mistyped it). Only touches
+     * approved payments — pending/rejected ones go through the normal approve/reject flow instead.
+     * Appends a note of the correction for an audit trail; the caller regenerates the receipt.
+     */
+    public function correctAmount(int $paymentId, float $newAmount, int $adminId): array {
+        $payment = $this->getById($paymentId);
+        if (!$payment || $payment['status'] !== 'approved') {
+            return ['ok' => false, 'error' => 'Payment not found or not approved.'];
+        }
+        if ($newAmount <= 0) {
+            return ['ok' => false, 'error' => 'Enter an amount greater than zero.'];
+        }
+        $oldAmount = (float) $payment['amount'];
+        if (abs($oldAmount - $newAmount) < 0.005) {
+            return ['ok' => false, 'error' => 'That is already the recorded amount.'];
+        }
+        $note = trim((string) ($payment['notes'] ?? ''));
+        $correction = sprintf('Corrected from KES %s to KES %s on %s', number_format($oldAmount, 2), number_format($newAmount, 2), date('d M Y H:i'));
+        $note = $note !== '' ? $note . ' · ' . $correction : $correction;
+
+        $stmt = $this->db->prepare(
+            'UPDATE payments SET amount = :amount, notes = :notes, reviewed_by = :admin, reviewed_at = NOW() WHERE id = :id'
+        );
+        $stmt->execute([':amount' => $newAmount, ':notes' => $note, ':admin' => $adminId, ':id' => $paymentId]);
+
+        return ['ok' => true, 'old_amount' => $oldAmount, 'new_amount' => $newAmount];
+    }
+
     public function approve(int $paymentId, int $adminId, string $receiptNo, string $receiptHtml): bool {
         $stmt = $this->db->prepare(
             "UPDATE payments

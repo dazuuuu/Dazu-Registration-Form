@@ -37,7 +37,7 @@ class RegistrationController {
      *
      * @return array{ok:bool, error?:string, reg_no?:string, user_id?:int}
      */
-    public function approve(int $registrationId, bool $waiveRegFee, int $reviewedBy): array {
+    public function approve(int $registrationId, bool $waiveRegFee, int $reviewedBy, ?float $depositAmount = null): array {
         $reg = $this->regModel->getById($registrationId);
         if (!$reg) return ['ok' => false, 'error' => 'Registration not found.'];
         if ($reg['status'] !== 'pending') return ['ok' => false, 'error' => 'This registration has already been reviewed.'];
@@ -127,7 +127,7 @@ class RegistrationController {
             $approvedReg['registration_no'] = $regNo;
 
             $studentCtrl = new StudentController();
-            $paymentResult = $studentCtrl->recordInitialPayment($approvedReg, $adminId);
+            $paymentResult = $studentCtrl->recordInitialPayment($approvedReg, $adminId, $depositAmount);
             if (!empty($paymentResult['ok'])) {
                 $this->studentModel()->unlockPortal($registrationId);
             }

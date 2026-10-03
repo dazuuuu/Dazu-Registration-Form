@@ -132,6 +132,7 @@ class ManualOnboardController {
                 $fullName,
                 $email,
                 $phone,
+                $data['secondary_phone'] ?? '',
                 $course,
                 $enrollment,
                 $userId,
@@ -228,6 +229,7 @@ class ManualOnboardController {
         string $fullName,
         string $email,
         string $phone,
+        string $secondaryPhone,
         array $course,
         array $enrollment,
         int $userId,
@@ -235,13 +237,13 @@ class ManualOnboardController {
     ): int {
         $stmt = $this->db->prepare(
             "INSERT INTO registrations
-             (registration_no, full_name, email, phone, course_id, study_mode, id_document_path,
+             (registration_no, full_name, email, phone, secondary_phone, course_id, study_mode, id_document_path,
               registration_fee, course_fee, payment_plan, installment_count, installment_amount,
               payment_reference, possible_returning_student, enrollment_type, current_learning_month,
               fee_balance_note, fee_status, registration_fee_waived, installments_paid,
               status, reviewed_by, reviewed_at, user_id, portal_locked)
              VALUES
-             (:reg_no, :full_name, :email, :phone, :course_id, :study_mode, :id_doc,
+             (:reg_no, :full_name, :email, :phone, :secondary_phone, :course_id, :study_mode, :id_doc,
               :reg_fee, :course_fee, :plan, :inst_count, :inst_amount,
               :pay_ref, 0, 'continuing', :learning_month, :fee_note, :fee_status, :waived, :inst_paid,
               'approved', :admin, NOW(), :user_id, :locked)"
@@ -251,6 +253,7 @@ class ManualOnboardController {
             ':full_name'      => $fullName,
             ':email'          => $email,
             ':phone'          => $phone,
+            ':secondary_phone'=> $secondaryPhone,
             ':course_id'      => (int) $course['id'],
             ':study_mode'     => $enrollment['study_mode'],
             ':id_doc'         => 'admin/manual-onboarding',

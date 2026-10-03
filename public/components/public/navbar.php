@@ -107,7 +107,7 @@ $navLinks = [
                 </div>
             <?php else: ?>
                 <a href="<?php echo url('auth/login.php'); ?>" class="dh-nav-link dh-nav-login"><i class="fas fa-sign-in-alt"></i> Login</a>
-                <a href="<?php echo url('auth/student_register.php'); ?>" class="dh-btn dh-btn-primary dh-nav-cta">Apply Now</a>
+                <a href="<?php echo url('apply'); ?>" class="dh-btn dh-btn-primary dh-nav-cta">Apply Now</a>
             <?php endif; ?>
 
             <button class="dh-hamburger" id="dhHamburger" aria-label="Open menu" aria-expanded="false" aria-controls="dhDrawer">
@@ -130,7 +130,7 @@ $navLinks = [
                 <?php echo htmlspecialchars($link['label']); ?>
             </a>
         <?php endforeach; ?>
-        <a class="dh-drawer-link" href="<?php echo url('auth/student_register.php'); ?>" style="--di:7"><i class="fas fa-pen-to-square"></i> Apply Now</a>
+        <a class="dh-drawer-link" href="<?php echo url('apply'); ?>" style="--di:7"><i class="fas fa-pen-to-square"></i> Apply Now</a>
         <hr class="dh-drawer-divider" style="--di:8">
         <?php if ($isLoggedIn): ?>
             <?php if ($isAdmin): ?>

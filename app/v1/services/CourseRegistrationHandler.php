@@ -42,6 +42,7 @@ class CourseRegistrationHandler
             'full_name'         => $post['full_name'] ?? '',
             'email'             => $post['email'] ?? '',
             'phone'             => $post['phone'] ?? '',
+            'secondary_phone'   => $post['secondary_phone'] ?? '',
             'course_id'         => $course['id'],
             'study_mode'        => $post['study_mode'] ?? 'online',
             'payment_plan'      => $post['payment_plan'] ?? 'monthly',

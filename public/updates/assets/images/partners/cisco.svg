@@ -1,9 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" fill="none">
-  <rect x="2" y="24" width="3" height="10" rx="1.5" fill="#049FD9"/>
-  <rect x="8" y="18" width="3" height="16" rx="1.5" fill="#049FD9"/>
-  <rect x="14" y="14" width="3" height="20" rx="1.5" fill="#049FD9"/>
-  <rect x="20" y="18" width="3" height="16" rx="1.5" fill="#049FD9"/>
-  <rect x="26" y="24" width="3" height="10" rx="1.5" fill="#049FD9"/>
-  <text x="38" y="32" font-family="'Plus Jakarta Sans', sans-serif" font-size="18" font-weight="800" fill="#334155">CISCO</text>
-  <text x="104" y="32" font-family="'Plus Jakarta Sans', sans-serif" font-size="12" font-weight="600" fill="#049FD9">Networking</text>
-</svg>

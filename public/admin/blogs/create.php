@@ -124,8 +124,9 @@ $allTags = $blogController->getAllTags();
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Featured Image</label>
-                    <input type="file" name="featured_image" id="featured_image" class="form-control" accept="image/*" form="createBlogForm">
+                    <label class="form-label">Cover Image <span class="text-danger">*</span></label>
+                    <input type="file" name="featured_image" id="featured_image" class="form-control" accept="image/jpeg,image/png,image/webp,image/gif" form="createBlogForm" required>
+                    <small class="text-muted d-block">Required. Landscape works best (about 1200×800). It is cropped to fit the blog cards.</small>
                     <img id="imagePreview" class="preview-image" style="display:none;">
                 </div>
             </div>
@@ -142,6 +143,7 @@ $allTags = $blogController->getAllTags();
                     <option value="<?php echo $category['id']; ?>"><?php echo htmlspecialchars($category['name']); ?></option>
                     <?php endforeach; ?>
                 </select>
+                <a href="categories.php" class="small d-inline-block mt-2"><i class="fas fa-folder-plus me-1"></i>Manage categories</a>
             </div>
         </div>
         
@@ -157,12 +159,12 @@ $allTags = $blogController->getAllTags();
         
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-star me-2"></i> Featured
+                <i class="fas fa-fire me-2"></i> Popular slider
             </div>
             <div class="card-body">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" name="is_featured" value="1" form="createBlogForm">
-                    <label class="form-check-label">Feature this post (shows on homepage)</label>
+                    <label class="form-check-label">Show in the Popular slider at the top of the Blog page</label>
                 </div>
             </div>
         </div>

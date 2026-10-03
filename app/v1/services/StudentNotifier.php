@@ -505,6 +505,23 @@ class StudentNotifier {
         $data['due_date'] = $reg['next_payment_due'] ?? '';
         return $this->send($reg['email'], $reg['full_name'], 'portal_locked', $data);
     }
+
+    public function sendCertificate(array $reg, array $cert): array {
+        $data = $this->baseData($reg);
+        $data['course_title'] = $cert['course_name'] ?? ($reg['course_title'] ?? '');
+        $data['certificate_url'] = $this->fullUrl(url('students/certificates/index.php'));
+        return $this->send($reg['email'], $reg['full_name'], 'certificate_issued', $data);
+    }
+
+    /** Certificate email with the PDF attached, to the student's address or to $toEmail when given. */
+    public function sendCertificatePdf(array $reg, array $cert, string $pdfPath, ?string $toEmail = null): array {
+        $data = $this->baseData($reg);
+        $data['course_title'] = $cert['snapshot_course'] ?? ($cert['course_name'] ?? '');
+        $data['certificate_url'] = $this->fullUrl(url('students/certificates/index.php'));
+        $data['pdf_attached'] = true;
+        $fileName = 'Certificate_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', (string) $cert['certificate_no']) . '.pdf';
+        return $this->send($toEmail ?: $reg['email'], $reg['full_name'], 'certificate_issued', $data, $pdfPath, $fileName);
+    }
 }
 }
 

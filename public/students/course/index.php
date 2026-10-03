@@ -35,6 +35,17 @@ if (empty($progress) && !empty($units)) {
 $progressMap = [];
 foreach ($progress as $p) $progressMap[(int)$p['unit_id']] = $p;
 
+// Fetch tutor specific modules if the student has a tutor
+$tutorModules = [];
+$stmt = $pdo->prepare("SELECT t.id FROM tutor_students ts JOIN tutors t ON ts.tutor_id = t.id WHERE ts.user_id = ? LIMIT 1");
+$stmt->execute([(int)$reg['id']]); // Wait, user_id in tutor_students is the registration_id!
+$assignedTutor = $stmt->fetch();
+if ($assignedTutor) {
+    $stmt = $pdo->prepare("SELECT * FROM course_modules WHERE course_id = ? AND tutor_id = ? ORDER BY order_index ASC, created_at ASC");
+    $stmt->execute([(int)$reg['course_id'], $assignedTutor['id']]);
+    $tutorModules = $stmt->fetchAll();
+}
+
 $portal_locked = (bool)$reg['portal_locked'];
 $page_title = 'My Course';
 ob_start();
@@ -89,8 +100,38 @@ ob_start();
 </div>
 <?php endforeach; ?>
 </div>
+</div>
 <?php endif; ?>
 </div></div>
+
+<?php if (!empty($tutorModules)): ?>
+<div class="card-student mt-4"><div class="card-head"><i class="fas fa-layer-group me-2"></i>Tutor Extra Modules</div><div class="card-body p-0">
+    <div class="list-group list-group-flush">
+    <?php foreach ($tutorModules as $tm): 
+        $stmt = $pdo->prepare("SELECT type, COUNT(*) as cnt FROM module_contents WHERE module_id = ? GROUP BY type");
+        $stmt->execute([$tm['id']]);
+        $counts = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+    ?>
+    <div class="list-group-item p-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <h6 class="mb-0 fw-bold"><?php echo htmlspecialchars($tm['title']); ?></h6>
+            <?php if (!$portal_locked): ?>
+            <a href="tutor_module.php?id=<?php echo $tm['id']; ?>" class="btn btn-sm btn-outline-brand">View Module</a>
+            <?php endif; ?>
+        </div>
+        <?php if ($tm['description']): ?>
+            <p class="text-muted small mb-2"><?php echo htmlspecialchars($tm['description']); ?></p>
+        <?php endif; ?>
+        <div class="small text-muted">
+            <span class="me-3"><i class="fas fa-file-alt me-1"></i> <?php echo $counts['material'] ?? 0; ?> Materials</span>
+            <span class="me-3"><i class="fas fa-tasks me-1"></i> <?php echo $counts['assignment'] ?? 0; ?> Assignments</span>
+            <span><i class="fas fa-question-circle me-1"></i> <?php echo $counts['question'] ?? 0; ?> Questions</span>
+        </div>
+    </div>
+    <?php endforeach; ?>
+    </div>
+</div></div>
+<?php endif; ?>
 
 <?php $content = ob_get_clean();
 require __DIR__ . '/../../templates/students/layout.php';

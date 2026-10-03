@@ -10,6 +10,7 @@ $sa_nav = [
     ['Payments',  'superadmin/payments/index.php',      '/superadmin/payments/',     'fa-money-bill-wave'],
     ['Salaries',  'superadmin/payroll/index.php',       '/superadmin/payroll/',      'fa-wallet'],
     ['Admins',    'superadmin/admins/index.php',        '/superadmin/admins/',       'fa-user-shield'],
+    ['Certificates','superadmin/certificates/index.php', '/certificates/',            'fa-certificate'],
     ['Finance',   'superadmin/sms/finance/index.php',   '/sms/finance/',             'fa-chart-line'],
     ['Sales',     'superadmin/sms/sales/index.php',     '/sms/sales/',               'fa-cash-register'],
 ];
@@ -26,6 +27,7 @@ $sa_more = [
         ['Add a course', 'superadmin/courses/create.php', 'fa-plus'],
         ['Categories', 'superadmin/courses/categories.php', 'fa-tags'],
         ['Classes', 'superadmin/courses/classes.php', 'fa-graduation-cap'],
+        ['Certificates', 'superadmin/certificates/index.php', 'fa-certificate'],
     ],
     'Money' => [
         ['Payments', 'superadmin/payments/index.php', 'fa-money-bill-wave'],

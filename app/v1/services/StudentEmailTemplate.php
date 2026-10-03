@@ -224,6 +224,25 @@ class StudentEmailTemplate {
                     ),
                 ];
 
+            case 'certificate_issued':
+                $certUrl = $data['certificate_url'] ?? '';
+                return [
+                    'Your Certificate is Ready! — Dazu Training Institute',
+                    self::layout(
+                        'Certificate Issued',
+                        '<p>Hi ' . self::e($data['full_name']) . ',</p>'
+                        . '<p>Congratulations! Your certificate for <strong>' . self::e($data['course_title'] ?? '') . '</strong> has been issued.</p>'
+                        . (!empty($data['pdf_attached'])
+                            ? '<p>Your certificate is attached to this email as a PDF. You can also download it any time from your student portal.</p>'
+                            : '<p>You can now view and download your official certificate from your student portal.</p>')
+                        . ($certUrl !== ''
+                            ? '<p style="text-align:center;margin:24px 0;">'
+                                . '<a href="' . self::e($certUrl) . '" style="background:#0f766e;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;">View Certificate</a>'
+                                . '</p>'
+                            : '')
+                    ),
+                ];
+
             default:
                 return ['Notification — Dazu Training Institute', self::layout('Notification', '<p>You have a new notification from Dazu Training Institute.</p>')];
         }

@@ -22,6 +22,7 @@
  *  - Output is always JSON. Stray warnings/notices are buffered so they can never
  *    corrupt the JSON body (the #1 cause of "response.json() failed" in the old code).
  */
+require_once __DIR__ . '/../../../../app/v1/config/paths.php';
 
 ini_set('display_errors', '0');
 error_reporting(E_ALL);
@@ -232,7 +233,7 @@ try {
                     'success'       => false,
                     'message'       => 'Please login to add items to cart',
                     'require_login' => true,
-                    'login_url'     => '/Ismano/public/auth/login.php',
+                    'login_url'     => url('login'),
                 ]);
             }
 

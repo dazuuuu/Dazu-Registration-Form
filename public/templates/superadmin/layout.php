@@ -67,5 +67,6 @@ $flashes = ['success' => 'check-circle', 'error' => 'exclamation-circle', 'warni
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="<?php echo sa_asset('superadmin/app.js'); ?>"></script>
 <?php if (isset($extra_js)) echo $extra_js; ?>
+<?php require __DIR__ . '/../../components/cache_guard.php'; ?>
 </body>
 </html>

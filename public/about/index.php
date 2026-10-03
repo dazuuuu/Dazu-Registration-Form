@@ -230,44 +230,91 @@ ob_start();
 </script>
 
 <!-- Team -->
-<section class="bg-white border-t border-slate-100 py-20">
-  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
-    <div class="max-w-2xl mb-12">
-      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">The people behind Dazu Training Institute</span>
-      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Meet Our Team</h2>
-      <p class="text-slate-600 font-medium mt-4">Our founder, senior developer and tutors work together to make every learning experience practical and career-focused.</p>
-    </div>
-
-    <?php if (!$teamMembers): ?>
-      <p class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-slate-600">Our team profiles will be available soon.</p>
-    <?php else: ?>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
-        <?php foreach ($teamMembers as $t): ?>
-          <article class="group mx-auto w-full max-w-[320px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/70">
-            <div class="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-emerald-100 via-slate-100 to-white">
-              <?php if (!empty($t['photo_path'])): ?>
-                <img class="h-full w-full object-cover transition duration-500 group-hover:scale-105" src="<?php echo htmlspecialchars(url($t['photo_path']), ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($t['name'], ENT_QUOTES); ?>">
-              <?php else: ?>
-                <div class="flex h-full w-full items-center justify-center bg-[#0c1f17] text-6xl font-extrabold text-white">
-                  <?php echo htmlspecialchars(strtoupper(substr($t['name'], 0, 1))); ?>
-                </div>
-              <?php endif; ?>
-              <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-950/45 to-transparent"></div>
-              <span class="absolute bottom-4 left-4 rounded-full bg-white/95 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-widest text-[#15803d] shadow-sm"><?php echo htmlspecialchars($t['role']); ?></span>
-            </div>
-            <div class="p-5">
-              <h3 class="text-lg font-extrabold tracking-tight text-slate-950"><?php echo htmlspecialchars($t['name']); ?></h3>
-              <span class="mt-1 block text-xs font-extrabold uppercase tracking-wider text-[#15A24A]"><?php echo htmlspecialchars($t['role']); ?></span>
-              <p class="mt-2 text-sm leading-relaxed text-slate-600"><?php echo htmlspecialchars($t['bio'] ?? ''); ?></p>
-              <div class="mt-5 flex items-center gap-2 border-t border-slate-100 pt-3 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                <span class="h-2 w-2 rounded-full bg-[#15A24A]"></span>
-                Dazu Training Institute team
-              </div>
-            </div>
-          </article>
-        <?php endforeach; ?>
+<?php
+// Social icon links for a team member — only fields that are filled in are shown.
+$teamIcons = [
+  'phone'     => ['Call', '<path d="M6.6 10.8a15.1 15.1 0 006.6 6.6l2.2-2.2a1 1 0 011-.25 11.4 11.4 0 003.6.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.57a1 1 0 01-.25 1z"/>'],
+  'email'     => ['Email', '<path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5z"/>'],
+  'whatsapp'  => ['WhatsApp', '<path d="M17.5 14.4c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.47-.88-.79-1.47-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.38-.02-.53-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.08c.15.2 2.1 3.2 5.08 4.49.71.3 1.27.49 1.7.63.72.23 1.37.2 1.88.12.58-.09 1.75-.72 2-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35zM12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.15l-.3-.18-3 .78.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/>'],
+  'tiktok'    => ['TikTok', '<path d="M16.6 5.8A4.3 4.3 0 0115.5 3h-3.1v12.4a2.6 2.6 0 11-2.6-2.6c.27 0 .53.04.78.12V9.7a5.8 5.8 0 105 5.7V9.1a7.4 7.4 0 004.3 1.4V7.4a4.3 4.3 0 01-3.3-1.6z"/>'],
+  'linkedin'  => ['LinkedIn', '<path d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zm7 0h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.6c0-1.33-.02-3.05-1.86-3.05-1.86 0-2.15 1.45-2.15 2.95V21h-4z"/>'],
+  'facebook'  => ['Facebook', '<path d="M22 12a10 10 0 10-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.78-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0022 12z"/>'],
+  'instagram' => ['Instagram', '<path d="M12 7.3a4.7 4.7 0 100 9.4 4.7 4.7 0 000-9.4zm0 7.7a3 3 0 110-6 3 3 0 010 6zm6-7.9a1.1 1.1 0 11-2.2 0 1.1 1.1 0 012.2 0zM21.9 8.1c-.1-1.6-.4-3-1.6-4.2S17.7 2.2 16 2.1C14.4 2 9.6 2 8 2.1c-1.6.1-3 .4-4.2 1.6S2.2 6.3 2.1 8c-.1 1.6-.1 6.4 0 8 .1 1.6.4 3 1.6 4.2s2.6 1.5 4.2 1.6c1.6.1 6.4.1 8 0 1.6-.1 3-.4 4.2-1.6s1.5-2.6 1.6-4.2c.1-1.6.1-6.4 0-8zm-2 9.7a3 3 0 01-1.7 1.7c-1.2.5-4 .4-5.2.4s-4.1.1-5.2-.4a3 3 0 01-1.7-1.7c-.5-1.2-.4-4-.4-5.3s-.1-4.1.4-5.2a3 3 0 011.7-1.7C7.9 5.1 10.7 5.2 12 5.2s4.1-.1 5.2.4a3 3 0 011.7 1.7c.5 1.2.4 4 .4 5.2s.1 4.1-.4 5.3z"/>'],
+];
+$teamHref = static function (string $key, string $v): string {
+  $v = trim($v);
+  if ($key === 'phone') return 'tel:' . preg_replace('/[^\d+]/', '', $v);
+  if ($key === 'email') return 'mailto:' . $v;
+  if ($key === 'whatsapp') {
+    if (preg_match('#^https?://#i', $v)) return $v;
+    $d = preg_replace('/\D/', '', $v);
+    if (str_starts_with($d, '0')) $d = '254' . substr($d, 1); // Kenyan local number → international
+    return 'https://wa.me/' . $d;
+  }
+  return preg_match('#^https?://#i', $v) ? $v : 'https://' . ltrim($v, '/');
+};
+?>
+<style>
+.dz-team{background:#f6f8f7;border-top:1px solid #eef2f0;padding:80px 16px}
+.dz-team *{box-sizing:border-box}
+.dz-team-wrap{max-width:1040px;margin:0 auto}
+.dz-team-grid{display:grid;grid-template-columns:1fr;gap:20px}
+@media(min-width:600px){.dz-team-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:960px){.dz-team-grid{grid-template-columns:repeat(3,1fr);gap:24px}}
+.dz-team-intro{background:#15803d;background:linear-gradient(160deg,#16a34a,#14532d);color:#fff;border-radius:14px;padding:32px 28px;display:flex;flex-direction:column;justify-content:center;min-height:280px}
+.dz-team-intro h2{font-size:30px;line-height:1.2;font-weight:800;margin:0 0 14px;letter-spacing:-.01em}
+.dz-team-intro p{font-size:15px;line-height:1.6;opacity:.9;margin:0 0 24px}
+.dz-team-intro a{align-self:flex-start;background:#fff;color:#14532d;font-size:13px;font-weight:700;padding:10px 20px;border-radius:999px;text-decoration:none;transition:.15s}
+.dz-team-intro a:hover{background:#dcfce7}
+.dz-team-card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.04);transition:transform .25s,box-shadow .25s}
+.dz-team-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(15,23,42,.12)}
+.dz-team-photo{aspect-ratio:1/0.95;background:#e8efe9;overflow:hidden}
+.dz-team-photo img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;transition:transform .5s}
+.dz-team-card:hover .dz-team-photo img{transform:scale(1.04)}
+.dz-team-initial{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:800;color:#fff;background:#14532d}
+.dz-team-info{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 18px 20px}
+.dz-team-info h3{font-size:16px;font-weight:600;color:#0f172a;margin:0 0 4px}
+.dz-team-info span{font-size:13px;color:#64748b}
+.dz-team-social{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;max-width:55%;padding-top:2px}
+.dz-team-social a{color:#334155;display:inline-flex;transition:color .15s}
+.dz-team-social a:hover{color:#16a34a}
+.dz-team-social svg{width:17px;height:17px;fill:currentColor}
+.dz-team-empty{border:1px dashed #cbd5e1;border-radius:14px;padding:40px;text-align:center;color:#64748b;background:#fff}
+</style>
+<section class="dz-team" id="team">
+  <div class="dz-team-wrap">
+    <div class="dz-team-grid">
+      <div class="dz-team-intro">
+        <h2>Meet our team</h2>
+        <p>Our founder, developers and tutors work together to make every learning experience practical and career-focused.</p>
+        <a href="<?php echo url('contact'); ?>">Join the team</a>
       </div>
-    <?php endif; ?>
+      <?php if (!$teamMembers): ?>
+        <div class="dz-team-empty" style="grid-column:span 2">Our team profiles will be available soon.</div>
+      <?php endif; ?>
+      <?php foreach ($teamMembers as $t): ?>
+        <article class="dz-team-card">
+          <div class="dz-team-photo">
+            <?php if (!empty($t['photo_path'])): ?>
+              <img src="<?php echo htmlspecialchars(url($t['photo_path']), ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($t['name'], ENT_QUOTES); ?>" loading="lazy">
+            <?php else: ?>
+              <div class="dz-team-initial"><?php echo htmlspecialchars(strtoupper(substr($t['name'], 0, 1))); ?></div>
+            <?php endif; ?>
+          </div>
+          <div class="dz-team-info">
+            <div>
+              <h3><?php echo htmlspecialchars($t['name']); ?></h3>
+              <span><?php echo htmlspecialchars($t['role']); ?></span>
+            </div>
+            <div class="dz-team-social">
+              <?php foreach ($teamIcons as $key => [$label, $path]): $v = trim((string) ($t[$key] ?? '')); if ($v === '') continue; $ext = !in_array($key, ['phone', 'email'], true); ?>
+                <a href="<?php echo htmlspecialchars($teamHref($key, $v), ENT_QUOTES); ?>" aria-label="<?php echo htmlspecialchars($label . ' ' . $t['name'], ENT_QUOTES); ?>" title="<?php echo $label; ?>"<?php echo $ext ? ' target="_blank" rel="noopener"' : ''; ?>><svg viewBox="0 0 24 24" aria-hidden="true"><?php echo $path; ?></svg></a>
+              <?php endforeach; ?>
+            </div>
+          </div>
+        </article>
+      <?php endforeach; ?>
+    </div>
   </div>
 </section>
 

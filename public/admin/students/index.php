@@ -63,7 +63,7 @@ $tutorSql = $tutorsReady
         LEFT JOIN user_profiles tup ON tup.user_id = tu.id WHERE ts.user_id = r.user_id)"
     : "NULL";
 $rows = $pdo->query(
-    "SELECT r.id, r.full_name, r.email, r.phone, r.registration_no, r.created_at, r.course_fee, r.registration_fee, r.registration_fee_waived,
+    "SELECT r.id, r.full_name, r.email, r.phone, r.secondary_phone, r.registration_no, r.created_at, r.course_fee, r.registration_fee, r.registration_fee_waived,
             c.title AS course_title, r.study_mode, " . study_location_col($pdo) . " AS study_location, $tutorSql AS tutors,
             (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.registration_id = r.id AND p.status = 'approved') AS paid
      FROM registrations r LEFT JOIN courses c ON c.id = r.course_id
@@ -110,7 +110,7 @@ ob_start();
         </thead>
         <tbody id="stBody">
         <?php foreach ($students as $n => $s): ?>
-            <tr data-search="<?php echo htmlspecialchars(strtolower($s['full_name'] . ' ' . $s['registration_no'] . ' ' . $s['course_title'] . ' ' . $s['tutors'] . ' ' . $s['phone'] . ' ' . $s['email']), ENT_QUOTES); ?>"
+            <tr data-search="<?php echo htmlspecialchars(strtolower($s['full_name'] . ' ' . $s['registration_no'] . ' ' . $s['course_title'] . ' ' . $s['tutors'] . ' ' . $s['phone'] . ' ' . ($s['secondary_phone'] ?? '') . ' ' . $s['email']), ENT_QUOTES); ?>"
                 data-name="<?php echo htmlspecialchars(strtolower($s['full_name']), ENT_QUOTES); ?>" data-course="<?php echo htmlspecialchars(strtolower((string)$s['course_title']), ENT_QUOTES); ?>"
                 data-date="<?php echo (int)$s['ts']; ?>" data-fee="<?php echo (float)$s['fee']; ?>" data-paid="<?php echo (float)$s['paid']; ?>" data-bal="<?php echo (float)$s['bal']; ?>">
                 <th class="rn"><?php echo $n + 1; ?></th>

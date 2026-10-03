@@ -81,6 +81,7 @@ class RegistrationModel {
         if ($phone === '') {
             $phone = 'N/A';
         }
+        $secondaryPhone = trim((string) ($data['secondary_phone'] ?? '')) ?: null;
         $studyMode = $data['study_mode'] ?? 'online';
         $paymentPlan = $data['payment_plan'] ?? 'monthly';
         if (!in_array($paymentPlan, ['monthly', '3months', 'full'], true)) {
@@ -95,8 +96,8 @@ class RegistrationModel {
             $paymentRef = 'Public enrolment — payment to follow';
         }
 
-        if ($fullName === '' || $email === '') {
-            return ['ok' => false, 'error' => 'Name and email are required.'];
+        if ($fullName === '' || $email === '' || $phone === '' || $phone === 'N/A') {
+            return ['ok' => false, 'error' => 'Name, email and primary phone are required.'];
         }
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return ['ok' => false, 'error' => 'A valid email address is required.'];
@@ -120,6 +121,7 @@ class RegistrationModel {
             ':full_name'          => $fullName,
             ':email'              => $email,
             ':phone'              => $phone,
+            ':secondary_phone'    => $secondaryPhone,
             ':course_id'          => $course['id'],
             ':study_mode'         => $studyMode,
             ':id_document_path'   => $idDoc,
@@ -135,11 +137,11 @@ class RegistrationModel {
 
         try {
             $sql = "INSERT INTO registrations
-                    (registration_no, full_name, email, phone, course_id, study_mode, id_document_path,
+                    (registration_no, full_name, email, phone, secondary_phone, course_id, study_mode, id_document_path,
                      registration_fee, course_fee, payment_plan, installment_count, installment_amount,
                      payment_reference, free_course_reason, referral_registration_no, possible_returning_student)
                     VALUES
-                    (:reg_no, :full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
+                    (:reg_no, :full_name, :email, :phone, :secondary_phone, :course_id, :study_mode, :id_document_path,
                      :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
                      :payment_reference, :free_course_reason, :referral, :returning)";
             $params[':referral'] = $referralNo;
@@ -149,22 +151,22 @@ class RegistrationModel {
             if ($missingReason) {
                 unset($params[':free_course_reason']);
                 $sql = "INSERT INTO registrations
-                        (registration_no, full_name, email, phone, course_id, study_mode, id_document_path,
+                        (registration_no, full_name, email, phone, secondary_phone, course_id, study_mode, id_document_path,
                          registration_fee, course_fee, payment_plan, installment_count, installment_amount,
                          payment_reference, referral_registration_no, possible_returning_student)
                         VALUES
-                        (:reg_no, :full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
+                        (:reg_no, :full_name, :email, :phone, :secondary_phone, :course_id, :study_mode, :id_document_path,
                          :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
                          :payment_reference, :referral, :returning)";
                 $this->db->prepare($sql)->execute($params);
             } elseif ($referralNo !== null && str_contains($e->getMessage(), 'referral_registration_no')) {
                 unset($params[':referral']);
                 $sql = "INSERT INTO registrations
-                        (registration_no, full_name, email, phone, course_id, study_mode, id_document_path,
+                        (registration_no, full_name, email, phone, secondary_phone, course_id, study_mode, id_document_path,
                          registration_fee, course_fee, payment_plan, installment_count, installment_amount,
                          payment_reference, free_course_reason, possible_returning_student)
                         VALUES
-                        (:reg_no, :full_name, :email, :phone, :course_id, :study_mode, :id_document_path,
+                        (:reg_no, :full_name, :email, :phone, :secondary_phone, :course_id, :study_mode, :id_document_path,
                          :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
                          :payment_reference, :free_course_reason, :returning)";
                 $this->db->prepare($sql)->execute($params);
@@ -185,7 +187,7 @@ class RegistrationModel {
      * (used to log in) in step when the registration is already approved.
      * @return array{ok:bool, error?:string}
      */
-    public function updateContact(int $id, string $fullName, string $email, string $phone): array {
+    public function updateContact(int $id, string $fullName, string $email, string $phone, string $secondaryPhone = ''): array {
         $reg = $this->getById($id);
         if (!$reg) {
             return ['ok' => false, 'error' => 'Registration not found.'];
@@ -193,6 +195,7 @@ class RegistrationModel {
         $fullName = trim($fullName);
         $email = trim($email);
         $phone = trim($phone);
+        $secondaryPhone = trim($secondaryPhone) ?: null;
         if ($fullName === '' || $email === '' || $phone === '') {
             return ['ok' => false, 'error' => 'Name, email and phone are all required.'];
         }
@@ -203,13 +206,17 @@ class RegistrationModel {
         try {
             $this->db->beginTransaction();
             $this->db->prepare(
-                'UPDATE registrations SET full_name = :name, email = :email, phone = :phone WHERE id = :id'
-            )->execute([':name' => $fullName, ':email' => $email, ':phone' => $phone, ':id' => $id]);
+                'UPDATE registrations SET full_name = :name, email = :email, phone = :phone, secondary_phone = :secondary_phone WHERE id = :id'
+            )->execute([':name' => $fullName, ':email' => $email, ':phone' => $phone, ':secondary_phone' => $secondaryPhone, ':id' => $id]);
 
             if (!empty($reg['user_id'])) {
                 $this->db->prepare('UPDATE users SET email = :email WHERE id = :uid')
                     ->execute([':email' => $email, ':uid' => (int) $reg['user_id']]);
             }
+
+            $this->db->prepare('UPDATE sms_students SET name = :name, email = :email, phone = :phone WHERE registration_id = :rid')
+                ->execute([':name' => $fullName, ':email' => $email, ':phone' => $phone, ':rid' => $id]);
+
 
             $this->db->commit();
             return ['ok' => true];

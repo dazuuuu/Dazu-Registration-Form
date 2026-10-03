@@ -1,0 +1,158 @@
+DAZU REGISTRATION SYSTEM — WHAT TO UPLOAD
+Generated 2026-10-02 from the changes since the last git commit.
+
+Where files go on the server (from your error log):
+  local  app/...      ->  /home/dazutech/app/...
+  local  public/...   ->  /home/dazutech/dazuaihub.com/...   (the CONTENTS of public/, not the folder itself)
+
+======================================================================================================================================================================================================
+ 1. UPLOAD THESE (104 files)
+======================================================================================================================================================================================================
+   #  LOCAL FILE                                                                   PUT IT ON THE SERVER AT                                                                     WHY
+ ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   1  app/v1/config/db_connect.php                                                 /home/dazutech/app/v1/config/db_connect.php                                                 Auto-creates missing tables (fixes 500 errors)
+   2  app/v1/config/paths.php                                                      /home/dazutech/app/v1/config/paths.php                                                      Clean URLs (no .php / index.php)
+   3  app/v1/controllers/ManualOnboardController.php                               /home/dazutech/app/v1/controllers/ManualOnboardController.php                               Updated
+   4  app/v1/controllers/RegistrationController.php                                /home/dazutech/app/v1/controllers/RegistrationController.php                                Updated
+   5  app/v1/controllers/StudentController.php                                     /home/dazutech/app/v1/controllers/StudentController.php                                     Updated
+   6  app/v1/controllers/TutorController.php                                       /home/dazutech/app/v1/controllers/TutorController.php                                       Updated
+   7  app/v1/databases/required_migrations/056_team_member_socials.sql             /home/dazutech/app/v1/databases/required_migrations/056_team_member_socials.sql             NEW: team member social links
+   8  app/v1/databases/required_migrations/057_certificates_and_lms.sql            /home/dazutech/app/v1/databases/required_migrations/057_certificates_and_lms.sql            NEW: certificates + course module tables
+   9  app/v1/helpers/admin_nav.php                                                 /home/dazutech/app/v1/helpers/admin_nav.php                                                 NEW: sidebar menu ordering
+  10  app/v1/helpers/blog_image.php                                                /home/dazutech/app/v1/helpers/blog_image.php                                                NEW: safe, mandatory blog cover uploads
+  11  app/v1/helpers/certificate_pdf.php                                           /home/dazutech/app/v1/helpers/certificate_pdf.php                                           Certificate design + real QR + navbar logo
+  12  app/v1/helpers/registration_number.php                                       /home/dazutech/app/v1/helpers/registration_number.php                                       Updated
+  13  app/v1/helpers/schema_guard.php                                              /home/dazutech/app/v1/helpers/schema_guard.php                                              NEW: auto-creates missing tables (fixes 500 errors)
+  14  app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Helvetica-Bold.afm.json     /home/dazutech/app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Helvetica-Bold.afm.json     PDF fonts (certificate)
+  15  app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Helvetica-Oblique.afm.json  /home/dazutech/app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Helvetica-Oblique.afm.json  PDF fonts (certificate)
+  16  app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Helvetica.afm.json          /home/dazutech/app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Helvetica.afm.json          PDF fonts (certificate)
+  17  app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Times-Bold.afm.json         /home/dazutech/app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Times-Bold.afm.json         PDF fonts (certificate)
+  18  app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Times-BoldItalic.afm.json   /home/dazutech/app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Times-BoldItalic.afm.json   PDF fonts (certificate)
+  19  app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Times-Italic.afm.json       /home/dazutech/app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Times-Italic.afm.json       PDF fonts (certificate)
+  20  app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Times-Roman.afm.json        /home/dazutech/app/v1/lib/dompdf/vendor/dompdf/dompdf/lib/fonts/Times-Roman.afm.json        PDF fonts (certificate)
+  21  app/v1/lib/qrcode/barcode.php                                                /home/dazutech/app/v1/lib/qrcode/barcode.php                                                NEW: QR code generator for certificates
+  22  app/v1/models/CertificateModel.php                                           /home/dazutech/app/v1/models/CertificateModel.php                                           Certificates list fix
+  23  app/v1/models/Connection.php                                                 /home/dazutech/app/v1/models/Connection.php                                                 Auto-creates missing tables (fixes 500 errors)
+  24  app/v1/models/CourseModel.php                                                /home/dazutech/app/v1/models/CourseModel.php                                                Updated
+  25  app/v1/models/PaymentModel.php                                               /home/dazutech/app/v1/models/PaymentModel.php                                               Updated
+  26  app/v1/models/RegistrationModel.php                                          /home/dazutech/app/v1/models/RegistrationModel.php                                          Updated
+  27  app/v1/models/SubmissionModel.php                                            /home/dazutech/app/v1/models/SubmissionModel.php                                            Updated
+  28  app/v1/models/TeamMemberModel.php                                            /home/dazutech/app/v1/models/TeamMemberModel.php                                            Team socials + drag ordering
+  29  app/v1/services/CertificateService.php                                       /home/dazutech/app/v1/services/CertificateService.php                                       NEW: certificate rules (zero balance, tutor, search)
+  30  app/v1/services/CourseRegistrationHandler.php                                /home/dazutech/app/v1/services/CourseRegistrationHandler.php                                Updated
+  31  app/v1/services/RegistrationFormGenerator.php                                /home/dazutech/app/v1/services/RegistrationFormGenerator.php                                Updated
+  32  app/v1/services/SmsModuleService.php                                         /home/dazutech/app/v1/services/SmsModuleService.php                                         Updated
+  33  app/v1/services/StudentEmailTemplate.php                                     /home/dazutech/app/v1/services/StudentEmailTemplate.php                                     Updated
+  34  app/v1/services/StudentNotifier.php                                          /home/dazutech/app/v1/services/StudentNotifier.php                                          Updated
+  35  public/.htaccess                                                             /home/dazutech/dazuaihub.com/.htaccess                                                      IMPORTANT: clean URLs + redirects from old .php links
+  36  public/about/index.php                                                       /home/dazutech/dazuaihub.com/about/index.php                                                New team section
+  37  public/admin/blogs/categories.php                                            /home/dazutech/dazuaihub.com/admin/blogs/categories.php                                     NEW: blog categories page
+  38  public/admin/blogs/create.php                                                /home/dazutech/dazuaihub.com/admin/blogs/create.php                                         Updated
+  39  public/admin/blogs/edit.php                                                  /home/dazutech/dazuaihub.com/admin/blogs/edit.php                                           Updated
+  40  public/admin/blogs/index.php                                                 /home/dazutech/dazuaihub.com/admin/blogs/index.php                                          Updated
+  41  public/admin/cache/clear.php                                                 /home/dazutech/dazuaihub.com/admin/cache/clear.php                                          NEW: clear cache action
+  42  public/admin/certificates/download.php                                       /home/dazutech/dazuaihub.com/admin/certificates/download.php                                Certificates feature
+  43  public/admin/certificates/edit.php                                           /home/dazutech/dazuaihub.com/admin/certificates/edit.php                                    Certificates feature
+  44  public/admin/certificates/email.php                                          /home/dazutech/dazuaihub.com/admin/certificates/email.php                                   Certificates feature
+  45  public/admin/certificates/index.php                                          /home/dazutech/dazuaihub.com/admin/certificates/index.php                                   Certificates feature
+  46  public/admin/certificates/preview.php                                        /home/dazutech/dazuaihub.com/admin/certificates/preview.php                                 Certificates feature
+  47  public/admin/certificates/search.php                                         /home/dazutech/dazuaihub.com/admin/certificates/search.php                                  Certificates feature
+  48  public/admin/courses/edit.php                                                /home/dazutech/dazuaihub.com/admin/courses/edit.php                                         Updated
+  49  public/admin/enquiries/index.php                                             /home/dazutech/dazuaihub.com/admin/enquiries/index.php                                      Updated
+  50  public/admin/gallery/edit.php                                                /home/dazutech/dazuaihub.com/admin/gallery/edit.php                                         FIX: empty page
+  51  public/admin/payments/receipt.php                                            /home/dazutech/dazuaihub.com/admin/payments/receipt.php                                     NEW file
+  52  public/admin/registrations/view.php                                          /home/dazutech/dazuaihub.com/admin/registrations/view.php                                   Updated
+  53  public/admin/settings/index.php                                              /home/dazutech/dazuaihub.com/admin/settings/index.php                                       Updated
+  54  public/admin/settings/menu.php                                               /home/dazutech/dazuaihub.com/admin/settings/menu.php                                        NEW: sidebar menu order page
+  55  public/admin/students/enroll.php                                             /home/dazutech/dazuaihub.com/admin/students/enroll.php                                      Updated
+  56  public/admin/students/index.php                                              /home/dazutech/dazuaihub.com/admin/students/index.php                                       Updated
+  57  public/admin/students/view.php                                               /home/dazutech/dazuaihub.com/admin/students/view.php                                        Updated
+  58  public/admin/team/index.php                                                  /home/dazutech/dazuaihub.com/admin/team/index.php                                           Updated
+  59  public/api/blog/create.php                                                   /home/dazutech/dazuaihub.com/api/blog/create.php                                            FIX: broken /Ismano/ links
+  60  public/api/blog/update.php                                                   /home/dazutech/dazuaihub.com/api/blog/update.php                                            FIX: broken /Ismano/ links
+  61  public/api/services/update.php                                               /home/dazutech/dazuaihub.com/api/services/update.php                                        FIX: broken /Ismano/ links
+  62  public/api/store/cart/cart.php                                               /home/dazutech/dazuaihub.com/api/store/cart/cart.php                                        FIX: broken /Ismano/ links
+  63  public/auth/student_register.php                                             /home/dazutech/dazuaihub.com/auth/student_register.php                                      FIX: 500 error
+  64  public/blogs/index.php                                                       /home/dazutech/dazuaihub.com/blogs/index.php                                                New blog page design
+  65  public/blogs/search.php                                                      /home/dazutech/dazuaihub.com/blogs/search.php                                               Fixed links
+  66  public/components/admin/sidebar.php                                          /home/dazutech/dazuaihub.com/components/admin/sidebar.php                                   Blog dropdown + menu ordering
+  67  public/components/cache_guard.php                                            /home/dazutech/dazuaihub.com/components/cache_guard.php                                     NEW: cache detector banner on admin pages
+  68  public/components/certificates/generate_modal.php                            /home/dazutech/dazuaihub.com/components/certificates/generate_modal.php                     NEW: certificate student search
+  69  public/components/certificates/student_card.php                              /home/dazutech/dazuaihub.com/components/certificates/student_card.php                       NEW: certificate card on student page
+  70  public/components/public/dazu_admission_form.php                             /home/dazutech/dazuaihub.com/components/public/dazu_admission_form.php                      Updated
+  71  public/components/public/dazu_footer.php                                     /home/dazutech/dazuaihub.com/components/public/dazu_footer.php                              Verify certificate link
+  72  public/components/public/footer.php                                          /home/dazutech/dazuaihub.com/components/public/footer.php                                   FIX: services page 500 error
+  73  public/components/public/navbar.php                                          /home/dazutech/dazuaihub.com/components/public/navbar.php                                   Updated
+  74  public/components/students/bottom_nav.php                                    /home/dazutech/dazuaihub.com/components/students/bottom_nav.php                             Updated
+  75  public/components/students/navbar.php                                        /home/dazutech/dazuaihub.com/components/students/navbar.php                                 Updated
+  76  public/components/superadmin/topbar.php                                      /home/dazutech/dazuaihub.com/components/superadmin/topbar.php                               Updated
+  77  public/services/index.php                                                    /home/dazutech/dazuaihub.com/services/index.php                                             FIX: broken /Ismano/ links
+  78  public/services/readmore.php                                                 /home/dazutech/dazuaihub.com/services/readmore.php                                          FIX: broken /Ismano/ links
+  79  public/store/cart.php                                                        /home/dazutech/dazuaihub.com/store/cart.php                                                 FIX: broken /Ismano/ links
+  80  public/store/checkout.php                                                    /home/dazutech/dazuaihub.com/store/checkout.php                                             FIX: broken /Ismano/ links
+  81  public/store/details.php                                                     /home/dazutech/dazuaihub.com/store/details.php                                              FIX: broken /Ismano/ links
+  82  public/store/index.php                                                       /home/dazutech/dazuaihub.com/store/index.php                                                FIX: broken /Ismano/ links
+  83  public/students/certificates/index.php                                       /home/dazutech/dazuaihub.com/students/certificates/index.php                                Certificates feature
+  84  public/students/course/index.php                                             /home/dazutech/dazuaihub.com/students/course/index.php                                      Updated
+  85  public/students/course/tutor_module.php                                      /home/dazutech/dazuaihub.com/students/course/tutor_module.php                               NEW file
+  86  public/students/dashboard/index.php                                          /home/dazutech/dazuaihub.com/students/dashboard/index.php                                   FIX: student dashboard 500 error
+  87  public/superadmin/certificates/download.php                                  /home/dazutech/dazuaihub.com/superadmin/certificates/download.php                           Certificates feature
+  88  public/superadmin/certificates/edit.php                                      /home/dazutech/dazuaihub.com/superadmin/certificates/edit.php                               Certificates feature
+  89  public/superadmin/certificates/email.php                                     /home/dazutech/dazuaihub.com/superadmin/certificates/email.php                              Certificates feature
+  90  public/superadmin/certificates/index.php                                     /home/dazutech/dazuaihub.com/superadmin/certificates/index.php                              Certificates feature
+  91  public/superadmin/certificates/preview.php                                   /home/dazutech/dazuaihub.com/superadmin/certificates/preview.php                            Certificates feature
+  92  public/superadmin/certificates/search.php                                    /home/dazutech/dazuaihub.com/superadmin/certificates/search.php                             Certificates feature
+  93  public/superadmin/courses/edit.php                                           /home/dazutech/dazuaihub.com/superadmin/courses/edit.php                                    Updated
+  94  public/superadmin/sms/_init.php                                              /home/dazutech/dazuaihub.com/superadmin/sms/_init.php                                       FIX: error on direct access
+  95  public/superadmin/students/view.php                                          /home/dazutech/dazuaihub.com/superadmin/students/view.php                                   Updated
+  96  public/templates/admin/layout.php                                            /home/dazutech/dazuaihub.com/templates/admin/layout.php                                     Cache banner
+  97  public/templates/superadmin/layout.php                                       /home/dazutech/dazuaihub.com/templates/superadmin/layout.php                                Cache banner
+  98  public/tutor/dashboard/payroll_section.php                                   /home/dazutech/dazuaihub.com/tutor/dashboard/payroll_section.php                            FIX: error on direct access
+  99  public/tutor/modules/index.php                                               /home/dazutech/dazuaihub.com/tutor/modules/index.php                                        FIX: error on direct access
+ 100  public/tutor/modules/manage.php                                              /home/dazutech/dazuaihub.com/tutor/modules/manage.php                                       FIX: error on direct access
+ 101  public/tutor/students/announce.php                                           /home/dazutech/dazuaihub.com/tutor/students/announce.php                                    FIX: error on direct access
+ 102  public/tutor/students/timeline.php                                           /home/dazutech/dazuaihub.com/tutor/students/timeline.php                                    FIX: error on direct access
+ 103  public/tutor/students/view.php                                               /home/dazutech/dazuaihub.com/tutor/students/view.php                                        FIX: error on direct access
+ 104  public/verify/index.php                                                      /home/dazutech/dazuaihub.com/verify/index.php                                               NEW: certificate verification page (camera/upload/number)
+
+======================================================================================================================================================================================================
+ 2. DO NOT UPLOAD THESE (16 files + folders below)
+======================================================================================================================================================================================================
+  - .gitignore                                                                   Git setting, not used by the website
+  - app/v1/databases/database.sqlite                                             Local test database, never upload
+  - app/v1/databases/migrations/050_student_certificates.sql                     Old migration folder, superseded by required_migrations/057
+  - app/v1/databases/migrations/051_lms_features.sql                             Old migration folder, superseded by required_migrations/057
+  - app/v1/databases/migrations/052_certificate_pdf_fields.sql                   Old migration folder, superseded by required_migrations/057
+  - app/v1/docs/BLOG_API_README.md                                               Documentation only (moved here from the root)
+  - app/v1/tools/check_structure.php                                             Developer tools/test scripts, not needed on the live site
+  - app/v1/tools/create_upload_folders.php                                       Developer tools/test scripts, not needed on the live site
+  - app/v1/tools/dev_router.php                                                  Developer tools/test scripts, not needed on the live site
+  - app/v1/tools/devs/index.php                                                  Developer tools/test scripts, not needed on the live site
+  - app/v1/tools/devs/test_api.php                                               Developer tools/test scripts, not needed on the live site
+  - app/v1/tools/scratch/add_column.php                                          Developer tools/test scripts, not needed on the live site
+  - app/v1/tools/scratch/replace.py                                              Developer tools/test scripts, not needed on the live site
+  - app/v1/tools/scratch/test.php                                                Developer tools/test scripts, not needed on the live site
+  - app/v1/tools/show_structure.php                                              Developer tools/test scripts, not needed on the live site
+  - server.pid                                                                   Local test server file only
+  - app/v1/storage/cache/                                                        Runtime cache, created automatically on the server
+  - public/uploads/                                                              Already on the server — uploading would overwrite live student/blog photos
+  - app/v1/config/database.php                                                   Your LOCAL database login — the server has its own
+  - .git/, .claude/, .DS_Store                                                   Local tools / Mac system files
+
+======================================================================================================================================================================================================
+ 3. DELETE THESE ON THE SERVER (old copies removed locally; nothing uses them)
+======================================================================================================================================================================================================
+  - /home/dazutech/dazuaihub.com/updates/         Old copy of the whole site — publicly reachable, security risk
+  - /home/dazutech/dazuaihub.com/public/          Stray broken copies (crash when opened)
+  - /home/dazutech/dazuaihub.com/devs/            Test pages — moved out of the website
+  - /home/dazutech/app/v1/updates/                Old copy, unused
+  - /home/dazutech/app/V1_updated/                Old copy, unused
+
+======================================================================================================================================================================================================
+ 4. AFTER UPLOADING
+======================================================================================================================================================================================================
+  1. Open any admin page once — missing tables (certificates, course modules) are created automatically.
+     (Or run Admin -> System Updates to apply 056 + 057.)
+  2. Admin -> Settings -> "Clear cache" (clears the PHP code cache + browser cache).
+  3. Check: /login, /blog, /contact, /verify, a student login, a tutor login, Admin -> Certificates.
+  4. Make sure dazuaihub.com/.htaccess was uploaded (it is a hidden file — enable "Show hidden files" in cPanel).

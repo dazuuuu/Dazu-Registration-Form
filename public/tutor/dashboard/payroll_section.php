@@ -1,4 +1,6 @@
 <?php
+// Partial — included by other pages, never opened directly.
+if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) { http_response_code(404); exit('Not found'); }
 // public/tutor/dashboard/payroll_section.php
 // Payroll block shown on the tutor dashboard. Included from index.php, which provides $pdo and $tutor.
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';

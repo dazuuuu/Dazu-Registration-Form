@@ -727,5 +727,6 @@ if (isset($pdo)) {
     <?php if (isset($extra_js)): ?>
         <?php echo $extra_js; ?>
     <?php endif; ?>
+<?php require __DIR__ . '/../../components/cache_guard.php'; ?>
 </body>
 </html>

@@ -33,6 +33,10 @@ $contact = site_contact_settings();
           <?php if ($fHours !== ''): ?><li class="py-1.5"><?php echo htmlspecialchars($fHours); ?></li><?php endif; ?>
         </ul>
         <?php endif; ?>
+        <a href="<?php echo url('verify/'); ?>" class="inline-flex items-center gap-2 mt-4 text-sm font-semibold text-green-500 hover:text-green-400 transition-colors duration-200" style="display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-weight:600">
+          <svg class="h-4 w-4" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.6-4A12 12 0 0112 2.9 12 12 0 013.4 6a12 12 0 00.6 9.6A12 12 0 0012 21a12 12 0 008-5.4A12 12 0 0020.6 6z"/></svg>
+          Verify a Certificate
+        </a>
         <?php
         $socials = [
           'social_facebook'  => ['Facebook',  '#1877F2', '<path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.78-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12z"/>'],
@@ -79,6 +83,7 @@ $contact = site_contact_settings();
     <div class="border-t border-slate-900 pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
       <p><?php echo htmlspecialchars(trim((string) ($contact['footer_copyright'] ?? '')) !== '' ? $contact['footer_copyright'] : '© ' . $year . ' Dazu Training Institute. All rights reserved.'); ?></p>
       <div class="flex gap-6">
+        <a href="<?php echo url('verify/'); ?>" class="hover:text-white transition-colors duration-200">Verify Certificate</a>
         <a href="<?php echo url('contact'); ?>" class="hover:text-white transition-colors duration-200">Support</a>
         <a href="<?php echo url('about'); ?>" class="hover:text-white transition-colors duration-200">Terms of Study</a>
       </div>

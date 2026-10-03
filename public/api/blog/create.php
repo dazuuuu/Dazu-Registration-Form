@@ -24,23 +24,14 @@ try {
     require_once __DIR__ . '/../../../app/v1/config/paths.php';
     require_once __DIR__ . '/../../../app/v1/controllers/BlogController.php';
 
-    // Handle featured image upload
-    $featured_image = null;
-    if (isset($_FILES['featured_image']) && $_FILES['featured_image']['error'] === 0) {
-        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . url('uploads/blogs/');
-        if (!is_dir($upload_dir)) {
-            mkdir($upload_dir, 0777, true);
-        }
-        
-        $ext = pathinfo($_FILES['featured_image']['name'], PATHINFO_EXTENSION);
-        $filename = time() . '_' . uniqid() . '.' . $ext;
-        $target_file = $upload_dir . $filename;
-        
-        if (move_uploaded_file($_FILES['featured_image']['tmp_name'], $target_file)) {
-            $featured_image = url('uploads/blogs/') . $filename;
-        }
+    // Cover image is mandatory
+    require_once __DIR__ . '/../../../app/v1/helpers/blog_image.php';
+    $cover = blog_save_cover($_FILES['featured_image'] ?? null);
+    if (!$cover['ok']) {
+        sendJsonResponse(false, $cover['error']);
     }
-    
+    $featured_image = $cover['url'];
+
     // Handle tags
     $tags = [];
     if (!empty($_POST['tags'])) {

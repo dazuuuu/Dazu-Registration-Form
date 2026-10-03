@@ -1,4 +1,6 @@
 <?php
+// Partial — included by other pages, never opened directly.
+if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) { http_response_code(404); exit('Not found'); }
 // public/superadmin/sms/_init.php
 require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';

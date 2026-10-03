@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../app/v1/helpers/currency.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (empty($_SESSION['user_id'])) {
-    header('Location: /Ismano/public/auth/login.php?redirect=' . urlencode('/Ismano/public/store/cart.php'));
+    header('Location: ' . url('login') . '?redirect=' . urlencode(url('store/cart.php')));
     exit();
 }
 
@@ -73,7 +73,7 @@ ob_start();
                             <div class="text-center py-5">
                                 <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
                                 <p class="mb-3">Your cart is empty.</p>
-                                <a href="/Ismano/public/store/" class="btn btn--primary"><i class="fas fa-store me-2"></i> Continue Shopping</a>
+                                <a href="<?php echo url('store/'); ?>" class="btn btn--primary"><i class="fas fa-store me-2"></i> Continue Shopping</a>
                             </div>
                         <?php else: ?>
                             <?php foreach ($items as $it): ?>
@@ -89,7 +89,7 @@ ob_start();
                                         </div>
                                         <div class="col">
                                             <h6 class="mb-1">
-                                                <a href="/Ismano/public/store/details.php?slug=<?php echo urlencode($it['slug'] ?? ''); ?>" class="text-decoration-none text-dark">
+                                                <a href="<?php echo url('store/details.php?slug=' . urlencode($it['slug'] ?? '')); ?>" class="text-decoration-none text-dark">
                                                     <?php echo htmlspecialchars($it['name']); ?>
                                                 </a>
                                             </h6>
@@ -173,10 +173,10 @@ ob_start();
                         <span class="fw-bold">Total</span>
                         <span class="fw-bold fs-5"><?php echo format_price($subtotal); ?></span>
                     </div>
-                    <a href="/Ismano/public/store/checkout.php" class="btn btn--primary w-100 <?php echo empty($items) ? 'disabled' : ''; ?>">
+                    <a href="<?php echo url('store/checkout.php'); ?>" class="btn btn--primary w-100 <?php echo empty($items) ? 'disabled' : ''; ?>">
                         <i class="fas fa-lock me-2"></i> Proceed to Checkout
                     </a>
-                    <a href="/Ismano/public/store/" class="btn btn-outline-secondary w-100 mt-2">
+                    <a href="<?php echo url('store/'); ?>" class="btn btn-outline-secondary w-100 mt-2">
                         <i class="fas fa-store me-2"></i> Continue Shopping
                     </a>
                 </div>
@@ -186,7 +186,7 @@ ob_start();
 </section>
 
 <script>
-const CART_API = '/Ismano/public/api/store/cart/cart.php';
+const CART_API = <?php echo json_encode(url('api/store/cart/cart.php')); ?>;
 
 async function cartPost(action, payload) {
     try {

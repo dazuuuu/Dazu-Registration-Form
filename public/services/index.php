@@ -51,7 +51,7 @@ if ($search) {
     );
   ?>
 
-  <link rel="stylesheet" href="../assets/css/theme.css">
+  <link rel="stylesheet" href="<?php echo asset('css/theme.css'); ?>">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -347,7 +347,7 @@ if ($search) {
 <!--section class="page-hero">
   <div class="container page-hero-inner">
     <div class="breadcrumb-wrap">
-      <a href="/Ismano/public/">Home</a>
+      <a href="<?php echo url(''); ?>">Home</a>
       <i class="fas fa-chevron-right sep"></i>
       <span>Services</span>
     </div>
@@ -465,7 +465,7 @@ if ($search) {
                 <div class="service-meta">
                   <span><i class="fa-regular fa-eye" aria-hidden="true"></i> <?php echo number_format($service['view_count'] ?? 0); ?></span>
                 </div>
-                <a href="readmore.php?slug=<?php echo urlencode($service['slug']); ?>" class="service-view-btn">
+                <a href="<?php echo url('services/readmore.php?slug=' . urlencode((string) $service['slug'])); ?>" class="service-view-btn">
                   Learn More <i class="fas fa-arrow-right" aria-hidden="true"></i>
                 </a>
               </div>

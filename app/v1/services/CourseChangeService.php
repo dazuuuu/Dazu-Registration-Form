@@ -30,15 +30,16 @@ class CourseChangeService
     /** Every approved course enrolment this student (user) holds, newest first. Falls back to the one registration if it has no user. */
     public function enrolments(array $reg): array
     {
-        if (empty($reg['user_id'])) {
-            return [$reg];
-        }
-        $st = $this->pdo->prepare(
-            "SELECT r.*, c.title AS course_title,
+        $select = "SELECT r.*, c.title AS course_title,
                     (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.registration_id = r.id AND p.status = 'approved') AS paid
-             FROM registrations r LEFT JOIN courses c ON c.id = r.course_id
-             WHERE r.user_id = :uid AND r.status = 'approved' ORDER BY r.created_at DESC, r.id DESC"
-        );
+             FROM registrations r LEFT JOIN courses c ON c.id = r.course_id";
+        if (empty($reg['user_id'])) {
+            // No portal account yet: just this registration, with the same paid/course_title columns.
+            $st = $this->pdo->prepare($select . " WHERE r.id = :id");
+            $st->execute([':id' => (int) $reg['id']]);
+            return $st->fetchAll() ?: [$reg + ['paid' => 0, 'course_title' => '']];
+        }
+        $st = $this->pdo->prepare($select . " WHERE r.user_id = :uid AND r.status = 'approved' ORDER BY r.created_at DESC, r.id DESC");
         $st->execute([':uid' => (int) $reg['user_id']]);
         return $st->fetchAll();
     }

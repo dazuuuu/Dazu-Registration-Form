@@ -72,6 +72,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+
+
         if (!$error) {
             $feeModes = course_fee_structure_modes_from_post($_POST);
             $feeTotal = course_fee_structure_catalog_total($feeModes, $_POST['course_fee'] ?? 0);
@@ -261,6 +263,8 @@ ob_start();
                     <input type="file" name="brochure" class="form-control" accept="application/pdf">
                     <small class="text-muted">Leave blank to keep the current brochure.</small>
                 </div>
+
+
 
                 <div class="col-12">
                     <div class="form-check form-switch p-3 bg-light rounded border">

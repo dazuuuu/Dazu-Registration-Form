@@ -21,7 +21,16 @@ if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['r
 require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../../../app/v1/models/BlogModel.php';
 
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 $blogModel = new BlogModel($pdo);
+
+// Star / unstar a post as "popular" (shown first in the top section of the public Blog page)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_popular' && csrf_verify($_POST['csrf_token'] ?? null)) {
+    $pdo->prepare('UPDATE blogs SET is_featured = 1 - COALESCE(is_featured, 0) WHERE id = ?')->execute([(int) ($_POST['id'] ?? 0)]);
+    ob_end_clean();
+    header('Location: index.php');
+    exit;
+}
 $blogs = $blogModel->getAll(null, 100);
 $categories = $blogModel->getAllCategories();
 ?>
@@ -276,7 +285,7 @@ $categories = $blogModel->getAllCategories();
                     <td>
                         <strong><?php echo htmlspecialchars($blog['title']); ?></strong>
                         <?php if ($blog['is_featured']): ?>
-                            <span class="badge-featured"><i class="fas fa-star"></i> Featured</span>
+                            <span class="badge-featured"><i class="fas fa-star"></i> Popular</span>
                         <?php endif; ?>
                     </td>
                     <td>
@@ -301,6 +310,9 @@ $categories = $blogModel->getAllCategories();
                     </td>
                     <td>
                         <div class="action-buttons">
+                            <form method="POST" class="d-inline m-0"><?php echo csrf_field(); ?><input type="hidden" name="action" value="toggle_popular"><input type="hidden" name="id" value="<?php echo (int) $blog['id']; ?>">
+                                <button class="btn-icon" title="<?php echo $blog['is_featured'] ? 'Remove from popular' : 'Mark as popular'; ?>" style="color:<?php echo $blog['is_featured'] ? '#f59e0b' : '#9ca3af'; ?>"><i class="<?php echo $blog['is_featured'] ? 'fas' : 'far'; ?> fa-star"></i></button>
+                            </form>
                             <a href="edit.php?id=<?php echo $blog['id']; ?>" class="btn-icon btn-edit" title="Edit">
                                 <i class="fas fa-edit"></i>
                             </a>

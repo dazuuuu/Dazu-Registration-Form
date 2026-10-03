@@ -187,6 +187,11 @@ class CourseModel {
             $fields .= ", brochure_path = :brochure_path";
             $params[':brochure_path'] = $data['brochure_path'];
         }
+        if (array_key_exists("certificate_template", $data)) {
+            $fields .= ", certificate_template = :certificate_template";
+            $params[":certificate_template"] = $data["certificate_template"];
+        }
+
         if (array_key_exists('show_on_homepage', $data)) {
             $fields .= ", show_on_homepage = :show_on_homepage";
             $params[':show_on_homepage'] = !empty($data['show_on_homepage']) ? 1 : 0;

@@ -33,7 +33,7 @@ $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search Results for "<?php echo htmlspecialchars($keyword); ?>" — Dazu Training Institute</title>
-    <link rel="stylesheet" href="../assets/css/theme.css">
+    <link rel="stylesheet" href="<?php echo asset('css/theme.css'); ?>">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
@@ -88,9 +88,9 @@ $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <!--section class="search-hero">
     <div class="container">
         <div class="breadcrumb-wrap" style="display:flex;gap:8px;margin-bottom:20px;font-size:12px;">
-            <a href="/Ismano/public/" class="text-white-50">Home</a>
+            <a href="<?php echo url('/'); ?>" class="text-white-50">Home</a>
             <i class="fas fa-chevron-right text-white-50"></i>
-            <a href="/Ismano/public/blogs/" class="text-white-50">Blog</a>
+            <a href="<?php echo url('blog'); ?>" class="text-white-50">Blog</a>
             <i class="fas fa-chevron-right text-white-50"></i>
             <span class="text-white-50">Search</span>
         </div>
@@ -119,12 +119,12 @@ $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
                     <span class="ms-3"><i class="far fa-eye"></i> <?php echo number_format($result['view_count']); ?> views</span>
                 </div>
                 <h3 class="result-title">
-                    <a href="readmore.php?slug=<?php echo urlencode($result['slug']); ?>">
+                    <a href="<?php echo url('blogs/readmore.php?slug=' . urlencode((string) $result['slug'])); ?>">
                         <?php echo htmlspecialchars($result['title']); ?>
                     </a>
                 </h3>
                 <p class="text-muted"><?php echo htmlspecialchars(substr(strip_tags($result['excerpt']), 0, 160)); ?>...</p>
-                <a href="readmore.php?slug=<?php echo urlencode($result['slug']); ?>" class="btn btn-sm btn-outline-primary">
+                <a href="<?php echo url('blogs/readmore.php?slug=' . urlencode((string) $result['slug'])); ?>" class="btn btn-sm btn-outline-primary">
                     Read More <i class="fas fa-arrow-right ms-1"></i>
                 </a>
             </div>

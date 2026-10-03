@@ -376,6 +376,7 @@ class SmsModuleService
             'full_name'               => $name,
             'email'                   => $email,
             'phone'                   => $phone,
+            'secondary_phone'         => trim($data['secondary_phone'] ?? ''),
             'course_id'               => (int) $data['course_id'],
             'study_mode'              => in_array($data['study_mode'] ?? '', ['online', 'physical'], true) ? $data['study_mode'] : 'online',
             'payment_plan'            => $paid >= $cost && $cost > 0 ? 'full' : 'monthly',

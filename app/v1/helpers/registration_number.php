@@ -36,7 +36,7 @@ if (!function_exists('registration_number_next')) {
             $st = $pdo->prepare('SELECT * FROM courses WHERE id = ?');
             $st->execute([$courseId]);
             if ($course = $st->fetch()) {
-                $prefix = course_qualification($course) === 'diploma' ? 'DDH' : 'DCH';
+                $prefix = course_qualification($course) === 'diploma' ? 'DD' . strtoupper($course['abbreviation']) : 'DC' . strtoupper($course['abbreviation']);
             }
         }
         $year = date('y');
@@ -46,7 +46,7 @@ if (!function_exists('registration_number_next')) {
              WHERE registration_no IS NOT NULL AND registration_no != ''"
         );
         foreach ($stmt->fetchAll(\PDO::FETCH_COLUMN) as $no) {
-            if (preg_match('/^D[CD]?H(\d+)\/(\d{2})$/', (string) $no, $m) && $m[2] === $year) {
+            if (preg_match('/^[A-Z]+(\d+)\/(\d{2})$/', (string) $no, $m) && $m[2] === $year) {
                 $max = max($max, (int) $m[1]);
             }
         }
@@ -72,7 +72,7 @@ if (!function_exists('registration_number_resync')) {
     function registration_number_resync(\PDO $pdo, ?int $courseId = null, ?int $registrationId = null): int
     {
         $sql = "SELECT r.id AS reg_id, r.user_id AS reg_user_id, r.registration_no AS reg_no, c.* FROM registrations r JOIN courses c ON c.id = r.course_id
-                WHERE r.registration_no REGEXP '^D[CD]?H[0-9]+/[0-9]{2}$'";
+                WHERE r.registration_no REGEXP '^[A-Z]+[0-9]+/[0-9]{2}$'";
         $args = [];
         if ($courseId !== null) { $sql .= ' AND r.course_id = ?'; $args[] = $courseId; }
         if ($registrationId !== null) { $sql .= ' AND r.id = ?'; $args[] = $registrationId; }
@@ -81,7 +81,11 @@ if (!function_exists('registration_number_resync')) {
         $changed = 0;
         foreach ($st->fetchAll(\PDO::FETCH_ASSOC) as $row) {
             $old = (string) $row['reg_no'];
-            $new = (course_qualification($row) === 'diploma' ? 'DDH' : 'DCH') . substr($old, strpos($old, 'H') + 1);
+            if (preg_match('/^[A-Z]+(\d+\/\d{2})$/', $old, $m)) {
+                $new = (course_qualification($row) === 'diploma' ? 'DD' : 'DC') . strtoupper($row['abbreviation']) . $m[1];
+            } else {
+                continue;
+            }
             if ($new === $old) {
                 continue;
             }

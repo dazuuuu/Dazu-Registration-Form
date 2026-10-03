@@ -4,6 +4,7 @@ $year = date('Y');
 require_once __DIR__ . '/../../../app/v1/helpers/brand.php';
 require_once __DIR__ . '/../../../app/v1/helpers/site_logo.php';
 require_once __DIR__ . '/../../../app/v1/helpers/site_contact.php';
+require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 $logoPath = site_logo_url(brand_url('mark'));
 $contact = site_contact_settings();
 ?>
@@ -65,7 +66,7 @@ $contact = site_contact_settings();
                     <li><a href="<?php echo url('about/index.php'); ?>">About Us</a></li>
                     <li><a href="<?php echo url('courses/index.php'); ?>">All Courses</a></li>
                     <li><a href="<?php echo url('contact/index.php'); ?>">Contact</a></li>
-                    <li><a href="<?php echo url('auth/student_register.php'); ?>">Apply Now</a></li>
+                    <li><a href="<?php echo url('apply'); ?>">Apply Now</a></li>
                     <li><a href="<?php echo url('auth/login.php'); ?>">Student Login</a></li>
                     <li><a href="<?php echo url('auth/login.php'); ?>">Tutor Login</a></li>
                 </ul>

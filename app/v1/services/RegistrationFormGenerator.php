@@ -26,6 +26,7 @@ class RegistrationFormGenerator
             'Student Name' => $reg['full_name'] ?? '',
             'Email' => $reg['email'] ?? '',
             'Phone' => $reg['phone'] ?? '',
+            'Secondary Phone' => $reg['secondary_phone'] ?? '',
             'Course' => $reg['course_title'] ?? '',
             'Study Mode' => ($reg['study_mode'] ?? '') === 'physical' ? 'Physical' : 'Online',
             'Payment Plan' => self::paymentPlanLabel((string) ($reg['payment_plan'] ?? '')),

@@ -76,7 +76,7 @@ function getYoutubeId($url) {
     );
   ?>
 
-  <link rel="stylesheet" href="../assets/css/theme.css">
+  <link rel="stylesheet" href="<?php echo asset('css/theme.css'); ?>">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -321,9 +321,9 @@ function getYoutubeId($url) {
 <!--section class="service-hero">
   <div class="container service-hero-inner">
     <div class="breadcrumb-wrap">
-      <a href="/Ismano/public/">Home</a>
+      <a href="<?php echo url(''); ?>">Home</a>
       <i class="fas fa-chevron-right sep"></i>
-      <a href="/Ismano/public/services/">Services</a>
+      <a href="<?php echo url('services/'); ?>">Services</a>
       <i class="fas fa-chevron-right sep"></i>
       <span><?php echo htmlspecialchars($service['title']); ?></span>
     </div>

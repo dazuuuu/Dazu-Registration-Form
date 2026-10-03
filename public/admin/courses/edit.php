@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$error) {
             $feeModes = course_fee_structure_modes_from_post($_POST);
             $feeTotal = course_fee_structure_catalog_total($feeModes, $_POST['course_fee'] ?? 0);
-            $result = $courseModel->update($id, [
+            $updateData = [
                 'title'           => $_POST['title'] ?? '',
                 'abbreviation'    => $_POST['abbreviation'] ?? '',
                 'category_id'     => $_POST['category_id'] ?? null,
@@ -93,7 +93,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'is_free'         => false,
                 'cover_image'     => $coverPath,
                 'brochure_path'   => $brochurePath,
-            ]);
+            ];
+            $result = $courseModel->update($id, $updateData);
 
             if ($result['ok']) {
                 $courseModel->setQualification($id, $_POST['qualification'] ?? null);

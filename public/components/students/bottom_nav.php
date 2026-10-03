@@ -6,8 +6,9 @@ $current_dir = basename(dirname($_SERVER['PHP_SELF'] ?? ''));
 $tabs = [
     ['dir' => 'dashboard', 'href' => url('students/dashboard/index.php'), 'icon' => 'fa-house', 'label' => 'Home'],
     ['dir' => 'course',    'href' => url('students/course/index.php'),    'icon' => 'fa-book-open', 'label' => 'Course'],
-    ['dir' => 'payments',  'href' => url('students/payments/index.php'),  'icon' => 'fa-wallet', 'label' => 'Pay'],
+    ['dir' => 'payments',  'href' => url('students/payments/index.php'),  'icon' => 'fa-wallet', 'label' => 'Finance'],
     ['dir' => 'resources', 'href' => url('students/resources/index.php'), 'icon' => 'fa-folder-open', 'label' => 'Resources'],
+    ['dir' => 'certificates','href' => url('students/certificates/index.php'),'icon' => 'fa-certificate', 'label' => 'Certs'],
 ];
 ?>
 <nav class="student-bottom-nav d-lg-none" aria-label="Student navigation">
