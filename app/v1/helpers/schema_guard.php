@@ -14,10 +14,32 @@ if (!function_exists('dazu_schema_guard')) {
 
         // Migrations whose tables the current code reads on every portal (add new ones here).
         $files = ['056_team_member_socials.sql', '057_certificates_and_lms.sql', '058_tutor_announcements.sql',
-                  '059_certificate_collected_status.sql'];
-        $required = ['certificates', 'course_modules', 'module_contents', 'tutor_announcements'];
-        // Column types that must contain a value (e.g. a newer ENUM option), as table.column => text.
-        $columnHas = ['certificates.status' => "'collected'"];
+                  '059_certificate_collected_status.sql', '060_missing_columns.sql', '061_tutor_course_builder_and_documents.sql',
+                  '062_portal_notifications.sql', '063_tutor_admin_rights.sql'];
+        $required = ['certificates', 'course_modules', 'module_contents', 'tutor_announcements',
+                     'tutor_course_overviews', 'tutor_course_resources', 'student_module_progress', 'personal_documents',
+                     'portal_notifications', 'push_subscriptions'];
+        // Columns that must exist, as table.column => text their type must contain (e.g. a newer ENUM option).
+        $columnHas = [
+            'certificates.status'                 => "'collected'",
+            'registrations.secondary_phone'       => 'varchar',
+            'tutor_students.timeline_days'        => 'int',
+            'student_submissions.module_content_id' => 'int',
+            'student_submissions.submission_type' => "'module'",
+            'student_submissions.github_url'      => 'varchar',
+            'module_contents.answer_mode'         => 'varchar',
+            'module_contents.options_json'        => 'text',
+            'module_contents.correct_option'      => 'int',
+            'module_contents.link_url'            => 'varchar',
+            'module_contents.order_index'         => 'int',
+            'course_modules.instructions'         => 'text',
+            'course_modules.video_url'            => 'varchar',
+            'registrations.studies_completed_at'  => 'timestamp',
+            'registrations.studies_completed_by'  => 'int',
+            'user_profiles.tshirt_size'           => 'varchar',
+            'tutor_students.start_date'           => 'date',
+            'tutors.can_admin'                    => 'tinyint',
+        ];
 
         $dir = dirname(__DIR__) . '/databases/required_migrations';
         $cacheDir = dirname(__DIR__) . '/storage/cache';

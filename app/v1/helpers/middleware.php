@@ -45,6 +45,17 @@ class Middleware {
     public static function requireTutor() {
         self::requireAuth();
         if (SessionModel::get('role') !== 'tutor') {
+            // A tutor using granted admin rights keeps one session for both portals. If the rights were taken away
+            // meanwhile, the session goes back to plain tutor.
+            if (SessionModel::get('tutor_admin')) {
+                require_once __DIR__ . '/tutor_permissions.php';
+                require_once __DIR__ . '/../models/Connection.php';
+                if (!tutor_admin_allowed(\Models\Connection::getInstance()->getConnection(), (int) SessionModel::get('user_id', 0))) {
+                    self::enterTutorMode();
+                    SessionModel::set('tutor_admin', false);
+                }
+                return;
+            }
             header('Location: ' . url('auth/login.php?error=access_denied'));
             exit();
         }
@@ -106,11 +117,40 @@ class Middleware {
         
         // role_id 1 = superadmin, 2 = admin, 3 = user
         if ($roleId > 2) {
-            header('Location: ' . url('auth/login.php?error=access_denied'));
-            exit();
+            // A tutor who has been given admin rights may use the admin portal too.
+            require_once __DIR__ . '/tutor_permissions.php';
+            require_once __DIR__ . '/../models/Connection.php';
+            if (SessionModel::get('role') === 'tutor'
+                && tutor_admin_allowed(\Models\Connection::getInstance()->getConnection(), (int) SessionModel::get('user_id', 0))) {
+                self::enterAdminMode();
+            } else {
+                header('Location: ' . url('auth/login.php?error=access_denied'));
+                exit();
+            }
         }
 
         self::refreshSessionFromDatabase();
+    }
+
+    /** Session of a tutor with admin rights while they are in the admin portal (every admin check then just works). */
+    private static function enterAdminMode(): void {
+        SessionModel::set('tutor_admin', true);
+        SessionModel::set('role', 'admin');
+        SessionModel::set('role_id', 2);
+    }
+
+    /** Back to the tutor portal: their real tutor role. */
+    private static function enterTutorMode(): void {
+        require_once __DIR__ . '/../models/Connection.php';
+        $pdo = \Models\Connection::getInstance()->getConnection();
+        $st = $pdo->prepare("SELECT u.role_id, r.role_name FROM users u JOIN roles r ON r.id = u.role_id WHERE u.id = ?");
+        $st->execute([(int) SessionModel::get('user_id', 0)]);
+        $u = $st->fetch(\PDO::FETCH_ASSOC);
+        if (!$u || $u['role_name'] !== 'tutor') {
+            self::logoutRedirect('session_expired');
+        }
+        SessionModel::set('role', 'tutor');
+        SessionModel::set('role_id', (int) $u['role_id']);
     }
 
     /**
@@ -134,6 +174,21 @@ class Middleware {
         $stmt->execute([':id' => $userId]);
         $user = $stmt->fetch(\PDO::FETCH_ASSOC);
 
+        if ($user && (int) $user['is_active'] && (int) $user['role_id'] > 2 && SessionModel::get('tutor_admin')) {
+            require_once __DIR__ . '/tutor_permissions.php';
+            if (tutor_admin_allowed($pdo, (int) $user['id'])) {
+                // Tutor using granted admin rights: keep the admin role for this portal, refresh the rest.
+                SessionModel::set('username', $user['username']);
+                SessionModel::set('email', $user['email']);
+                return;
+            }
+            // Rights were taken away: back to their tutor portal (not signed out).
+            self::enterTutorMode();
+            SessionModel::set('tutor_admin', false);
+            SessionModel::setFlash('error', 'Your admin rights have been removed. You can keep using your tutor portal.');
+            header('Location: ' . url('tutor/dashboard/index.php'));
+            exit();
+        }
         if (!$user || !(int) $user['is_active'] || (int) $user['role_id'] > 2) {
             self::logoutRedirect('session_expired');
         }

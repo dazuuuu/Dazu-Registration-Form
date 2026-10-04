@@ -7,9 +7,12 @@ use Models\DashboardModel;
 if (isLoggedIn() && (int) ($_SESSION['role_id'] ?? 99) === 1) {
     redirect(url('superadmin/dashboard.php'));
 }
-if (!isLoggedIn() || (int) ($_SESSION['role_id'] ?? 99) > 2) {
+if (!isLoggedIn()) {
     redirect(url('admin/portal.php'));
 }
+// Admins, and tutors who have been given admin rights (Middleware switches their session into the admin portal).
+require_once __DIR__ . '/../../app/v1/helpers/middleware.php';
+Middleware::requireAdmin();
 
 $dash = new DashboardModel($pdo);
 $stats = $dash->adminStats();
@@ -17,6 +20,7 @@ $page_title = 'System Overview';
 $breadcrumbs = [['label' => 'Dashboard', 'active' => true]];
 
 ob_start();
+$pwaPortal = 'admin'; require __DIR__ . '/../components/pwa/banner.php';
 ?>
 <style>
 .dashboard-hero{background:linear-gradient(135deg,#123b25,#1d7b45);color:#fff;border-radius:18px;padding:28px 30px;box-shadow:0 12px 30px rgba(21,91,50,.18)}

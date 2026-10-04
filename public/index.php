@@ -1,5 +1,49 @@
 <?php
 // public/index.php
+
+// Clean-URL fallback. Any address the server can't map lands here, so if public/.htaccess isn't applied (LiteSpeed,
+// an older copy on the host) /courses/view?id=2, /blog/<slug>, /courses/category?slug=x would all show the homepage.
+// Route them to their real page instead, the same way app/v1/tools/dev_router.php does.
+$__routed = (function (): ?string {
+    $base = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+    $path = rawurldecode(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
+    if ($base !== '' && strpos($path, $base . '/') === 0) {
+        $path = substr($path, strlen($base));
+    }
+    $rel = trim($path, '/');
+    if ($rel === '' || $rel === 'index.php' || strpos($rel, '..') !== false) {
+        return null;
+    }
+
+    $sections = 'about|apply|blogs|contact|courses|gallery|projects|services|store|testimonials|verify';
+    $fixed = ['login' => 'auth/login.php', 'forgot-password' => 'auth/forgot_password.php',
+              'reset-password' => 'auth/reset_password.php', 'blog' => 'blogs/index.php'];
+    $file = null;
+    if (isset($fixed[$rel])) {
+        $file = $fixed[$rel];
+    } elseif (preg_match('#^blog/([^/]+)$#', $rel, $m)) {
+        $file = 'blogs/readmore.php';
+        $_GET['slug'] = $_REQUEST['slug'] = $m[1];
+    } elseif (preg_match('#^(' . $sections . ')$#', $rel)) {
+        $file = $rel . '/index.php';
+    } elseif (preg_match('#^(' . $sections . ')/([A-Za-z0-9_-]+)$#', $rel, $m)) {
+        $file = $m[1] . '/' . $m[2] . '.php';
+    }
+    if ($file === null || !is_file(__DIR__ . '/' . $file)) {
+        return null;
+    }
+
+    $_SERVER['SCRIPT_FILENAME'] = __DIR__ . '/' . $file;
+    $_SERVER['SCRIPT_NAME'] = $_SERVER['PHP_SELF'] = $base . '/' . $file;
+    chdir(dirname(__DIR__ . '/' . $file));
+    return __DIR__ . '/' . $file;
+})();
+if ($__routed !== null) {
+    require $__routed;   // top level, so the page's variables stay global as they would when hit directly
+    exit;
+}
+unset($__routed);
+
 $page_title = 'Dazu Training Institute — Practical Tech Training in Nairobi, Thika & Online';
 $page_description = 'Hands-on software development, cybersecurity, data analytics and AI courses at Dazu Training Institute in Nairobi, Thika and online.';
 

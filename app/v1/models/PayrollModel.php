@@ -334,6 +334,10 @@ class PayrollModel
                     ':at' => $paidThisMonth ? $nextMonth : $now,
                 ]);
             }
+            if ($toAdd) {
+                require_once __DIR__ . '/../services/PortalNotifications.php';
+                \PortalNotifications::assignmentNotices($this->db, $tutorId, array_values($toAdd));
+            }
             return count($toAdd);
         });
     }

@@ -102,6 +102,8 @@ $planLabels = [
 
 $page_title = 'Dashboard';
 ob_start();
+$pwaPortal = 'students'; require __DIR__ . '/../../components/pwa/banner.php';
+$docsLink = url('students/documents/index.php'); require __DIR__ . '/../../components/documents/missing_banner.php';
 ?>
 
 <?php if ($portal_locked): ?>

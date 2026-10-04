@@ -40,6 +40,7 @@ if (isset($pdo)) {
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <?php $pwaPortal = 'admin'; require __DIR__ . '/../../components/pwa/head.php'; ?>
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -723,6 +724,7 @@ if (isset($pdo)) {
     ], JSON_UNESCAPED_SLASHES); ?>;
     </script>
     <script src="<?php echo asset('js/admin-terminal.js'); ?>"></script>
+    <?php $pwaPortal = 'admin'; require __DIR__ . '/../../components/pwa/script.php'; ?>
 
     <?php if (isset($extra_js)): ?>
         <?php echo $extra_js; ?>

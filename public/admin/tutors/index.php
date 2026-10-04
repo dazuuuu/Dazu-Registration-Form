@@ -47,7 +47,7 @@ ob_start();
                 <td class="xl-wrap"><?php echo htmlspecialchars($t['email']); ?></td>
                 <td class="num"><?php echo count($t['students']); ?></td>
                 <td class="num"><?php echo count($t['courses']); ?></td>
-                <td><?php echo $t['is_active'] ? '<span class="text-success fw-semibold small">Active</span>' : '<span class="text-muted small">Inactive</span>'; ?></td>
+                <td><?php echo $t['is_active'] ? '<span class="text-success fw-semibold small">Active</span>' : '<span class="text-muted small">Inactive</span>'; ?><?php if (!empty($t['can_admin'])): ?> <span class="badge bg-dark" title="Also has the admin portal">+ Admin</span><?php endif; ?></td>
                 <td class="text-end"><a href="view.php?id=<?php echo (int)$t['id']; ?>" class="btn btn-sm btn-outline-primary">Manage</a></td>
             </tr>
         <?php endforeach; ?>

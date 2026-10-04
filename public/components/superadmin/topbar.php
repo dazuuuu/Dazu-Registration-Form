@@ -18,6 +18,7 @@ $sa_more = [
     'People' => [
         ['Enrol a student', 'superadmin/students/enroll.php', 'fa-user-plus'],
         ['Add a tutor', 'superadmin/tutors/create.php', 'fa-chalkboard-user'],
+        ['Tutor permissions', 'superadmin/tutors/permissions.php', 'fa-user-lock'],
         ['Employees', 'superadmin/payroll/index.php#employees', 'fa-id-badge'],
         ['Add an employee', 'superadmin/payroll/employee_create.php', 'fa-user-tie'],
         ['Add an admin', 'superadmin/admins/index.php', 'fa-user-shield'],

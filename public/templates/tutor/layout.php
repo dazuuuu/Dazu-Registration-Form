@@ -12,6 +12,7 @@ Middleware::requireTutor();
     <title><?php echo htmlspecialchars($page_title ?? 'Tutor Portal'); ?> — Dazu Training Institute</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <?php $pwaPortal = 'tutor'; require __DIR__ . '/../../components/pwa/head.php'; ?>
     <style>
         :root { --brand:#0D9488; --brand-dark:#0A766B; }
         body { background:#f5f6f8; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
@@ -23,6 +24,12 @@ Middleware::requireTutor();
     </style>
 </head>
 <body>
+<?php if (!empty($_SESSION['preview'])): ?>
+<div style="background:#fef3c7;color:#92400e;text-align:center;padding:6px 12px;font-size:14px">
+    <strong>Tutor portal preview</strong> — a temporary tutor with one temporary student. Nothing you do here reaches real students.
+    <a href="<?php echo url('tutor/preview-exit.php'); ?>" style="color:#fff;background:#dc2626;padding:4px 12px;border-radius:6px;text-decoration:none;margin-left:8px">Exit preview</a>
+</div>
+<?php endif; ?>
 <?php require __DIR__ . '/../../components/tutor/navbar.php'; ?>
 <main class="tutor-main">
 <?php
@@ -34,5 +41,6 @@ echo $content;
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<?php require __DIR__ . '/../../components/pwa/script.php'; ?>
 </body>
 </html>

@@ -216,8 +216,18 @@ if (!function_exists('cert_issue')) {
     /** Mark a certificate issued (keeps the first issue date). Statuses are admin-only tracking. */
     function cert_issue(PDO $db, int $certId): void
     {
-        $db->prepare("UPDATE certificates SET status = 'issued', issued_at = COALESCE(issued_at, NOW())
-                      WHERE id = ? AND status NOT IN ('issued', 'collected')")->execute([$certId]);
+        $st = $db->prepare("UPDATE certificates SET status = 'issued', issued_at = COALESCE(issued_at, NOW())
+                      WHERE id = ? AND status NOT IN ('issued', 'collected')");
+        $st->execute([$certId]);
+        if ($st->rowCount()) {
+            require_once __DIR__ . '/PortalNotifications.php';
+            $q = $db->prepare("SELECT r.user_id, c.snapshot_course FROM certificates c JOIN registrations r ON r.id = c.registration_id WHERE c.id = ?");
+            $q->execute([$certId]);
+            if ($row = $q->fetch(PDO::FETCH_ASSOC)) {
+                PortalNotifications::notify($db, (int) $row['user_id'], 'certificate', 'Your certificate is ready 🎓',
+                    $row['snapshot_course'] . ' — download it from your portal.', 'students/certificates/index.php');
+            }
+        }
     }
 }
 
@@ -311,5 +321,26 @@ if (!function_exists('cert_save_student_photo')) {
                                      profile_photo_submitted_at = NOW(), profile_photo_status = 'approved'"
         )->execute([$userId, ltrim((string) $up['path'], '/')]);
         return ['ok' => true];
+    }
+}
+
+if (!function_exists('cert_student_has_any')) {
+    /** True when this student account has at least one certificate (not withdrawn) — controls the Certificates menu. */
+    function cert_student_has_any(int $userId): bool
+    {
+        static $cache = [];
+        if (!isset($cache[$userId])) {
+            try {
+                $st = \Models\Connection::getInstance()->getConnection()->prepare(
+                    "SELECT 1 FROM certificates c JOIN registrations r ON r.id = c.registration_id
+                     WHERE r.user_id = ? AND c.status <> 'withdrawn' LIMIT 1"
+                );
+                $st->execute([$userId]);
+                $cache[$userId] = (bool) $st->fetchColumn();
+            } catch (Throwable $e) {
+                $cache[$userId] = false;
+            }
+        }
+        return $cache[$userId];
     }
 }

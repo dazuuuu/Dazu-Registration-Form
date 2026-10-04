@@ -23,6 +23,7 @@ $profileIncomplete = empty($emp['photo_path']) || empty($emp['phone']);
 
 $page_title = 'Dashboard';
 ob_start();
+$pwaPortal = 'employee'; require __DIR__ . '/../../components/pwa/banner.php';
 ?>
 <div class="d-flex align-items-center gap-3 mb-4">
     <?php if (!empty($emp['photo_path'])): ?>

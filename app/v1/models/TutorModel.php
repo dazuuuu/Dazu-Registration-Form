@@ -337,6 +337,10 @@ class TutorModel {
             }
             $ins = $this->db->prepare("INSERT INTO tutor_students (tutor_id, user_id) VALUES (?, ?)");
             foreach ($toAdd as $uid) $ins->execute([$tutorId, $uid]);
+            if ($toAdd) {
+                require_once __DIR__ . '/../services/PortalNotifications.php';
+                \PortalNotifications::assignmentNotices($this->db, $tutorId, $toAdd);
+            }
             return;
         }
         foreach ($toRemove as $uid) {

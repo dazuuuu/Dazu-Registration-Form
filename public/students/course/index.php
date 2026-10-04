@@ -6,12 +6,16 @@ require_once __DIR__ . '/../../../app/v1/models/StudentModel.php';
 require_once __DIR__ . '/../../../app/v1/models/TutorModel.php';
 require_once __DIR__ . '/../../../app/v1/models/CurriculumModel.php';
 require_once __DIR__ . '/../../../app/v1/models/ProgressModel.php';
+require_once __DIR__ . '/../../../app/v1/models/TutorCourseModel.php';
+require_once __DIR__ . '/../../../app/v1/helpers/lms_files.php';
+require_once __DIR__ . '/../../../app/v1/services/CertificateService.php';
 
 use Models\Connection;
 use Models\StudentModel;
 use Models\TutorModel;
 use Models\CurriculumModel;
 use Models\ProgressModel;
+use Models\TutorCourseModel;
 
 Middleware::requireStudent();
 $pdo = Connection::getInstance()->getConnection();
@@ -35,16 +39,15 @@ if (empty($progress) && !empty($units)) {
 $progressMap = [];
 foreach ($progress as $p) $progressMap[(int)$p['unit_id']] = $p;
 
-// Fetch tutor specific modules if the student has a tutor
-$tutorModules = [];
-$stmt = $pdo->prepare("SELECT t.id FROM tutor_students ts JOIN tutors t ON ts.tutor_id = t.id WHERE ts.user_id = ? LIMIT 1");
-$stmt->execute([(int)$reg['id']]); // Wait, user_id in tutor_students is the registration_id!
-$assignedTutor = $stmt->fetch();
-if ($assignedTutor) {
-    $stmt = $pdo->prepare("SELECT * FROM course_modules WHERE course_id = ? AND tutor_id = ? ORDER BY order_index ASC, created_at ASC");
-    $stmt->execute([(int)$reg['course_id'], $assignedTutor['id']]);
-    $tutorModules = $stmt->fetchAll();
-}
+// The assigned tutor's own course: overview, video, instructions, resources and modules with progress.
+$tc = new TutorCourseModel($pdo);
+$mp = $tc->progressFor($reg);
+$courseTutorId = $mp['tutor'] ? (int) $mp['tutor']['user_id'] : 0;
+$overview = $courseTutorId ? $tc->getOverview($courseTutorId, (int) $reg['course_id']) : null;
+$tutorResources = $courseTutorId ? $tc->getResources($courseTutorId, (int) $reg['course_id']) : [];
+$st = $pdo->prepare("SELECT 1 FROM certificates WHERE registration_id = ? AND status <> 'withdrawn' LIMIT 1");
+$st->execute([(int) $reg['id']]);
+$hasCert = (bool) $st->fetchColumn();
 
 $portal_locked = (bool)$reg['portal_locked'];
 $page_title = 'My Course';
@@ -73,6 +76,59 @@ ob_start();
 <div class="alert alert-info">A tutor will be assigned to your course soon.</div>
 <?php endif; ?>
 
+<?php if ($mp['total'] || $overview && (trim((string) $overview['overview']) !== '' || $overview['video_path'] || $overview['video_url'])): ?>
+<div class="card-student mb-4"><div class="card-head"><i class="fas fa-chalkboard me-2"></i><?php echo htmlspecialchars($reg['course_title']); ?> — Course Overview</div><div class="card-body">
+    <?php if ($hasCert): ?>
+        <div class="alert alert-success"><i class="fas fa-award me-1"></i>Congratulations — you have finished this course! <a href="<?php echo url('students/certificates/index.php'); ?>" class="alert-link">Download your certificate</a>.</div>
+    <?php elseif (!empty($reg['studies_completed_at'])): ?>
+        <div class="alert alert-info"><i class="fas fa-check-circle me-1"></i>Studies completed. Your certificate is issued once your tutor confirms and your fee balance is zero.</div>
+    <?php endif; ?>
+    <?php if ($mp['total']): ?>
+        <div class="d-flex justify-content-between small mb-1"><span><strong><?php echo $mp['done']; ?></strong> of <?php echo $mp['total']; ?> modules completed</span>
+            <span><?php echo $mp['grade_percent'] !== null ? 'Grade so far: <strong>' . $mp['grade_percent'] . '%</strong>' : ''; ?></span></div>
+        <div class="progress mb-3" style="height:10px"><div class="progress-bar bg-success" style="width:<?php echo $mp['percent']; ?>%"></div></div>
+    <?php endif; ?>
+    <?php if (!empty($overview['overview'])): ?><div class="mb-3" style="white-space:pre-wrap"><?php echo htmlspecialchars($overview['overview']); ?></div><?php endif; ?>
+    <?php if (!empty($overview['video_path'])): ?>
+        <video src="<?php echo htmlspecialchars(settings_asset_url($overview['video_path'])); ?>" controls class="w-100 rounded mb-3" style="max-height:420px;background:#000"></video>
+    <?php elseif ($embed = lms_video_embed($overview['video_url'] ?? '')): ?>
+        <div class="ratio ratio-16x9 mb-3"><iframe src="<?php echo htmlspecialchars($embed); ?>" allowfullscreen loading="lazy"></iframe></div>
+    <?php elseif (!empty($overview['video_url'])): ?>
+        <p><a href="<?php echo htmlspecialchars($overview['video_url']); ?>" target="_blank" rel="noopener"><i class="fas fa-play-circle me-1"></i>Watch the intro video</a></p>
+    <?php endif; ?>
+    <?php if (!empty($overview['instructions'])): ?>
+        <div class="bg-light border rounded p-3 mb-3"><strong><i class="fas fa-list-ol me-1"></i>Instructions</strong><div class="mt-1 small" style="white-space:pre-wrap"><?php echo htmlspecialchars($overview['instructions']); ?></div></div>
+    <?php endif; ?>
+    <?php if ($tutorResources): ?>
+        <strong class="d-block mb-2"><i class="fas fa-folder-open me-1"></i>Resources</strong>
+        <ul class="list-unstyled small mb-0">
+            <?php foreach ($tutorResources as $r): ?>
+                <li class="mb-1"><i class="fas <?php echo $r['file_path'] ? 'fa-file-download' : 'fa-link'; ?> me-2 text-muted"></i><a href="<?php echo htmlspecialchars($r['file_path'] ? settings_asset_url($r['file_path']) : $r['link_url']); ?>" target="_blank" rel="noopener"><?php echo htmlspecialchars($r['title']); ?></a></li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
+</div></div>
+<?php endif; ?>
+
+<?php if ($mp['modules']): ?>
+<div class="card-student mb-4"><div class="card-head"><i class="fas fa-layer-group me-2"></i>Modules</div><div class="card-body p-0">
+    <div class="list-group list-group-flush">
+    <?php foreach ($mp['modules'] as $i => $tm): ?>
+    <div class="list-group-item p-3 d-flex justify-content-between align-items-center gap-2 flex-wrap">
+        <div>
+            <?php echo $tm['is_done'] ? '<i class="fas fa-check-circle text-success me-2"></i>' : '<i class="far fa-circle text-muted me-2"></i>'; ?>
+            <strong>Module <?php echo $i + 1; ?>:</strong> <?php echo htmlspecialchars($tm['title']); ?>
+            <?php if ($tm['is_done']): ?><span class="badge bg-success ms-1">Completed</span><?php endif; ?>
+            <?php if ($tm['description']): ?><div class="text-muted small mt-1"><?php echo htmlspecialchars($tm['description']); ?></div><?php endif; ?>
+        </div>
+        <?php if (!$portal_locked): ?><a href="tutor_module.php?id=<?php echo (int) $tm['id']; ?>" class="btn btn-sm btn-brand"><?php echo $tm['is_done'] ? 'Review' : 'Open'; ?></a><?php endif; ?>
+    </div>
+    <?php endforeach; ?>
+    </div>
+</div></div>
+<?php endif; ?>
+
+<?php if (!empty($units) || !$mp['modules']): ?>
 <div class="card-student"><div class="card-head"><i class="fas fa-book-open me-2"></i>Course Units — <?php echo htmlspecialchars($reg['course_title']); ?></div><div class="card-body p-0">
 <?php if (empty($units)): ?>
 <p class="p-4 text-muted mb-0">Course content is being prepared by your tutor.</p>
@@ -104,33 +160,6 @@ ob_start();
 <?php endif; ?>
 </div></div>
 
-<?php if (!empty($tutorModules)): ?>
-<div class="card-student mt-4"><div class="card-head"><i class="fas fa-layer-group me-2"></i>Tutor Extra Modules</div><div class="card-body p-0">
-    <div class="list-group list-group-flush">
-    <?php foreach ($tutorModules as $tm): 
-        $stmt = $pdo->prepare("SELECT type, COUNT(*) as cnt FROM module_contents WHERE module_id = ? GROUP BY type");
-        $stmt->execute([$tm['id']]);
-        $counts = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
-    ?>
-    <div class="list-group-item p-3">
-        <div class="d-flex justify-content-between align-items-center mb-1">
-            <h6 class="mb-0 fw-bold"><?php echo htmlspecialchars($tm['title']); ?></h6>
-            <?php if (!$portal_locked): ?>
-            <a href="tutor_module.php?id=<?php echo $tm['id']; ?>" class="btn btn-sm btn-outline-brand">View Module</a>
-            <?php endif; ?>
-        </div>
-        <?php if ($tm['description']): ?>
-            <p class="text-muted small mb-2"><?php echo htmlspecialchars($tm['description']); ?></p>
-        <?php endif; ?>
-        <div class="small text-muted">
-            <span class="me-3"><i class="fas fa-file-alt me-1"></i> <?php echo $counts['material'] ?? 0; ?> Materials</span>
-            <span class="me-3"><i class="fas fa-tasks me-1"></i> <?php echo $counts['assignment'] ?? 0; ?> Assignments</span>
-            <span><i class="fas fa-question-circle me-1"></i> <?php echo $counts['question'] ?? 0; ?> Questions</span>
-        </div>
-    </div>
-    <?php endforeach; ?>
-    </div>
-</div></div>
 <?php endif; ?>
 
 <?php $content = ob_get_clean();

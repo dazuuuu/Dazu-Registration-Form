@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/models/UserModel.php';
+require_once __DIR__ . '/../../app/v1/helpers/tutor_permissions.php';
 
 $userModel = new UserModel($pdo);
 $error = '';
@@ -19,7 +20,7 @@ if (isLoggedIn()) {
     } elseif ($role === 'student') {
         redirect(url('students/dashboard/index.php'));
     } elseif ($role === 'tutor') {
-        redirect(url('tutor/dashboard/index.php'));
+        redirect(url(tutor_admin_allowed($pdo, (int) $_SESSION['user_id']) ? 'auth/choose-portal.php' : 'tutor/dashboard/index.php'));
     } elseif ($role === 'employee') {
         redirect(url('employee/dashboard/index.php'));
     } else {
@@ -48,6 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role'] = $user['role_name'];
             $_SESSION['role_id'] = $user['role_id'];
             $_SESSION['logged_in'] = true;
+            unset($_SESSION['tutor_admin']);
 
             if (!empty($user['must_change_password'])) {
                 redirect(url('auth/change_password.php'));
@@ -60,7 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($user['role_name'] === 'student') {
                 redirect(url('students/dashboard/index.php'));
             } elseif ($user['role_name'] === 'tutor') {
-                redirect(url('tutor/dashboard/index.php'));
+                // A tutor with admin rights chooses which portal to open.
+                redirect(url(tutor_admin_allowed($pdo, (int) $user['id']) ? 'auth/choose-portal.php' : 'tutor/dashboard/index.php'));
             } elseif ($user['role_name'] === 'employee') {
                 redirect(url('employee/dashboard/index.php'));
             } else {

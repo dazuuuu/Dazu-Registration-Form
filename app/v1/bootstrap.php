@@ -53,12 +53,16 @@ spl_autoload_register(function ($class) {
 });
 
 if (session_status() === PHP_SESSION_NONE) {
-    // A student-portal preview (admin menu) lives in its own session; its cookie only ever travels to /students/.
-    $previewBase = (defined('WEB_ROOT') ? rtrim(WEB_ROOT, '/') : '') . '/students';
+    // A student- or tutor-portal preview (admin menu) lives in its own session; its cookie only ever travels to
+    // /students/ (DAZUPREVIEW) or /tutor/ (DAZUPREVIEWT).
     $reqPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
-    if (!empty($_COOKIE['DAZUPREVIEW']) && ($reqPath === $previewBase || strpos($reqPath, $previewBase . '/') === 0)) {
-        session_name('DAZUPREVIEW');
-        session_set_cookie_params(['path' => $previewBase . '/', 'httponly' => true, 'samesite' => 'Lax']);
+    foreach (['DAZUPREVIEW' => '/students', 'DAZUPREVIEWT' => '/tutor'] as $previewCookie => $previewDir) {
+        $previewBase = (defined('WEB_ROOT') ? rtrim(WEB_ROOT, '/') : '') . $previewDir;
+        if (!empty($_COOKIE[$previewCookie]) && ($reqPath === $previewBase || strpos($reqPath, $previewBase . '/') === 0)) {
+            session_name($previewCookie);
+            session_set_cookie_params(['path' => $previewBase . '/', 'httponly' => true, 'samesite' => 'Lax']);
+            break;
+        }
     }
     session_start();
 }

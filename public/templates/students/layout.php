@@ -20,6 +20,7 @@ $portal_locked = $portal_locked ?? false;
     <title><?php echo htmlspecialchars($page_title ?? 'Student Portal'); ?> — Dazu Training Institute</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <?php $pwaPortal = 'students'; require __DIR__ . '/../../components/pwa/head.php'; ?>
     <style>
         :root {
             --brand: #0D9488;
@@ -213,6 +214,7 @@ $portal_locked = $portal_locked ?? false;
 <?php require __DIR__ . '/../../components/students/bottom_nav.php'; ?>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<?php require __DIR__ . '/../../components/pwa/script.php'; ?>
 <?php if (isset($extra_js)): echo $extra_js; endif; ?>
 </body>
 </html>

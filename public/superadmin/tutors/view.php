@@ -41,6 +41,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             SessionModel::setFlash($r['ok'] ? 'success' : 'error', $r['ok'] ? 'Tutor deleted.' : $r['error']);
             header('Location: ' . ($r['ok'] ? 'index.php' : 'view.php?id=' . $id)); exit();
         }
+        if ($action === 'permissions') {
+            require_once __DIR__ . '/../../../app/v1/helpers/tutor_permissions.php';
+            $r = tutor_permissions_set($pdo, $id, ($_POST['access'] ?? '') === 'admin', (int) ($_SESSION['user_id'] ?? 0));
+            SessionModel::setFlash($r['ok'] ? 'success' : 'error', htmlspecialchars($r['message']));
+            header('Location: ' . $self . '#permissions'); exit();
+        }
         if ($action === 'send_credentials') {
             $r = (new TutorController())->sendCredentials($id);
             SessionModel::setFlash($r['ok'] ? 'success' : 'error', $r['ok'] ? 'Credentials emailed.' : ($r['error'] ?? 'Failed'));
@@ -258,6 +264,8 @@ ob_start();
 <?php endif; ?>
 </div>
 <div class="col-lg-4">
+<?php require __DIR__ . '/../../components/tutors/permission_card.php'; ?>
+<?php $docUserId = (int) ($tutor['user_id'] ?? 0); require __DIR__ . '/../../components/documents/admin_card.php'; ?>
 <?php if ($installed): $ts = $ledger['tutor_status']; ?>
 <div class="card mb-4 border-<?php echo $ts ? 'warning' : 'success'; ?>"><div class="card-header fw-semibold">Tutor availability</div><div class="card-body">
     <div class="mb-2"><?php echo $pauseBadge($ts); ?></div>

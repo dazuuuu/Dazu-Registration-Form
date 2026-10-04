@@ -293,6 +293,7 @@ ob_start();
             </table></div>
         </div>
         <?php $certArea = 'admin'; require __DIR__ . '/../../components/certificates/student_card.php'; ?>
+        <?php $docUserId = (int) ($reg['user_id'] ?? 0); require __DIR__ . '/../../components/documents/admin_card.php'; ?>
         <div class="card mb-3"><div class="card-header fw-semibold">Where they learn</div><div class="card-body">
             <?php if (!study_location_supported($pdo)): ?><p class="small text-muted mb-0">Apply the pending system update to record learning locations.</p><?php else: foreach ($enrols as $e): ?>
             <form method="POST" class="row g-2 align-items-end mb-3"><?php echo csrf_field(); ?><input type="hidden" name="action" value="set_study"><input type="hidden" name="study_reg_id" value="<?php echo (int)$e['id']; ?>">

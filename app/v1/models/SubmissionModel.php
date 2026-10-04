@@ -83,11 +83,11 @@ class SubmissionModel {
              FROM student_submissions s
              JOIN registrations r ON r.id = s.registration_id
              JOIN courses c ON r.course_id = c.id
-             JOIN tutor_students ts ON ts.user_id = r.id AND ts.tutor_id = :tid
+             JOIN tutor_students ts ON ts.user_id = r.user_id AND ts.tutor_id = :tid
              LEFT JOIN unit_tests t ON s.test_id = t.id
              LEFT JOIN unit_projects p ON s.project_id = p.id
              LEFT JOIN module_contents mc ON s.module_content_id = mc.id
-             WHERE s.status = 'submitted'
+             WHERE s.status = 'submitted' AND s.submission_type <> 'module'
              ORDER BY s.submitted_at ASC"
         );
         $stmt->execute([':tid' => $tutorId]);

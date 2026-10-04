@@ -23,6 +23,7 @@ $flashes = ['success' => 'check-circle', 'error' => 'exclamation-circle', 'warni
     <style>.sa-bottom,.sa-sheet,.sa-sheet-bg,.sa-help,.sa-help-bg{display:none}.sa-bottom{position:fixed}</style>
     <link rel="stylesheet" href="<?php echo sa_asset('css/superadmin.css'); ?>">
     <?php include __DIR__ . '/../../components/superadmin/pwa_head.php'; ?>
+    <?php require __DIR__ . '/../../components/pwa/styles.php'; ?>
     <script>
     (function () {
         var base = <?php echo json_encode(WEB_ROOT === '' ? '' : rtrim(WEB_ROOT, '/')); ?>;
@@ -66,6 +67,7 @@ $flashes = ['success' => 'check-circle', 'error' => 'exclamation-circle', 'warni
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="<?php echo sa_asset('superadmin/app.js'); ?>"></script>
+<?php $pwaPortal = 'superadmin'; require __DIR__ . '/../../components/pwa/script.php'; ?>
 <?php if (isset($extra_js)) echo $extra_js; ?>
 <?php require __DIR__ . '/../../components/cache_guard.php'; ?>
 </body>

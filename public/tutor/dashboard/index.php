@@ -21,6 +21,8 @@ $pending = (new SubmissionModel($pdo))->getPendingForTutor((int)$tutor['id']);
 
 $page_title = 'Dashboard';
 ob_start();
+$pwaPortal = 'tutor'; require __DIR__ . '/../../components/pwa/banner.php';
+$docsLink = url('tutor/documents/index.php'); require __DIR__ . '/../../components/documents/missing_banner.php';
 ?>
 <h4 class="mb-4">Welcome, <?php echo htmlspecialchars($tutorModel->fullName($tutor)); ?></h4>
 <div class="row g-3 mb-4">

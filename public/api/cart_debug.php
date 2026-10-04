@@ -1,11 +1,17 @@
 <?php
+// Developer diagnostics: it prints the session and database details, so only a signed-in admin may open it.
+require_once __DIR__ . '/../../app/v1/init.php';
+if (empty($_SESSION['logged_in']) || (int) ($_SESSION['role_id'] ?? 99) > 2) {
+    http_response_code(404);
+    exit('Not found');
+}
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 echo "<h1>Cart API Debug</h1>";
 
 // Check session
-session_start();
+if (session_status() === PHP_SESSION_NONE) session_start();
 echo "<h3>Session:</h3>";
 echo "<pre>";
 print_r($_SESSION);

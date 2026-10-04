@@ -163,12 +163,22 @@ class PaymentModel {
                  receipt_no = :receipt, receipt_html = :html
              WHERE id = :id AND status = 'pending'"
         );
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':admin'   => $adminId,
             ':receipt' => $receiptNo,
             ':html'    => $receiptHtml,
             ':id'      => $paymentId,
         ]);
+        if ($ok && $stmt->rowCount()) {
+            require_once __DIR__ . '/../services/PortalNotifications.php';
+            $p = $this->db->prepare("SELECT p.amount, r.user_id FROM payments p JOIN registrations r ON r.id = p.registration_id WHERE p.id = ?");
+            $p->execute([$paymentId]);
+            if ($row = $p->fetch(\PDO::FETCH_ASSOC)) {
+                \PortalNotifications::notify($this->db, (int) $row['user_id'], 'payment', 'Payment received',
+                    'KES ' . number_format((float) $row['amount']) . ' has been approved. Receipt ' . $receiptNo . '.', 'students/payments/index.php');
+            }
+        }
+        return $ok;
     }
 
     public function reject(int $paymentId, int $adminId, string $reason): bool {

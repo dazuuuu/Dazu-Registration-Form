@@ -178,6 +178,7 @@ $page_title = 'Overview';
 $sa_custom_header = true;
 $sa_smsInstalled = !empty($sms['installed']);
 ob_start();
+$pwaPortal = 'superadmin'; require __DIR__ . '/../components/pwa/banner.php';
 ?>
 <div class="sa-head">
     <div>

@@ -103,6 +103,11 @@ class GalleryController {
     public function getAll($status = 'active', $limit = null, $offset = 0) {
         return $this->galleryModel->getAll($status, $limit, $offset);
     }
+
+    /** Items matching status / category / media_type / featured / limit / offset (used by api/gallery/list.php). */
+    public function getFiltered(array $filters) {
+        return $this->galleryModel->getItems($filters);
+    }
     
     public function getById($id) {
         $item = $this->galleryModel->getById($id);

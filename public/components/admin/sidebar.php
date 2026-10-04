@@ -75,6 +75,13 @@ function isSmsSection($section) {
     <div class="sidebar-nav">
         <div class="nav flex-column">
             <?php ob_start(); // top-level items are reordered below (Settings → Sidebar Menu Order) ?>
+            <?php if (!empty($_SESSION['tutor_admin'])): ?>
+            <!-- A tutor using granted admin rights: one tap back to their own portal -->
+            <a href="<?php echo url('tutor/dashboard/index.php'); ?>" class="nav-link" style="background:rgba(13,148,136,.15)">
+                <i class="fas fa-chalkboard-teacher"></i>
+                <span>My Tutor Portal</span>
+            </a>
+            <?php endif; ?>
             <!--nav:dashboard-->
             <!-- Dashboard -->
             <a href="<?php echo url('admin/dashboard.php'); ?>"
@@ -99,6 +106,12 @@ function isSmsSection($section) {
                 <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent">
                     <i class="fas fa-eye"></i>
                     <span>Preview Student Portal</span>
+                </button>
+            </form>
+            <form method="POST" action="<?php echo url('admin/preview-tutor-portal.php'); ?>" target="_blank" class="m-0"><?php echo csrf_field(); ?>
+                <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    <span>Preview Tutor Portal</span>
                 </button>
             </form>
             <!--nav:export-->
@@ -178,6 +191,13 @@ function isSmsSection($section) {
                             <i class="fas fa-chalkboard-teacher"></i>
                             <span>Tutors</span>
                         </a>
+                        <?php if (empty($_SESSION['tutor_admin'])): ?>
+                        <a href="<?php echo url('admin/tutors/permissions.php'); ?>"
+                           class="nav-link <?php echo $current_page == 'permissions.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-user-lock"></i>
+                            <span>Permissions</span>
+                        </a>
+                        <?php endif; ?>
                         <a href="<?php echo url('admin/students/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'students' ? 'active' : ''; ?>">
                             <i class="fas fa-user-graduate"></i>

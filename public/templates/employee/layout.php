@@ -12,6 +12,7 @@ Middleware::requireEmployee();
     <title><?php echo htmlspecialchars($page_title ?? 'Staff Portal'); ?> — Dazu Training Institute</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <?php $pwaPortal = 'employee'; require __DIR__ . '/../../components/pwa/head.php'; ?>
     <style>
         :root { --brand:#0D9488; --brand-dark:#0A766B; }
         body { background:#f5f6f8; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
@@ -34,5 +35,6 @@ echo $content;
 </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<?php $pwaPortal = 'employee'; require __DIR__ . '/../../components/pwa/script.php'; ?>
 </body>
 </html>

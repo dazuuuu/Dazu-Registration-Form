@@ -8,8 +8,13 @@ $tabs = [
     ['dir' => 'course',    'href' => url('students/course/index.php'),    'icon' => 'fa-book-open', 'label' => 'Course'],
     ['dir' => 'payments',  'href' => url('students/payments/index.php'),  'icon' => 'fa-wallet', 'label' => 'Finance'],
     ['dir' => 'resources', 'href' => url('students/resources/index.php'), 'icon' => 'fa-folder-open', 'label' => 'Resources'],
-    ['dir' => 'certificates','href' => url('students/certificates/index.php'),'icon' => 'fa-certificate', 'label' => 'Certs'],
+    ['dir' => 'documents', 'href' => url('students/documents/index.php'), 'icon' => 'fa-id-card', 'label' => 'Docs'],
 ];
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/services/CertificateService.php';
+if (cert_student_has_any((int) ($_SESSION['user_id'] ?? 0))) {
+    $tabs[] = ['dir' => 'certificates', 'href' => url('students/certificates/index.php'), 'icon' => 'fa-certificate', 'label' => 'Certs'];
+}
 ?>
 <nav class="student-bottom-nav d-lg-none" aria-label="Student navigation">
     <?php foreach ($tabs as $tab):

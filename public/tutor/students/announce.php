@@ -29,12 +29,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($tutor && $title && $message) {
         $stmt = $pdo->prepare("INSERT INTO tutor_announcements (tutor_id, student_id, title, message) VALUES (?, ?, ?, ?)");
         $stmt->execute([$tutor['id'], $student_id, $title, $message]);
+        require_once __DIR__ . '/../../../app/v1/services/PortalNotifications.php';
+        PortalNotifications::notify($pdo, $student_id, 'announcement', $title, $message, 'students/dashboard/index.php',
+            PortalNotifications::photoOf($pdo, $tutor_id));
         
-        \Models\SessionModel::setFlash('success', 'Announcement sent to student.');
+        SessionModel::setFlash('success', 'Announcement sent to student.');
     } else {
-        \Models\SessionModel::setFlash('error', 'Failed to send announcement. Please check your inputs.');
+        SessionModel::setFlash('error', 'Failed to send announcement. Please check your inputs.');
     }
     
-    header('Location: view.php?id=' . $student_id);
+    header('Location: view.php?id=' . (int) ($_POST['reg_id'] ?? 0));
     exit;
 }

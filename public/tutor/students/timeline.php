@@ -30,9 +30,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt = $pdo->prepare("UPDATE tutor_students SET timeline_days = ?, start_date = ? WHERE tutor_id = ? AND user_id = ?");
         $stmt->execute([$timeline_days, $start_date, $tutor['id'], $student_id]);
         
-        \Models\SessionModel::setFlash('success', 'Timeline updated successfully.');
+        SessionModel::setFlash('success', 'Timeline updated successfully.');
     }
     
-    header('Location: view.php?id=' . $student_id);
+    header('Location: view.php?id=' . (int) ($_POST['reg_id'] ?? 0));
     exit;
 }
