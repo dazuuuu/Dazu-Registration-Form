@@ -15,6 +15,7 @@ if (!function_exists('admin_nav_items')) {
             'updates'          => ['System Updates', 'fa-database'],
             'system'           => ['System (dropdown)', 'fa-cogs'],
             'certificates'     => ['Certificates', 'fa-certificate'],
+            'id_cards'         => ['Student ID Cards', 'fa-id-card'],
             'website'          => ['Website Content (dropdown)', 'fa-globe'],
             'divider'          => ['— Divider line —', 'fa-minus'],
             'profile'          => ['My Profile', 'fa-user-circle'],

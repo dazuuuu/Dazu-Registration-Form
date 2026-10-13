@@ -9,6 +9,7 @@
 #----------------------------------------
 /_ignore_folder/
 
+/app/ignore_folder/
 # ========================================
 
 # Environment & Secrets
@@ -161,8 +162,12 @@ yarn-error.log*
 *.gz
 *.rar
 
+
 # SMTP password encryption key (created automatically)
 /app/v1/storage/mail.key
 
 # Runtime cache (schema markers, generated files) — never upload
 /app/v1/storage/cache/
+# Assignment attachments and student submissions (private files, served by public/assignments/file.php)
+/app/v1/storage/assignments/
+c

@@ -62,6 +62,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         SessionModel::setFlash($ok ? 'success' : 'error', $ok
             ? 'Payment removed and the balance updated.'
             : 'That payment could not be removed. Payments the tutor has already confirmed are locked.');
+    } elseif ($action === 'move_payment_back') {
+        $ok = $payroll->movePaymentToPreviousMonth((int)($_POST['payment_id'] ?? 0), $id);
+        SessionModel::setFlash($ok ? 'success' : 'error', $ok
+            ? 'Payment moved back one month and the balance updated.'
+            : 'That payment could not be found.');
+    } elseif ($action === 'revert_current_month') {
+        $n = $payroll->revertCurrentMonthPayments($id);
+        SessionModel::setFlash($n ? 'success' : 'error', $n
+            ? $n . ' payment(s) moved to ' . PayrollCalculator::monthLabel(PayrollCalculator::previousMonth()) . '. ' . PayrollCalculator::monthLabel(PayrollCalculator::currentMonth()) . ' now shows as not paid.'
+            : 'No payments were recorded against this month.');
     } elseif ($action === 'set_rate') {
         $selected = array_map('intval', (array)($_POST['user_ids'] ?? []));
         $current = array_map('intval', array_column($payroll->getCurrentStudents($id), 'user_id'));
@@ -98,10 +108,12 @@ foreach ($students as $s) {
     $earnedSoFar += $s['earned_to_date'];
 }
 
-// Months the payment can be recorded against: every month in the ledger, plus this month. Newest first.
-$monthChoices = array_column($ledger['months'], 'month');
-if (!in_array($asOf, $monthChoices, true)) $monthChoices[] = $asOf;
+// Tutors are paid in arrears: a payment made this month is for last month, so this month is never offered.
+$prevMonth = PayrollCalculator::previousMonth();
+$monthChoices = array_filter(array_column($ledger['months'], 'month'), fn($m) => $m < $asOf);
+if (!in_array($prevMonth, $monthChoices, true)) $monthChoices[] = $prevMonth;
 rsort($monthChoices);
+$currentMonthPayments = array_filter($payments, fn($p) => PayrollCalculator::monthKey($p['paid_for_month']) >= $asOf);
 
 $statusOf = function (array $s) use ($asOf): string {
     if ($s['months'] <= 0) return 'No approved course';
@@ -130,8 +142,18 @@ ob_start();
     <div class="col-6 col-lg-3"><div class="card h-100"><div class="card-body"><div class="text-muted small">Students</div><div class="fs-4 fw-bold text-primary"><?php echo count($students); ?></div><div class="text-muted small"><?php echo (int)$ledger['active_students']; ?> earning this month</div></div></div></div>
     <div class="col-6 col-lg-3"><div class="card h-100"><div class="card-body"><div class="text-muted small">Earned to date</div><div class="fs-4 fw-bold"><?php echo PayrollCalculator::money($ledger['earned_to_date']); ?></div><div class="text-muted small">This month: <?php echo PayrollCalculator::money($ledger['this_month']['earned']); ?></div></div></div></div>
     <div class="col-6 col-lg-3"><div class="card h-100"><div class="card-body"><div class="text-muted small">Paid to date</div><div class="fs-4 fw-bold text-success"><?php echo PayrollCalculator::money($ledger['paid_to_date']); ?></div><?php if ($ledger['pending_confirmation'] > 0): ?><div class="small text-warning"><?php echo (int)$ledger['pending_confirmation']; ?> awaiting tutor confirmation</div><?php endif; ?></div></div></div>
-    <div class="col-6 col-lg-3"><div class="card h-100 border-<?php echo $ledger['balance'] > 0 ? 'danger' : 'success'; ?>"><div class="card-body"><div class="text-muted small"><?php echo $ledger['balance'] < 0 ? 'Credit (overpaid)' : 'Balance owed'; ?></div><div class="fs-4 fw-bold <?php echo $ledger['balance'] > 0 ? 'text-danger' : 'text-success'; ?>"><?php echo PayrollCalculator::money(abs($ledger['balance'])); ?></div><div class="text-muted small">Includes any unpaid earlier months</div></div></div></div>
+    <div class="col-6 col-lg-3"><div class="card h-100 border-<?php echo $ledger['balance'] > 0 ? 'danger' : 'success'; ?>"><div class="card-body"><div class="text-muted small"><?php echo $ledger['balance'] < 0 ? 'Credit (overpaid)' : 'Balance owed'; ?></div><div class="fs-4 fw-bold <?php echo $ledger['balance'] > 0 ? 'text-danger' : 'text-success'; ?>"><?php echo PayrollCalculator::money(abs($ledger['balance'])); ?></div><div class="text-muted small">Due now for <?php echo PayrollCalculator::monthLabel($ledger['due_month']['month']); ?> and earlier: <?php echo PayrollCalculator::money($ledger['due_now']); ?></div></div></div></div>
 </div>
+
+<?php if ($currentMonthPayments): ?>
+<div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span><?php echo count($currentMonthPayments); ?> payment(s) are recorded for <?php echo PayrollCalculator::monthLabel($asOf); ?>, which is not due until the month ends. They are probably for <?php echo PayrollCalculator::monthLabel($prevMonth); ?>.</span>
+    <form method="POST" onsubmit="return confirm('Move these payments to <?php echo PayrollCalculator::monthLabel($prevMonth); ?>?');"><?php echo csrf_field(); ?>
+        <input type="hidden" name="action" value="revert_current_month">
+        <button type="submit" class="btn btn-sm btn-warning"><i class="fas fa-undo me-1"></i> Move to <?php echo PayrollCalculator::monthLabel($prevMonth); ?></button>
+    </form>
+</div>
+<?php endif; ?>
 
 <div class="row g-4 mb-4">
     <div class="col-lg-4">
@@ -145,10 +167,10 @@ ob_start();
                         <input type="number" name="amount" class="form-control" min="0.01" step="0.01" required placeholder="e.g. 25000">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Deduct from month</label>
+                        <label class="form-label">Paying for month</label>
                         <select name="month" class="form-select">
                             <?php foreach ($monthChoices as $m): ?>
-                                <option value="<?php echo htmlspecialchars($m); ?>" <?php echo $m === $asOf ? 'selected' : ''; ?>><?php echo PayrollCalculator::monthLabel($m); ?></option>
+                                <option value="<?php echo htmlspecialchars($m); ?>" <?php echo $m === $prevMonth ? 'selected' : ''; ?>><?php echo PayrollCalculator::monthLabel($m); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -161,7 +183,7 @@ ob_start();
                         <input type="text" name="note" class="form-control" maxlength="255" placeholder="e.g. M-Pesa code">
                     </div>
                     <button type="submit" class="btn btn-success w-100"><i class="fas fa-check me-1"></i> Record payment</button>
-                    <div class="text-muted small mt-2">Whatever is not paid stays owed and carries forward to the next month automatically.</div>
+                    <div class="text-muted small mt-2">Pay is for a month after it ends: a payment made in <?php echo PayrollCalculator::monthLabel($asOf); ?> is for <?php echo PayrollCalculator::monthLabel($prevMonth); ?>. Whatever is not paid stays owed and carries forward to the next month automatically.</div>
                 </form>
             </div>
         </div>
@@ -275,7 +297,12 @@ ob_start();
                                 <span class="badge bg-warning text-dark">Awaiting confirmation</span>
                             <?php endif; ?>
                         </td>
-                        <td class="text-end">
+                        <td class="text-end text-nowrap">
+                            <form method="POST" class="d-inline" onsubmit="return confirm('Move this payment back to <?php echo PayrollCalculator::monthLabel(PayrollCalculator::indexToKey(PayrollCalculator::monthIndex($p['paid_for_month']) - 1)); ?>?');"><?php echo csrf_field(); ?>
+                                <input type="hidden" name="action" value="move_payment_back">
+                                <input type="hidden" name="payment_id" value="<?php echo (int)$p['id']; ?>">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary" title="Move back one month"><i class="fas fa-undo"></i></button>
+                            </form>
                             <?php if (!$p['confirmed_at']): ?>
                             <form method="POST" class="d-inline" onsubmit="return confirm('Remove this payment? The balance owed will go back up.');"><?php echo csrf_field(); ?>
                                 <input type="hidden" name="action" value="delete_payment">

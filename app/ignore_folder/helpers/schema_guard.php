@@ -15,10 +15,16 @@ if (!function_exists('dazu_schema_guard')) {
         // Migrations whose tables the current code reads on every portal (add new ones here).
         $files = ['056_team_member_socials.sql', '057_certificates_and_lms.sql', '058_tutor_announcements.sql',
                   '059_certificate_collected_status.sql', '060_missing_columns.sql', '061_tutor_course_builder_and_documents.sql',
-                  '062_portal_notifications.sql', '063_tutor_admin_rights.sql'];
+                  '062_portal_notifications.sql', '063_tutor_admin_rights.sql', '064_student_id_cards.sql', '065_assignments_and_quizzes.sql',
+                  '066_assignments_full.sql'];
         $required = ['certificates', 'course_modules', 'module_contents', 'tutor_announcements',
                      'tutor_course_overviews', 'tutor_course_resources', 'student_module_progress', 'personal_documents',
-                     'portal_notifications', 'push_subscriptions'];
+                     'portal_notifications', 'push_subscriptions', 'student_id_cards',
+                     'tutor_assignments', 'tutor_assignment_targets', 'tutor_assignment_submissions', 'tutor_quizzes',
+                     'tutor_quiz_targets', 'tutor_quiz_questions', 'tutor_quiz_attempts', 'tutor_quiz_answers',
+                     'tutor_assignment_questions', 'tutor_assignment_attachments', 'tutor_assignment_rubric', 'tutor_rubric_templates',
+                     'tutor_assignment_recipients', 'tutor_assignment_requests', 'tutor_assignment_answers', 'tutor_assignment_files',
+                     'tutor_assignment_criterion_scores', 'tutor_assignment_versions', 'tutor_assignment_events'];
         // Columns that must exist, as table.column => text their type must contain (e.g. a newer ENUM option).
         $columnHas = [
             'certificates.status'                 => "'collected'",
@@ -39,6 +45,8 @@ if (!function_exists('dazu_schema_guard')) {
             'user_profiles.tshirt_size'           => 'varchar',
             'tutor_students.start_date'           => 'date',
             'tutors.can_admin'                    => 'tinyint',
+            'tutor_assignments.grading_mode'      => "'feedback'",
+            'tutor_assignment_submissions.feedback_improve' => 'text',
         ];
 
         $dir = dirname(__DIR__) . '/databases/required_migrations';

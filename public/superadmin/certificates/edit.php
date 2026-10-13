@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CertificateModel.php';
 require_once __DIR__ . '/../../../app/v1/services/CertificateService.php';
 
-Middleware::requireSuperadmin();
+Middleware::requireSuperPortal();
 
 $id = (int) ($_GET['id'] ?? 0);
 $db = \Models\Connection::getInstance()->getConnection();

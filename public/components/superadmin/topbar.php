@@ -11,6 +11,7 @@ $sa_nav = [
     ['Salaries',  'superadmin/payroll/index.php',       '/superadmin/payroll/',      'fa-wallet'],
     ['Admins',    'superadmin/admins/index.php',        '/superadmin/admins/',       'fa-user-shield'],
     ['Certificates','superadmin/certificates/index.php', '/certificates/',            'fa-certificate'],
+    ['ID Cards',  'superadmin/id_cards/index.php',      '/id_cards/',                'fa-id-card'],
     ['Finance',   'superadmin/sms/finance/index.php',   '/sms/finance/',             'fa-chart-line'],
     ['Sales',     'superadmin/sms/sales/index.php',     '/sms/sales/',               'fa-cash-register'],
 ];
@@ -29,6 +30,8 @@ $sa_more = [
         ['Categories', 'superadmin/courses/categories.php', 'fa-tags'],
         ['Classes', 'superadmin/courses/classes.php', 'fa-graduation-cap'],
         ['Certificates', 'superadmin/certificates/index.php', 'fa-certificate'],
+        ['Student ID cards', 'superadmin/id_cards/index.php', 'fa-id-card'],
+        ['Assignments', 'superadmin/assignments/index.php', 'fa-file-pen'],
     ],
     'Money' => [
         ['Payments', 'superadmin/payments/index.php', 'fa-money-bill-wave'],

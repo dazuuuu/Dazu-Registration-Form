@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/PayrollModel.php';
 require_once __DIR__ . '/../../../app/v1/models/EmployeeModel.php';
@@ -16,6 +17,26 @@ $pdo = Connection::getInstance()->getConnection();
 $payroll = new PayrollModel($pdo);
 $employeeModel = new EmployeeModel($pdo);
 $installed = $payroll->isInstalled();
+
+if ($installed && $_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'revert_current_month') {
+    require_once __DIR__ . '/../../../app/v1/models/Session.php';
+    if (!csrf_verify($_POST['csrf_token'] ?? null)) {
+        SessionModel::setFlash('error', 'Security check failed. Please try again.');
+    } else {
+        $n = $payroll->revertCurrentMonthPayments();
+        SessionModel::setFlash($n ? 'success' : 'error', $n
+            ? $n . ' tutor payment(s) moved to ' . PayrollCalculator::monthLabel(PayrollCalculator::previousMonth()) . '.'
+            : 'No tutor payments were recorded against this month.');
+    }
+    header('Location: index.php');
+    exit();
+}
+$wrongMonthPayments = 0;
+if ($installed) {
+    $st = $pdo->prepare('SELECT COUNT(*) FROM tutor_payments WHERE paid_for_month >= ?');
+    $st->execute([PayrollCalculator::currentMonth() . '-01']);
+    $wrongMonthPayments = (int) $st->fetchColumn();
+}
 $tutors = $installed ? $payroll->listTutorSummaries() : [];
 $employees = $employeeModel->isInstalled() ? $employeeModel->listWithBalances() : [];
 
@@ -60,6 +81,15 @@ ob_start();
 <?php if (!$installed): ?>
     <div class="alert alert-warning">Payroll has not been set up on this database yet. Open <strong>System → Updates</strong> and apply the pending updates (migrations 047 and 048), then reload this page.</div>
 <?php else: ?>
+<?php if ($wrongMonthPayments): ?>
+<div class="alert alert-warning d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span><?php echo $wrongMonthPayments; ?> tutor payment(s) are recorded for <?php echo PayrollCalculator::monthLabel(PayrollCalculator::currentMonth()); ?>. Tutors are paid for a month after it ends, so these belong to <?php echo PayrollCalculator::monthLabel(PayrollCalculator::previousMonth()); ?>.</span>
+    <form method="POST" onsubmit="return confirm('Move all of them to <?php echo PayrollCalculator::monthLabel(PayrollCalculator::previousMonth()); ?>?');"><?php echo csrf_field(); ?>
+        <input type="hidden" name="action" value="revert_current_month">
+        <button type="submit" class="btn btn-sm btn-warning"><i class="fas fa-undo me-1"></i> Move all to <?php echo PayrollCalculator::monthLabel(PayrollCalculator::previousMonth()); ?></button>
+    </form>
+</div>
+<?php endif; ?>
 <div class="row g-3 mb-3 xl-kpis">
     <div class="col-6 col-lg-3"><div class="card h-100"><div class="card-body"><div class="text-muted small">School owes (balance)</div><div class="fs-5 fw-bold text-danger"><?php echo PayrollCalculator::money(max(0, $owedAll)); ?></div></div></div></div>
     <div class="col-6 col-lg-3"><div class="card h-100"><div class="card-body"><div class="text-muted small">Earned to date</div><div class="fs-5 fw-bold"><?php echo PayrollCalculator::money($earnedAll); ?></div></div></div></div>

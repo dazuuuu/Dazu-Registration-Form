@@ -35,6 +35,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: ' . $self); exit();
     }
     $action = $_POST['action'] ?? '';
+    if ($action === 'delete_student') {
+        // Permanent: the admin must type the registration number to confirm.
+        if (strcasecmp(trim((string) ($_POST['confirm_reg_no'] ?? '')), (string) $reg['registration_no']) !== 0) {
+            SessionModel::setFlash('error', 'Not deleted. Type the registration number exactly to confirm.');
+            header('Location: ' . $self); exit();
+        }
+        require_once __DIR__ . '/../../../app/v1/services/StudentDeletionService.php';
+        $r = (new StudentDeletionService($pdo))->delete($id, (int) ($_SESSION['user_id'] ?? 0));
+        SessionModel::setFlash($r['ok'] ? 'success' : 'error', $r['ok']
+            ? htmlspecialchars($r['name']) . ' was deleted, with their login and all their records.'
+            : htmlspecialchars($r['error']));
+        header('Location: ' . ($r['ok'] ? 'index.php' : $self)); exit();
+    }
     if ($action === 'add_course' || $action === 'transfer_course') {
         $enrols = $courseSvc->enrolments($reg);
         $targetCourse = (int)($_POST['course_id'] ?? 0);
@@ -205,6 +218,16 @@ ob_start();
             <p class="small text-muted">Resets the password and emails new sign-in details. If the email fails you are shown the password to hand over.</p>
             <form method="POST" onsubmit="return confirm('Reset the password and email new sign-in details?');"><?php echo csrf_field(); ?><input type="hidden" name="action" value="send_credentials">
                 <button class="btn btn-outline-secondary w-100"><i class="fas fa-key me-1"></i>Send credentials</button></form>
+        </div></div>
+        <div class="card border-danger mt-3"><div class="card-header fw-semibold text-danger">Delete student</div><div class="card-body">
+            <p class="small text-muted mb-2">Permanently removes this student: their login, every course they are enrolled in, payments and receipts,
+                certificates, documents, assignments, quiz attempts and notifications. This cannot be undone.</p>
+            <form method="POST" onsubmit="return confirm('Delete this student and ALL their records for good? This cannot be undone.');"><?php echo csrf_field(); ?>
+                <input type="hidden" name="action" value="delete_student">
+                <label class="form-label small">Type the registration number <strong><?php echo htmlspecialchars((string) $reg['registration_no']); ?></strong> to confirm</label>
+                <input type="text" name="confirm_reg_no" class="form-control mb-2" autocomplete="off" required>
+                <button class="btn btn-danger w-100"><i class="fas fa-trash me-1"></i>Delete student permanently</button>
+            </form>
         </div></div>
     </div>
 </div>

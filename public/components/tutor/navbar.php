@@ -14,7 +14,6 @@ $username = $_SESSION['username'] ?? 'Tutor';
             <a class="nav-link <?php echo $current_dir === 'modules' ? 'active fw-semibold' : ''; ?>" href="<?php echo url('tutor/modules/index.php'); ?>">Course Builder</a>
             <a class="nav-link <?php echo $current_dir === 'submissions' ? 'active fw-semibold' : ''; ?>" href="<?php echo url('tutor/submissions/index.php'); ?>">Submissions</a>
             <a class="nav-link <?php echo $current_dir === 'resources' ? 'active fw-semibold' : ''; ?>" href="<?php echo url('tutor/resources/index.php'); ?>">Resources</a>
-            <a class="nav-link <?php echo $current_dir === 'documents' ? 'active fw-semibold' : ''; ?>" href="<?php echo url('tutor/documents/index.php'); ?>">My Documents</a>
             <?php
             require_once __DIR__ . '/../../../app/v1/helpers/tutor_permissions.php';
             require_once __DIR__ . '/../../../app/v1/models/Connection.php';

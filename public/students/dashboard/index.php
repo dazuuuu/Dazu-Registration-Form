@@ -48,6 +48,23 @@ $installments  = RegistrationModel::calculateInstallments(
     $reg['payment_plan'],
     (int) $reg['duration_months']
 );
+require_once __DIR__ . '/../../../app/v1/models/ClassworkModel.php';
+require_once __DIR__ . '/../../../app/v1/models/AssignmentModel.php';
+$cwModel = new \Models\ClassworkModel($pdo);
+$cwItems = [];
+try {
+    // Assignments: open ones are to do, graded ones show their published result; locked ones are left out.
+    foreach ((new \Models\AssignmentModel($pdo))->chain($userId) as $x) {
+        if (in_array($x['state'], ['locked', 'skipped'], true)) continue;
+        $cwItems[] = ['kind' => 'assignment', 'id' => $x['id'], 'title' => $x['title'], 'due_at' => $x['due'] ? \Models\AssignmentModel::local($x['due'], 'Y-m-d H:i:s') : null,
+                      'submitted_at' => $x['state'] === 'closed' ? 'closed' : $x['submitted_at'], 'graded_at' => $x['state'] === 'graded' ? $x['result_published_at'] : null,
+                      'result' => $x['state'] === 'graded' ? \Models\AssignmentModel::resultText($x) : null];
+    }
+    foreach ($cwModel->quizzesForStudent($userId) as $x) $cwItems[] = $x + ['kind' => 'quiz'];
+} catch (Throwable $e) {
+}
+$cwTodo = array_filter($cwItems, fn($x) => !$x['submitted_at']);
+$cwGraded = array_slice(array_filter($cwItems, fn($x) => $x['graded_at']), 0, 3);
 $learnStats = (new DashboardModel($pdo))->studentStats((int)$reg['id'], (int)$reg['course_id']);
 
 // Fetch Tutor, Timeline, and Announcements
@@ -156,204 +173,236 @@ $docsLink = url('students/documents/index.php'); require __DIR__ . '/../../compo
 
 <?php else: ?>
 
-<div class="row g-3 mb-4">
-    <div class="col-md-8"><div class="card-student"><div class="card-head">Learning progress</div><div class="card-body"><canvas id="studentProgress" height="120"></canvas></div></div></div>
-    <div class="col-md-4"><div class="card-student h-100"><div class="card-body text-center py-4 d-flex flex-column justify-content-center">
-        <div style="font-size:3rem;font-weight:700;color:var(--brand);"><?php echo $learnStats['progress_pct']; ?>%</div>
-        <div class="text-muted">Units completed (<?php echo $learnStats['units_done']; ?> / <?php echo $learnStats['units_total']; ?>)</div>
-        
-        <?php if ($tutorData && $tutorData['timeline_days'] > 0): 
-            $startDate = new DateTime($tutorData['start_date']);
-            $endDate = clone $startDate;
-            $endDate->modify('+' . $tutorData['timeline_days'] . ' days');
-            $now = new DateTime();
-            $daysLeft = $now->diff($endDate)->format('%r%a');
-            $timelinePct = min(100, max(0, ($tutorData['timeline_days'] - $daysLeft) / $tutorData['timeline_days'] * 100));
-        ?>
-        <hr class="my-3 border-light">
-        <div class="text-start">
-            <div class="d-flex justify-content-between small text-muted mb-1">
-                <span>Study Timeline</span>
-                <span class="<?php echo $daysLeft < 0 ? 'text-danger fw-bold' : ''; ?>"><?php echo $daysLeft < 0 ? 'Overdue by ' . abs((int)$daysLeft) . ' days' : $daysLeft . ' days remaining'; ?></span>
+<?php
+$firstName = mb_convert_case(strtok(trim((string) $reg['full_name']), ' ') ?: 'there', MB_CASE_TITLE, 'UTF-8');
+$pct = (int) $learnStats['progress_pct'];
+$timeline = null;
+if ($tutorData && (int) $tutorData['timeline_days'] > 0 && !empty($tutorData['start_date'])) {
+    $startDate = new DateTime($tutorData['start_date']);
+    $endDate = (clone $startDate)->modify('+' . (int) $tutorData['timeline_days'] . ' days');
+    $daysLeft = (int) (new DateTime())->diff($endDate)->format('%r%a');
+    $timeline = [
+        'end'  => $endDate,
+        'left' => $daysLeft,
+        'pct'  => min(100, max(0, ((int) $tutorData['timeline_days'] - $daysLeft) / (int) $tutorData['timeline_days'] * 100)),
+    ];
+}
+$unreadAnn = array_filter($announcements, fn($a) => $a['is_read'] == 0);
+// Latest ID card status for the quick tile
+$idCard = null;
+try {
+    $st = $pdo->prepare("SELECT status, pickup_location FROM student_id_cards WHERE registration_id = ? ORDER BY id DESC LIMIT 1");
+    $st->execute([(int) $reg['id']]);
+    $idCard = $st->fetch(\PDO::FETCH_ASSOC) ?: null;
+} catch (\Throwable $e) {
+}
+$idText = [
+    'requested' => 'Requested — awaiting the office',
+    'generated' => 'Ready to download · printing',
+    'ready'     => 'Ready for pickup at ' . ucfirst((string) ($idCard['pickup_location'] ?? '')),
+    'collected' => 'Collected',
+    'declined'  => 'Request declined',
+][$idCard['status'] ?? ''] ?? 'Not requested yet';
+?>
+<style>
+.sd-ring{--p:0;width:112px;height:112px;border-radius:50%;flex:none;display:grid;place-items:center;
+  background:conic-gradient(var(--g) calc(var(--p)*1%),rgba(255,255,255,.14) 0)}
+.sd-ring>div{width:88px;height:88px;border-radius:50%;background:var(--char);display:grid;place-items:center;text-align:center;line-height:1.05}
+.sd-ring b{font-size:1.45rem;color:#fff}.sd-ring small{font-size:.65rem;opacity:.7;display:block}
+.sd-hero-row{display:flex;gap:20px;align-items:center;flex-wrap:wrap}
+.sd-hero-row .grow{flex:1;min-width:220px}
+.sd-chip{display:inline-flex;align-items:center;gap:6px;font-size:.72rem;background:rgba(255,255,255,.12);border-radius:999px;padding:4px 10px;margin:8px 6px 0 0}
+.sd-tl{margin-top:14px;max-width:420px}
+.sd-tl .bar{height:6px;border-radius:99px;background:rgba(255,255,255,.16);overflow:hidden}
+.sd-tl .bar>div{height:100%;background:#9ad97c;border-radius:99px}
+.sd-tutor{display:flex;gap:12px;align-items:center}
+.sd-tutor .as-ava{width:48px;height:48px;border-radius:14px;background:var(--g);font-size:1.1rem}
+.sd-kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media(min-width:768px){.sd-kv{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.sd-kv small{display:block;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.05em}
+.sd-kv strong{font-weight:600}
+.sd-ann{max-height:260px;overflow-y:auto}
+.sd-ann .item{padding:12px 20px;border-bottom:1px solid var(--line)}
+.sd-ann .item:last-child{border-bottom:0}
+.sd-ann .item.new{background:#fbfdf9;box-shadow:inset 3px 0 0 var(--g)}
+.sd-id{display:flex;align-items:center;gap:12px;text-decoration:none;color:inherit}
+.sd-id .card-mini{width:64px;aspect-ratio:85.6/54;border-radius:7px;flex:none;position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.sd-id .card-mini:before{content:"";position:absolute;right:-10px;top:-12px;width:44px;height:26px;background:var(--char);transform:rotate(28deg);box-shadow:-3px 3px 0 var(--g)}
+.sd-id .card-mini:after{content:"";position:absolute;left:0;right:0;bottom:0;height:7px;background:var(--g)}
+.sd-id .card-mini span{position:absolute;left:5px;top:13px;width:11px;height:14px;border:2px solid var(--g);border-radius:2px;background:#e6e8e3}
+</style>
+
+<div class="as-hero">
+    <div class="sd-hero-row">
+        <div class="grow">
+            <div class="hi"><?php echo date('l, j F'); ?></div>
+            <h1>Hi <?php echo htmlspecialchars($firstName); ?> 👋</h1>
+            <p>You're studying <strong><?php echo htmlspecialchars($reg['course_title']); ?></strong>. Keep going — every unit counts.</p>
+            <span class="sd-chip"><i class="fas fa-id-badge"></i><?php echo htmlspecialchars($reg['registration_no']); ?></span>
+            <span class="sd-chip"><i class="fas <?php echo $reg['study_mode'] === 'physical' ? 'fa-school' : 'fa-laptop'; ?>"></i><?php echo $reg['study_mode'] === 'physical' ? 'Physical' : 'Online'; ?></span>
+            <?php if ($timeline): ?>
+                <div class="sd-tl">
+                    <div class="d-flex justify-content-between small mb-1" style="opacity:.85">
+                        <span>Study timeline · goal <?php echo $timeline['end']->format('j M Y'); ?></span>
+                        <span><?php echo $timeline['left'] < 0 ? 'Overdue ' . abs($timeline['left']) . 'd' : $timeline['left'] . ' days left'; ?></span>
+                    </div>
+                    <div class="bar"><div style="width:<?php echo round($timeline['pct']); ?>%"></div></div>
+                </div>
+            <?php endif; ?>
+            <a href="<?php echo url('students/course/index.php'); ?>" class="btn btn-light mt-3"><i class="fas fa-play me-2 text-success"></i>Continue learning</a>
+        </div>
+        <div class="sd-ring" style="--p:<?php echo $pct; ?>"><div><span><b><?php echo $pct; ?>%</b><small><?php echo (int) $learnStats['units_done']; ?>/<?php echo (int) $learnStats['units_total']; ?> units</small></span></div></div>
+    </div>
+</div>
+
+<div class="as-stats">
+    <div class="as-stat"><span class="ic"><i class="fas fa-chart-line"></i></span><span class="k">Progress</span><span class="v"><?php echo $pct; ?>%</span></div>
+    <div class="as-stat"><span class="ic dark"><i class="fas fa-layer-group"></i></span><span class="k">Installments</span><span class="v"><?php echo (int) $reg['installments_paid']; ?> / <?php echo $installments['count']; ?></span></div>
+    <div class="as-stat"><span class="ic"><i class="fas fa-coins"></i></span><span class="k">Total paid</span><span class="v">KSh <?php echo number_format($totalPaid); ?></span></div>
+    <a class="as-stat" href="<?php echo url('students/payments/index.php'); ?>"><span class="ic <?php echo $balance > 0 ? 'red' : ''; ?>"><i class="fas fa-wallet"></i></span><span class="k">Balance</span>
+        <span class="v" style="color:<?php echo $balance > 0 ? '#b42318' : 'var(--g-d)'; ?>"><?php echo $balance > 0 ? 'KSh ' . number_format($balance) : 'Paid'; ?></span></a>
+</div>
+
+<?php if ($hasPending): ?>
+<div class="alert alert-warning"><i class="fas fa-hourglass-half me-2"></i>You have a payment awaiting admin verification.</div>
+<?php endif; ?>
+
+<div class="row g-3">
+    <div class="col-lg-7">
+        <div class="card-student">
+            <div class="card-head"><i class="fas fa-book"></i>My course</div>
+            <div class="card-body">
+                <h5 class="mb-3"><?php echo htmlspecialchars($reg['course_title']); ?></h5>
+                <div class="sd-kv mb-3">
+                    <div><small>Study mode</small><strong><?php echo $reg['study_mode'] === 'physical' ? 'Physical' : 'Online'; ?></strong></div>
+                    <div><small>Duration</small><strong><?php echo (int) $reg['duration_months']; ?> months</strong></div>
+                    <div><small>Payment plan</small><span class="badge badge-plan"><?php echo $planLabels[$reg['payment_plan']] ?? $reg['payment_plan']; ?></span></div>
+                    <div><small>Course fee</small><strong>KSh <?php echo number_format($reg['course_fee']); ?></strong></div>
+                    <?php if ($reg['next_payment_due'] && $reg['payment_plan'] !== 'full'): ?>
+                        <div><small>Next payment</small><strong class="<?php echo strtotime($reg['next_payment_due']) < time() ? 'text-danger' : ''; ?>"><?php echo date('d M Y', strtotime($reg['next_payment_due'])); ?></strong></div>
+                    <?php endif; ?>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="<?php echo url('students/course/index.php'); ?>" class="btn btn-brand"><i class="fas fa-book-open me-1"></i>Open course</a>
+                    <?php if ($reg['payment_plan'] !== 'full' && $nextAmount > 0 && !$hasPending): ?>
+                        <a href="<?php echo url('students/payments/index.php'); ?>" class="btn btn-outline-success"><i class="fas fa-money-bill-wave me-1"></i>Pay KSh <?php echo number_format($nextAmount); ?></a>
+                    <?php endif; ?>
+                </div>
             </div>
-            <div class="progress" style="height: 6px;">
-                <div class="progress-bar bg-<?php echo $daysLeft < 10 ? 'warning' : 'info'; ?>" style="width: <?php echo $timelinePct; ?>%"></div>
+        </div>
+
+        <?php if ($cwItems): ?>
+        <div class="card-student">
+            <div class="card-head justify-content-between"><span><i class="fas fa-file-pen me-2"></i>Classwork</span>
+                <?php if ($cwTodo): ?><span class="badge bg-warning text-dark rounded-pill"><?php echo count($cwTodo); ?> to do</span><?php endif; ?></div>
+            <div class="list-group list-group-flush">
+                <?php foreach (array_merge(array_slice($cwTodo, 0, 4), $cwGraded) as $x):
+                    $href = url($x['kind'] === 'quiz' ? 'students/classwork/quiz.php?id=' . (int) $x['id']
+                        : 'students/assignments/' . ($x['graded_at'] ? 'result' : 'view') . '.php?id=' . (int) $x['id']); ?>
+                    <a href="<?php echo $href; ?>" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-2">
+                        <div style="min-width:0"><div class="small fw-semibold text-truncate"><i class="fas <?php echo $x['kind'] === 'quiz' ? 'fa-circle-question' : 'fa-file-pen'; ?> me-1 text-success"></i><?php echo htmlspecialchars($x['title']); ?></div>
+                            <div class="small text-muted"><?php echo \Models\ClassworkModel::dueLabel($x['due_at']); ?></div></div>
+                        <?php if ($x['graded_at']): ?><span class="badge bg-success"><?php echo htmlspecialchars($x['result'] ?? ((float) $x['score'] . ' / ' . (float) $x['max_score'])); ?></span>
+                        <?php else: ?><span class="badge bg-warning text-dark"><?php echo $x['kind'] === 'quiz' ? 'Take quiz' : 'Submit'; ?></span><?php endif; ?>
+                    </a>
+                <?php endforeach; ?>
             </div>
-            <div class="text-muted small mt-1 text-center">Goal: <?php echo $endDate->format('d M Y'); ?></div>
+            <div class="card-body py-2"><a href="<?php echo url('students/classwork/index.php'); ?>" class="small">All classwork →</a></div>
         </div>
         <?php endif; ?>
 
-        <a href="<?php echo url('students/course/index.php'); ?>" class="btn btn-brand mt-auto w-100">Continue learning</a>
-    </div></div></div>
-</div>
+        <?php if (!empty($announcements)): ?>
+        <div class="card-student">
+            <div class="card-head justify-content-between"><span><i class="fas fa-bullhorn me-2"></i>Announcements</span>
+                <?php if ($unreadAnn): ?><span class="badge bg-danger rounded-pill"><?php echo count($unreadAnn); ?> new</span><?php endif; ?></div>
+            <div class="sd-ann">
+                <?php foreach ($announcements as $ann): ?>
+                    <div class="item <?php echo $ann['is_read'] == 0 ? 'new' : ''; ?>">
+                        <div class="d-flex justify-content-between gap-2"><strong class="small"><?php echo htmlspecialchars($ann['title']); ?></strong>
+                            <small class="text-muted"><?php echo date('M d', strtotime($ann['created_at'])); ?></small></div>
+                        <div class="small text-muted mt-1"><?php echo nl2br(htmlspecialchars($ann['message'])); ?></div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
 
-<?php if ($tutorData): ?>
-<div class="row g-3 mb-4">
-    <div class="col-md-6">
-        <div class="card-student h-100">
-            <div class="card-head bg-light"><i class="fas fa-chalkboard-teacher me-2 text-brand"></i>Your Tutor</div>
+    <div class="col-lg-5">
+        <?php if ($tutorData): ?>
+        <div class="card-student">
+            <div class="card-head"><i class="fas fa-chalkboard-user"></i>Your tutor</div>
             <div class="card-body">
-                <div class="d-flex align-items-center">
-                    <div class="me-3">
-                        <div class="student-avatar" style="width:50px;height:50px;font-size:20px;">
-                            <?php echo substr($tutorData['tutor_name'] ?? 'T', 0, 1); ?>
-                        </div>
-                    </div>
-                    <div>
-                        <h5 class="mb-1"><?php echo htmlspecialchars($tutorData['tutor_name']); ?></h5>
-                        <p class="mb-0 text-muted small"><i class="fas fa-envelope me-1"></i> <?php echo htmlspecialchars($tutorData['tutor_email']); ?></p>
-                        <p class="mb-0 text-muted small"><i class="fas fa-phone me-1"></i> <?php echo htmlspecialchars($tutorData['tutor_phone']); ?></p>
+                <div class="sd-tutor">
+                    <span class="as-ava"><?php echo htmlspecialchars(mb_strtoupper(mb_substr($tutorData['tutor_name'] ?? 'T', 0, 1))); ?></span>
+                    <div style="min-width:0">
+                        <div class="fw-semibold"><?php echo htmlspecialchars($tutorData['tutor_name']); ?></div>
+                        <?php if ($tutorData['tutor_email']): ?><div class="small text-muted text-truncate"><i class="fas fa-envelope me-1"></i><?php echo htmlspecialchars($tutorData['tutor_email']); ?></div><?php endif; ?>
+                        <?php if ($tutorData['tutor_phone']): ?><div class="small text-muted"><i class="fas fa-phone me-1"></i><?php echo htmlspecialchars($tutorData['tutor_phone']); ?></div><?php endif; ?>
                     </div>
                 </div>
+                <?php if ($tutorData['tutor_phone']): ?>
+                    <div class="d-flex gap-2 mt-3">
+                        <a class="btn btn-sm btn-outline-success flex-fill" href="tel:<?php echo htmlspecialchars(preg_replace('/\s+/', '', $tutorData['tutor_phone'])); ?>"><i class="fas fa-phone me-1"></i>Call</a>
+                        <a class="btn btn-sm btn-success flex-fill" target="_blank" rel="noopener" href="https://wa.me/<?php echo htmlspecialchars(preg_replace('/^0/', '254', preg_replace('/\D+/', '', $tutorData['tutor_phone']))); ?>"><i class="fab fa-whatsapp me-1"></i>WhatsApp</a>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <div class="card-student">
+            <div class="card-body">
+                <a class="sd-id" href="<?php echo url('students/documents/index.php'); ?>">
+                    <span class="card-mini"><span></span></span>
+                    <div class="flex-grow-1"><div class="fw-semibold">Student ID card</div><div class="small text-muted"><?php echo htmlspecialchars($idText); ?></div></div>
+                    <i class="fas fa-chevron-right text-muted"></i>
+                </a>
+            </div>
+        </div>
+
+        <div class="card-student">
+            <div class="card-head"><i class="fas fa-share-nodes"></i>Invite a friend</div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Share <strong><?php echo htmlspecialchars($reg['course_title']); ?></strong> — friends can see the course and register directly.</p>
+                <?php
+                $share_url = course_share_url((int) $reg['course_id'], $reg['registration_no'] ?? null);
+                $share_title = 'Join me at Dazu Training Institute — ' . ($reg['course_title'] ?? 'tech course');
+                $input_id = 'studentCourseShare';
+                ?>
+                <div class="input-group mb-2">
+                    <input type="text" class="form-control form-control-sm" id="<?php echo $input_id; ?>" readonly value="<?php echo htmlspecialchars($share_url); ?>">
+                    <button type="button" class="btn btn-brand btn-sm dh-share-copy" data-target="<?php echo $input_id; ?>"><i class="fas fa-copy"></i> Copy</button>
+                    <a href="https://wa.me/?text=<?php echo rawurlencode(course_share_invite_text(['title' => $reg['course_title'] ?? 'tech course', 'overview' => ''], $share_url, $share_title)); ?>" class="btn btn-success btn-sm" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i></a>
+                </div>
+                <a href="<?php echo htmlspecialchars($share_url); ?>" target="_blank" rel="noopener" class="small"><i class="fas fa-external-link-alt me-1"></i>Preview share page</a>
             </div>
         </div>
     </div>
-    
-    <?php if (!empty($announcements)): ?>
-    <div class="col-md-6">
-        <div class="card-student h-100">
-            <div class="card-head bg-light d-flex justify-content-between align-items-center">
-                <span><i class="fas fa-bullhorn me-2 text-warning"></i>Announcements</span>
-                <span class="badge bg-danger rounded-pill"><?php echo count(array_filter($announcements, fn($a) => $a['is_read'] == 0)); ?> New</span>
-            </div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush" style="max-height: 150px; overflow-y: auto;">
-                    <?php foreach ($announcements as $ann): ?>
-                        <div class="list-group-item <?php echo $ann['is_read'] == 0 ? 'bg-light' : ''; ?>">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1 <?php echo $ann['is_read'] == 0 ? 'fw-bold' : ''; ?>"><?php echo htmlspecialchars($ann['title']); ?></h6>
-                                <small class="text-muted"><?php echo date('M d', strtotime($ann['created_at'])); ?></small>
-                            </div>
-                            <p class="mb-1 small text-muted"><?php echo nl2br(htmlspecialchars($ann['message'])); ?></p>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-        </div>
-    </div>
-    <?php endif; ?>
 </div>
 
-<?php 
-// Show popup for unread announcements
-$unreadCount = count(array_filter($announcements, fn($a) => $a['is_read'] == 0));
-if ($unreadCount > 0):
-?>
+<?php if ($unreadAnn): ?>
     <div class="modal fade" id="announcementModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 rounded-4 shadow">
-                <div class="modal-header bg-warning bg-opacity-10 border-0">
-                    <h5 class="modal-title text-warning-dark fw-bold"><i class="fas fa-bell me-2"></i>You have <?php echo $unreadCount; ?> new announcement<?php echo $unreadCount > 1 ? 's' : ''; ?></h5>
+            <div class="modal-content shadow">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title fw-bold"><i class="fas fa-bell me-2 text-success"></i>You have <?php echo count($unreadAnn); ?> new announcement<?php echo count($unreadAnn) > 1 ? 's' : ''; ?></h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <?php foreach (array_filter($announcements, fn($a) => $a['is_read'] == 0) as $ann): ?>
+                    <?php foreach ($unreadAnn as $ann): ?>
                         <div class="mb-3 border-bottom pb-2">
                             <h6 class="fw-bold"><?php echo htmlspecialchars($ann['title']); ?> <small class="text-muted float-end"><?php echo date('M d', strtotime($ann['created_at'])); ?></small></h6>
                             <p class="mb-0 text-muted"><?php echo nl2br(htmlspecialchars($ann['message'])); ?></p>
                         </div>
                     <?php endforeach; ?>
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-brand w-100" data-bs-dismiss="modal">Got it</button>
-                </div>
+                <div class="modal-footer border-0"><button type="button" class="btn btn-brand w-100" data-bs-dismiss="modal">Got it</button></div>
             </div>
         </div>
     </div>
-    <?php $extra_js = ($extra_js ?? '') . "<script>document.addEventListener('DOMContentLoaded', function() { var myModal = new bootstrap.Modal(document.getElementById('announcementModal')); myModal.show(); });</script>"; ?>
+    <?php $extra_js = ($extra_js ?? '') . "<script>document.addEventListener('DOMContentLoaded', function() { new bootstrap.Modal(document.getElementById('announcementModal')).show(); });</script>"; ?>
 <?php endif; ?>
-<?php endif; ?>
-
-<div class="row g-3 mb-4">
-    <div class="col-md-3 col-6">
-        <div class="stat-card">
-            <div class="label">Student ID</div>
-            <div class="value" style="font-size:1rem;"><?php echo htmlspecialchars($reg['registration_no']); ?></div>
-        </div>
-    </div>
-    <div class="col-md-3 col-6">
-        <div class="stat-card">
-            <div class="label">Installments Paid</div>
-            <div class="value"><?php echo (int) $reg['installments_paid']; ?> / <?php echo $installments['count']; ?></div>
-        </div>
-    </div>
-    <div class="col-md-3 col-6">
-        <div class="stat-card">
-            <div class="label">Total Paid</div>
-            <div class="value" style="font-size:1.1rem;">KSh <?php echo number_format($totalPaid); ?></div>
-        </div>
-    </div>
-    <div class="col-md-3 col-6">
-        <div class="stat-card">
-            <div class="label">Balance</div>
-            <div class="value" style="font-size:1.1rem;color:<?php echo $balance > 0 ? '#dc2626' : '#16a34a'; ?>">
-                <?php echo $balance > 0 ? 'KSh ' . number_format($balance) : 'Paid'; ?>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="card-student">
-    <div class="card-head"><i class="fas fa-book me-2"></i>My Course</div>
-    <div class="card-body">
-        <div class="row g-3">
-            <div class="col-md-6">
-                <small class="text-muted d-block">Course</small>
-                <strong class="fs-5"><?php echo htmlspecialchars($reg['course_title']); ?></strong>
-            </div>
-            <div class="col-md-3">
-                <small class="text-muted d-block">Study Mode</small>
-                <strong><?php echo $reg['study_mode'] === 'physical' ? '🏫 Physical' : '💻 Online'; ?></strong>
-            </div>
-            <div class="col-md-3">
-                <small class="text-muted d-block">Payment Plan</small>
-                <span class="badge badge-plan"><?php echo $planLabels[$reg['payment_plan']] ?? $reg['payment_plan']; ?></span>
-            </div>
-            <div class="col-md-4">
-                <small class="text-muted d-block">Course Fee</small>
-                <strong>KSh <?php echo number_format($reg['course_fee']); ?></strong>
-            </div>
-            <div class="col-md-4">
-                <small class="text-muted d-block">Duration</small>
-                <strong><?php echo (int) $reg['duration_months']; ?> months</strong>
-            </div>
-            <?php if ($reg['next_payment_due'] && $reg['payment_plan'] !== 'full'): ?>
-            <div class="col-md-4">
-                <small class="text-muted d-block">Next Payment Due</small>
-                <strong class="<?php echo strtotime($reg['next_payment_due']) < time() ? 'text-danger' : ''; ?>">
-                    <?php echo date('d M Y', strtotime($reg['next_payment_due'])); ?>
-                </strong>
-            </div>
-            <?php endif; ?>
-            <div class="col-12 mt-2">
-                <a href="<?php echo url('students/course/index.php'); ?>" class="btn btn-brand">
-                    <i class="fas fa-book-open me-1"></i> Open Course & Learning Materials
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<?php if (!$portal_locked): ?>
-<div class="card-student">
-    <div class="card-head"><i class="fas fa-share-nodes me-2"></i>Share This Course</div>
-    <div class="card-body">
-        <p class="text-muted small mb-3">Invite friends to join <strong><?php echo htmlspecialchars($reg['course_title']); ?></strong>. They'll see the course details and can register directly.</p>
-        <?php
-        $share_url = course_share_url((int) $reg['course_id'], $reg['registration_no'] ?? null);
-        $share_title = 'Join me at Dazu Training Institute — ' . ($reg['course_title'] ?? 'tech course');
-        $input_id = 'studentCourseShare';
-        ?>
-        <div class="input-group mb-2">
-            <input type="text" class="form-control form-control-sm" id="<?php echo $input_id; ?>" readonly value="<?php echo htmlspecialchars($share_url); ?>">
-            <button type="button" class="btn btn-brand btn-sm dh-share-copy" data-target="<?php echo $input_id; ?>"><i class="fas fa-copy"></i> Copy</button>
-            <a href="https://wa.me/?text=<?php echo rawurlencode(course_share_invite_text(['title' => $reg['course_title'] ?? 'tech course', 'overview' => ''], $share_url, $share_title)); ?>" class="btn btn-success btn-sm" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i></a>
-        </div>
-        <a href="<?php echo htmlspecialchars($share_url); ?>" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-external-link-alt me-1"></i> Preview share page
-        </a>
-    </div>
-</div>
 <script>
 document.querySelectorAll('.dh-share-copy').forEach(function(btn){
     btn.addEventListener('click', function(){
@@ -367,34 +416,6 @@ document.querySelectorAll('.dh-share-copy').forEach(function(btn){
 </script>
 <?php endif; ?>
 
-<?php if ($reg['payment_plan'] !== 'full' && $nextAmount > 0 && !$hasPending): ?>
-<div class="card-student">
-    <div class="card-head"><i class="fas fa-credit-card me-2"></i>Make a Payment</div>
-    <div class="card-body">
-        <p>Next installment: <strong>KSh <?php echo number_format($nextAmount); ?></strong></p>
-        <a href="<?php echo url('students/payments/index.php'); ?>" class="btn btn-brand">
-            <i class="fas fa-money-bill-wave me-1"></i> Go to Payments
-        </a>
-    </div>
-</div>
-<?php endif; ?>
-
-<?php if ($hasPending): ?>
-<div class="alert alert-warning">
-    <i class="fas fa-hourglass-half me-2"></i> You have a payment awaiting admin verification.
-</div>
-<?php endif; ?>
-
-<?php endif; ?>
-
 <?php
-if (!$portal_locked && $learnStats['units_total'] > 0) {
-    $extra_js = ($extra_js ?? '') . '<script src="https://cdn.jsdelivr.net/npm/chart.js"></script><script>
-    new Chart(document.getElementById("studentProgress"),{type:"doughnut",data:{
-      labels:["Completed","Remaining"],
-      datasets:[{data:[' . (int)$learnStats['units_done'] . ',' . max(0, $learnStats['units_total'] - $learnStats['units_done']) . '],backgroundColor:["#0D9488","#e5e7eb"]}]
-    },options:{plugins:{legend:{position:"bottom"}}}});
-    </script>';
-}
 $content = ob_get_clean();
 require __DIR__ . '/../../templates/students/layout.php';

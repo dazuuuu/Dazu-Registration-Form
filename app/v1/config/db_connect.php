@@ -14,6 +14,11 @@ try {
     require_once __DIR__ . '/../helpers/schema_guard.php';
     dazu_schema_guard($pdo);
 } catch (PDOException $e) {
+    // public/setup.php asks for the database login itself, so it must load even when this connection fails.
+    if (defined('DAZU_SETUP')) {
+        $pdo = null;
+        return;
+    }
     http_response_code(500);
     die('Database connection failed. Check the database settings.');
 }

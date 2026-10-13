@@ -235,6 +235,13 @@ function isSmsSection($section) {
                 <span>Certificates</span>
             </a>
 
+            <!--nav:id_cards-->
+            <a href="<?php echo url('admin/id_cards/index.php'); ?>"
+               class="nav-link <?php echo $current_dir == 'id_cards' ? 'active' : ''; ?>">
+                <i class="fas fa-id-card"></i>
+                <span>Student ID Cards</span>
+            </a>
+
             <!--nav:website-->
             <!-- WEBSITE CONTENT SECTION: the original public-site management pages -->
             <div class="nav-item">

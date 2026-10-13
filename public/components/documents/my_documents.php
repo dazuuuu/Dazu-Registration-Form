@@ -14,6 +14,8 @@ $docsMissing = docs_missing($db, $userId);
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>
 <?php endif; endforeach; ?>
 
+<?php if (SessionModel::get('role') === 'student') { require __DIR__ . '/../id_cards/student_panel.php'; } ?>
+
 <?php if ($docsMissing): ?>
     <div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-1"></i>
         <strong>Required:</strong> please provide your <?php echo htmlspecialchars(implode(', ', $docsMissing)); ?>.</div>

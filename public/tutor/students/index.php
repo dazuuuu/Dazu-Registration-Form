@@ -25,36 +25,79 @@ if ($students) {
 $page_title = 'My Students';
 ob_start();
 ?>
-<div class="card-tutor"><div class="head">Assigned Students (<?php echo count($students); ?>)</div>
-<?php if (empty($students)): ?><p class="p-3 text-muted mb-0">No students have been assigned to you yet.</p>
+<style>
+.ts-bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.ts-search{position:relative;flex:1;max-width:380px;min-width:200px}@media(max-width:575.98px){.ts-search{max-width:none}}
+.ts-search i{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.ts-search input{padding-left:38px;background:#fff;border:0;box-shadow:var(--shadow)}
+.ts-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+@media(min-width:768px){.ts-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:1200px){.ts-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.ts-card{background:#fff;border-radius:var(--r);box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px}
+.ts-top{display:flex;gap:12px;align-items:center}
+.ts-top .as-ava{width:46px;height:46px}
+.ts-top .nm{font-weight:600;line-height:1.2}
+.ts-top .sb{font-size:.76rem;color:var(--muted)}
+.ts-course{font-size:.82rem;color:#4a4e47;background:#f6f7f4;border-radius:10px;padding:8px 10px}
+.ts-meta{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;text-align:center}
+.ts-meta div{background:#fafbf8;border-radius:10px;padding:8px 4px}
+.ts-meta small{display:block;font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.ts-meta b{font-size:.9rem}
+.ts-act{display:flex;gap:8px}
+.ts-act>*{flex:1}
+.ts-act form{display:flex}
+.ts-act form .btn{flex:1}
+</style>
+<div class="ts-bar">
+    <div class="ts-search"><i class="fas fa-search"></i><input type="search" class="form-control" id="tsFilter" placeholder="Search your <?php echo count($students); ?> students…"></div>
+    <span class="small text-muted"><i class="fas fa-circle-info me-1"></i>“Resend login” emails a new temporary password.</span>
+</div>
+<?php if (empty($students)): ?>
+    <div class="card-tutor"><div class="as-empty"><i class="fas fa-user-graduate"></i>No students have been assigned to you yet.</div></div>
 <?php else: ?>
-<div class="table-responsive"><table class="table mb-0 align-middle">
-<thead class="table-light"><tr><th>Student</th><th>Course</th><th>Modules</th><th>Grade</th><th>Balance</th><th>Status</th><th></th></tr></thead>
-<tbody>
+<div class="ts-grid">
 <?php foreach ($students as $s):
     $p = $tc->progressFor($s);
-    $bal = cert_student_balance($pdo, (int) $s['id']);
+    $ini = strtoupper(implode('', array_map(fn($w) => mb_substr($w, 0, 1), array_slice(preg_split('/\s+/', trim($s['full_name'])), 0, 2))));
 ?>
-<tr>
-<td><?php echo htmlspecialchars($s['full_name']); ?><br><small class="text-muted"><?php echo htmlspecialchars($s['registration_no']); ?></small></td>
-<td><?php echo htmlspecialchars($s['course_title']); ?></td>
-<td style="min-width:130px">
-    <?php if ($p['total']): ?>
-        <div class="small"><?php echo $p['done']; ?> / <?php echo $p['total']; ?></div>
-        <div class="progress" style="height:6px"><div class="progress-bar bg-success" style="width:<?php echo $p['percent']; ?>%"></div></div>
-    <?php else: ?><span class="small text-muted">No modules yet</span><?php endif; ?>
-</td>
-<td><?php echo $p['grade_percent'] !== null ? $p['grade_percent'] . '%' : '—'; ?></td>
-<td class="<?php echo $bal > 0 ? 'text-danger' : 'text-success'; ?>"><?php echo $bal > 0 ? 'KES ' . number_format($bal) : 'Cleared'; ?></td>
-<td>
-    <?php if (isset($certs[$s['id']])): ?><span class="badge bg-success"><i class="fas fa-certificate me-1"></i>Certified</span>
-    <?php elseif (!empty($s['studies_completed_at'])): ?><span class="badge bg-info text-dark">Studies completed</span>
-    <?php else: ?><span class="badge bg-secondary">In progress</span><?php endif; ?>
-</td>
-<td><a href="view.php?id=<?php echo (int)$s['id']; ?>" class="btn btn-sm btn-outline-primary">Open</a></td>
-</tr>
+    <div class="ts-card" data-q="<?php echo htmlspecialchars(mb_strtolower($s['full_name'] . ' ' . $s['registration_no'] . ' ' . $s['course_title'] . ' ' . $s['email'])); ?>">
+        <div class="ts-top">
+            <span class="as-ava"><?php echo htmlspecialchars($ini); ?></span>
+            <div style="min-width:0;flex:1">
+                <div class="nm text-truncate"><?php echo htmlspecialchars($s['full_name']); ?></div>
+                <div class="sb"><?php echo htmlspecialchars($s['registration_no']); ?> · <?php echo $s['study_mode'] === 'physical' ? 'Physical' : 'Online'; ?></div>
+            </div>
+            <?php if (isset($certs[$s['id']])): ?><span class="badge bg-success"><i class="fas fa-award me-1"></i>Certified</span>
+            <?php elseif (!empty($s['studies_completed_at'])): ?><span class="badge bg-info text-dark">Completed</span>
+            <?php else: ?><span class="badge bg-light text-dark border">In progress</span><?php endif; ?>
+        </div>
+        <div class="ts-course"><i class="fas fa-book-open me-1 text-success"></i><?php echo htmlspecialchars($s['course_title']); ?>
+            <?php if ($p['total']): ?><div class="progress mt-2" style="height:6px"><div class="progress-bar" style="width:<?php echo (int) $p['percent']; ?>%"></div></div><?php endif; ?>
+        </div>
+        <div class="ts-meta">
+            <div><small>Modules</small><b><?php echo $p['total'] ? $p['done'] . '/' . $p['total'] : '—'; ?></b></div>
+            <div><small>Grade</small><b><?php echo $p['grade_percent'] !== null ? $p['grade_percent'] . '%' : '—'; ?></b></div>
+        </div>
+        <div class="ts-act">
+            <a href="view.php?id=<?php echo (int) $s['id']; ?>" class="btn btn-sm btn-brand"><i class="fas fa-arrow-right me-1"></i>Open</a>
+            <form method="POST" action="credentials.php" onsubmit="return confirm('Send <?php echo htmlspecialchars(addslashes($s['full_name']), ENT_QUOTES); ?> a new temporary password by email? Their current password will stop working.')">
+                <?php echo csrf_field(); ?><input type="hidden" name="reg_id" value="<?php echo (int) $s['id']; ?>">
+                <button class="btn btn-sm btn-outline-success"><i class="fas fa-key me-1"></i>Resend login</button>
+            </form>
+        </div>
+    </div>
 <?php endforeach; ?>
-</tbody></table></div>
-<?php endif; ?>
 </div>
+<p class="text-center text-muted small mt-3 d-none" id="tsNone">No students match your search.</p>
+<script>
+(function () {
+    var f = document.getElementById('tsFilter'), cards = document.querySelectorAll('.ts-card[data-q]'), none = document.getElementById('tsNone');
+    f.addEventListener('input', function () {
+        var q = f.value.trim().toLowerCase(), shown = 0;
+        cards.forEach(function (c) { var ok = !q || c.dataset.q.indexOf(q) > -1; c.style.display = ok ? '' : 'none'; shown += ok; });
+        none.classList.toggle('d-none', shown > 0);
+    });
+})();
+</script>
+<?php endif; ?>
 <?php $content = ob_get_clean(); require __DIR__ . '/../../templates/tutor/layout.php';

@@ -204,8 +204,9 @@ class PayrollModel
         if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $forMonth)) {
             return ['ok' => false, 'error' => 'Choose a valid month.'];
         }
-        if ($forMonth > PayrollCalculator::currentMonth()) {
-            return ['ok' => false, 'error' => 'A payment cannot be recorded against a future month.'];
+        if ($forMonth >= PayrollCalculator::currentMonth()) {
+            return ['ok' => false, 'error' => 'Tutors are paid for a month after it ends. A payment made now is for '
+                . PayrollCalculator::monthLabel(PayrollCalculator::previousMonth()) . ' or earlier.'];
         }
         $d = \DateTime::createFromFormat('Y-m-d', $paidOn);
         if (!$d || $d->format('Y-m-d') !== $paidOn) {
@@ -238,6 +239,36 @@ class PayrollModel
         );
         $stmt->execute([':id' => $paymentId, ':tid' => $tutorId]);
         return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Move a payment back one month (e.g. it was recorded for October but was really September's pay).
+     * Allowed for confirmed payments too, since the amount does not change. Returns false if not found.
+     */
+    public function movePaymentToPreviousMonth(int $paymentId, int $tutorId): bool
+    {
+        $stmt = $this->db->prepare(
+            "UPDATE tutor_payments SET paid_for_month = DATE_SUB(paid_for_month, INTERVAL 1 MONTH) WHERE id = :id AND tutor_id = :tid"
+        );
+        $stmt->execute([':id' => $paymentId, ':tid' => $tutorId]);
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Move every payment recorded against this month (or later) back to last month, for one tutor or (null) all
+     * tutors. Fixes payments recorded before the "paid in arrears" rule. Returns how many were moved.
+     */
+    public function revertCurrentMonthPayments(?int $tutorId = null): int
+    {
+        $sql = "UPDATE tutor_payments SET paid_for_month = :prev WHERE paid_for_month >= :cur";
+        $params = [':prev' => PayrollCalculator::previousMonth() . '-01', ':cur' => PayrollCalculator::currentMonth() . '-01'];
+        if ($tutorId !== null) {
+            $sql .= " AND tutor_id = :tid";
+            $params[':tid'] = $tutorId;
+        }
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->rowCount();
     }
 
     /** Tutor confirms receipt of one payment. Returns false if it is not theirs or already confirmed. */
@@ -496,6 +527,14 @@ class PayrollModel
 
     // ---------------------------------------------------------------- ledger
 
+    /** A course of one month or less (by months, weeks or days) is left out of tutor payroll. */
+    public static function isShortCourse(array $course): bool
+    {
+        $hasLength = (int) ($course['duration_months'] ?? 0) > 0 || (int) ($course['weeks_of_study'] ?? 0) > 0
+            || (int) ($course['days_of_study'] ?? 0) > 0;
+        return $hasLength && PayrollCalculator::courseMonths($course) <= 1;
+    }
+
     /**
      * Everything the payroll screens need for one tutor.
      * Adds to the calculator's result: current_students, former_students, payments, pending_confirmation.
@@ -522,6 +561,9 @@ class PayrollModel
         $lines = [];
         foreach ($current as $s) {
             $courseMonths = $s['registration_id'] ? PayrollCalculator::courseMonths($s) : 0;
+            if (self::isShortCourse($s)) {
+                continue; // 1-month courses are not part of tutor payroll
+            }
             $lines[] = $s + [
                 'kind'   => 'current',
                 'start'  => $s['assigned_at'],
@@ -531,6 +573,9 @@ class PayrollModel
             ];
         }
         foreach ($former as $f) {
+            if (self::isShortCourse($f)) {
+                continue;
+            }
             $line = $f + ['kind' => 'former', 'start' => $f['assigned_at'], 'rate' => $f['monthly_rate']];
             if ($f['earned_months'] !== null) {
                 $line['fixed_months'] = array_values(array_filter(explode(',', $f['earned_months'])));
@@ -558,6 +603,17 @@ class PayrollModel
         $ledger['tutor_status'] = self::currentPause($pauses, null);
         $ledger['pending_confirmation'] = count(array_filter($payments, fn($p) => $p['confirmed_at'] === null));
         // Students earning this month, not just assigned (a paused student, or one whose course has finished, is assigned but not earning).
+        // Last month is the one being paid now (in arrears); this month is not due until it ends.
+        $prevKey = PayrollCalculator::indexToKey(PayrollCalculator::monthIndex($asOf) - 1);
+        $prevRow = null;
+        foreach ($ledger['months'] as $m) {
+            if ($m['month'] === $prevKey) {
+                $prevRow = $m;
+            }
+        }
+        $ledger['due_month'] = $prevRow ?? ['month' => $prevKey, 'brought_forward' => 0.0, 'earned' => 0.0,
+            'paid' => 0.0, 'balance' => 0.0, 'active_students' => 0];
+        $ledger['due_now'] = $prevRow ? max(0.0, $prevRow['balance']) : 0.0;
         $ledger['active_students'] = count(array_filter($ledger['current_students'], fn($s) => $s['earning_now']));
         return $ledger;
     }

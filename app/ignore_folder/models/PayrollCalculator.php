@@ -40,6 +40,12 @@ class PayrollCalculator
         return (new \DateTimeImmutable('now', new \DateTimeZone('Africa/Nairobi')))->format('Y-m');
     }
 
+    /** Last month as 'YYYY-MM'. Tutors are paid in arrears: a payment made this month is for last month. */
+    public static function previousMonth(): string
+    {
+        return self::indexToKey(self::monthIndex(self::currentMonth()) - 1);
+    }
+
     /** Accepts 'YYYY-MM' or any date string starting YYYY-MM and returns 'YYYY-MM'. */
     public static function monthKey(string $date): string
     {

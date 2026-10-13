@@ -106,19 +106,27 @@ ob_start();
     </a>
 </div>
 
-<div class="card-tutor mb-3"><div class="head">Student Info</div><div class="p-3">
-<strong><?php echo htmlspecialchars($student['full_name']); ?></strong> (<?php echo htmlspecialchars($student['registration_no']); ?>)<br>
-<?php echo htmlspecialchars($student['email']); ?> · <?php echo htmlspecialchars($student['course_title']); ?>
+<?php $ini = strtoupper(implode('', array_map(fn($w) => mb_substr($w, 0, 1), array_slice(preg_split('/\s+/', trim($student['full_name'])), 0, 2)))); ?>
+<div class="card-tutor mb-3"><div class="p-3 d-flex flex-wrap gap-3 align-items-center">
+    <span class="as-ava" style="width:56px;height:56px;font-size:1.1rem;border-radius:16px"><?php echo htmlspecialchars($ini); ?></span>
+    <div class="flex-grow-1" style="min-width:200px">
+        <div class="fw-semibold fs-5 lh-sm"><?php echo htmlspecialchars($student['full_name']); ?></div>
+        <div class="small text-muted"><?php echo htmlspecialchars($student['registration_no']); ?> · <?php echo htmlspecialchars($student['course_title']); ?> · <?php echo $student['study_mode'] === 'physical' ? 'Physical' : 'Online'; ?></div>
+        <div class="small text-muted"><i class="fas fa-envelope me-1"></i><?php echo htmlspecialchars($student['email']); ?><?php if (!empty($student['phone'])): ?> · <i class="fas fa-phone me-1"></i><?php echo htmlspecialchars($student['phone']); ?><?php endif; ?></div>
+    </div>
+    <form method="POST" action="credentials.php" onsubmit="return confirm('Email this student a new temporary password? Their current password will stop working.')">
+        <?php echo csrf_field(); ?><input type="hidden" name="reg_id" value="<?php echo $regId; ?>"><input type="hidden" name="return" value="view">
+        <button class="btn btn-outline-success"><i class="fas fa-key me-1"></i>Resend login details</button>
+    </form>
 </div></div>
 
 <div class="card-tutor mb-3">
     <div class="head"><i class="fas fa-flag-checkered me-1"></i>Course completion &amp; certificate</div>
     <div class="p-3">
         <div class="row g-3 mb-3 text-center">
-            <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="small text-muted">Modules done</div><div class="fs-5 fw-bold"><?php echo $mp['done']; ?> / <?php echo $mp['total']; ?></div></div></div>
-            <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="small text-muted">Overall grade</div><div class="fs-5 fw-bold"><?php echo $mp['grade_percent'] !== null ? $mp['grade_percent'] . '%' : '—'; ?></div></div></div>
-            <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="small text-muted">Fee balance</div><div class="fs-5 fw-bold <?php echo $balance > 0 ? 'text-danger' : 'text-success'; ?>"><?php echo $balance > 0 ? 'KES ' . number_format($balance) : 'Cleared'; ?></div></div></div>
-            <div class="col-6 col-md-3"><div class="border rounded p-2"><div class="small text-muted">Certificate</div><div class="fs-6 fw-bold <?php echo $cert ? 'text-success' : 'text-muted'; ?>"><?php echo $cert ? htmlspecialchars($cert['certificate_no']) : 'Not yet'; ?></div></div></div>
+            <div class="col-6 col-md-4"><div class="border rounded p-2"><div class="small text-muted">Modules done</div><div class="fs-5 fw-bold"><?php echo $mp['done']; ?> / <?php echo $mp['total']; ?></div></div></div>
+            <div class="col-6 col-md-4"><div class="border rounded p-2"><div class="small text-muted">Overall grade</div><div class="fs-5 fw-bold"><?php echo $mp['grade_percent'] !== null ? $mp['grade_percent'] . '%' : '—'; ?></div></div></div>
+            <div class="col-12 col-md-4"><div class="border rounded p-2"><div class="small text-muted">Certificate</div><div class="fs-6 fw-bold <?php echo $cert ? 'text-success' : 'text-muted'; ?>"><?php echo $cert ? htmlspecialchars($cert['certificate_no']) : 'Not yet'; ?></div></div></div>
         </div>
         <?php if ($mp['total']): ?><div class="progress mb-3" style="height:8px"><div class="progress-bar bg-success" style="width:<?php echo $mp['percent']; ?>%"></div></div><?php endif; ?>
         <?php if (!$ownModules && $mp['total']): ?><p class="small text-warning">This student follows another tutor's modules for this course.</p><?php endif; ?>
@@ -141,7 +149,7 @@ ob_start();
                 <?php echo csrf_field(); ?><input type="hidden" name="action" value="finish_course">
                 <button class="btn btn-success" <?php echo $canFinish ? '' : 'disabled'; ?>><i class="fas fa-award me-1"></i>Course finished — generate certificate</button>
                 <?php if (!$student['studies_completed_at']): ?><div class="small text-muted mt-1">Available once studies are completed.</div>
-                <?php elseif ($balance > 0): ?><div class="small text-danger mt-1">The student must clear the KES <?php echo number_format($balance); ?> balance first.</div><?php endif; ?>
+                <?php elseif ($balance > 0): ?><div class="small text-muted mt-1">The office has to clear the student's account before the certificate can be generated.</div><?php endif; ?>
             </form>
         <?php endif; ?>
     </div>

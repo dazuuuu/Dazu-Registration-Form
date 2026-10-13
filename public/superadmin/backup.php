@@ -139,10 +139,11 @@ ob_start();
 </div>
 <div class="card mt-3"><div class="card-header fw-semibold">Moving to a new host</div><div class="card-body small">
     <ol class="mb-0">
-        <li>Upload the code to the new host and set its database login.</li>
-        <li>Open the site once so it can reach the database, and sign in as superadmin (or run the System Updates so the tables exist).</li>
-        <li>Import the backup here. Links to uploaded files are adjusted if the new address or folder is different.</li>
-        <li>Sign in again with your account from the backup.</li>
+        <li>Download the full backup above on the old site.</li>
+        <li>Upload the code to the new host and open <code><?php echo htmlspecialchars(url('setup.php')); ?></code> there.</li>
+        <li>Enter the default PIN and the new database login. The database is created and the settings are saved for you.</li>
+        <li>Restore the backup zip on the same page. Students, accounts, payments, settings and uploaded files all come back, and links are adjusted if the address or folder changed.</li>
+        <li>Sign in with your account from the old site.</li>
     </ol>
 </div></div>
 <?php $content = ob_get_clean(); require __DIR__ . '/../templates/superadmin/layout.php';

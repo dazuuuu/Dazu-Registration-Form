@@ -5,7 +5,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/services/CertificateService.php';
 
-Middleware::requireSuperadmin();
+Middleware::requireSuperPortal();
 
 $id = (int) ($_POST['id'] ?? 0);
 $back = (string) ($_POST['return_to'] ?? '');

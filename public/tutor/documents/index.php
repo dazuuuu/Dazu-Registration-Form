@@ -5,6 +5,9 @@ require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/helpers/lms_files.php';
 
 Middleware::requireTutor();
+// Tutors are no longer asked for documents.
+header('Location: ' . url('tutor/dashboard/index.php'));
+exit();
 $db = \Models\Connection::getInstance()->getConnection();
 $userId = (int) $_SESSION['user_id'];
 $docsSelf = url('tutor/documents/index.php');

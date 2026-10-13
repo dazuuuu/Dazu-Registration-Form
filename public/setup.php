@@ -1,8 +1,11 @@
 <?php
-// public/setup.php — first-launch setup for a NEW host: restore a site backup made from the admin "Export Site" page.
+// public/setup.php — first-launch setup for a NEW host:
+//   1. Database: while app/v1/config/database.php cannot connect, asks for the login, creates the database and saves the file.
+//   2. Restore: uploads a site backup made from "Backup & migrate" on the old host (students, accounts, files, settings).
 //
-// Needs no configuration: it asks for the default PIN (111333) and only works while the site has no accounts yet
-// (a fresh install). Once a backup is restored the page locks itself.
+// Needs no configuration: it asks for the default PIN (111333) and only works while the site cannot reach its database
+// or has no accounts yet (a fresh install). Once a backup is restored the page locks itself.
+define('DAZU_SETUP', true);
 require_once __DIR__ . '/../app/v1/init.php';
 require_once __DIR__ . '/../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../app/v1/models/Connection.php';
@@ -12,7 +15,73 @@ require_once __DIR__ . '/../app/v1/helpers/superadmin_pin.php';
 header('Cache-Control: no-store');
 header('X-Robots-Tag: noindex');
 
-$pdo = \Models\Connection::getInstance()->getConnection();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+/** Checks the default PIN, throttling wrong guesses. Returns an error message, or null when it is right. */
+function setup_pin_error(): ?string
+{
+    if ($wait = (int) max(0, ($_SESSION['setup_block_until'] ?? 0) - time())) {
+        return 'Too many wrong PINs. Try again in ' . ceil($wait / 60) . ' minute(s).';
+    }
+    if (!hash_equals(SA_DEFAULT_PIN, (string) ($_POST['setup_pin'] ?? ''))) {
+        $_SESSION['setup_fail'] = (int) ($_SESSION['setup_fail'] ?? 0) + 1;
+        if ($_SESSION['setup_fail'] >= 5) { $_SESSION['setup_block_until'] = time() + 900; $_SESSION['setup_fail'] = 0; }
+        return 'That PIN is not correct.';
+    }
+    $_SESSION['setup_fail'] = 0;
+    return null;
+}
+
+$dbFile = APP_V1_ROOT . '/config/database.php';
+$dbCfg = require $dbFile;
+$message = null;
+$dbSnippet = null;
+
+// Step 1: the database login. Only offered while the saved login does not work, so a running site can never be repointed.
+if ($pdo === null) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $in = [
+            'host'     => trim((string) ($_POST['db_host'] ?? '')) ?: 'localhost',
+            'dbname'   => trim((string) ($_POST['db_name'] ?? '')),
+            'username' => trim((string) ($_POST['db_user'] ?? '')),
+            'password' => (string) ($_POST['db_pass'] ?? ''),
+            'charset'  => 'utf8mb4',
+        ];
+        if (!csrf_verify($_POST['csrf_token'] ?? null)) {
+            $message = 'Security check failed. Reload the page and try again.';
+        } elseif ($err = setup_pin_error()) {
+            $message = $err;
+        } elseif (!preg_match('/^[A-Za-z0-9_$-]{1,64}$/', $in['dbname']) || $in['username'] === '') {
+            $message = 'Enter the database name (letters, numbers, _ and -) and the database user.';
+        } else {
+            try {
+                $srv = new PDO("mysql:host={$in['host']};charset=utf8mb4", $in['username'], $in['password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                try {
+                    $srv->exec('CREATE DATABASE IF NOT EXISTS `' . $in['dbname'] . '` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+                } catch (PDOException $e) {
+                    // Shared hosts often forbid CREATE DATABASE; the database made in the control panel is used as-is.
+                }
+                new PDO("mysql:host={$in['host']};dbname={$in['dbname']};charset=utf8mb4", $in['username'], $in['password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+                $php = "<?php\n// app/v1/config/database.php — the database login for this site. Edit these values directly.\n\nreturn " . var_export($in, true) . ";\n";
+                if (@file_put_contents($dbFile, $php) === false) {
+                    $dbSnippet = $php;
+                } else {
+                    if (function_exists('opcache_invalidate')) { @opcache_invalidate($dbFile, true); }
+                    header('Location: ' . url('setup.php'));
+                    exit();
+                }
+            } catch (PDOException $e) {
+                $message = 'Could not connect with those details: ' . $e->getMessage();
+            }
+        }
+        $dbCfg = $in;
+    }
+    $state = 'db';
+} else {
+    $pdo = \Models\Connection::getInstance()->getConnection();
+}
 
 /** A fresh install: no users table yet, no users, or only the default superadmin the migrations seed. */
 function setup_is_fresh(PDO $pdo): bool
@@ -25,22 +94,17 @@ function setup_is_fresh(PDO $pdo): bool
     }
 }
 
-$fresh = setup_is_fresh($pdo);
-$state = !$fresh ? 'locked' : 'open';
-$message = null;
 $done = null;
+if ($pdo !== null) {
+    $state = setup_is_fresh($pdo) ? 'open' : 'locked';
+}
 
 if ($state === 'open' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     @set_time_limit(0);
-    $wait = (int) max(0, ($_SESSION['setup_block_until'] ?? 0) - time());
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         $message = 'Security check failed. Reload the page and try again.';
-    } elseif ($wait) {
-        $message = 'Too many wrong PINs. Try again in ' . ceil($wait / 60) . ' minute(s).';
-    } elseif (!hash_equals(SA_DEFAULT_PIN, (string) ($_POST['setup_pin'] ?? ''))) {
-        $_SESSION['setup_fail'] = (int) ($_SESSION['setup_fail'] ?? 0) + 1;
-        if ($_SESSION['setup_fail'] >= 5) { $_SESSION['setup_block_until'] = time() + 900; $_SESSION['setup_fail'] = 0; }
-        $message = 'That PIN is not correct.';
+    } elseif ($err = setup_pin_error()) {
+        $message = $err;
     } else {
         $zipPath = null;
         $pick = basename((string) ($_POST['server_file'] ?? ''));
@@ -58,7 +122,6 @@ if ($state === 'open' && $_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($r['ok']) {
                 $done = $r;
                 $state = 'done';
-                $_SESSION['setup_fail'] = 0;
             } else {
                 $message = $r['error'];
             }
@@ -82,9 +145,27 @@ button,.btn{display:block;margin-top:18px;width:100%;padding:12px;border:0;borde
 .err{color:var(--bad);margin:0 0 12px}.mut{color:var(--mut);font-size:.85rem}code{background:var(--line);padding:1px 5px;border-radius:4px}
 </style></head><body><main>
 <h1>Site setup</h1>
-<p class="s">Restore a backup made with <strong>Export Site</strong> on the old host.</p>
+<p class="s"><?php echo $state === 'locked' ? '' : ($state === 'db' ? 'Step 1 of 2: connect this site to its database.' : 'Step 2 of 2: restore a backup made with <strong>Backup &amp; migrate</strong> on the old host.'); ?></p>
 <div class="card">
-<?php if ($state === 'locked'): ?>
+<?php if ($state === 'db'): ?>
+  <?php if ($message): ?><p class="err"><?php echo htmlspecialchars($message); ?></p><?php endif; ?>
+  <?php if ($dbSnippet): ?>
+  <p><strong>Connected, but this server would not let the page save the settings.</strong></p>
+  <p class="mut">Replace the contents of <code>app/v1/config/database.php</code> with the text below, then reload this page.</p>
+  <textarea readonly rows="12" style="width:100%;font:12px monospace;background:transparent;color:inherit;border:1px solid var(--line);border-radius:8px;padding:8px"><?php echo htmlspecialchars($dbSnippet); ?></textarea>
+  <?php else: ?>
+  <p class="mut">Use the database and user you created in your hosting control panel. If the database does not exist yet it is created when the user is allowed to.</p>
+  <form method="POST" autocomplete="off"><?php echo csrf_field(); ?>
+    <label>PIN</label><input type="password" name="setup_pin" inputmode="numeric" required autocomplete="off">
+    <div class="mut">The default PIN.</div>
+    <label>Database host</label><input name="db_host" value="<?php echo htmlspecialchars((string) $dbCfg['host']); ?>">
+    <label>Database name</label><input name="db_name" required value="<?php echo htmlspecialchars((string) $dbCfg['dbname']); ?>">
+    <label>Database user</label><input name="db_user" required value="<?php echo htmlspecialchars((string) $dbCfg['username']); ?>">
+    <label>Database password</label><input type="password" name="db_pass" autocomplete="new-password">
+    <button>Connect and continue</button>
+  </form>
+  <?php endif; ?>
+<?php elseif ($state === 'locked'): ?>
   <p><strong>This site is already set up.</strong></p>
   <p class="mut">Setup only runs on an empty site, so it is locked. <a href="<?php echo htmlspecialchars(url('auth/login.php')); ?>">Go to sign in</a>.</p>
 <?php elseif ($state === 'done'): ?>
