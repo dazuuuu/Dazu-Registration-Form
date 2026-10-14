@@ -349,6 +349,7 @@ if (!function_exists('idc_front_html')) {
         $course = trim((string) ($card['snapshot_course'] ?? $card['course_name'] ?? ''));
         $regNo  = (string) ($card['snapshot_reg_no'] ?? $card['registration_no'] ?? '');
         $valid  = (string) ($card['valid_until'] ?: date('Y'));
+        $staff  = ($card['_kind'] ?? '') === 'staff';   // tutor staff card: same design, staff wording
 
         // Name and course shrink to fit their column; very long ones wrap to a second line.
         $nameSize = idc_fit_size($name, 'Bold', 11.3, 8.5, 48);
@@ -375,12 +376,12 @@ if (!function_exists('idc_front_html')) {
         $value = 'font-family:Poppins;color:' . $D . ';';
 
         return $logo
-            . $T(81.7, 5.26, 8.5, 'STUDENT ID', 'font-family:Poppins;font-weight:bold;color:#fff;', 'right', 40)
+            . $T(81.7, 5.26, 8.5, $staff ? 'STAFF ID' : 'STUDENT ID', 'font-family:Poppins;font-weight:bold;color:#fff;', 'right', 40)
 
             // Photo: green frame with the cropped photo inside
             . '<div style="' . $at(3.35, 17.3) . 'width:19.9mm;height:24.8mm;border:0.65mm solid ' . $G . ';border-radius:1.75mm;background:#fff;"></div>'
             . '<img src="' . $photo . '" style="' . $at(4.0, 17.95) . 'width:19.9mm;height:24.8mm;" />'
-            . (empty($card['_photo_file']) ? $T(13.95, 40.7, 3.2, 'STUDENT PHOTO', 'font-family:Poppins;color:#6b6e68;', 'center', 20) : '')
+            . (empty($card['_photo_file']) ? $T(13.95, 40.7, 3.2, $staff ? 'PHOTO' : 'STUDENT PHOTO', 'font-family:Poppins;color:#6b6e68;', 'center', 20) : '')
 
             // Name + underline
             . implode('', array_map(fn($i) => $T(27.5, 22.14 - 0.697 * $nameSize * 25.4 / 72 - (count($nameLines) - 1 - $i) * $nameSize * 0.45,
@@ -388,11 +389,11 @@ if (!function_exists('idc_front_html')) {
             . '<div style="' . $at(27.5, 23.6) . 'width:8.9mm;height:0.45mm;background:' . $G . ';"></div>'
 
             // Registration number / valid until / course
-            . $T(27.5, 26.19, 3.2, 'REG. NO.', $label)
+            . $T(27.5, 26.19, 3.2, $staff ? 'STAFF NO.' : 'REG. NO.', $label)
             . $T(27.5, 28.05, 7, $e($regNo), $value)
             . $T(61.5, 26.19, 3.2, 'VALID UNTIL', $label, 'left', 22)
             . $T(61.5, 28.05, 7, $e($valid), $value, 'left', 22)
-            . $T(27.5, 33.54, 3.2, 'COURSE', $label)
+            . $T(27.5, 33.54, 3.2, $staff ? 'ROLE' : 'COURSE', $label)
             . ($courseWrap
                 ? implode('', array_map(fn($i, $line) => $T(27.5, 35.4 + $i * 2.55, 6, $e($line), $value, 'left', 56),
                     array_keys($l = array_slice(idc_wrap($course, 'Regular', 6, 54.5), 0, 3)), $l))
@@ -438,8 +439,10 @@ if (!function_exists('idc_back_html')) {
 
             // Signature
             . '<div style="' . $at(54.6, 30.4) . 'width:27.35mm;height:11.2mm;' . $box . '"></div>'
+            . (!empty($card['_signature_file'])
+                ? '<img src="' . _idc_file_uri($card['_signature_file']) . '" style="' . $at(57.5, 30.9) . 'max-width:21.5mm;max-height:6.1mm;" />' : '')
             . '<div style="' . $at(56.35, 37.2) . 'width:23.8mm;height:0.14mm;background:#555;"></div>'
-            . $T(68.3, 38.85, 3.15, 'Student signature', 'font-family:Poppins;color:#555;', 'center', 26)
+            . $T(68.3, 38.85, 3.15, ($card['_kind'] ?? '') === 'staff' ? 'Signature' : 'Student signature', 'font-family:Poppins;color:#555;', 'center', 26)
 
             . $T(3.5, 44.9, 3.85, 'If found, please return this card to Dazu Training Institute.', 'font-family:Poppins;font-style:italic;color:#dcdcdc;')
 
@@ -525,6 +528,6 @@ if (!function_exists('idc_pdf_filename')) {
     function idc_pdf_filename(array $card, bool $print = false): string
     {
         $base = preg_replace('/[^A-Za-z0-9_\-]+/', '_', (string) ($card['snapshot_reg_no'] ?: $card['registration_no'] ?: 'card'));
-        return 'Dazu_Student_ID_' . trim($base, '_') . ($print ? '_print' : '') . '.pdf';
+        return (($card['_kind'] ?? '') === 'staff' ? 'Dazu_Staff_ID_' : 'Dazu_Student_ID_') . trim($base, '_') . ($print ? '_print' : '') . '.pdf';
     }
 }

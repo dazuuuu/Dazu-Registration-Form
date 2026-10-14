@@ -106,6 +106,8 @@ if (!function_exists('cert_create_for_registration')) {
         }
         $reg = $check['reg'];
         $tutor = cert_assigned_tutor($db, $reg['user_id'] ? (int) $reg['user_id'] : null);
+        require_once __DIR__ . '/../helpers/signatures.php';
+        $director = sig_certificate_director($db);   // the certificate keeps this signer even if another director signs later ones
         $months = max(1, (int) $reg['duration_months']);
         $start = strtotime($reg['created_at'] ?: 'now');
 
@@ -113,8 +115,8 @@ if (!function_exists('cert_create_for_registration')) {
             "INSERT INTO certificates
                 (registration_id, course_id, certificate_no, qr_code_hash, status,
                  snapshot_name, snapshot_course, snapshot_duration_months, snapshot_dates,
-                 tutor_id, tutor_name, ceo_name)
-             VALUES (?, ?, ?, ?, 'being_prepared', ?, ?, ?, ?, ?, ?, ?)"
+                 tutor_id, tutor_name, director_id, ceo_name)
+             VALUES (?, ?, ?, ?, 'being_prepared', ?, ?, ?, ?, ?, ?, ?, ?)"
         )->execute([
             $reg['id'],
             $reg['course_id'],
@@ -126,7 +128,8 @@ if (!function_exists('cert_create_for_registration')) {
             date('F Y', $start) . ' to ' . date('F Y'),
             $tutor['user_id'] ?? null, // certificates.tutor_id references users.id, not tutors.id
             $tutor['full_name'] ?? null,
-            CERT_DIRECTOR_NAME,
+            $director['id'] ?? null,
+            $director['full_name'] ?? CERT_DIRECTOR_NAME,
         ]);
         $id = (int) $db->lastInsertId();
         // Certificate number is derived from the row id so it is always unique.

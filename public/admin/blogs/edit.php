@@ -50,6 +50,8 @@ $blockTypes = [
     'quote'         => ['icon' => 'fa-quote-right', 'label' => 'Quote'],
     'cta'           => ['icon' => 'fa-bullhorn', 'label' => 'CTA Button'],
     'faq'           => ['icon' => 'fa-circle-question', 'label' => 'FAQ'],
+    'split'         => ['icon' => 'fa-table-columns', 'label' => 'Text + Media'],
+    'divider'       => ['icon' => 'fa-minus', 'label' => 'Section Line'],
 ];
 
 function dazu_block_preview(array $s): string {
@@ -67,6 +69,10 @@ function dazu_block_preview(array $s): string {
         case 'faq':
             $items = json_decode($s['faq_items'] ?? '[]', true) ?: [];
             return count($items) . ' question' . (count($items) === 1 ? '' : 's');
+        case 'split':
+            $media = ($s['media_type'] ?? '') === 'youtube' ? 'video' : 'image';
+            return ($s['title'] ?: mb_strimwidth(strip_tags($s['content'] ?? ''), 0, 60, '…') ?: '(empty)') . " — $media on the " . ($s['cta_type'] === 'left' ? 'left' : 'right');
+        case 'divider': return $s['title'] ? '— ' . $s['title'] . ' —' : '────────';
         default: return '';
     }
 }
@@ -426,6 +432,8 @@ function dazu_block_preview(array $s): string {
                 <option value="quote">Quote</option>
                 <option value="cta">CTA Button (WhatsApp / Email / Link)</option>
                 <option value="faq">FAQ</option>
+                <option value="split">Text + Image/Video (side by side)</option>
+                <option value="divider">Section Line</option>
             </select>
         </div>
         <div id="blockFields"></div>
@@ -445,6 +453,7 @@ function dazu_block_preview(array $s): string {
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.js"></script>
+<?php include __DIR__ . '/_youtube_paste.php'; ?>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 
 <script>
@@ -462,6 +471,7 @@ $(document).ready(function() {
             ['view', ['fullscreen', 'codeview', 'help']]
         ],
         callbacks: {
+            onPaste: dzYoutubePaste($('#content')),
             onImageUpload: function(files) {
                 for (let i = 0; i < files.length; i++) {
                     const reader = new FileReader();
@@ -539,7 +549,8 @@ let currentGalleryImages = []; // paths kept when editing an image_gallery block
 
 const BLOCK_LABELS = {
     heading: 'Heading', paragraph: 'Paragraph', image: 'Image', image_gallery: 'Image Gallery',
-    youtube: 'YouTube Video', link: 'Link / URL', quote: 'Quote', cta: 'CTA Button', faq: 'FAQ'
+    youtube: 'YouTube Video', link: 'Link / URL', quote: 'Quote', cta: 'CTA Button', faq: 'FAQ',
+    split: 'Text + Media', divider: 'Section Line'
 };
 
 function openBlockModal() {
@@ -650,6 +661,38 @@ function renderBlockFields(data) {
                     <input type="text" class="form-control" id="f_cta_label" value="${esc(data.cta_label)}" placeholder="e.g. Chat on WhatsApp"></div>`;
             break;
 
+        case 'split': {
+            const isVideo = data.media_type === 'youtube';
+            html = `<div class="mb-3"><label class="form-label">Heading (optional)</label>
+                    <input type="text" class="form-control" id="f_title" value="${esc(data.title)}"></div>
+                    <div class="mb-3"><label class="form-label">Text</label>
+                    <textarea class="form-control" id="f_content" rows="6" placeholder="Leave a blank line between paragraphs.">${esc(data.content)}</textarea></div>
+                    <div class="row g-3 mb-3">
+                      <div class="col-sm-6"><label class="form-label">Media</label>
+                        <select class="form-select" id="f_split_media" onchange="toggleSplitMedia()">
+                          <option value="image" ${isVideo ? '' : 'selected'}>Image</option>
+                          <option value="youtube" ${isVideo ? 'selected' : ''}>YouTube video</option>
+                        </select></div>
+                      <div class="col-sm-6"><label class="form-label">Media side</label>
+                        <select class="form-select" id="f_split_side">
+                          <option value="right" ${data.cta_type === 'left' ? '' : 'selected'}>Right (text on the left)</option>
+                          <option value="left" ${data.cta_type === 'left' ? 'selected' : ''}>Left (text on the right)</option>
+                        </select></div>
+                    </div>
+                    <div class="mb-3" id="splitImageWrap"><label class="form-label">Image</label>
+                      ${data.media_url && !isVideo ? `<div class="mb-2"><img src="${esc(data.media_url)}" style="max-width:200px;border-radius:6px;border:1px solid #e0e0e0;"></div>` : ''}
+                      <input type="file" class="form-control" id="f_media_file" accept="image/*">
+                      <small class="text-muted">${data.media_url && !isVideo ? 'Leave blank to keep the current image.' : ''}</small></div>
+                    <div class="mb-3" id="splitVideoWrap"><label class="form-label">YouTube URL</label>
+                      <input type="url" class="form-control" id="f_media_url" value="${isVideo ? esc(data.media_url) : ''}" placeholder="https://www.youtube.com/watch?v=..."></div>`;
+            break;
+        }
+
+        case 'divider':
+            html = `<div class="mb-3"><label class="form-label">Label in the middle of the line (optional)</label>
+                    <input type="text" class="form-control" id="f_title" value="${esc(data.title)}" placeholder="Leave empty for a plain line"></div>`;
+            break;
+
         case 'faq':
             html = `<div class="mb-2"><label class="form-label">Questions &amp; answers</label></div>
                     <div id="faqRows"></div>
@@ -659,6 +702,7 @@ function renderBlockFields(data) {
     c.innerHTML = html;
 
     if (type === 'cta') updateCtaPlaceholder();
+    if (type === 'split') toggleSplitMedia();
 
     if (type === 'image_gallery') renderGalleryThumbs();
 
@@ -667,6 +711,12 @@ function renderBlockFields(data) {
         if (items.length === 0) items.push({ question: '', answer: '' });
         items.forEach(item => addFaqRow(item.question, item.answer));
     }
+}
+
+function toggleSplitMedia() {
+    const video = document.getElementById('f_split_media').value === 'youtube';
+    document.getElementById('splitImageWrap').style.display = video ? 'none' : '';
+    document.getElementById('splitVideoWrap').style.display = video ? '' : 'none';
 }
 
 function updateCtaPlaceholder() {
@@ -752,6 +802,22 @@ async function saveBlock() {
             formData.set('cta_type', val('f_cta_type'));
             formData.set('cta_value', val('f_cta_value'));
             formData.set('cta_label', val('f_cta_label'));
+            break;
+        case 'split': {
+            formData.set('title', val('f_title'));
+            formData.set('content', val('f_content'));
+            formData.set('split_side', val('f_split_side'));
+            formData.set('split_media', val('f_split_media'));
+            if (val('f_split_media') === 'youtube') {
+                formData.set('media_url', val('f_media_url'));
+            } else {
+                const f = document.getElementById('f_media_file').files[0];
+                if (f) formData.set('media_file', f);
+            }
+            break;
+        }
+        case 'divider':
+            formData.set('title', val('f_title'));
             break;
         case 'faq': {
             document.querySelectorAll('#faqRows .faq-row').forEach(row => {

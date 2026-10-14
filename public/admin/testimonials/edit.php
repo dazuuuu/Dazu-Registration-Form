@@ -42,7 +42,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
                 'uploads/testimonials'
             );
             if ($uploadRes['ok']) {
-                $thumbnail_url = asset($uploadRes['path']);
+                $thumbnail_url = url($uploadRes['path']);
             } else {
                 $_SESSION['flash']['error'] = $uploadRes['error'] ?? 'Failed to upload thumbnail.';
             }
@@ -51,6 +51,15 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
         $type = $_POST['testimonial_type'] ?? 'text';
         $videoUrl = trim($_POST['video_url'] ?? '');
         $videoProvider = $_POST['video_provider'] ?? 'youtube';
+        if (!empty($_FILES['video_file']['name'])) {
+            $vUp = upload_video($_FILES['video_file'], public_path('uploads/testimonials/videos'), 'uploads/testimonials/videos');
+            if ($vUp['ok']) {
+                $videoUrl = url($vUp['path']);
+                $videoProvider = 'upload';
+            } else {
+                $_SESSION['flash']['error'] = $vUp['error'] ?? 'Failed to upload video.';
+            }
+        }
         if ($type === 'text' && empty($videoUrl)) {
             $videoProvider = 'none';
         }
@@ -169,15 +178,20 @@ ob_start();
                             <select name="video_provider" class="form-select">
                                 <option value="youtube" <?php echo ($testimonial['video_provider'] ?? '') === 'youtube' ? 'selected' : ''; ?>>YouTube</option>
                                 <option value="vimeo" <?php echo ($testimonial['video_provider'] ?? '') === 'vimeo' ? 'selected' : ''; ?>>Vimeo</option>
-                                <option value="upload" <?php echo ($testimonial['video_provider'] ?? '') === 'upload' ? 'selected' : ''; ?>>Direct URL / Custom</option>
+                                <option value="upload" <?php echo ($testimonial['video_provider'] ?? '') === 'upload' ? 'selected' : ''; ?>>Uploaded video / direct URL</option>
                             </select>
                         </div>
                         <div class="col-md-8">
                             <label class="form-label">Video URL (YouTube or Vimeo)</label>
-                            <input type="url" name="video_url" class="form-control" 
+                            <input type="text" name="video_url" class="form-control" 
                                    value="<?php echo htmlspecialchars($testimonial['video_url'] ?? ''); ?>"
                                    placeholder="https://www.youtube.com/watch?v=...">
                             <small class="text-muted">YouTube video URL or embed link</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Or upload a video file</label>
+                            <input type="file" name="video_file" class="form-control" accept="video/mp4,video/webm,video/quicktime">
+                            <small class="text-muted">MP4, WebM or MOV. Replaces the video URL above.</small>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Thumbnail URL</label>

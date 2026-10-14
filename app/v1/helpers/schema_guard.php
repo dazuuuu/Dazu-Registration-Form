@@ -16,7 +16,8 @@ if (!function_exists('dazu_schema_guard')) {
         $files = ['056_team_member_socials.sql', '057_certificates_and_lms.sql', '058_tutor_announcements.sql',
                   '059_certificate_collected_status.sql', '060_missing_columns.sql', '061_tutor_course_builder_and_documents.sql',
                   '062_portal_notifications.sql', '063_tutor_admin_rights.sql', '064_student_id_cards.sql', '065_assignments_and_quizzes.sql',
-                  '066_assignments_full.sql'];
+                  '066_assignments_full.sql', '067_open_submissions.sql', '068_signatures_and_staff_ids.sql',
+                  '069_blog_split_and_divider_blocks.sql'];
         $required = ['certificates', 'course_modules', 'module_contents', 'tutor_announcements',
                      'tutor_course_overviews', 'tutor_course_resources', 'student_module_progress', 'personal_documents',
                      'portal_notifications', 'push_subscriptions', 'student_id_cards',
@@ -24,9 +25,10 @@ if (!function_exists('dazu_schema_guard')) {
                      'tutor_quiz_targets', 'tutor_quiz_questions', 'tutor_quiz_attempts', 'tutor_quiz_answers',
                      'tutor_assignment_questions', 'tutor_assignment_attachments', 'tutor_assignment_rubric', 'tutor_rubric_templates',
                      'tutor_assignment_recipients', 'tutor_assignment_requests', 'tutor_assignment_answers', 'tutor_assignment_files',
-                     'tutor_assignment_criterion_scores', 'tutor_assignment_versions', 'tutor_assignment_events'];
+                     'tutor_assignment_criterion_scores', 'tutor_assignment_versions', 'tutor_assignment_events', 'open_submissions', 'directors'];
         // Columns that must exist, as table.column => text their type must contain (e.g. a newer ENUM option).
         $columnHas = [
+            'blog_sections.section_type'          => "'split'",
             'certificates.status'                 => "'collected'",
             'registrations.secondary_phone'       => 'varchar',
             'tutor_students.timeline_days'        => 'int',
@@ -47,6 +49,9 @@ if (!function_exists('dazu_schema_guard')) {
             'tutors.can_admin'                    => 'tinyint',
             'tutor_assignments.grading_mode'      => "'feedback'",
             'tutor_assignment_submissions.feedback_improve' => 'text',
+            'tutors.signature_path'               => 'varchar',
+            'tutors.id_qr_hash'                   => 'varchar',
+            'student_id_cards.emailed_at'         => 'datetime',
         ];
 
         $dir = dirname(__DIR__) . '/databases/required_migrations';

@@ -74,7 +74,9 @@ ob_start();
 <?php if ($on('export')): ?>
 <div class="card mb-3"><div class="card-header"><h5 class="mb-0"><i class="fas fa-file-export me-2"></i>Export the whole site</h5></div><div class="card-body">
     <p class="text-muted small">Downloads one zip with everything in this site: the whole database (students, courses, payments, settings and all sign-in accounts) plus every uploaded image, video and document, and the private files. </p>
-    <p class="text-muted small">Restore it on the new host through the site's setup page, or through Import Site. The accounts come across too, so you sign in with the same details.</p>
+    <p class="text-muted small"><strong>Moving to a new host:</strong> upload the code, open <code>/setup.php</code> there, enter the new database login and the email (SMTP) account, then restore this zip.
+    Everything comes back as it is here (accounts, students, payments, files, settings), the database is updated to the new code's version, and setup locks itself.
+    The database login is not in the zip; the new host uses its own.</p>
     <form method="POST"><?php echo csrf_field(); ?><input type="hidden" name="action" value="export">
         <button class="btn btn-success w-100"><i class="fas fa-download me-1"></i>Download full backup</button>
     </form>

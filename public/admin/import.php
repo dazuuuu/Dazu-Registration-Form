@@ -43,7 +43,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $r = (new SiteBackupService($pdo))->import($zipPath);
     if ($r['ok']) {
         // The accounts were replaced by the backup's, so this session may no longer be valid: sign in again.
-        SessionModel::setFlash('success', htmlspecialchars('Import complete: ' . $r['tables'] . ' tables and ' . $r['files'] . ' files restored. Sign in with the account from the backup.'));
+        SessionModel::setFlash('success', htmlspecialchars('Import complete: ' . $r['tables'] . ' tables and ' . $r['files'] . ' files restored.'
+            . (!empty($r['updated']) ? ' The database was updated to V' . $r['version'] . '.' : '') . ' Sign in with the account from the backup.'));
+        if (!empty($r['update_error'])) {
+            SessionModel::setFlash('error', htmlspecialchars('Updating the database to this version stopped: ' . $r['update_error'] . ' Open System Updates.'));
+        }
         header('Location: ' . url('auth/login.php')); exit();
     }
     SessionModel::setFlash('error', htmlspecialchars($r['error']));

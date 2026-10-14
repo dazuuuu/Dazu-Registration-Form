@@ -22,7 +22,9 @@ $pending_migration_error = null;
 if (isset($pdo)) {
     try {
         require_once __DIR__ . '/../../../app/v1/services/MigrationService.php';
-        $pending_migration_count = (new MigrationService($pdo))->pendingCount();
+        $pendingReleases = (new MigrationService($pdo))->pendingReleases();
+        $pending_migration_count = count($pendingReleases);
+        $pending_update_version = $pendingReleases ? end($pendingReleases)['version'] : null;
     } catch (Throwable $e) {
         $pending_migration_error = $e->getMessage();
     }
@@ -656,8 +658,8 @@ if (isset($pdo)) {
                 <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2" role="alert">
                     <div>
                         <i class="fas fa-download me-2"></i>
-                        <strong>System update available.</strong>
-                        <?php echo number_format($pending_migration_count); ?> database migration<?php echo $pending_migration_count === 1 ? '' : 's'; ?> pending.
+                        <strong>Update available.</strong>
+                        V<?php echo htmlspecialchars((string) $pending_update_version); ?> is ready to install.
                     </div>
                     <a class="btn btn-sm btn-warning" href="<?php echo url('admin/system/updates.php'); ?>">
                         <i class="fas fa-database me-1"></i> Update now

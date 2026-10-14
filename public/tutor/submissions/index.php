@@ -8,6 +8,7 @@ require_once __DIR__ . '/../../../app/v1/models/CurriculumModel.php';
 require_once __DIR__ . '/../../../app/v1/models/ProgressModel.php';
 require_once __DIR__ . '/../../../app/v1/models/TutorCourseModel.php';
 require_once __DIR__ . '/../../../app/v1/controllers/TutorController.php';
+require_once __DIR__ . '/../../../app/v1/helpers/open_submissions.php';
 
 use Models\AssignmentModel;
 use Models\SubmissionModel;
@@ -64,6 +65,8 @@ ob_start();
             $n = $k === 'awaiting' ? $awaitingCount : ($k === 'requests' ? count($requests) : null); ?>
             <a href="<?php echo $qs(['tab' => $k]); ?>" class="btn btn-sm <?php echo $tab === $k ? 'btn-brand' : 'btn-outline-secondary'; ?>"><?php echo $lbl; ?><?php if ($n): ?> <span class="badge bg-light text-dark ms-1"><?php echo $n; ?></span><?php endif; ?></a>
         <?php endforeach; ?>
+        <?php $openCount = os_count_awaiting($pdo, $tutorId); ?>
+        <a href="open.php" class="btn btn-sm btn-outline-secondary">Open submissions<?php if ($openCount): ?> <span class="badge bg-success ms-1"><?php echo $openCount; ?></span><?php endif; ?></a>
         <?php if ($courseWorkCount || $tab === 'course'): ?>
             <a href="?tab=course" class="btn btn-sm <?php echo $tab === 'course' ? 'btn-brand' : 'btn-outline-secondary'; ?>">Course builder <span class="badge bg-light text-dark ms-1"><?php echo $courseWorkCount; ?></span></a>
         <?php endif; ?>

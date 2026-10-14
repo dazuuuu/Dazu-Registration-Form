@@ -12,6 +12,7 @@ if (!$idcEnrolments) {
     return;
 }
 $idcE = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+$idcHasPhoto = (bool) idc_student_photo_file($db, $userId);
 ?>
 <style>
 .idp{border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(15,23,42,.05),0 8px 24px rgba(15,23,42,.06);margin-bottom:1rem}
@@ -61,7 +62,7 @@ $idcE = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
                 <?php elseif ($st === 'generated'): ?>
                     <div class="idp-sub mt-2">Your printed card is being prepared. We'll notify you when it's ready for pickup.</div>
                 <?php elseif ($st === 'requested'): ?>
-                    <div class="idp-sub mt-2">Request sent <?php echo $idcE(date('j M Y', strtotime($card['requested_at'] ?: $card['created_at']))); ?>. The office will generate your card.</div>
+                    <div class="idp-sub mt-2">Request sent <?php echo $idcE(date('j M Y', strtotime($card['requested_at'] ?: $card['created_at']))); ?>. The office will approve it and email you your card.</div>
                 <?php elseif ($st === 'declined' && $card['admin_note']): ?>
                     <div class="idp-sub mt-2">“<?php echo $idcE($card['admin_note']); ?>”</div>
                 <?php endif; ?>
@@ -70,11 +71,13 @@ $idcE = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
                 <?php if (in_array($st, ['generated', 'ready', 'collected'], true)): ?>
                     <a class="btn btn-sm btn-outline-secondary rounded-pill" target="_blank" href="<?php echo $idcE(url('id_cards/pdf.php?id=' . (int) $card['id'])); ?>"><i class="fas fa-eye me-1"></i>View</a>
                     <a class="btn btn-sm btn-success rounded-pill" href="<?php echo $idcE(url('id_cards/pdf.php?id=' . (int) $card['id'] . '&dl=1')); ?>"><i class="fas fa-download me-1"></i>Download</a>
+                <?php elseif ((!$st || $st === 'declined') && !$idcHasPhoto): ?>
+                    <a class="btn btn-sm btn-outline-success rounded-pill" href="#passport-photo"><i class="fas fa-camera me-1"></i>Add passport photo to request</a>
                 <?php elseif (!$st || $st === 'declined'): ?>
                     <button class="btn btn-sm btn-success rounded-pill" data-bs-toggle="collapse" data-bs-target="#idpReq<?php echo (int) $en['id']; ?>"><i class="fas fa-paper-plane me-1"></i>Request ID card</button>
                 <?php endif; ?>
             </div>
-            <?php if (!$st || $st === 'declined'): ?>
+            <?php if ((!$st || $st === 'declined') && $idcHasPhoto): ?>
                 <form method="POST" action="<?php echo $idcE($docsSelf); ?>" class="collapse w-100" id="idpReq<?php echo (int) $en['id']; ?>">
                     <?php echo csrf_field(); ?><input type="hidden" name="idc_action" value="request"><input type="hidden" name="registration_id" value="<?php echo (int) $en['id']; ?>">
                     <?php if ($en['study_mode'] !== 'physical'): ?>

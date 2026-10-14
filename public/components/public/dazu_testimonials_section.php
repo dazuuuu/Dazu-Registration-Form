@@ -5,13 +5,8 @@
  */
 $videoTestimonials = $videoTestimonials ?? [];
 $textTestimonials = $textTestimonials ?? [];
+// Student stories come only from approved video testimonials (Admin → Testimonials → Add student story).
 $playable = array_values(array_filter($videoTestimonials, static fn($t) => (bool) testimonial_video_embed_url($t)));
-if (!$playable && function_exists('testimonial_static_video_fallbacks')) {
-    $playable = array_values(array_filter(
-        testimonial_static_video_fallbacks(),
-        static fn($t) => (bool) testimonial_video_embed_url($t)
-    ));
-}
 
 $gradients = [
     'linear-gradient(to bottom right, #10b981, #115e59)',
@@ -38,72 +33,166 @@ $gradients = [
         </div>
 
     <?php if ($playable): ?>
-      <div id="dazu-video-row" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        <?php foreach ($playable as $i => $t):
-            $embed = testimonial_video_embed_url($t);
-            $thumb = testimonial_video_thumb($t);
-            $name = $t['customer_name'] ?? 'Alumni';
-            $track = $t['service_tag'] ?? 'Tech Track';
-            $title = $t['role'] ?? ($t['testimonial_text'] ?? '');
-            $gradient = $gradients[$i % count($gradients)];
-            $duration = $t['duration'] ?? '0:18';
-            $embedQs = (str_contains($embed, '?') ? '&' : '?') . 'autoplay=1&modestbranding=1&rel=0';
-        ?>
-          <article class="dazu-vcard group rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative"
-                   style="aspect-ratio: 3/4;"
-                   data-dazu-vcard
-                   data-embed="<?php echo htmlspecialchars($embed); ?>"
-                   data-name="<?php echo htmlspecialchars($name); ?>"
-                   data-track="<?php echo htmlspecialchars($track); ?>">
-
-            <!-- Inline player -->
-            <div class="dazu-vplayer hidden absolute inset-0 z-20">
-              <iframe class="dazu-viframe w-full h-full border-0"
-                      data-src="<?php echo htmlspecialchars($embed . $embedQs); ?>"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                      allowfullscreen
-                      title="<?php echo htmlspecialchars($name); ?> testimonial"></iframe>
-              <div class="absolute top-2 right-2 z-30 flex items-center gap-1">
-                <button type="button" class="dazu-vpause w-7 h-7 rounded-full bg-black/60 text-white text-[10px] hover:bg-black/80 flex items-center justify-center" aria-label="Pause" title="Pause">
-                  <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
-                </button>
-                <button type="button" class="dazu-vexpand w-7 h-7 rounded-full bg-black/60 text-white hover:bg-black/80 flex items-center justify-center" aria-label="Expand" title="Expand">
-                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
-                </button>
-              </div>
-            </div>
-
-            <!-- Poster / thumbnail background -->
-            <div class="dazu-vposter absolute inset-0">
-              <?php if ($thumb): ?>
-                <img src="<?php echo htmlspecialchars($thumb); ?>" alt="<?php echo htmlspecialchars($name); ?>"
-                     class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
-              <?php else: ?>
-                <div class="absolute inset-0" style="background:<?php echo htmlspecialchars($gradient); ?>"></div>
-              <?php endif; ?>
-
-              <!-- Centered play button -->
-              <button type="button" class="dazu-vplay absolute inset-0 flex items-center justify-center z-10 cursor-pointer" aria-label="Play <?php echo htmlspecialchars($name); ?>">
-                <span class="w-14 h-14 bg-white/90 text-slate-900 rounded-full flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-300 backdrop-blur-sm">
-                  <svg class="w-5 h-5 fill-slate-900 ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                </span>
-              </button>
-
-              <!-- Bottom caption gradient overlay -->
-              <div class="absolute bottom-0 left-0 right-0 z-10 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12">
-                <span class="text-[10px] font-extrabold uppercase tracking-widest text-green-400 block mb-0.5"><?php echo htmlspecialchars($track); ?></span>
-                <h4 class="text-sm font-extrabold text-white leading-snug"><?php echo htmlspecialchars($name); ?></h4>
-                <?php if ($title): ?>
-                  <p class="text-[11px] text-slate-300 mt-0.5 line-clamp-2"><?php echo htmlspecialchars($title); ?></p>
+      <style>
+        .dz-sv{--side:22%;--main:52%;--h:440px;position:relative;outline:none}
+        .dz-sv-track{display:flex;align-items:flex-start;justify-content:center;gap:10px;touch-action:pan-y;user-select:none;-webkit-user-select:none}
+        .dz-sv-card{display:none;flex:0 0 var(--side);min-width:0;cursor:pointer;transition:flex-basis .4s ease}
+        .dz-sv-card.is-active{flex-basis:var(--main);cursor:default}
+        .dz-sv-card.is-active,.dz-sv-card.is-prev,.dz-sv-card.is-next{display:block}
+        .dz-sv-media{position:relative;height:var(--h);border-radius:10px;overflow:hidden;background:#0f172a}
+        .dz-sv-media>img,.dz-sv-media>video.dz-sv-poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;pointer-events:none;transition:filter .4s,transform .4s}
+        .dz-sv-card:not(.is-active) .dz-sv-media>img,.dz-sv-card:not(.is-active) .dz-sv-media>video.dz-sv-poster{filter:blur(6px);transform:scale(1.08)}
+        .dz-sv-card:not(.is-active) .dz-sv-media::after{content:"";position:absolute;inset:0;background:rgba(15,23,42,.15)}
+        .dz-sv-player{position:absolute;inset:0;width:100%;height:100%;border:0;z-index:3;background:#000}
+        .dz-sv-play{position:absolute;top:14px;left:14px;z-index:2;display:none;align-items:center;gap:6px;padding:7px 12px;border:0;border-radius:6px;background:rgba(255,255,255,.22);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+        .dz-sv-play:hover{background:rgba(255,255,255,.35)}
+        .dz-sv-play svg{width:10px;height:10px;fill:#fff}
+        .dz-sv-quote{position:absolute;left:0;right:0;bottom:0;z-index:2;display:none;margin:0;padding:60px 18px 16px;background:linear-gradient(to top,rgba(0,0,0,.78),transparent);color:#f1f5f9;font-size:12.5px;line-height:1.55}
+        .dz-sv-card.is-active .dz-sv-play{display:inline-flex}
+        .dz-sv-card.is-active .dz-sv-quote{display:block}
+        .dz-sv-name{margin:10px 0 1px;font-size:13px;font-weight:700;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .dz-sv-meta{display:block;font-size:12px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+        .dz-sv-nav{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:22px}
+        .dz-sv-dots{display:flex;gap:6px}
+        .dz-sv-dot{width:6px;height:6px;border-radius:999px;background:#cbd5e1;border:0;padding:0;cursor:pointer;transition:all .3s}
+        .dz-sv-dot.is-on{width:22px;background:#15A24A}
+        .dz-sv-arrow{width:34px;height:34px;border-radius:999px;border:1px solid #e2e8f0;background:#fff;color:#0f172a;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .15s,color .15s}
+        .dz-sv-arrow:hover{border-color:#15A24A;color:#15A24A}
+        .dz-sv-arrow svg{width:14px;height:14px}
+        @media(max-width:1023px){.dz-sv{--side:17%;--main:62%;--h:400px}}
+        @media(max-width:640px){
+          .dz-sv{--side:8%;--main:80%;--h:min(440px,125vw);margin:0 -16px}
+          .dz-sv-track{gap:6px}
+          .dz-sv-card.is-prev .dz-sv-media,.dz-sv-card.is-next .dz-sv-media{border-radius:8px}
+          .dz-sv-card.is-prev .dz-sv-name,.dz-sv-card.is-prev .dz-sv-meta,.dz-sv-card.is-next .dz-sv-name,.dz-sv-card.is-next .dz-sv-meta{visibility:hidden}
+          .dz-sv-quote{font-size:12px;padding:48px 14px 12px;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+          .dz-sv-card.is-active .dz-sv-quote{display:-webkit-box}
+          .dz-sv-play{top:10px;left:10px;padding:6px 10px;font-size:11px}
+          .dz-sv-nav{margin-top:16px}
+        }
+      </style>
+      <div class="dz-sv" id="dz-sv">
+        <div class="dz-sv-track" id="dz-sv-track">
+          <?php foreach ($playable as $i => $t):
+              $embed = testimonial_video_embed_url($t);
+              $ytId = testimonial_youtube_id($t['video_url'] ?? '');
+              $isFile = !$ytId && (($t['video_provider'] ?? '') === 'upload' || preg_match('#\.(mp4|webm|mov|m4v)(\?|$)#i', $embed));
+              $thumb = trim((string) ($t['thumbnail_url'] ?? '')) ?: ($ytId ? 'https://img.youtube.com/vi/' . $ytId . '/hqdefault.jpg' : '');
+              $name = $t['customer_name'] ?? 'Alumni';
+              $meta = trim((string) ($t['role'] ?? '')) ?: ($t['service_tag'] ?? '');
+              $quote = trim((string) ($t['testimonial_text'] ?? ''));
+              $src = $isFile ? $embed : $embed . (str_contains($embed, '?') ? '&' : '?') . 'autoplay=1';
+          ?>
+            <article class="dz-sv-card" data-i="<?php echo $i; ?>" data-kind="<?php echo $isFile ? 'file' : 'embed'; ?>" data-src="<?php echo htmlspecialchars($src, ENT_QUOTES); ?>">
+              <div class="dz-sv-media" style="background:<?php echo htmlspecialchars($gradients[$i % count($gradients)]); ?>">
+                <?php if ($thumb): ?>
+                  <img src="<?php echo htmlspecialchars($thumb, ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($name, ENT_QUOTES); ?>" loading="lazy" draggable="false">
+                <?php elseif ($isFile): ?>
+                  <video class="dz-sv-poster" src="<?php echo htmlspecialchars($embed, ENT_QUOTES); ?>#t=0.5" muted playsinline preload="metadata"></video>
                 <?php endif; ?>
+                <button type="button" class="dz-sv-play"><svg viewBox="0 0 24 24"><path d="M6 4l15 8-15 8z"/></svg>Play Video</button>
+                <?php if ($quote): ?><p class="dz-sv-quote"><?php echo htmlspecialchars($quote); ?></p><?php endif; ?>
               </div>
+              <h4 class="dz-sv-name"><?php echo htmlspecialchars($name); ?></h4>
+              <?php if ($meta): ?><span class="dz-sv-meta"><?php echo htmlspecialchars($meta); ?></span><?php endif; ?>
+            </article>
+          <?php endforeach; ?>
+        </div>
+        <?php if (count($playable) > 1): ?>
+          <div class="dz-sv-nav">
+            <button type="button" class="dz-sv-arrow" data-step="-1" aria-label="Previous story"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg></button>
+            <div class="dz-sv-dots">
+              <?php foreach ($playable as $i => $_): ?>
+                <button type="button" class="dz-sv-dot" data-i="<?php echo $i; ?>" aria-label="Show story <?php echo $i + 1; ?>"></button>
+              <?php endforeach; ?>
             </div>
-          </article>
-        <?php endforeach; ?>
+            <button type="button" class="dz-sv-arrow" data-step="1" aria-label="Next story"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg></button>
+          </div>
+        <?php endif; ?>
       </div>
+      <script>
+      (function(){
+        var root = document.getElementById('dz-sv');
+        var track = document.getElementById('dz-sv-track');
+        var cards = [].slice.call(track.querySelectorAll('.dz-sv-card'));
+        var dots = [].slice.call(root.querySelectorAll('.dz-sv-dot'));
+        var n = cards.length, cur = 0, moved = false;
+
+        function stop(c){ var p = c.querySelector('.dz-sv-player'); if (p) p.remove(); }
+        function show(k){
+          if (n < 2) k = 0;
+          cur = (k + n) % n;
+          cards.forEach(function(c, i){
+            var rel = (i - cur + n) % n;
+            c.classList.remove('is-active', 'is-prev', 'is-next');
+            if (rel === 0) { c.classList.add('is-active'); c.style.order = 1; }
+            else if (rel === n - 1) { c.classList.add('is-prev'); c.style.order = 0; }
+            else if (n > 2 && rel === 1) { c.classList.add('is-next'); c.style.order = 2; }
+            if (rel !== 0) stop(c);
+          });
+          dots.forEach(function(d, i){ d.classList.toggle('is-on', i === cur); });
+        }
+        function play(c){
+          if (c.querySelector('.dz-sv-player')) return;
+          var p;
+          if (c.dataset.kind === 'file') {
+            p = document.createElement('video');
+            p.controls = true; p.autoplay = true; p.playsInline = true;
+          } else {
+            p = document.createElement('iframe');
+            p.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';
+            p.allowFullscreen = true;
+            p.title = 'Student story';
+          }
+          p.className = 'dz-sv-player';
+          p.src = c.dataset.src;
+          c.querySelector('.dz-sv-media').appendChild(p);
+        }
+
+        cards.forEach(function(c, i){
+          c.addEventListener('click', function(){ if (!moved && !c.classList.contains('is-active')) show(i); });
+          c.querySelector('.dz-sv-play').addEventListener('click', function(e){ e.stopPropagation(); play(c); });
+        });
+        dots.forEach(function(d){ d.addEventListener('click', function(){ show(+d.dataset.i); }); });
+        root.querySelectorAll('.dz-sv-arrow').forEach(function(b){ b.addEventListener('click', function(){ show(cur + (+b.dataset.step)); }); });
+
+        // Swipe / drag a blurred card into the middle.
+        var startX = null, startY = 0;
+        track.addEventListener('pointerdown', function(e){ startX = e.clientX; startY = e.clientY; moved = false; });
+        track.addEventListener('pointermove', function(e){ if (startX !== null && Math.abs(e.clientX - startX) > 8) moved = true; });
+        track.addEventListener('pointerup', function(e){
+          if (startX === null) return;
+          var dx = e.clientX - startX, dy = e.clientY - startY;
+          startX = null;
+          if (n > 1 && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy)) show(cur + (dx < 0 ? 1 : -1));
+          setTimeout(function(){ moved = false; }, 0);
+        });
+        track.addEventListener('pointercancel', function(){ startX = null; moved = false; });
+
+        // Horizontal trackpad / shift+wheel scrolling.
+        var wheelLock = false;
+        track.addEventListener('wheel', function(e){
+          var dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : (e.shiftKey ? e.deltaY : 0);
+          if (n < 2 || Math.abs(dx) < 15) return;
+          e.preventDefault();
+          if (wheelLock) return;
+          wheelLock = true;
+          show(cur + (dx > 0 ? 1 : -1));
+          setTimeout(function(){ wheelLock = false; }, 450);
+        }, { passive: false });
+
+        root.tabIndex = 0;
+        root.addEventListener('keydown', function(e){
+          if (e.key === 'ArrowRight') show(cur + 1);
+          if (e.key === 'ArrowLeft') show(cur - 1);
+        });
+
+        show(n > 2 ? 1 : 0);
+      })();
+      </script>
     <?php else: ?>
       <div class="max-w-[1120px] mx-auto text-center px-6 py-16 md:py-20 border border-dashed border-slate-200 rounded-3xl text-slate-400 text-sm md:text-base font-semibold">
-        Video testimonials will appear here when approved video records are published from the administration portal.
+        Student stories will appear here once they are added under Admin → Testimonials → Add student story.
       </div>
     <?php endif; ?>
       </div>
@@ -165,119 +254,8 @@ $gradients = [
     <?php endif; ?>
 </section>
 
-<!-- Expanded video overlay -->
-<div id="dazu-video-expand" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md hidden items-center justify-center z-50 p-4">
-  <div class="bg-slate-950 border border-slate-800 rounded-2xl w-full max-w-sm sm:max-w-md overflow-hidden relative flex flex-col aspect-[9/16] shadow-2xl">
-    <div class="flex items-center justify-between p-3 border-b border-slate-800 bg-slate-950 text-white shrink-0">
-      <div class="text-left min-w-0">
-        <span id="dazu-video-expand-track" class="text-[10px] uppercase tracking-widest text-[#15A24A] font-extrabold"></span>
-        <h3 id="dazu-video-expand-title" class="font-extrabold text-xs sm:text-sm text-slate-100 truncate"></h3>
-      </div>
-      <button type="button" id="dazu-video-expand-close" class="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white shrink-0 ml-2" aria-label="Close expanded video">✕</button>
-    </div>
-    <div class="relative flex-1 bg-black">
-      <iframe id="dazu-video-expand-iframe" class="absolute inset-0 w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen title="Expanded video testimonial"></iframe>
-    </div>
-  </div>
-</div>
-
 <script>
 (function(){
-  var expandModal = document.getElementById('dazu-video-expand');
-  var expandIframe = document.getElementById('dazu-video-expand-iframe');
-  var expandClose = document.getElementById('dazu-video-expand-close');
-  var activeCard = null;
-
-  function stopCard(card, keepExpanded) {
-    if (!card) return;
-    var player = card.querySelector('.dazu-vplayer');
-    var poster = card.querySelector('.dazu-vposter');
-    var iframe = card.querySelector('.dazu-viframe');
-    if (player) player.classList.add('hidden');
-    if (poster) poster.classList.remove('hidden');
-    if (iframe) iframe.removeAttribute('src');
-    if (!keepExpanded && activeCard === card) activeCard = null;
-  }
-
-  function stopAll(except) {
-    document.querySelectorAll('[data-dazu-vcard]').forEach(function(card){
-      if (card !== except) stopCard(card);
-    });
-  }
-
-  function playCard(card) {
-    stopAll(card);
-    var player = card.querySelector('.dazu-vplayer');
-    var poster = card.querySelector('.dazu-vposter');
-    var iframe = card.querySelector('.dazu-viframe');
-    if (!player || !iframe) return;
-    var src = iframe.getAttribute('data-src');
-    if (src) iframe.setAttribute('src', src);
-    player.classList.remove('hidden');
-    if (poster) poster.classList.add('hidden');
-    activeCard = card;
-  }
-
-  function openExpand(card) {
-    var embed = card.getAttribute('data-embed');
-    var name = card.getAttribute('data-name');
-    var track = card.getAttribute('data-track');
-    if (!embed || !expandModal || !expandIframe) return;
-    document.getElementById('dazu-video-expand-track').textContent = track;
-    document.getElementById('dazu-video-expand-title').textContent = name + ' — Alumni Story';
-    var qs = embed.indexOf('?') >= 0 ? '&' : '?';
-    expandIframe.src = embed + qs + 'autoplay=1&modestbranding=1&rel=0';
-    expandModal.classList.remove('hidden');
-    expandModal.classList.add('flex');
-    expandModal.dataset.fromCard = '1';
-  }
-
-  function closeExpand() {
-    if (!expandModal) return;
-    expandModal.classList.add('hidden');
-    expandModal.classList.remove('flex');
-    if (expandIframe) expandIframe.removeAttribute('src');
-  }
-
-  document.querySelectorAll('[data-dazu-vcard]').forEach(function(card){
-    var playBtn = card.querySelector('.dazu-vplay');
-    var pauseBtn = card.querySelector('.dazu-vpause');
-    var expandBtn = card.querySelector('.dazu-vexpand');
-
-    if (playBtn) {
-      playBtn.addEventListener('click', function(e){
-        e.stopPropagation();
-        playCard(card);
-      });
-    }
-    if (pauseBtn) {
-      pauseBtn.addEventListener('click', function(e){
-        e.stopPropagation();
-        stopCard(card);
-      });
-    }
-    if (expandBtn) {
-      expandBtn.addEventListener('click', function(e){
-        e.stopPropagation();
-        if (!card.querySelector('.dazu-vplayer') || card.querySelector('.dazu-vplayer').classList.contains('hidden')) {
-          playCard(card);
-        }
-        openExpand(card);
-      });
-    }
-  });
-
-  if (expandClose) {
-    expandClose.addEventListener('click', function(){
-      closeExpand();
-    });
-  }
-  if (expandModal) {
-    expandModal.addEventListener('click', function(e){
-      if (e.target === expandModal) closeExpand();
-    });
-  }
-
   var slides = document.querySelectorAll('.dazu-text-slide');
   var dots = document.querySelectorAll('.dazu-text-dot');
   if(slides.length > 1){

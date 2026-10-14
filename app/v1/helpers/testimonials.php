@@ -45,7 +45,7 @@ if (!function_exists('testimonial_youtube_id')) {
             return $m[1];
         }
         if (preg_match('#^[a-zA-Z0-9_-]{11}$#', $url, $m)) {
-            return $m[1];
+            return $m[0];
         }
         return null;
     }
@@ -102,12 +102,6 @@ if (!function_exists('testimonial_load_for_homepage')) {
 
         if (!$text) {
             $text = testimonial_static_text_fallbacks();
-        }
-        if (!$video) {
-            $video = array_values(array_filter(
-                testimonial_static_video_fallbacks(),
-                static fn($r) => testimonial_video_embed_url($r) !== null
-            ));
         }
 
         return ['text' => $text, 'video' => $video];
@@ -226,7 +220,7 @@ if (!function_exists('testimonial_video_embed_url')) {
         if (($t['video_provider'] ?? '') === 'vimeo' && preg_match('#vimeo\.com/(\d+)#', $url, $m)) {
             return 'https://player.vimeo.com/video/' . $m[1] . '?autoplay=1';
         }
-        if (preg_match('#^https?://#i', $url)) {
+        if (preg_match('#^(https?://|/)#i', $url)) { // full URL or an upload on this site
             return $url;
         }
         return null;

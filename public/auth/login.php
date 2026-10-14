@@ -50,6 +50,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role_id'] = $user['role_id'];
             $_SESSION['logged_in'] = true;
             unset($_SESSION['tutor_admin']);
+            // A real sign-in replaces any leftover portal preview on this browser, so /students/ and /tutor/ use this session.
+            foreach (['DAZUPREVIEW' => 'students', 'DAZUPREVIEWT' => 'tutor'] as $previewCookie => $portal) {
+                if (!empty($_COOKIE[$previewCookie])) {
+                    setcookie($previewCookie, '', time() - 3600, rtrim(WEB_ROOT, '/') . '/' . $portal . '/');
+                }
+            }
+            session_regenerate_id(true);
 
             if (!empty($user['must_change_password'])) {
                 redirect(url('auth/change_password.php'));

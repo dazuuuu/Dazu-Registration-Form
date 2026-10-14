@@ -15,6 +15,7 @@
 require_once __DIR__ . '/../lib/dompdf/autoload.inc.php';
 require_once __DIR__ . '/../lib/qrcode/barcode.php';
 require_once __DIR__ . '/../services/CertificateService.php';
+require_once __DIR__ . '/signatures.php';
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -165,14 +166,11 @@ if (!function_exists('cert_logo_file')) {
 }
 
 if (!function_exists('_cert_sig_img')) {
-    /** Uploaded signature image, or nothing (the line is left blank for a wet signature). */
+    /** Uploaded signature image (private storage or public path), or nothing (the line is left blank for a wet signature). */
     function _cert_sig_img(?string $relPath): string
     {
-        if (!$relPath) {
-            return '';
-        }
-        $abs = dirname(__DIR__, 3) . '/public/' . ltrim($relPath, '/');
-        if (!is_file($abs)) {
+        $abs = sig_abs($relPath);
+        if (!$abs) {
             return '';
         }
         return '<img src="' . _cert_data_uri($abs) . '" style="max-height:16mm;max-width:50mm;" />';
@@ -263,7 +261,7 @@ body { width: 297mm; height: 210mm; font-family: "Times New Roman", Times, serif
         . '<div style="' . $abs . 'left:78mm;width:77mm;top:171mm;' . $center . 'font-size:14pt;font-weight:bold;line-height:1;">' . $e($tutor) . '</div>'
         . '<div style="' . $abs . 'left:78mm;width:77mm;top:176.6mm;' . $center . 'font-size:9pt;letter-spacing:1.5pt;line-height:1;">COURSE TUTOR</div>'
         . '<div style="' . $abs . 'left:148.5mm;width:77mm;top:171mm;' . $center . 'font-size:14pt;font-weight:bold;line-height:1;">' . $e($director) . '</div>'
-        . '<div style="' . $abs . 'left:148.5mm;width:77mm;top:176.6mm;' . $center . 'font-size:9pt;letter-spacing:1.5pt;line-height:1;">DIRECTOR</div>'
+        . '<div style="' . $abs . 'left:148.5mm;width:77mm;top:176.6mm;' . $center . 'font-size:9pt;letter-spacing:1.5pt;line-height:1;">' . $e(mb_strtoupper(trim((string) ($cert['director_title'] ?? '')) ?: 'Director')) . '</div>'
 
         // Footer line
         . '<div style="' . $abs . 'left:66mm;width:165mm;top:186.4mm;' . $center . 'font-size:12pt;line-height:1;">Certificate No: ' . $e($certNo)
@@ -279,6 +277,37 @@ if (!function_exists('cert_pdf_bytes')) {
         if (trim((string) ($cert['tutor_name'] ?? '')) === '' && !empty($cert['user_id']) && class_exists('\\Models\\Connection')) {
             $t = cert_assigned_tutor(\Models\Connection::getInstance()->getConnection(), (int) $cert['user_id']);
             $cert['tutor_name'] = $t['full_name'] ?? null;
+            $cert['tutor_id'] = $t['user_id'] ?? null;
+        }
+        if (class_exists('\\Models\\Connection')) {
+            $db = \Models\Connection::getInstance()->getConnection();
+            // The trainer's own signature (certificates.tutor_id is the tutor's users.id).
+            if (empty($cert['tutor_signature_path']) && !empty($cert['tutor_id'])) {
+                try {
+                    $st = $db->prepare('SELECT signature_path FROM tutors WHERE user_id = ? LIMIT 1');
+                    $st->execute([(int) $cert['tutor_id']]);
+                    $cert['tutor_signature_path'] = $st->fetchColumn() ?: null;
+                } catch (Throwable $e) {
+                }
+            }
+            // The director saved on the certificate, or (older certificates) whoever signs certificates now.
+            $dir = null;
+            try {
+                if (!empty($cert['director_id'])) {
+                    $st = $db->prepare('SELECT * FROM directors WHERE id = ?');
+                    $st->execute([(int) $cert['director_id']]);
+                    $dir = $st->fetch(PDO::FETCH_ASSOC) ?: null;
+                }
+            } catch (Throwable $e) {
+            }
+            $dir = $dir ?: sig_certificate_director($db);
+            if ($dir) {
+                $cert['ceo_name'] = $dir['full_name'];
+                $cert['director_title'] = $dir['title'];
+                if (empty($cert['director_signature_path'])) {
+                    $cert['director_signature_path'] = $dir['signature_path'];
+                }
+            }
         }
         $opts = new Options();
         $opts->setIsRemoteEnabled(false);

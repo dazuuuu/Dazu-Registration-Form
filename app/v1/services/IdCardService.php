@@ -305,6 +305,9 @@ if (!function_exists('idc_request')) {
         if (!$st->fetchColumn()) {
             return ['ok' => false, 'error' => 'Enrolment not found.'];
         }
+        if (!idc_student_photo_file($db, $userId)) {
+            return ['ok' => false, 'error' => 'Upload your passport photo first. It is printed on your ID card.'];
+        }
         if ($card = idc_active_card($db, $registrationId)) {
             return ['ok' => false, 'error' => $card['status'] === 'requested' ? 'You have already requested an ID card.' : 'You already have an ID card.'];
         }

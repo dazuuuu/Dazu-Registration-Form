@@ -55,16 +55,32 @@ spl_autoload_register(function ($class) {
 if (session_status() === PHP_SESSION_NONE) {
     // A student- or tutor-portal preview (admin menu) lives in its own session; its cookie only ever travels to
     // /students/ (DAZUPREVIEW) or /tutor/ (DAZUPREVIEWT).
+    $defaultSessionName = session_name();
     $reqPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
     foreach (['DAZUPREVIEW' => '/students', 'DAZUPREVIEWT' => '/tutor'] as $previewCookie => $previewDir) {
         $previewBase = (defined('WEB_ROOT') ? rtrim(WEB_ROOT, '/') : '') . $previewDir;
         if (!empty($_COOKIE[$previewCookie]) && ($reqPath === $previewBase || strpos($reqPath, $previewBase . '/') === 0)) {
             session_name($previewCookie);
             session_set_cookie_params(['path' => $previewBase . '/', 'httponly' => true, 'samesite' => 'Lax']);
+            session_start();
+            if (!empty($_SESSION['logged_in']) && !empty($_SESSION['preview'])) {
+                break;
+            }
+            // A preview that ended or expired: drop its cookie and fall back to the normal session, otherwise
+            // the portal and the login page keep redirecting to each other.
+            $_SESSION = [];
+            session_destroy();
+            setcookie($previewCookie, '', time() - 3600, $previewBase . '/');
+            unset($_COOKIE[$previewCookie]);
+            session_name($defaultSessionName);
+            session_id((string) ($_COOKIE[$defaultSessionName] ?? session_create_id()));
+            session_set_cookie_params(['path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
             break;
         }
     }
-    session_start();
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
 }
 
 require_once APP_V1_ROOT . '/helpers/functions.php';

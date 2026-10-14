@@ -21,9 +21,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     switch ($_POST['idc_action'] ?? '') {
         case 'generate':
             $res = idc_generate($db, (int) ($_POST['registration_id'] ?? 0), !empty($_POST['waive']), (int) ($_POST['valid_until'] ?? 0) ?: null);
-            $_SESSION[$res['ok'] ? 'success_msg' : 'error_msg'] = $res['ok']
-                ? 'ID card generated. The student can now download it from My Documents.'
-                : 'Cannot generate the ID card: ' . $res['error'];
+            if ($res['ok']) {
+                // Approving a request (or generating directly) also emails the card to the student.
+                require_once __DIR__ . '/../../../app/v1/services/StaffIdService.php';
+                $mail = idc_email_card($db, (int) $res['id']);
+                $_SESSION['success_msg'] = 'ID card generated. The student can download it from My Documents'
+                    . ($mail['ok'] && empty($mail['skipped']) ? ' and it was emailed to them.'
+                        : (!empty($mail['skipped']) ? '. Email is turned off on this site, so it was not emailed.' : '. (The email could not be sent: ' . ($mail['message'] ?? 'unknown error') . '.)'));
+            } else {
+                $_SESSION['error_msg'] = 'Cannot generate the ID card: ' . $res['error'];
+            }
             break;
         case 'ready':
             $res = idc_set_status($db, $id, 'ready', (string) ($_POST['location'] ?? ''));
@@ -125,6 +132,7 @@ ob_start();
                         <?php if ($c['valid_until']): ?><span>Valid until <?php echo (int) $c['valid_until']; ?></span><?php endif; ?>
                         <?php if ($c['status'] === 'requested'): ?><span>Requested <?php echo $e(date('j M Y', strtotime($c['requested_at'] ?: $c['created_at']))); ?></span><?php endif; ?>
                         <?php if ($c['request_note']): ?><span class="fst-italic">“<?php echo $e($c['request_note']); ?>”</span><?php endif; ?>
+                        <?php if (!empty($c['emailed_at'])): ?><span><i class="fas fa-envelope-circle-check text-success me-1"></i>Emailed <?php echo $e(date('j M', strtotime($c['emailed_at']))); ?></span><?php endif; ?>
                         <?php if (!$photo): ?><span class="text-warning"><i class="fas fa-triangle-exclamation me-1"></i>No passport photo</span><?php endif; ?>
                     </div>
                 </div>
@@ -134,7 +142,7 @@ ob_start();
                             <?php echo csrf_field(); ?><input type="hidden" name="idc_action" value="generate">
                             <input type="hidden" name="registration_id" value="<?php echo (int) $c['registration_id']; ?>">
                             <?php if ($online): ?><label class="small text-muted d-flex align-items-center gap-1"><input type="checkbox" name="waive" value="1" class="form-check-input m-0" required> Waive (online)</label><?php endif; ?>
-                            <button class="btn btn-sm btn-success"><i class="fas fa-wand-magic-sparkles me-1"></i>Generate</button>
+                            <button class="btn btn-sm btn-success" <?php echo $photo ? '' : 'disabled title="The student has no passport photo yet"'; ?>><i class="fas fa-check me-1"></i>Approve &amp; email</button>
                         </form>
                         <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#idcDecline<?php echo (int) $c['id']; ?>">Decline</button>
                     <?php elseif ($c['status'] !== 'declined'): ?>

@@ -18,7 +18,19 @@ if (preg_match('/^[a-f0-9]{16,64}$/', $key)) {
     );
     $st->execute([$key]);
     $card = $st->fetch(PDO::FETCH_ASSOC) ?: null;
+    if (!$card) {
+        // Tutor staff card: active while the tutor account is.
+        $st = \Models\Connection::getInstance()->getConnection()->prepare(
+            "SELECT IF(t.is_active = 1 AND u.is_active = 1, 'approved', 'inactive') AS reg_status, 'generated' AS status,
+                    YEAR(DATE_ADD(t.id_issued_at, INTERVAL 2 YEAR)) AS valid_until, 'Tutor' AS snapshot_course,
+                    COALESCE(NULLIF(TRIM(CONCAT(COALESCE(up.first_name,''), ' ', COALESCE(up.last_name,''))), ''), u.username) AS snapshot_name, 1 AS staff
+             FROM tutors t JOIN users u ON u.id = t.user_id LEFT JOIN user_profiles up ON up.user_id = u.id WHERE t.id_qr_hash = ? LIMIT 1"
+        );
+        $st->execute([$key]);
+        $card = $st->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
 }
+$staffCard = !empty($card['staff']);
 $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 $expired = $card && (int) $card['valid_until'] > 0 && (int) $card['valid_until'] < (int) date('Y');
 $active = $card && !$expired && $card['reg_status'] === 'approved';
@@ -58,15 +70,15 @@ ob_start();
       <div class="vi-band <?php echo $active ? 'ok' : 'warn'; ?>">
         <?php if ($active): ?>
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3 3 7-7"/></svg>
-          <div><b>Active student</b><small>This card was issued by Dazu Training Institute.</small></div>
+          <div><b><?php echo $staffCard ? 'Active staff member' : 'Active student'; ?></b><small>This card was issued by Dazu Training Institute.</small></div>
         <?php else: ?>
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>
-          <div><b><?php echo $expired ? 'Card expired' : 'Not currently active'; ?></b><small>Genuine Dazu card, but <?php echo $expired ? 'it was valid until ' . (int) $card['valid_until'] : 'the student is not currently enrolled'; ?>.</small></div>
+          <div><b><?php echo $expired ? 'Card expired' : 'Not currently active'; ?></b><small>Genuine Dazu card, but <?php echo $expired ? 'it was valid until ' . (int) $card['valid_until'] : ($staffCard ? 'this person no longer works with us' : 'the student is not currently enrolled'); ?>.</small></div>
         <?php endif; ?>
       </div>
       <div class="vi-body">
         <p class="vi-name"><?php echo $e($card['snapshot_name']); ?></p>
-        <div class="vi-k">Course</div><div class="vi-v"><?php echo $e($card['snapshot_course']); ?></div>
+        <div class="vi-k"><?php echo $staffCard ? 'Role' : 'Course'; ?></div><div class="vi-v"><?php echo $e($card['snapshot_course']); ?></div>
         <div class="vi-k">Status</div><div class="vi-v"><?php echo $active ? 'Active' : ($expired ? 'Expired' : 'Inactive'); ?><?php echo $card['valid_until'] ? ' · valid until ' . (int) $card['valid_until'] : ''; ?></div>
       </div>
     <?php endif; ?>

@@ -253,6 +253,38 @@ ob_start();
                     </a>
                   </div>
 
+                <?php elseif ($section['section_type'] === 'split'):
+                    $splitVideo = ($section['media_type'] ?? '') === 'youtube';
+                    $splitVid = $splitVideo ? ($section['video_id'] ?: blog_youtube_id($section['media_url'] ?? '')) : '';
+                    $hasMedia = $splitVideo ? (bool) $splitVid : !empty($section['media_url']);
+                    $paras = array_filter(array_map('trim', preg_split('/\R{2,}/', (string) ($section['content'] ?? ''))), 'strlen'); ?>
+                  <div class="my-12 grid gap-8 items-center <?php echo $hasMedia ? 'md:grid-cols-2' : ''; ?>">
+                    <div class="<?php echo $section['cta_type'] === 'left' ? 'md:order-2' : ''; ?>">
+                      <?php if (!empty($section['title'])): ?><h2 class="!mt-0"><?php echo htmlspecialchars($section['title']); ?></h2><?php endif; ?>
+                      <?php foreach ($paras as $para): ?><p><?php echo nl2br(htmlspecialchars($para)); ?></p><?php endforeach; ?>
+                    </div>
+                    <?php if ($hasMedia): ?>
+                      <div class="<?php echo $section['cta_type'] === 'left' ? 'md:order-1' : ''; ?>">
+                        <?php if ($splitVideo): ?>
+                          <div class="aspect-video rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                            <iframe class="w-full h-full" src="https://www.youtube.com/embed/<?php echo htmlspecialchars($splitVid); ?>?rel=0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen title="Video"></iframe>
+                          </div>
+                        <?php else: ?>
+                          <img src="<?php echo htmlspecialchars($section['media_url']); ?>" alt="<?php echo htmlspecialchars($section['title'] ?? ''); ?>" class="w-full rounded-xl border border-slate-200 object-cover">
+                        <?php endif; ?>
+                      </div>
+                    <?php endif; ?>
+                  </div>
+
+                <?php elseif ($section['section_type'] === 'divider'): ?>
+                  <div class="not-prose my-12 flex items-center gap-4" role="separator">
+                    <span class="flex-1 h-px bg-slate-200"></span>
+                    <?php if (!empty($section['title'])): ?>
+                      <span class="text-[11px] font-extrabold uppercase tracking-widest text-[#15A24A]"><?php echo htmlspecialchars($section['title']); ?></span>
+                      <span class="flex-1 h-px bg-slate-200"></span>
+                    <?php endif; ?>
+                  </div>
+
                 <?php elseif ($section['section_type'] === 'faq'):
                     $faqItems = json_decode($section['faq_items'] ?? '[]', true) ?: []; ?>
                   <?php if (!empty($faqItems)): ?>

@@ -163,7 +163,7 @@ ob_start();
             <i class="fas fa-quote-left"></i> Add text
         </a>
         <a href="create_video.php" class="btn btn-sm btn-success">
-            <i class="fas fa-video"></i> Add video
+            <i class="fas fa-video"></i> Add student story
         </a>
         <a href="<?php echo url('testimonials/submit'); ?>" class="btn btn-sm btn-primary" target="_blank">
             <i class="fas fa-external-link-alt"></i> Student submit page

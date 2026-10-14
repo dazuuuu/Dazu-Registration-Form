@@ -8,6 +8,7 @@ require_once __DIR__ . '/../../app/v1/helpers/assignment_files.php';
 require_once __DIR__ . '/../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../app/v1/models/Session.php';
 require_once __DIR__ . '/../../app/v1/models/AssignmentModel.php';
+require_once __DIR__ . '/../../app/v1/helpers/open_submissions.php';
 
 use Models\AssignmentModel;
 
@@ -36,6 +37,14 @@ if (($_GET['t'] ?? '') === 'att') {
     }
     $name = $f['original_name'] ?: $f['label'];
     $mime = $f['kind'] === 'pdf' ? 'application/pdf' : (str_ends_with($f['file_path'], '.png') ? 'image/png' : 'image/jpeg');
+} elseif (($_GET['t'] ?? '') === 'open') {
+    // Open submission document: the student who sent it, the tutor it was sent to (still teaching them), or an admin.
+    $f = os_get($db, $id);
+    if (!$f || !$f['file_path']) asg_deny();
+    $ok = $isAdmin || (int) $f['student_user_id'] === $uid
+        || ($tutor && (int) $f['tutor_id'] === (int) $tutor['id'] && $am->isTutorStudent((int) $tutor['id'], (int) $f['student_user_id']));
+    $name = $f['original_name'];
+    $mime = $f['mime'];
 } else {
     $f = $am->file($id);
     if (!$f) asg_deny();

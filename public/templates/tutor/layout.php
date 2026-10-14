@@ -40,6 +40,7 @@ $tlItems = [
     ['assignments', 'Assignments', 'fa-file-pen', url('tutor/assignments/index.php'), $tlDir === 'assignments', false],
     ['quizzes', 'Quizzes', 'fa-circle-question', url('tutor/quizzes/index.php'), $tlDir === 'quizzes', false],
     ['notifications', 'Notifications', 'fa-bell', url('tutor/notifications/index.php'), $tlDir === 'notifications', false, 'Account'],
+    ['profile', 'My ID & signature', 'fa-id-badge', url('tutor/profile/index.php'), $tlDir === 'profile', false],
 ];
 if ($tlAdmin) {
     $tlItems[] = ['admin', 'Admin portal', 'fa-user-shield', url('admin/dashboard.php'), false, false];

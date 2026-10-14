@@ -22,7 +22,7 @@ $docsMissing = docs_missing($db, $userId);
 <?php endif; ?>
 
 <div class="row g-3 mb-3">
-    <div class="col-md-6">
+    <div class="col-md-6" id="passport-photo">
         <div class="card border-0 shadow-sm h-100"><div class="card-body">
             <h6 class="fw-bold mb-2">Passport photo <span class="text-danger">*</span></h6>
             <div class="d-flex gap-3 align-items-center flex-wrap">

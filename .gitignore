@@ -170,4 +170,5 @@ yarn-error.log*
 /app/v1/storage/cache/
 # Assignment attachments and student submissions (private files, served by public/assignments/file.php)
 /app/v1/storage/assignments/
+/app/v1/storage/signatures/
 c

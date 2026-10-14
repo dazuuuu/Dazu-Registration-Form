@@ -16,8 +16,12 @@ foreach ($am->chain($uid) as $it) {
 $page_title = 'My assignments';
 ob_start();
 ?>
+<div class="card-student p-3 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div><div class="fw-semibold">Hand in work from class</div><div class="small text-muted">Send your tutor a GitHub link, Google Drive link or document, even if it is not listed below.</div></div>
+    <a href="submit.php" class="btn btn-brand btn-sm"><i class="fas fa-paper-plane me-1"></i>Submit work</a>
+</div>
 <?php if (!$groups): ?>
-<div class="card-student"><div class="as-empty"><i class="fas fa-file-pen"></i>No assignments yet. When your tutor gives you one, it appears here and you get an email.</div></div>
+<div class="card-student"><div class="as-empty"><i class="fas fa-file-pen"></i>No assignments set yet. When your tutor gives you one, it appears here and you get an email.</div></div>
 <?php endif; ?>
 
 <?php foreach ($groups as $g):

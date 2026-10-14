@@ -261,27 +261,34 @@ $teamHref = static function (string $key, string $v): string {
 .dz-team-grid{display:grid;grid-template-columns:1fr;gap:20px}
 @media(min-width:600px){.dz-team-grid{grid-template-columns:repeat(2,1fr)}}
 @media(min-width:960px){.dz-team-grid{grid-template-columns:repeat(3,1fr);gap:24px}}
-.dz-team-intro{background:#15803d;background:linear-gradient(160deg,#16a34a,#14532d);color:#fff;border-radius:14px;padding:32px 28px;display:flex;flex-direction:column;justify-content:center;min-height:280px}
+.dz-team-intro{background:#15803d;background:linear-gradient(160deg,#16a34a,#14532d);color:#fff;border-radius:14px;padding:32px 28px;display:flex;flex-direction:column;justify-content:center;min-height:280px;margin-top:84px}
 .dz-team-intro h2{font-size:30px;line-height:1.2;font-weight:800;margin:0 0 14px;letter-spacing:-.01em}
 .dz-team-intro p{font-size:15px;line-height:1.6;opacity:.9;margin:0 0 24px}
 .dz-team-intro a{align-self:flex-start;background:#fff;color:#14532d;font-size:13px;font-weight:700;padding:10px 20px;border-radius:999px;text-decoration:none;transition:.15s}
 .dz-team-intro a:hover{background:#dcfce7}
-.dz-team-card{background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,.06),0 8px 24px rgba(15,23,42,.04);transition:transform .25s,box-shadow .25s}
-.dz-team-card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(15,23,42,.12)}
-.dz-team-photo{aspect-ratio:1/0.95;background:#e8efe9;overflow:hidden}
-.dz-team-photo img{width:100%;height:100%;object-fit:cover;object-position:top;display:block;transition:transform .5s}
-.dz-team-card:hover .dz-team-photo img{transform:scale(1.04)}
-.dz-team-initial{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:800;color:#fff;background:#14532d}
-.dz-team-info{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 18px 20px}
-.dz-team-info h3{font-size:16px;font-weight:600;color:#0f172a;margin:0 0 4px}
-.dz-team-info span{font-size:13px;color:#64748b}
-.dz-team-social{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;max-width:55%;padding-top:2px}
-.dz-team-social a{color:#334155;display:inline-flex;transition:color .15s}
-.dz-team-social a:hover{color:#16a34a}
-.dz-team-social svg{width:17px;height:17px;fill:currentColor}
+.dz-team-card{position:relative;margin-top:84px;padding:96px 26px 34px;background:#15A24A;color:#fff;text-align:center;border-radius:120px 0 120px 0;transition:transform .25s,box-shadow .25s}
+.dz-team-card:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(21,162,74,.3)}
+.dz-team-photo{position:absolute;top:-84px;left:14%;width:168px;height:168px;border-radius:50%;background:#15A24A;padding:8px;overflow:hidden}
+.dz-team-photo img,.dz-team-initial{width:100%;height:100%;border-radius:50%;object-fit:cover;object-position:top;display:block;background:#fff}
+.dz-team-initial{display:flex;align-items:center;justify-content:center;font-size:56px;font-weight:800;color:#15A24A}
+.dz-team-card h3{font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;margin:0 0 4px;color:#fff}
+.dz-team-role{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:#e2e8f0;margin-bottom:14px}
+.dz-team-bio{font-size:12.5px;line-height:1.6;color:#e2e8f0;margin:0 auto 20px;max-width:260px}
+.dz-team-social{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.dz-team-social a{width:26px;height:26px;border-radius:50%;background:#fff;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:transform .15s}
+.dz-team-social a:hover{transform:translateY(-2px)}
+.dz-team-social svg{width:14px;height:14px;fill:currentColor}
+.dz-team-social .is-phone{color:#15A24A}
+.dz-team-social .is-email{color:#EA4335}
+.dz-team-social .is-whatsapp{color:#25D366}
+.dz-team-social .is-tiktok{color:#000}
+.dz-team-social .is-linkedin{color:#0A66C2}
+.dz-team-social .is-facebook{color:#1877F2}
+.dz-team-social .is-instagram svg{fill:url(#dz-ig-grad)}
 .dz-team-empty{border:1px dashed #cbd5e1;border-radius:14px;padding:40px;text-align:center;color:#64748b;background:#fff}
 </style>
 <section class="dz-team" id="team">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="dz-ig-grad" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#FEDA75"/><stop offset=".3" stop-color="#FA7E1E"/><stop offset=".6" stop-color="#D62976"/><stop offset=".8" stop-color="#962FBF"/><stop offset="1" stop-color="#4F5BD5"/></linearGradient></defs></svg>
   <div class="dz-team-wrap">
     <div class="dz-team-grid">
       <div class="dz-team-intro">
@@ -301,17 +308,16 @@ $teamHref = static function (string $key, string $v): string {
               <div class="dz-team-initial"><?php echo htmlspecialchars(strtoupper(substr($t['name'], 0, 1))); ?></div>
             <?php endif; ?>
           </div>
-          <div class="dz-team-info">
-            <div>
-              <h3><?php echo htmlspecialchars($t['name']); ?></h3>
-              <span><?php echo htmlspecialchars($t['role']); ?></span>
-            </div>
+          <h3><?php echo htmlspecialchars($t['name']); ?></h3>
+          <span class="dz-team-role"><?php echo htmlspecialchars($t['role']); ?></span>
+          <?php if (!empty($t['bio'])): ?>
+            <p class="dz-team-bio"><?php echo htmlspecialchars($t['bio']); ?></p>
+          <?php endif; ?>
             <div class="dz-team-social">
               <?php foreach ($teamIcons as $key => [$label, $path]): $v = trim((string) ($t[$key] ?? '')); if ($v === '') continue; $ext = !in_array($key, ['phone', 'email'], true); ?>
-                <a href="<?php echo htmlspecialchars($teamHref($key, $v), ENT_QUOTES); ?>" aria-label="<?php echo htmlspecialchars($label . ' ' . $t['name'], ENT_QUOTES); ?>" title="<?php echo $label; ?>"<?php echo $ext ? ' target="_blank" rel="noopener"' : ''; ?>><svg viewBox="0 0 24 24" aria-hidden="true"><?php echo $path; ?></svg></a>
+                <a class="is-<?php echo $key; ?>" href="<?php echo htmlspecialchars($teamHref($key, $v), ENT_QUOTES); ?>" aria-label="<?php echo htmlspecialchars($label . ' ' . $t['name'], ENT_QUOTES); ?>" title="<?php echo $label; ?>"<?php echo $ext ? ' target="_blank" rel="noopener"' : ''; ?>><svg viewBox="0 0 24 24" aria-hidden="true"><?php echo $path; ?></svg></a>
               <?php endforeach; ?>
             </div>
-          </div>
         </article>
       <?php endforeach; ?>
     </div>

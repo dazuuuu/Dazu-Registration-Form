@@ -76,7 +76,7 @@ class SiteBackupService
         $zip->addFromString('manifest.json', json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         $zip->addFile($sqlFile, 'database.sql');
         $count = $this->addTree($zip, public_path('uploads'), 'files/uploads');
-        $count += $this->addTree($zip, STORAGE_PATH, 'files/storage', ['backups', 'imports']);
+        $count += $this->addTree($zip, STORAGE_PATH, 'files/storage', ['backups', 'imports', 'cache']);
         $zip->close();
         @unlink($sqlFile);
 
@@ -318,7 +318,30 @@ class SiteBackupService
         }
         $zip->close();
 
-        return ['ok' => true, 'tables' => $tables, 'files' => $files, 'safety' => $safety];
+        // A backup from an older version: bring its database up to this version, so every page works straight away.
+        $updated = $this->upgradeSchema();
+        return ['ok' => true, 'tables' => $tables, 'files' => $files, 'safety' => $safety] + $updated;
+    }
+
+    /** Apply the updates the restored database is missing and forget cached schema checks. Returns ['updated', 'version', 'update_error'?]. */
+    public function upgradeSchema(): array
+    {
+        foreach (glob(rtrim(STORAGE_PATH, '/') . '/cache/schema_*.ok') ?: [] as $f) {
+            @unlink($f);
+        }
+        require_once __DIR__ . '/MigrationService.php';
+        try {
+            $ms = new MigrationService($this->pdo);
+            $r = $ms->applyPending();
+            $out = ['updated' => (int) $r['ran'], 'version' => $ms->currentVersion()];
+            if ($r['failed']) {
+                $out['update_error'] = $r['failed'][0]['error'];
+            }
+            return $out;
+        } catch (Throwable $e) {
+            error_log('[SiteBackupService::upgradeSchema] ' . $e->getMessage());
+            return ['updated' => 0, 'version' => null, 'update_error' => $e->getMessage()];
+        }
     }
 
     /** Fix stored links when the new host serves the site from a different address or folder. */
