@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/services/IdCardService.php';
 require_once __DIR__ . '/../../../app/v1/services/CertificateService.php';
+require_once __DIR__ . '/../../../app/v1/services/ManualIdService.php';
 
 $db = \Models\Connection::getInstance()->getConnection();
 $idcSelf = url($idcArea . '/id_cards/index.php');
@@ -45,6 +46,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $res = idc_set_status($db, $id, 'declined', null, trim((string) ($_POST['note'] ?? '')));
             $_SESSION[$res['ok'] ? 'success_msg' : 'error_msg'] = $res['ok'] ? 'Request declined — the student has been notified.' : $res['error'];
             break;
+        case 'manual_create':
+            try {
+                $res = midc_create($db, $_POST, $_FILES['photo'] ?? [], (int) ($_SESSION['user_id'] ?? 0));
+            } catch (\PDOException $ex) {
+                $res = ['ok' => false, 'error' => 'the manual ID cards table is not installed yet. Run System Updates (migration 071).'];
+            }
+            if ($res['ok']) {
+                $_SESSION['success_msg'] = 'ID card created. Use the eye or print button to download it.';
+                $back = $idcSelf . '?status=manual';
+            } else {
+                $_SESSION['error_msg'] = 'Cannot create the ID card: ' . $res['error'];
+            }
+            break;
+        case 'manual_delete':
+            midc_delete($db, $id);
+            $_SESSION['success_msg'] = 'ID card removed. Its QR code no longer verifies.';
+            break;
         case 'delete':
             idc_delete($db, $id);
             $_SESSION['success_msg'] = 'ID card removed.';
@@ -60,8 +78,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $filter = (string) ($_GET['status'] ?? '');
+$manualCards = [];
 try {
-    $cards = idc_list($db, $filter);
+    $manualCards = midc_list($db);
+} catch (\PDOException $ex) {
+    if ($filter === 'manual') $_SESSION['error_msg'] = 'The manual ID cards table is not installed yet. Run System Updates (migration 071) and reload this page.';
+}
+try {
+    $cards = $filter === 'manual' ? [] : idc_list($db, $filter);
     $counts = idc_counts($db);
 } catch (\PDOException $e) {
     $cards = [];
@@ -99,7 +123,17 @@ ob_start();
         </div>
         <div class="d-flex gap-2">
             <a href="<?php echo url('verify/id.php'); ?>" target="_blank" class="btn btn-outline-secondary"><i class="fas fa-qrcode me-1"></i>Verify page</a>
-            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#idcGenModal"><i class="fas fa-plus me-1"></i>Generate ID card</button>
+            <div class="dropdown">
+                <button class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-plus me-1"></i>Generate ID card</button>
+                <div class="dropdown-menu dropdown-menu-end p-2" style="min-width:280px">
+                    <button type="button" class="dropdown-item rounded py-2" data-bs-toggle="modal" data-bs-target="#idcGenModal">
+                        <i class="fas fa-user-graduate text-success me-2"></i><strong>From student records</strong>
+                        <div class="small text-muted ms-4 text-wrap">Search an enrolled student</div></button>
+                    <button type="button" class="dropdown-item rounded py-2" data-bs-toggle="modal" data-bs-target="#idcManualModal">
+                        <i class="fas fa-pen-to-square text-success me-2"></i><strong>Manual entry</strong>
+                        <div class="small text-muted ms-4 text-wrap">Type the name, pick a role, upload a photo</div></button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -109,8 +143,38 @@ ob_start();
             <a href="<?php echo $e($idcSelf . '?status=' . $k); ?>" class="<?php echo $filter === $k ? 'on' : ''; ?>">
                 <?php echo $e($k === 'requested' ? 'Requests' : $label); ?> <span class="n"><?php echo (int) $counts[$k]; ?></span></a>
         <?php endforeach; ?>
+        <a href="<?php echo $e($idcSelf . '?status=manual'); ?>" class="<?php echo $filter === 'manual' ? 'on' : ''; ?>">Manual entries <span class="n"><?php echo count($manualCards); ?></span></a>
     </div>
 
+    <?php if ($filter === 'manual'): ?>
+    <div class="card border-0 shadow-sm rounded-4">
+        <?php if (!$manualCards): ?>
+            <div class="text-center py-5 text-muted"><i class="fas fa-pen-to-square fa-3x mb-3 opacity-25"></i><p class="mb-0">No manual ID cards yet. Use <strong>Generate ID card → Manual entry</strong>.</p></div>
+        <?php else: foreach ($manualCards as $m): $mPhoto = midc_photo_file($m); ?>
+            <div class="idc-row">
+                <?php if ($mPhoto): ?><img class="idc-ava" src="<?php echo $e(url($m['photo_path'])); ?>" alt="">
+                <?php else: ?><div class="idc-ava"><i class="fas fa-user"></i></div><?php endif; ?>
+                <div class="min-w-0">
+                    <div class="fw-semibold"><?php echo $e($m['full_name']); ?> <span class="text-muted small ms-1"><?php echo $e($m['id_no']); ?></span></div>
+                    <div class="small"><?php echo $e(midc_card($m)['snapshot_course']); ?></div>
+                    <div class="idc-meta mt-1 d-flex flex-wrap gap-2 align-items-center">
+                        <span class="badge bg-success-subtle text-success-emphasis"><?php echo $e(MIDC_ROLES[$m['role']][0] ?? $m['role']); ?></span>
+                        <span>Valid until <?php echo (int) $m['valid_until']; ?></span>
+                        <span>Created <?php echo $e(date('j M Y', strtotime($m['created_at']))); ?></span>
+                    </div>
+                </div>
+                <div class="idc-actions">
+                    <a class="btn btn-sm btn-outline-secondary" target="_blank" href="<?php echo $e(url('id_cards/pdf.php?manual=' . (int) $m['id'])); ?>" title="View card"><i class="fas fa-eye"></i></a>
+                    <a class="btn btn-sm btn-outline-dark" href="<?php echo $e(url('id_cards/pdf.php?manual=' . (int) $m['id'] . '&print=1&dl=1')); ?>" title="Print file (bleed + crop marks)"><i class="fas fa-print"></i></a>
+                    <form method="POST" class="m-0" onsubmit="return confirm('Remove this ID card? Its QR code will stop verifying.')"><?php echo csrf_field(); ?>
+                        <input type="hidden" name="idc_action" value="manual_delete"><input type="hidden" name="id" value="<?php echo (int) $m['id']; ?>">
+                        <button class="btn btn-sm btn-outline-danger" title="Remove"><i class="fas fa-trash"></i></button>
+                    </form>
+                </div>
+            </div>
+        <?php endforeach; endif; ?>
+    </div>
+    <?php else: ?>
     <div class="card border-0 shadow-sm rounded-4">
         <?php if (!$cards): ?>
             <div class="text-center py-5 text-muted"><i class="fas fa-id-card fa-3x mb-3 opacity-25"></i><p class="mb-0">No ID cards here yet.</p></div>
@@ -199,7 +263,65 @@ ob_start();
             <?php endif; ?>
         <?php endforeach; endif; ?>
     </div>
+    <?php endif; ?>
 </div>
+
+<div class="modal fade" id="idcManualModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <form method="POST" enctype="multipart/form-data" class="modal-content">
+            <?php echo csrf_field(); ?>
+            <input type="hidden" name="idc_action" value="manual_create">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-pen-to-square text-success me-2"></i>Manual ID card</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-8"><label class="form-label fw-semibold">Full name</label>
+                        <input type="text" name="full_name" class="form-control" maxlength="150" required placeholder="e.g. Jane Wairimu Njoroge"></div>
+                    <div class="col-md-4"><label class="form-label fw-semibold">Role</label>
+                        <select name="role" id="midcRole" class="form-select" required>
+                            <option value="" disabled selected>Choose…</option>
+                            <?php foreach (MIDC_ROLES as $rk => [$rl]): ?><option value="<?php echo $rk; ?>"><?php echo $rl; ?></option><?php endforeach; ?>
+                        </select></div>
+                    <div class="col-md-8"><label class="form-label fw-semibold" id="midcTitleLabel">Job title / department <span class="text-muted fw-normal">(optional)</span></label>
+                        <input type="text" name="title" id="midcTitle" class="form-control" maxlength="150" placeholder="e.g. Finance, ICT Department"></div>
+                    <div class="col-md-4"><label class="form-label fw-semibold">Valid until (year)</label>
+                        <input type="number" name="valid_until" class="form-control" min="<?php echo date('Y'); ?>" max="2100" value="<?php echo (int) date('Y') + 1; ?>" required></div>
+                    <div class="col-md-6"><label class="form-label fw-semibold">ID number <span class="text-muted fw-normal">(optional)</span></label>
+                        <input type="text" name="id_no" class="form-control text-uppercase" maxlength="50" pattern="[A-Za-z0-9/\-]{2,50}" placeholder="Leave blank to auto-number, e.g. DTI-DIR-0007"></div>
+                    <div class="col-md-6"><label class="form-label fw-semibold">Passport photo</label>
+                        <input type="file" name="photo" id="midcPhoto" class="form-control" accept="image/jpeg,image/png,image/webp" required>
+                        <div class="form-text">Passport-style, JPG/PNG/WebP, max 5 MB.</div></div>
+                    <div class="col-12 text-center"><img id="midcPreview" alt="" class="d-none rounded border" style="width:100px;height:125px;object-fit:cover;border-color:#44A024!important;border-width:2px!important"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-success"><i class="fas fa-id-card me-1"></i>Create ID card</button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+(function () {
+    const role = document.getElementById('midcRole'), title = document.getElementById('midcTitle'),
+          label = document.getElementById('midcTitleLabel'), photo = document.getElementById('midcPhoto'),
+          preview = document.getElementById('midcPreview');
+    role.addEventListener('change', () => {
+        const student = role.value === 'student';
+        title.required = student;
+        label.innerHTML = student ? 'Course' : 'Job title / department <span class="text-muted fw-normal">(optional)</span>';
+        title.placeholder = student ? 'e.g. Certificate in Computer Packages' : 'e.g. Finance, ICT Department';
+    });
+    photo.addEventListener('change', () => {
+        const f = photo.files[0];
+        if (!f) { preview.classList.add('d-none'); return; }
+        preview.src = URL.createObjectURL(f);
+        preview.classList.remove('d-none');
+    });
+})();
+</script>
 
 <div class="modal fade" id="idcGenModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">

@@ -54,7 +54,7 @@ if (!function_exists('dazu_asset_v')) {
         $og_url ?? null
     );
   ?>
-  <link rel="icon" type="image/png" href="<?php echo htmlspecialchars(site_logo_url(brand_url('mark'))); ?>">
+  <?php echo dazu_favicon_tags(); ?>
   <link rel="stylesheet" href="<?php echo htmlspecialchars(dazu_tailwind_css()); ?>">
   <link rel="stylesheet" href="<?php echo dazu_asset_v('css/dazu-frontend-theme.css'); ?>">
   <style>svg.dazu-icon{width:1.25rem;height:1.25rem;flex-shrink:0;max-width:100%}</style>

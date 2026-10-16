@@ -1,15 +1,17 @@
 <?php
 // public/components/superadmin/topbar.php — brand, desktop nav pill, mobile bottom bar and the "More" sheet.
-$sa_uri = $_SERVER['REQUEST_URI'] ?? '';
+$sa_uri = $_SERVER['PHP_SELF'] ?? '';   // the real script path (the address bar may be a clean URL)
 // [label, path, uri fragment that marks it active, icon]
 $sa_nav = [
     ['Overview',  'superadmin/dashboard.php',           '/superadmin/dashboard.php', 'fa-house'],
+    ['Approvals', 'superadmin/registrations/index.php', '/superadmin/registrations/', 'fa-user-clock'],
     ['Students',  'superadmin/students/index.php',      '/superadmin/students/',     'fa-user-graduate'],
     ['Courses',   'superadmin/courses/index.php',       '/superadmin/courses/',      'fa-book-open'],
     ['Tutors',    'superadmin/tutors/index.php',        '/superadmin/tutors/',       'fa-chalkboard-user'],
     ['Payments',  'superadmin/payments/index.php',      '/superadmin/payments/',     'fa-money-bill-wave'],
     ['Salaries',  'superadmin/payroll/index.php',       '/superadmin/payroll/',      'fa-wallet'],
     ['Admins',    'superadmin/admins/index.php',        '/superadmin/admins/',       'fa-user-shield'],
+    ['Announce',  'superadmin/announcements/index.php', '/superadmin/announcements/', 'fa-bullhorn'],
     ['Certificates','superadmin/certificates/index.php', '/certificates/',            'fa-certificate'],
     ['ID Cards',  'superadmin/id_cards/index.php',      '/id_cards/',                'fa-id-card'],
     ['Finance',   'superadmin/sms/finance/index.php',   '/sms/finance/',             'fa-chart-line'],
@@ -17,6 +19,9 @@ $sa_nav = [
 ];
 $sa_more = [
     'People' => [
+        ['Pending approvals', 'superadmin/registrations/index.php?status=pending', 'fa-user-clock'],
+        ['Announcements', 'superadmin/announcements/index.php', 'fa-bullhorn'],
+                ['All tutors', 'superadmin/tutors/index.php', 'fa-chalkboard-user'],
         ['Enrol a student', 'superadmin/students/enroll.php', 'fa-user-plus'],
         ['Add a tutor', 'superadmin/tutors/create.php', 'fa-chalkboard-user'],
         ['Tutor permissions', 'superadmin/tutors/permissions.php', 'fa-user-lock'],
@@ -56,7 +61,7 @@ $sa_bottom = [
     ['Home', 'superadmin/dashboard.php', '/superadmin/dashboard.php', 'fa-house'],
     ['Students', 'superadmin/students/index.php', '/superadmin/students/', 'fa-user-graduate'],
     ['Money', 'superadmin/payments/index.php', '/superadmin/payments/', 'fa-wallet'],
-    ['Tutors', 'superadmin/tutors/index.php', '/superadmin/tutors/', 'fa-chalkboard-user'],
+    ['Approvals', 'superadmin/registrations/index.php', '/superadmin/registrations/', 'fa-user-clock'],
 ];
 $sa_initial = strtoupper(substr((string)($_SESSION['username'] ?? 'S'), 0, 1));
 $sa_isActive = fn(string $frag): bool => strpos(strtok($sa_uri, '?'), $frag) !== false;

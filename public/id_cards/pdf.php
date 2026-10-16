@@ -31,6 +31,24 @@ if (isset($_GET['staff'])) {
     echo $pdf;
     exit;
 }
+// Manually entered card (Generate ID card → Manual entry): ?manual=<manual_id_cards.id>, admins only.
+if (isset($_GET['manual'])) {
+    require_once __DIR__ . '/../../app/v1/services/ManualIdService.php';
+    $admin = SessionModel::get('logged_in') === true && in_array(SessionModel::get('role'), ['superadmin', 'admin'], true);
+    $row = $admin ? midc_get($db, (int) $_GET['manual']) : null;
+    if (!$row) {
+        http_response_code(404);
+        exit('ID card not found.');
+    }
+    $card = midc_card($row);
+    $print = !empty($_GET['print']);
+    $pdf = idc_pdf_bytes($card, $print);
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: ' . (!empty($_GET['dl']) ? 'attachment' : 'inline') . '; filename="' . idc_pdf_filename($card, $print) . '"');
+    header('Cache-Control: private, no-cache, must-revalidate');
+    echo $pdf;
+    exit;
+}
 $card = $id ? idc_get($db, $id) : null;
 if (!$card || in_array($card['status'], ['requested', 'declined'], true)) {
     http_response_code(404);

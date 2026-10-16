@@ -291,6 +291,29 @@ $idText = [
             </div>
         </div>
 
+        <?php
+        require_once __DIR__ . '/../../../app/v1/services/ClassCalendarService.php';
+        $sdUp = [];
+        if (cal_installed($pdo ?? \Models\Connection::getInstance()->getConnection())) {
+            $sdDb = \Models\Connection::getInstance()->getConnection();
+            $sdTz = cal_user_tz($sdDb, (int) $_SESSION['user_id']);
+            $sdUp = array_slice(array_values(array_filter(cal_student_classes($sdDb, (int) $_SESSION['user_id'], cal_now_utc(), gmdate('Y-m-d H:i:s', strtotime('+60 days'))), fn($c) => $c['status'] !== 'cancelled')), 0, 3);
+        }
+        ?>
+        <div class="card-student">
+            <div class="card-head justify-content-between"><span><i class="fas fa-calendar-days me-2"></i>Upcoming classes</span><a class="small" href="<?php echo url('students/classes/index.php'); ?>">My Classes</a></div>
+            <div class="list-group list-group-flush">
+                <?php if (!$sdUp): ?><div class="list-group-item text-muted small">No upcoming classes yet.</div><?php endif; ?>
+                <?php foreach ($sdUp as $c): $s = cal_from_utc($c['start_utc'], $sdTz); ?>
+                    <a class="list-group-item list-group-item-action d-flex gap-3 align-items-center" href="<?php echo url('students/classes/class.php?id=' . (int) $c['id']); ?>">
+                        <div class="text-center" style="width:44px"><div class="fw-bold"><?php echo $s->format('j'); ?></div><div class="small text-success fw-semibold"><?php echo $s->format('M'); ?></div></div>
+                        <div class="flex-grow-1" style="min-width:0"><div class="fw-semibold text-truncate"><?php echo htmlspecialchars($c['title']); ?></div>
+                            <div class="small text-muted"><?php echo $s->format('D H:i') . '–' . cal_fmt($c['end_utc'], $sdTz) . ' ' . htmlspecialchars($sdTz); ?> · <?php echo CAL_MODES[$c['mode']]; ?><?php echo $c['status'] === 'moved' ? ' · moved' : ''; ?></div></div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+        </div>
+
         <?php if ($cwItems): ?>
         <div class="card-student">
             <div class="card-head justify-content-between"><span><i class="fas fa-file-pen me-2"></i>Classwork</span>

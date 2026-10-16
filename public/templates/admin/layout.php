@@ -727,6 +727,7 @@ if (isset($pdo)) {
     </script>
     <script src="<?php echo asset('js/admin-terminal.js'); ?>"></script>
     <?php $pwaPortal = 'admin'; require __DIR__ . '/../../components/pwa/script.php'; ?>
+    <?php require __DIR__ . '/../../components/announcements/overlay.php'; ?>
 
     <?php if (isset($extra_js)): ?>
         <?php echo $extra_js; ?>

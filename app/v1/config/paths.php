@@ -170,6 +170,11 @@ if (!function_exists('dazu_pretty_path')) {
             return $path;
         }
         $query = '';
+        $frag = '';
+        if (($h = strpos($path, '#')) !== false) {
+            $frag = substr($path, $h);
+            $path = substr($path, 0, $h);
+        }
         if (($q = strpos($path, '?')) !== false) {
             $query = substr($path, $q + 1);
             $path = substr($path, 0, $q);
@@ -186,8 +191,36 @@ if (!function_exists('dazu_pretty_path')) {
         } elseif (preg_match('#^(about|apply|blogs|contact|courses|gallery|projects|services|store|testimonials|verify)/(?:(.+?)\.php|index\.php)?$#', $path, $m)) {
             $page = $m[2] ?? '';
             $path = $m[1] . ($page !== '' && $page !== 'index' ? '/' . $page : '');
+        } elseif (preg_match('#^(admin|superadmin|tutor|students|intern|employee|profile|auth)(/.*)?/([A-Za-z0-9_-]+)\.php$#', $path, $m)
+                  && !in_array($m[3], ['api', 'manifest', 'file', 'search', 'clock', 'keepalive'], true)) {
+            // Dashboards and portals: admin/students/view.php → admin/students/view, admin/students/index.php → admin/students/
+            // (JSON / file endpoints keep .php). public/.htaccess serves the .php file behind the clean address.
+            $path = $m[1] . ($m[2] ?? '') . '/' . ($m[3] === 'index' ? '' : $m[3]);
         }
-        return $path . ($query !== '' ? '?' . $query : '');
+        return $path . ($query !== '' ? '?' . $query : '') . $frag;
+    }
+}
+
+if (!function_exists('dazu_clean_links')) {
+    /**
+     * Output filter for dashboard pages: relative links written by hand (href="edit.php?id=4", action="print.php")
+     * lose ".php" too, so the address bar and link previews stay clean. JSON/file endpoints keep .php.
+     * Only active where clean URLs are served (Apache .htaccess, or the dev router).
+     */
+    function dazu_clean_links(string $html): string
+    {
+        if ((PHP_SAPI === 'cli-server' && !defined('DAZU_PRETTY_ROUTER')) || stripos($html, '<html') === false) {
+            return $html;
+        }
+        $self = (string) ($_SERVER['PHP_SELF'] ?? '');
+        if (!preg_match('#/(admin|superadmin|tutor|students|intern|employee|profile)/#', $self)) {
+            return $html;
+        }
+        return preg_replace_callback('#\b(href|action)="((?:\.\./)*(?:[A-Za-z0-9_-]+/)*)([A-Za-z0-9_-]+)\.php((?:[?\#][^"]*)?)"#', function ($m) {
+            if (in_array($m[3], ['api', 'manifest', 'file', 'search', 'clock', 'keepalive'], true)) return $m[0];
+            $target = $m[3] === 'index' ? ($m[2] !== '' ? $m[2] : './') : $m[2] . $m[3];
+            return $m[1] . '="' . $target . $m[4] . '"';
+        }, $html) ?? $html;
     }
 }
 
@@ -255,5 +288,64 @@ if (!function_exists('settings_asset_url')) {
         }
 
         return $fullUrl;
+    }
+}
+
+if (!function_exists('dazu_share_image_for_path')) {
+    /** Share picture for a page: the students and tutor portals have their own, everything else the Dazu one. */
+    function dazu_share_image_for_path(string $path): string
+    {
+        $base = defined('WEB_ROOT') ? rtrim(WEB_ROOT, '/') : '';
+        $rel = ltrim(substr($path, strlen($base)), '/');
+        $which = preg_match('#^(students|auth/login)#', $rel) ? 'students' : (preg_match('#^tutor(/|$)#', $rel) ? 'tutor' : 'dazu');
+        return 'assets/images/share/' . $which . '-share.png';
+    }
+}
+
+if (!function_exists('dazu_favicon_tags')) {
+    function dazu_favicon_tags(): string
+    {
+        return '<link rel="icon" href="' . url('favicon.ico') . '" sizes="any">' . "\n"
+            . '  <link rel="icon" type="image/png" sizes="32x32" href="' . url('assets/icons/favicon-32.png') . '">' . "\n"
+            . '  <link rel="icon" type="image/png" sizes="192x192" href="' . url('assets/icons/favicon-192.png') . '">' . "\n"
+            . '  <link rel="apple-touch-icon" href="' . url('assets/icons/favicon-180.png') . '">' . "\n";
+    }
+}
+
+if (!function_exists('dazu_head_meta')) {
+    /**
+     * Output filter: any HTML page whose <head> has no favicon or no share preview gets them,
+     * so portals, admin pages and one-off pages all show the Dazu icon and a picture when a link is shared.
+     */
+    function dazu_head_meta(string $html): string
+    {
+        $pos = stripos($html, '</head>');
+        if ($pos === false) {
+            return $html;
+        }
+        $head = substr($html, 0, $pos);
+        $add = '';
+        if (!preg_match('#<link[^>]+rel=["\'](?:shortcut )?icon["\']#i', $head)) {
+            $add .= dazu_favicon_tags();
+        }
+        if (stripos($head, 'og:image') === false) {
+            $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https') ? 'https' : 'http';
+            $origin = $scheme . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+            $path = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+            $img = $origin . url(dazu_share_image_for_path($path));
+            $title = preg_match('#<title[^>]*>(.*?)</title>#is', $head, $m) ? trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES, 'UTF-8')) : '';
+            $title = $title !== '' ? $title : 'Dazu Training Institute';
+            $e = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+            $add .= '<meta property="og:site_name" content="Dazu Training Institute">' . "\n"
+                . '<meta property="og:type" content="website">' . "\n"
+                . '<meta property="og:title" content="' . $e($title) . '">' . "\n"
+                . '<meta property="og:url" content="' . $e($origin . $path) . '">' . "\n"
+                . '<meta property="og:image" content="' . $e($img) . '">' . "\n"
+                . '<meta property="og:image:width" content="1200">' . "\n"
+                . '<meta property="og:image:height" content="630">' . "\n"
+                . '<meta name="twitter:card" content="summary_large_image">' . "\n"
+                . '<meta name="twitter:image" content="' . $e($img) . '">' . "\n";
+        }
+        return $add === '' ? $html : substr($html, 0, $pos) . $add . substr($html, $pos);
     }
 }

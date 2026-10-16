@@ -29,6 +29,22 @@ if (preg_match('/^[a-f0-9]{16,64}$/', $key)) {
         $st->execute([$key]);
         $card = $st->fetch(PDO::FETCH_ASSOC) ?: null;
     }
+    if (!$card) {
+        // Manually entered card: active until an admin deletes or deactivates it.
+        try {
+            require_once __DIR__ . '/../../app/v1/services/ManualIdService.php';
+            $st = \Models\Connection::getInstance()->getConnection()->prepare(
+                "SELECT IF(is_active = 1, 'approved', 'inactive') AS reg_status, 'generated' AS status, valid_until, role, title, full_name
+                 FROM manual_id_cards WHERE qr_hash = ? LIMIT 1"
+            );
+            $st->execute([$key]);
+            if ($m = $st->fetch(PDO::FETCH_ASSOC)) {
+                $mc = midc_card($m + ['id_no' => '', 'qr_hash' => $key, 'photo_path' => '']);
+                $card = ['reg_status' => $m['reg_status'], 'status' => 'generated', 'valid_until' => $m['valid_until'],
+                         'snapshot_name' => $m['full_name'], 'snapshot_course' => $mc['snapshot_course'], 'staff' => $m['role'] !== 'student'];
+            }
+        } catch (Throwable $e) { /* table not installed yet */ }
+    }
 }
 $staffCard = !empty($card['staff']);
 $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');

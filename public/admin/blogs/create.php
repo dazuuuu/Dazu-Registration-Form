@@ -96,7 +96,7 @@ $allTags = $blogController->getAllTags();
                     <div class="mb-3">
                         <label class="form-label">Content *</label>
                         <textarea name="content" id="content" class="form-control" rows="15" required></textarea>
-                        <small class="text-muted">Save the post first, then use the Content Blocks builder on the edit screen to add images, galleries, YouTube videos, links, FAQs and CTA buttons.</small>
+                        <small class="text-muted">Save the post first, Use Video, Columns and FAQ in the toolbar for videos, side-by-side layouts and Q&amp;As. Click a video to resize it.</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">SEO Meta Description</label>
@@ -173,27 +173,11 @@ $allTags = $blogController->getAllTags();
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.js"></script>
-<?php include __DIR__ . '/_youtube_paste.php'; ?>
-<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.css" rel="stylesheet">
+<?php include __DIR__ . '/_editor.php'; ?>
 
 <script>
 $(document).ready(function() {
-    $('#content').summernote({
-        height: 400,
-        toolbar: [
-            ['style', ['style']],
-            ['font', ['bold', 'italic', 'underline', 'clear']],
-            ['color', ['color']],
-            ['para', ['ul', 'ol', 'paragraph']],
-            ['table', ['table']],
-            ['insert', ['link', 'picture', 'video']],
-            ['view', ['fullscreen', 'codeview', 'help']]
-        ],
-        callbacks: {
-            onPaste: dzYoutubePaste($('#content'))
-        }
-    });
+    dzInitEditor($('#content'));
 });
 
 document.getElementById('featured_image').addEventListener('change', function(e) {

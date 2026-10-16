@@ -12,6 +12,7 @@ class PortalPreviewService
 {
     public const COOKIE = 'DAZUPREVIEW';
     public const TUTOR_COOKIE = 'DAZUPREVIEWT';
+    public const INTERN_COOKIE = 'DAZUPREVIEWI';
     public const REG_PREFIX = 'PREVIEW-';
     private const STALE_HOURS = 3;
 
@@ -84,6 +85,45 @@ class PortalPreviewService
             'preview' => ['user_id' => $tutorUserId, 'extra_user_ids' => [(int) $student['user_id']], 'started' => time()],
         ]);
         return ['ok' => true, 'redirect' => url('tutor/dashboard/index.php')];
+    }
+
+    /** Create a temporary intern (with a few sample tasks) and open an intern-portal preview session. */
+    public static function startIntern(PDO $pdo, int $adminId): array
+    {
+        self::purgeStale($pdo);
+        $role = (int) $pdo->query("SELECT id FROM roles WHERE role_name = 'intern' LIMIT 1")->fetchColumn();
+        if (!$role) {
+            return ['ok' => false, 'error' => 'The intern portal is not installed yet. Run System Updates (migration 075).'];
+        }
+        $username = 'preview_' . bin2hex(random_bytes(5));
+        $email = $username . '@preview.invalid';
+        try {
+            $pdo->beginTransaction();
+            $pdo->prepare("INSERT INTO users (username, email, password_hash, role_id, is_active, email_verified, account_status) VALUES (?, ?, ?, ?, 1, 1, 'active')")
+                ->execute([$username, $email, password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT), $role]);
+            $uid = (int) $pdo->lastInsertId();
+            $pdo->prepare('INSERT INTO user_profiles (user_id, first_name, last_name, phone) VALUES (?, ?, ?, ?)')->execute([$uid, 'Preview', 'Intern', '']);
+            $dept = $pdo->query('SELECT id FROM intern_departments WHERE is_active = 1 ORDER BY id LIMIT 1')->fetchColumn() ?: null;
+            $pdo->prepare('INSERT INTO interns (user_id, department_id, supervisor_id, institution, course, start_date, end_date) VALUES (?, ?, ?, ?, ?, ?, ?)')
+                ->execute([$uid, $dept, $adminId ?: null, 'Preview University', 'Preview course', date('Y-m-d', strtotime('-14 days')), date('Y-m-d', strtotime('+90 days'))]);
+            $internId = (int) $pdo->lastInsertId();
+            $task = $pdo->prepare('INSERT INTO intern_tasks (intern_id, title, description, priority, deadline, status, assigned_by) VALUES (?, ?, ?, ?, ?, ?, ?)');
+            foreach ([['Read the company policy', 'Read it and write three things you learned.', 'normal', '+3 days', 'todo'],
+                      ['Set up your work laptop', 'Install the tools your supervisor listed.', 'medium', '+1 day', 'in_progress'],
+                      ['Write your first weekly report', 'Use Reports & Logbook.', 'high', '+5 days', 'todo']] as [$t, $d, $p, $due, $st]) {
+                $task->execute([$internId, $t, $d, $p, date('Y-m-d', strtotime($due)), $st, $adminId ?: $uid]);
+            }
+            $pdo->commit();
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('[PortalPreviewService::startIntern] ' . $e->getMessage());
+            return ['ok' => false, 'error' => 'Could not start the preview: ' . $e->getMessage()];
+        }
+        self::openSession(self::INTERN_COOKIE, 'intern', [
+            'user_id' => $uid, 'username' => $username, 'email' => $email, 'role' => 'intern', 'role_id' => $role,
+            'preview' => ['user_id' => $uid, 'started' => time()],
+        ]);
+        return ['ok' => true, 'redirect' => url('intern/dashboard/index.php')];
     }
 
     /** @return array{ok:bool, error?:string, user_id?:int, reg_id?:int, username?:string, email?:string, role_id?:int} */
@@ -177,9 +217,9 @@ class PortalPreviewService
                 self::deleteUser($pdo, $uid);
             }
         }
-        $isTutor = session_name() === self::TUTOR_COOKIE;
+        $portal = [self::TUTOR_COOKIE => 'tutor', self::INTERN_COOKIE => 'intern'][session_name()] ?? 'students';
         $_SESSION = [];
-        setcookie($isTutor ? self::TUTOR_COOKIE : self::COOKIE, '', time() - 3600, self::cookiePath($isTutor ? 'tutor' : 'students'));
+        setcookie(session_name(), '', time() - 3600, self::cookiePath($portal));
         session_destroy();
     }
 
@@ -199,6 +239,20 @@ class PortalPreviewService
                 "DELETE FROM portal_notifications WHERE user_id = ?",
                 "DELETE FROM push_subscriptions WHERE user_id = ?",
                 "DELETE FROM tutors WHERE user_id = ?",
+                // a preview intern and everything it made
+                "DELETE f FROM intern_task_files f JOIN intern_tasks t ON t.id = f.task_id JOIN interns i ON i.id = t.intern_id WHERE i.user_id = ?",
+                "DELETE c FROM intern_task_comments c JOIN intern_tasks t ON t.id = c.task_id JOIN interns i ON i.id = t.intern_id WHERE i.user_id = ?",
+                "DELETE s FROM intern_task_submissions s JOIN interns i ON i.id = s.intern_id WHERE i.user_id = ?",
+                "DELETE t FROM intern_tasks t JOIN interns i ON i.id = t.intern_id WHERE i.user_id = ?",
+                "DELETE a FROM intern_attendance a JOIN interns i ON i.id = a.intern_id WHERE i.user_id = ?",
+                "DELETE r FROM intern_reports r JOIN interns i ON i.id = r.intern_id WHERE i.user_id = ?",
+                "DELETE e FROM intern_evaluations e JOIN interns i ON i.id = e.intern_id WHERE i.user_id = ?",
+                "DELETE m FROM intern_messages m JOIN interns i ON i.id = m.intern_id WHERE i.user_id = ?",
+                "DELETE p FROM intern_learning_progress p JOIN interns i ON i.id = p.intern_id WHERE i.user_id = ?",
+                "DELETE a FROM intern_learning_assignments a JOIN interns i ON i.id = a.intern_id WHERE i.user_id = ?",
+                "DELETE d FROM intern_documents d JOIN interns i ON i.id = d.intern_id WHERE i.user_id = ?",
+                "DELETE FROM interns WHERE user_id = ?",
+                "DELETE FROM announcement_recipients WHERE user_id = ?",
             ] as $sql) {
                 try {
                     $pdo->prepare($sql)->execute([$userId]);

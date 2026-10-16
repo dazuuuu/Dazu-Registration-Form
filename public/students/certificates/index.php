@@ -4,6 +4,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/services/CertificateService.php';
+require_once __DIR__ . '/../../../app/v1/services/RecommendationService.php';
 
 Middleware::requireStudent();
 $page_title = 'My Certificates';
@@ -87,6 +88,13 @@ ob_start();
                         <h4 class="fw-bold mb-1"><?php echo htmlspecialchars($cert['course_name']); ?></h4>
                         <?php if ($cert['issued_at']): ?><p class="text-muted small mb-3">Issued: <?php echo date('F j, Y', strtotime($cert['issued_at'])); ?></p><?php endif; ?>
                         <a href="<?php echo url('admin/certificates/preview.php?id=' . $cert['id']); ?>" target="_blank" class="btn btn-sm btn-link mb-2"><i class="fas fa-eye me-1"></i>View</a>
+                        <?php if ($letter = lor_get_by_reg($db, (int) $cert['registration_id'])): $lorUrl = url('letters/recommendation.php?id=' . (int) $letter['id']); ?>
+                            <div class="border rounded-3 p-2 mb-3 d-flex flex-wrap gap-2 align-items-center justify-content-center bg-light">
+                                <span class="small fw-semibold"><i class="fas fa-file-signature text-success me-1"></i>Letter of recommendation</span>
+                                <a href="<?php echo htmlspecialchars($lorUrl); ?>" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fas fa-eye me-1"></i>View</a>
+                                <a href="<?php echo htmlspecialchars($lorUrl . '&dl=1'); ?>" class="btn btn-sm btn-success"><i class="fas fa-download me-1"></i>Download</a>
+                            </div>
+                        <?php endif; ?>
                         <div class="d-flex justify-content-center">
                             <?php
                             $certDownloadUrl = url('admin/certificates/preview.php?id=' . $cert['id'] . '&print=1');

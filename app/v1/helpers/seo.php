@@ -7,7 +7,7 @@ require_once __DIR__ . '/site_logo.php';
 if (!function_exists('seo_default_image')) {
     function seo_default_image(): string
     {
-        return site_logo_url('https://i.ibb.co/fzfZFtGc/223025.jpg');
+        return course_share_absolute_url(url('assets/images/share/dazu-share.png'));
     }
 }
 

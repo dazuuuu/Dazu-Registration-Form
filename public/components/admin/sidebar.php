@@ -89,6 +89,26 @@ function isSmsSection($section) {
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Dashboard</span>
             </a>
+            <a href="<?php echo url('admin/announcements/index.php'); ?>"
+               class="nav-link <?php echo $current_dir == 'announcements' ? 'active' : ''; ?>">
+                <i class="fas fa-bullhorn"></i>
+                <span>Announcements</span>
+            </a>
+            <a href="<?php echo url('admin/notifications/index.php'); ?>"
+               class="nav-link <?php echo $current_dir == 'notifications' ? 'active' : ''; ?>">
+                <i class="fas fa-bell"></i>
+                <span>Notifications</span>
+            </a>
+            <a href="<?php echo url('admin/classes/index.php'); ?>"
+               class="nav-link <?php echo $current_dir == 'classes' ? 'active' : ''; ?>">
+                <i class="fas fa-calendar-days"></i>
+                <span>Classes &amp; Attendance</span>
+            </a>
+            <a href="<?php echo url('admin/interns/index.php'); ?>"
+               class="nav-link <?php echo $current_dir == 'interns' ? 'active' : ''; ?>">
+                <i class="fas fa-user-graduate"></i>
+                <span>Interns</span>
+            </a>
 
             <?php
             $exportMenuOn = $importMenuOn = true;
@@ -112,6 +132,12 @@ function isSmsSection($section) {
                 <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent">
                     <i class="fas fa-chalkboard-teacher"></i>
                     <span>Preview Tutor Portal</span>
+                </button>
+            </form>
+            <form method="POST" action="<?php echo url('admin/preview-intern-portal.php'); ?>" target="_blank" class="m-0"><?php echo csrf_field(); ?>
+                <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent">
+                    <i class="fas fa-user-graduate"></i>
+                    <span>Preview Intern Portal</span>
                 </button>
             </form>
             <!--nav:export-->
@@ -414,6 +440,93 @@ function isSmsSection($section) {
     <button type="button" class="order-toast-close" aria-label="Dismiss">&times;</button>
 </div>
 
+<?php
+// Mobile (≤768px): bottom bar instead of the drawer. Each category tab opens its links in a bottom sheet.
+// [label, path, icon]; a path starting with "post:" is submitted as a CSRF form in a new tab.
+$adm_self = $_SERVER['PHP_SELF'] ?? '';
+$adm_sheets = [
+    'system' => ['System', 'fa-graduation-cap', isSystemActive($current_dir), [
+        ['Pending approvals', 'admin/registrations/index.php?status=pending', 'fa-user-clock'],
+        ['Announcements', 'admin/announcements/index.php', 'fa-bullhorn'],
+        ['Classes & attendance', 'admin/classes/index.php', 'fa-calendar-days'],
+        ['Interns', 'admin/interns/index.php', 'fa-user-graduate'],
+        ['My interns', 'admin/interns/supervise.php', 'fa-user-check'],
+        ['Courses', 'admin/courses/index.php', 'fa-book'],
+        ['Add a course', 'admin/courses/create.php', 'fa-plus'],
+        ['Free courses', 'admin/free-courses/index.php', 'fa-gift'],
+        ['Classes', 'admin/courses/classes.php', 'fa-layer-group'],
+        ['Tutors', 'admin/tutors/index.php', 'fa-chalkboard-teacher'],
+        empty($_SESSION['tutor_admin']) ? ['Permissions', 'admin/tutors/permissions.php', 'fa-user-lock'] : null,
+        ['Students', 'admin/students/index.php', 'fa-user-graduate'],
+        ['Enrol student', 'admin/students/enroll.php', 'fa-user-plus'],
+        ['Resources & IDs', 'admin/resources/index.php', 'fa-folder-open'],
+        ['Partners', 'admin/partners/index.php', 'fa-handshake'],
+        ['Testimonials', 'admin/testimonials/index.php', 'fa-star'],
+        ['Certificates', 'admin/certificates/index.php', 'fa-certificate'],
+        ['Student ID cards', 'admin/id_cards/index.php', 'fa-id-card'],
+        ['Directors', 'admin/directors/index.php', 'fa-signature'],
+    ]],
+    'website' => ['Website', 'fa-globe', isWebsiteActive($current_dir), [
+        ['Orders', 'admin/orders/index.php', 'fa-receipt'],
+        ['Enquiries', 'admin/enquiries/index.php', 'fa-question-circle'],
+        ['Projects', 'admin/projects/index.php', 'fa-folder-open'],
+        ['Services', 'admin/services/index.php', 'fa-cogs'],
+        ['Blog posts', 'admin/blogs/index.php', 'fa-blog'],
+        ['New post', 'admin/blogs/create.php', 'fa-plus'],
+        ['Blog categories', 'admin/blogs/categories.php', 'fa-folder'],
+        ['Gallery', 'admin/gallery/index.php', 'fa-images'],
+        ['Campus media', 'admin/campus-media/index.php', 'fa-camera-retro'],
+        ['Team', 'admin/team/index.php', 'fa-users'],
+        ['Products', 'admin/store/products/index.php', 'fa-box'],
+        ['Store categories', 'admin/store/categories/index.php', 'fa-tags'],
+    ]],
+    'more' => ['More', 'fa-grip', in_array($current_dir, ['settings', 'system'], true) || in_array($current_page, ['backup.php', 'import.php'], true), [
+        !empty($_SESSION['tutor_admin']) ? ['My tutor portal', 'tutor/dashboard/index.php', 'fa-chalkboard-teacher'] : null,
+        ['Notifications', 'admin/notifications/index.php', 'fa-bell'],
+        ['System updates', 'admin/system/updates.php', 'fa-database'],
+        ['Settings', 'admin/settings/index.php', 'fa-cog'],
+        ['Contact settings', 'admin/settings/edit.php?section=contact', 'fa-address-book'],
+        ['Footer & social', 'admin/settings/edit.php?section=footer', 'fa-shoe-prints'],
+        ['Class schedule', 'admin/settings/edit.php?section=schedule', 'fa-calendar-days'],
+        ($exportMenuOn ?? true) ? ['Export site', 'admin/backup.php', 'fa-box-archive'] : null,
+        ($importMenuOn ?? true) ? ['Import site', 'admin/import.php', 'fa-file-import'] : null,
+        ['Preview student portal', 'post:admin/preview-portal.php', 'fa-eye'],
+        ['Preview tutor portal', 'post:admin/preview-tutor-portal.php', 'fa-chalkboard-teacher'],
+        ['Preview intern portal', 'post:admin/preview-intern-portal.php', 'fa-user-graduate'],
+        ['My profile', 'profile/admin/', 'fa-user-circle'],
+        ['Logout', 'auth/logout.php', 'fa-sign-out-alt'],
+    ]],
+];
+?>
+<nav class="adm-bottom" aria-label="Admin sections">
+    <a href="<?php echo url('admin/dashboard.php'); ?>" class="<?php echo $current_page === 'dashboard.php' ? 'on' : ''; ?>"><i class="fas fa-house"></i><span>Home</span></a>
+    <?php foreach (['system', 'enrol', 'website', 'more'] as $key): ?>
+        <?php if ($key === 'enrol'): ?>
+            <a href="<?php echo url('admin/students/enroll.php'); ?>" class="adm-fab <?php echo $current_page === 'enroll.php' ? 'on' : ''; ?>" aria-label="Enrol a student"><b><i class="fas fa-plus"></i></b><span>Enrol</span></a>
+        <?php else: [$label, $icon, $active] = $adm_sheets[$key]; ?>
+            <button type="button" class="<?php echo $active ? 'on' : ''; ?>" data-adm-sheet="<?php echo $key; ?>" aria-controls="admSheet-<?php echo $key; ?>" aria-expanded="false"><i class="fas <?php echo $icon; ?>"></i><span><?php echo $label; ?></span></button>
+        <?php endif; ?>
+    <?php endforeach; ?>
+</nav>
+<div class="adm-sheet-bg" id="admSheetBg" hidden></div>
+<?php foreach ($adm_sheets as $key => [$label, , , $links]): ?>
+<div class="adm-sheet" id="admSheet-<?php echo $key; ?>" role="dialog" aria-label="<?php echo $label; ?>" hidden>
+    <div class="adm-sheet-grab"></div>
+    <h4><?php echo $label; ?></h4>
+    <div class="adm-sheet-grid">
+    <?php foreach (array_filter($links) as [$text, $path, $icon]): ?>
+        <?php if (strpos($path, 'post:') === 0): ?>
+            <form method="POST" action="<?php echo url(substr($path, 5)); ?>" target="_blank" class="m-0"><?php echo csrf_field(); ?>
+                <button type="submit"><i class="fas <?php echo $icon; ?>"></i><span><?php echo $text; ?></span></button>
+            </form>
+        <?php else: ?>
+            <a href="<?php echo url($path); ?>" class="<?php echo $path === 'auth/logout.php' ? 'danger' : ''; ?>"><i class="fas <?php echo $icon; ?>"></i><span><?php echo htmlspecialchars($text); ?></span></a>
+        <?php endif; ?>
+    <?php endforeach; ?>
+    </div>
+</div>
+<?php endforeach; ?>
+
 <style>
 /* ============================================================
    ADMIN SIDEBAR - FULLY RESPONSIVE
@@ -467,8 +580,8 @@ function isSmsSection($section) {
 /* Sidebar Container */
 .admin-sidebar {
     width: 280px;
-    background: #1a1a1a;
-    color: #e0e0e0;
+    background: linear-gradient(180deg, #373435 0%, #2b2829 100%);
+    color: #e9ece7;
     position: fixed;
     left: 0;
     top: 0;
@@ -482,7 +595,7 @@ function isSmsSection($section) {
 /* Sidebar Header */
 .sidebar-header {
     padding: 25px 20px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid rgba(255,255,255,.08);
     margin-bottom: 20px;
     position: relative;
 }
@@ -509,6 +622,7 @@ function isSmsSection($section) {
     color: white;
 }
 
+.sidebar-header h3 i { color: #44A024; }
 .sidebar-header h3 {
     font-size: 1.25rem;
     font-weight: 600;
@@ -518,7 +632,7 @@ function isSmsSection($section) {
 
 .sidebar-header small {
     font-size: 0.75rem;
-    color: #888;
+    color: #b9c2b6;
     margin-top: 8px;
     display: block;
 }
@@ -533,7 +647,7 @@ function isSmsSection($section) {
     align-items: center;
     gap: 12px;
     padding: 12px 15px;
-    color: #ccc;
+    color: #dfe5dc;
     text-decoration: none;
     border-radius: 8px;
     margin-bottom: 4px;
@@ -544,11 +658,11 @@ function isSmsSection($section) {
 .sidebar-nav .nav-link i {
     width: 20px;
     font-size: 1rem;
-    color: #888;
+    color: #9bc98a;
 }
 
 .sidebar-nav .nav-link:hover {
-    background: #2a2a2a;
+    background: rgba(68,160,36,.16);
     color: #fff;
 }
 
@@ -557,8 +671,9 @@ function isSmsSection($section) {
 }
 
 .sidebar-nav .nav-link.active {
-    background: #2a2a2a;
+    background: #44A024;
     color: #fff;
+    box-shadow: 0 6px 16px rgba(68,160,36,.35);
 }
 
 .sidebar-nav .nav-link.active i {
@@ -579,7 +694,7 @@ function isSmsSection($section) {
 }
 
 .sidebar-nav hr {
-    border-color: #333;
+    border-color: rgba(255,255,255,.1);
     margin: 15px 0;
 }
 
@@ -604,8 +719,9 @@ function isSmsSection($section) {
 }
 
 .admin-sidebar .collapse .nav-link.active {
-    background: #2a2a2a;
-    border-left: 3px solid var(--brand-primary, #00A1F3);
+    background: rgba(68,160,36,.22);
+    box-shadow: none;
+    border-left: 3px solid #44A024;
 }
 
 /* Orders attention badge */
@@ -755,6 +871,57 @@ function isSmsSection($section) {
     }
 }
 
+/* Mobile bottom bar + category sheets (hidden on tablet/desktop, which keep the sidebar) */
+.adm-bottom, .adm-sheet, .adm-sheet-bg { display: none; }
+
+@media (max-width: 768px) {
+    .admin-sidebar-toggle, .admin-sidebar, .admin-sidebar-overlay, .sidebar-toggle { display: none !important; }
+    .admin-content { padding-bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
+    .admin-content .top-bar { margin-top: 0 !important; }
+    .order-toast { bottom: calc(76px + env(safe-area-inset-bottom)); }
+
+    .adm-bottom {
+        display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1043;
+        background: #fff; border-top: 1px solid #eceff1;
+        padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+        box-shadow: 0 -4px 16px rgba(0,0,0,.18);
+    }
+    .adm-bottom a, .adm-bottom button {
+        flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px;
+        background: none; border: 0; color: #8a9096; text-decoration: none;
+        font-size: 11px; padding: 6px 2px; border-radius: 10px;
+    }
+    .adm-bottom i { font-size: 18px; }
+    .adm-bottom span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .adm-bottom .on, .adm-bottom [aria-expanded="true"] { color: #2f7d4f; background: #eaf5ee; font-weight: 600; }
+    .adm-bottom .on i { color: #2f7d4f; }
+    .adm-bottom .adm-fab { background: none !important; color: #2f7d4f; }
+    .adm-bottom .adm-fab b { width: 50px; height: 50px; margin-top: -24px; border-radius: 50%; background: #2f7d4f; color: #fff;
+        display: flex; align-items: center; justify-content: center; box-shadow: 0 6px 16px rgba(47,125,79,.4); border: 4px solid #fff; }
+    .adm-bottom .adm-fab b i { font-size: 20px; color: #fff; }
+
+    .adm-sheet-bg:not([hidden]) { display: block; position: fixed; inset: 0; z-index: 1041; background: rgba(0,0,0,.45); }
+    .adm-sheet:not([hidden]) {
+        display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1042;
+        max-height: 78vh; overflow-y: auto; background: #fff; color: #1a1a1a;
+        border-radius: 18px 18px 0 0; padding: 8px 16px calc(84px + env(safe-area-inset-bottom));
+        animation: admSheetIn .22s ease;
+    }
+    .adm-sheet-grab { width: 40px; height: 4px; border-radius: 4px; background: #ccc; margin: 4px auto 12px; }
+    .adm-sheet h4 { font-size: .8rem; text-transform: uppercase; letter-spacing: .06em; color: #777; margin: 0 0 10px; }
+    .adm-sheet-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+    .adm-sheet-grid a, .adm-sheet-grid button {
+        width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+        padding: 12px 6px; border: 1px solid #eee; border-radius: 12px; background: #fafafa;
+        color: #1a1a1a; text-decoration: none; font-size: 12px; text-align: center; line-height: 1.2;
+    }
+    .adm-sheet-grid i { font-size: 18px; color: var(--brand-primary, #0D9488); }
+    .adm-sheet-grid .danger, .adm-sheet-grid .danger i { color: #dc2626; }
+    body.adm-sheet-open { overflow: hidden; }
+}
+
+@keyframes admSheetIn { from { transform: translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+
 /* Small Mobile */
 @media (max-width: 480px) {
     .admin-sidebar-toggle {
@@ -798,11 +965,11 @@ function isSmsSection($section) {
 }
 
 .admin-sidebar::-webkit-scrollbar-track {
-    background: #1a1a1a;
+    background: #2b2829;
 }
 
 .admin-sidebar::-webkit-scrollbar-thumb {
-    background: #444;
+    background: rgba(68,160,36,.5);
     border-radius: 3px;
 }
 
@@ -887,6 +1054,42 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 250);
     });
+})();
+
+// Portal previews open in a new tab, except inside the installed app: it keeps its own cookies, so a new browser tab
+// would not have the preview session. There the preview opens in the same window ("Exit preview" comes back here).
+(function () {
+    var standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+    if (!standalone) return;
+    document.querySelectorAll('form[action*="preview-portal"], form[action*="preview-tutor-portal"], form[action*="preview-intern-portal"]').forEach(function (f) { f.target = '_self'; });
+})();
+
+// Mobile bottom bar: any [data-adm-sheet] button (bottom bar or a page tile) toggles that sheet
+(function () {
+    var bg = document.getElementById('admSheetBg');
+    function sheets() { return Array.prototype.slice.call(document.querySelectorAll('.adm-sheet')); }
+    function closeAll() {
+        sheets().forEach(function (s) { s.hidden = true; });
+        document.querySelectorAll('[data-adm-sheet]').forEach(function (t) { t.setAttribute('aria-expanded', 'false'); });
+        if (bg) bg.hidden = true;
+        document.body.classList.remove('adm-sheet-open');
+    }
+    document.addEventListener('click', function (e) {
+        var t = e.target.closest('[data-adm-sheet]');
+        if (!t) return;
+        var s = document.getElementById('admSheet-' + t.getAttribute('data-adm-sheet'));
+        if (!s) return;
+        var wasOpen = !s.hidden;
+        closeAll();
+        if (wasOpen) return;
+        s.hidden = false;
+        if (bg) bg.hidden = false;
+        document.querySelectorAll('[data-adm-sheet="' + t.getAttribute('data-adm-sheet') + '"]').forEach(function (x) { x.setAttribute('aria-expanded', 'true'); });
+        document.body.classList.add('adm-sheet-open');
+    });
+    if (bg) bg.addEventListener('click', closeAll);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeAll(); });
+    window.addEventListener('resize', function () { if (window.innerWidth > 768) closeAll(); });
 })();
 
 // Live new-order notifications for admins

@@ -32,6 +32,8 @@ class Middleware {
                 header('Location: ' . url('admin/dashboard.php'));
             } elseif ($role === 'employee') {
                 header('Location: ' . url('employee/dashboard/index.php'));
+            } elseif ($role === 'intern') {
+                header('Location: ' . url('intern/dashboard/index.php'));
             } else {
                 header('Location: ' . url('profile/'));
             }
@@ -73,6 +75,17 @@ class Middleware {
         self::refreshSessionFromDatabase();
         if ((int) SessionModel::get('role_id') !== 1) {
             header('Location: ' . url('superadmin/login.php'));
+            exit();
+        }
+    }
+
+    /**
+     * Require intern role access (intern portal)
+     */
+    public static function requireIntern() {
+        self::requireAuth();
+        if (SessionModel::get('role') !== 'intern') {
+            header('Location: ' . url('auth/login.php?error=access_denied'));
             exit();
         }
     }

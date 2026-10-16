@@ -21,6 +21,8 @@ if (!$cert) {
 $self = url('admin/certificates/edit.php?id=' . $id);
 $page_title = 'Edit Certificate: ' . $cert['certificate_no'];
 
+require __DIR__ . '/../../components/certificates/recommendation_actions.php';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         $_SESSION['error_msg'] = 'Security check failed. Please refresh and try again.';
@@ -207,6 +209,7 @@ ob_start();
         </div>
 
         <div class="col-lg-6">
+            <?php require __DIR__ . '/../../components/certificates/recommendation_panel.php'; ?>
             <div class="card shadow-sm border-0 rounded-4 mb-4">
                 <div class="card-header bg-light"><h5 class="mb-0">Preview</h5></div>
                 <div class="card-body p-2">

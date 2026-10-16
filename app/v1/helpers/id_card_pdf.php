@@ -376,7 +376,7 @@ if (!function_exists('idc_front_html')) {
         $value = 'font-family:Poppins;color:' . $D . ';';
 
         return $logo
-            . $T(81.7, 5.26, 8.5, $staff ? 'STAFF ID' : 'STUDENT ID', 'font-family:Poppins;font-weight:bold;color:#fff;', 'right', 40)
+            . $T(81.7, 5.26, 8.5, $e($card['_heading'] ?? ($staff ? 'STAFF ID' : 'STUDENT ID')), 'font-family:Poppins;font-weight:bold;color:#fff;', 'right', 40)
 
             // Photo: green frame with the cropped photo inside
             . '<div style="' . $at(3.35, 17.3) . 'width:19.9mm;height:24.8mm;border:0.65mm solid ' . $G . ';border-radius:1.75mm;background:#fff;"></div>'

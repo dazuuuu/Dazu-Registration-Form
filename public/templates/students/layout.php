@@ -43,14 +43,16 @@ $slItems = [
     ['dashboard', 'Dashboard', 'fa-house', url('students/dashboard/index.php'), $slDir === 'dashboard', true, null, 'Home'],
     ['course', 'My Course', 'fa-book-open', url('students/course/index.php'), $slDir === 'course', true, null, 'Course'],
     ['payments', 'Finance', 'fa-wallet', url('students/payments/index.php'), $slDir === 'payments', true, null, 'Finance'],
-    ['documents', 'My Documents', 'fa-id-card', url('students/documents/index.php'), $slDir === 'documents', true, null, 'Docs'],
-    ['assignments', 'Assignments', 'fa-file-pen', url('students/assignments/index.php'), $slDir === 'assignments', false, 'More'],
+    ['classes', 'My Classes', 'fa-calendar-days', url('students/classes/index.php'), $slDir === 'classes', true, null, 'Classes'],
+    ['documents', 'My Documents', 'fa-id-card', url('students/documents/index.php'), $slDir === 'documents', false, 'More', 'Docs'],
+    ['assignments', 'Assignments', 'fa-file-pen', url('students/assignments/index.php'), $slDir === 'assignments', false],
     ['classwork', 'Quizzes', 'fa-circle-question', url('students/classwork/index.php'), $slDir === 'classwork', false],
     ['resources', 'Resources', 'fa-folder-open', url('students/resources/index.php'), $slDir === 'resources', false],
 ];
 if (cert_student_has_any($slUid)) {
     $slItems[] = ['certificates', 'Certificates', 'fa-award', url('students/certificates/index.php'), $slDir === 'certificates', false];
 }
+$slItems[] = ['announcements', 'Announcements', 'fa-bullhorn', url('students/announcements/index.php'), $slDir === 'announcements', false];
 $slItems[] = ['notifications', 'Notifications', 'fa-bell', url('students/notifications/index.php'), $slDir === 'notifications', false];
 
 $shell = [
@@ -110,6 +112,8 @@ $shell = [
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <?php require __DIR__ . '/../../components/pwa/script.php'; ?>
+<?php require __DIR__ . '/../../components/announcements/overlay.php'; ?>
+<?php require __DIR__ . '/../../components/classes/tz_prompt.php'; ?>
 <?php if (isset($extra_js)): echo $extra_js; endif; ?>
 </body>
 </html>

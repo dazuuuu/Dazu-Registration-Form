@@ -5,7 +5,7 @@ $pwaInfo = pwa_portal($pwaPortal);
 ?>
 <div class="pwa-banner d-none" data-pwa-banner>
     <div class="d-flex align-items-start gap-3 mb-2">
-        <img src="<?php echo url('assets/icons/icon-192.png'); ?>" alt="" style="width:44px;height:44px;border-radius:11px">
+        <img src="<?php echo url('assets/icons/' . (in_array($pwaPortal ?? '', ['students', 'tutor'], true) ? $pwaPortal : 'favicon') . '-192.png'); ?>" alt="" style="width:44px;height:44px;border-radius:11px">
         <div class="flex-grow-1">
             <h5>Install the <?php echo htmlspecialchars($pwaInfo['name']); ?> app</h5>
             <div class="small text-muted">Put the portal on your phone or computer and <?php echo htmlspecialchars($pwaInfo['pitch']); ?>.</div>

@@ -9,6 +9,8 @@
 //   'menu'     => extra <li> HTML for the avatar dropdown
 //   'logout'   => logout URL
 //   'hide_nav' => true to show only the bar (e.g. locked portal)
+//   'app_title', 'app_hello' => optional phone header ("Dazu Tutor" / "Hi, Jane") shown instead of the page title below 992px
+//   'tabs'     => optional phone tab bar, see tabs.php
 // ]
 require_once __DIR__ . '/../../../app/v1/helpers/brand.php';
 $sh = $shell;
@@ -41,10 +43,16 @@ $shAvatar = !empty($sh['photo'])
 <div class="<?php echo empty($sh['hide_nav']) ? 'as-body' : ''; ?>">
 <header class="as-top" id="asTop">
     <a class="as-mark d-lg-none" href="<?php echo $shE($sh['items'][0][3] ?? '#'); ?>"><img src="<?php echo $shE(brand_url('mark')); ?>" alt="Dazu"></a>
-    <div class="as-title">
+    <div class="as-title<?php echo !empty($sh['app_title']) ? ' d-none d-lg-block' : ''; ?>">
         <div class="t"><?php echo $shE($sh['title']); ?></div>
         <div class="s"><?php echo $shE($sh['subtitle'] ?? date('l, j F')); ?></div>
     </div>
+    <?php if (!empty($sh['app_title'])): ?>
+    <div class="as-title as-apptitle d-lg-none">
+        <div class="t"><?php echo $shE($sh['app_title']); ?></div>
+        <div class="s"><?php echo $shE($sh['app_hello'] ?? ''); ?></div>
+    </div>
+    <?php endif; ?>
     <div class="as-actions">
         <button type="button" class="as-iconbtn d-none" data-pwa-install title="Install app"><i class="fas fa-download"></i></button>
         <?php $pwaPortal = $sh['portal']; require __DIR__ . '/../pwa/bell.php'; ?>

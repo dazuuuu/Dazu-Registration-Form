@@ -87,7 +87,7 @@ ob_start();
 ?>
 <div class="xl-toolbar">
     <a class="btn btn-success" href="enroll.php"><i class="fas fa-user-plus me-1"></i>Enrol student</a>
-    <label class="xl-search" style="max-width:560px"><i class="fas fa-magnifying-glass"></i><input type="search" id="stSearch" placeholder="Search name, course, tutor… or try: oldest, balance" autocomplete="off"></label>
+    <label class="xl-search" style="max-width:560px"><i class="fas fa-magnifying-glass"></i><input type="search" id="stSearch" value="<?php echo htmlspecialchars((string) ($_GET['q'] ?? ''), ENT_QUOTES); ?>" placeholder="Search name, course, tutor… or try: oldest, balance" autocomplete="off"></label>
     <span class="xl-count" id="stCount"></span>
 </div>
 <div class="xl-hint" id="stHint">Tip: type <b>oldest</b>, <b>newest</b>, <b>balance</b> (owing, highest first) or <b>cleared</b>, alone or with a name or course. Click a column heading to sort.</div>
@@ -155,5 +155,7 @@ ob_start();
     </div>
 </div></div></div>
 <?php $content = ob_get_clean();
-$extra_js = '<script>window.SA_DETAIL = ' . json_encode(url('admin/students/view.php?id='), JSON_UNESCAPED_SLASHES) . ';</script><script src="' . sa_asset('superadmin/students.js') . '"></script>';
+$extra_js = '<script>window.SA_DETAIL = ' . json_encode(url('admin/students/view.php?id='), JSON_UNESCAPED_SLASHES) . ';</script><script src="' . sa_asset('superadmin/students.js') . '"></script>'
+    // ?q= (search box on the phone dashboard): run that search once the sheet is ready.
+    . '<script>window.addEventListener("load",function(){var i=document.getElementById("stSearch");if(i&&i.value)i.dispatchEvent(new Event("input"));});</script>';
 require __DIR__ . '/../../templates/admin/layout.php';

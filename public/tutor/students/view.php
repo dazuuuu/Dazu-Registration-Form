@@ -9,6 +9,7 @@ require_once __DIR__ . '/../../../app/v1/models/CurriculumModel.php';
 require_once __DIR__ . '/../../../app/v1/models/SubmissionModel.php';
 require_once __DIR__ . '/../../../app/v1/models/TutorCourseModel.php';
 require_once __DIR__ . '/../../../app/v1/services/CertificateService.php';
+require_once __DIR__ . '/../../../app/v1/services/RecommendationService.php';
 
 use Models\Connection;
 use Models\TutorModel;
@@ -58,14 +59,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $res = cert_create_for_registration($pdo, $regId);
             if ($res['ok']) {
                 // The tutor who finished the course signs it, even if the student has other tutors too.
-                $pdo->prepare("UPDATE certificates SET tutor_id = ?, tutor_name = ? WHERE id = ?")
-                    ->execute([(int) $tutor['user_id'], $tutorModel->fullName($tutor), (int) $res['id']]);
+                $pdo->prepare("UPDATE certificates SET tutor_id = ?, tutor_name = ?, taught_skills = ? WHERE id = ?")
+                    ->execute([(int) $tutor['user_id'], $tutorModel->fullName($tutor), mb_substr(trim((string) ($_POST['taught_skills'] ?? '')), 0, 600) ?: null, (int) $res['id']]);
                 cert_issue($pdo, (int) $res['id']);
                 $mail = cert_send_email($pdo, (int) $res['id']);
                 SessionModel::setFlash('success', 'Course finished. Certificate generated and added to the student\'s portal. ' . htmlspecialchars($mail['message']));
             } else {
                 SessionModel::setFlash('error', htmlspecialchars($res['error']));
             }
+        }
+    } elseif ($action === 'cert_description') {
+        // The tutor edits only the text under the student's name; everything else stays with the office.
+        $c = lor_certificate($pdo, $regId);
+        if ($c) {
+            $pdo->prepare("UPDATE certificates SET taught_skills = ? WHERE id = ?")
+                ->execute([mb_substr(trim((string) ($_POST['taught_skills'] ?? '')), 0, 600) ?: null, (int) $c['id']]);
+            $msg = 'Certificate text saved.';
+            if (!empty($_POST['email_copy'])) {
+                $msg .= ' ' . cert_send_email($pdo, (int) $c['id'])['message'];
+            }
+            SessionModel::setFlash('success', htmlspecialchars($msg));
+        }
+    } elseif ($action === 'lor_generate') {
+        $res = lor_generate($pdo, $regId, (int) $_SESSION['user_id']);
+        if ($res['ok'] && empty($res['existed'])) {
+            SessionModel::setFlash('success', 'Letter of recommendation generated and added to the student\'s portal. ' . htmlspecialchars(lor_send_email($pdo, (int) $res['id'])['message']));
+        } else {
+            SessionModel::setFlash($res['ok'] ? 'success' : 'error', $res['ok'] ? 'This student already has a letter of recommendation.' : htmlspecialchars($res['error']));
         }
     } elseif ($action === 'reopen') {
         $tc->reopenSubmission((int) $tutor['user_id'], (int) $_POST['submission_id']);
@@ -82,9 +102,14 @@ $student = array_merge($student, ['user_id' => $studentUserId]);
 $mp = $tc->progressFor($student);
 $ownModules = $mp['tutor'] && (int) $mp['tutor']['id'] === $tutorId;
 $balance = cert_student_balance($pdo, $regId);
-$stmt = $pdo->prepare("SELECT id, certificate_no FROM certificates WHERE registration_id = ? AND status <> 'withdrawn' LIMIT 1");
+$stmt = $pdo->prepare("SELECT id, certificate_no, taught_skills, snapshot_duration_months, snapshot_course FROM certificates WHERE registration_id = ? AND status <> 'withdrawn' LIMIT 1");
 $stmt->execute([$regId]);
 $cert = $stmt->fetch();
+$letter = $cert ? lor_get_by_reg($pdo, $regId) : null;
+$stmt = $pdo->prepare("SELECT status FROM student_id_cards WHERE registration_id = ? AND status IN ('generated','ready','collected') LIMIT 1");
+$stmt->execute([$regId]);
+$hasIdCard = (bool) $stmt->fetchColumn();
+$docUrl = fn(string $doc, string $q = '') => 'document.php?id=' . $regId . '&doc=' . $doc . $q;
 
 // Module answers of this student, grouped by module.
 $answersByModule = [];
@@ -114,10 +139,14 @@ ob_start();
         <div class="small text-muted"><?php echo htmlspecialchars($student['registration_no']); ?> · <?php echo htmlspecialchars($student['course_title']); ?> · <?php echo $student['study_mode'] === 'physical' ? 'Physical' : 'Online'; ?></div>
         <div class="small text-muted"><i class="fas fa-envelope me-1"></i><?php echo htmlspecialchars($student['email']); ?><?php if (!empty($student['phone'])): ?> · <i class="fas fa-phone me-1"></i><?php echo htmlspecialchars($student['phone']); ?><?php endif; ?></div>
     </div>
+    <div class="d-flex flex-wrap gap-2">
+    <?php if ($hasIdCard): ?><a class="btn btn-outline-secondary" target="_blank" href="<?php echo $docUrl('id'); ?>"><i class="fas fa-id-card me-1"></i>Student ID</a><?php endif; ?>
+    <a class="btn btn-outline-secondary" target="_blank" href="<?php echo htmlspecialchars(url('id_cards/pdf.php?staff=' . (int) $_SESSION['user_id'])); ?>" title="Your staff ID card (upload your photo in My ID &amp; signature first)"><i class="fas fa-id-badge me-1"></i>My ID</a>
     <form method="POST" action="credentials.php" onsubmit="return confirm('Email this student a new temporary password? Their current password will stop working.')">
         <?php echo csrf_field(); ?><input type="hidden" name="reg_id" value="<?php echo $regId; ?>"><input type="hidden" name="return" value="view">
         <button class="btn btn-outline-success"><i class="fas fa-key me-1"></i>Resend login details</button>
     </form>
+    </div>
 </div></div>
 
 <div class="card-tutor mb-3">
@@ -132,7 +161,29 @@ ob_start();
         <?php if (!$ownModules && $mp['total']): ?><p class="small text-warning">This student follows another tutor's modules for this course.</p><?php endif; ?>
 
         <?php if ($cert): ?>
-            <div class="alert alert-success mb-0"><i class="fas fa-certificate me-1"></i>Course finished — certificate <?php echo htmlspecialchars($cert['certificate_no']); ?> has been issued and is in the student's portal.</div>
+            <div class="alert alert-success mb-3"><i class="fas fa-certificate me-1"></i>Course finished — certificate <?php echo htmlspecialchars($cert['certificate_no']); ?> has been issued and is in the student's portal.</div>
+            <form method="POST" class="mb-3">
+                <?php echo csrf_field(); ?><input type="hidden" name="action" value="cert_description">
+                <label class="form-label fw-semibold mb-1" for="certText">Certificate text (under the student's name)</label>
+                <div class="small text-muted mb-2">It always starts: <em>“Has successfully completed a <?php echo (int) $cert['snapshot_duration_months']; ?>-month programme of study in the <strong><?php echo htmlspecialchars($cert['snapshot_course']); ?></strong> at Dazu Training Institute”</em>, then your text. Your signature is printed as the course tutor.</div>
+                <textarea id="certText" name="taught_skills" rows="3" maxlength="600" class="form-control mb-2" placeholder="and has met all the requirements of the programme. The programme covered …"><?php echo htmlspecialchars((string) $cert['taught_skills']); ?></textarea>
+                <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <button class="btn btn-success btn-sm"><i class="fas fa-save me-1"></i>Save text</button>
+                    <a class="btn btn-outline-secondary btn-sm" target="_blank" href="<?php echo $docUrl('cert'); ?>"><i class="fas fa-eye me-1"></i>Preview certificate</a>
+                    <label class="form-check small mb-0 ms-1"><input type="checkbox" class="form-check-input" name="email_copy" value="1"> Email the updated certificate to the student</label>
+                </div>
+            </form>
+            <div class="border rounded p-3 d-flex flex-wrap gap-2 align-items-center">
+                <div class="flex-grow-1"><div class="fw-semibold"><i class="fas fa-file-signature text-success me-1"></i>Letter of recommendation</div>
+                    <div class="small text-muted"><?php echo $letter ? 'Generated ' . date('j M Y', strtotime($letter['created_at'])) . ' — the office can edit its wording.' : 'Written by the system from the course. Emailed to the student and added to their portal.'; ?></div></div>
+                <?php if ($letter): ?>
+                    <a class="btn btn-outline-secondary btn-sm" target="_blank" href="<?php echo htmlspecialchars(url('letters/recommendation.php?id=' . (int) $letter['id'])); ?>"><i class="fas fa-eye me-1"></i>Preview letter</a>
+                <?php else: ?>
+                    <form method="POST" class="m-0" onsubmit="return confirm('Generate the letter of recommendation? It will be emailed to the student.')"><?php echo csrf_field(); ?>
+                        <input type="hidden" name="action" value="lor_generate">
+                        <button class="btn btn-success btn-sm"><i class="fas fa-wand-magic-sparkles me-1"></i>Generate letter</button></form>
+                <?php endif; ?>
+            </div>
         <?php else: ?>
             <form method="POST" class="d-flex align-items-center gap-2 mb-3 flex-wrap">
                 <?php echo csrf_field(); ?><input type="hidden" name="action" value="studies_completed">
@@ -147,6 +198,8 @@ ob_start();
             <?php $canFinish = $student['studies_completed_at'] && $balance <= 0; ?>
             <form method="POST" onsubmit="return confirm('Mark the course as finished and generate the certificate? It will be emailed to the student and added to their portal.')">
                 <?php echo csrf_field(); ?><input type="hidden" name="action" value="finish_course">
+                <label class="form-label fw-semibold mb-1" for="certTextNew">Certificate text (under the student's name) <span class="text-muted fw-normal">— optional, you can edit it later</span></label>
+                <textarea id="certTextNew" name="taught_skills" rows="2" maxlength="600" class="form-control mb-2" placeholder="and has met all the requirements of the programme. The programme covered …"></textarea>
                 <button class="btn btn-success" <?php echo $canFinish ? '' : 'disabled'; ?>><i class="fas fa-award me-1"></i>Course finished — generate certificate</button>
                 <?php if (!$student['studies_completed_at']): ?><div class="small text-muted mt-1">Available once studies are completed.</div>
                 <?php elseif ($balance > 0): ?><div class="small text-muted mt-1">The office has to clear the student's account before the certificate can be generated.</div><?php endif; ?>

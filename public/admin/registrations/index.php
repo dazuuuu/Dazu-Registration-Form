@@ -66,6 +66,11 @@ ob_start();
     <?php endforeach; ?>
 </ul>
 
+<div class="input-group mb-3" style="max-width:420px">
+    <span class="input-group-text"><i class="fas fa-magnifying-glass"></i></span>
+    <input type="search" id="regSearch" class="form-control" placeholder="Search by name, email or course…" autocomplete="off" aria-label="Search applicants">
+</div>
+
 <?php $canDelete = $status !== 'approved'; ?>
 <form method="POST" id="regListForm">
 <?php echo csrf_field(); ?>
@@ -101,7 +106,7 @@ ob_start();
                         No <?php echo $status; ?> registrations.
                     </td></tr>
                 <?php else: foreach ($rows as $r): ?>
-                    <tr>
+                    <tr class="reg-row" data-search="<?php echo htmlspecialchars(strtolower($r['full_name'] . ' ' . $r['email'] . ' ' . ($r['course_title'] ?? '') . ' ' . ($r['registration_no'] ?? ''))); ?>">
                         <?php if ($canDelete): ?><td><input type="checkbox" class="form-check-input row-sel" name="ids[]" value="<?php echo (int)$r['id']; ?>" aria-label="Select"></td><?php endif; ?>
                         <td>
                             <?php echo htmlspecialchars($r['full_name']); ?>
@@ -140,6 +145,7 @@ ob_start();
                         </td>
                     </tr>
                 <?php endforeach; endif; ?>
+                    <tr id="regNoMatch" style="display:none"><td colspan="10" class="text-center text-muted py-4">No applicants match your search.</td></tr>
                 </tbody>
             </table>
         </div>
@@ -147,6 +153,20 @@ ob_start();
 </div>
 </form>
 <script>
+(function () {
+  var input = document.getElementById('regSearch'), empty = document.getElementById('regNoMatch');
+  if (!input) return;
+  var rows = Array.prototype.slice.call(document.querySelectorAll('.reg-row'));
+  input.addEventListener('input', function () {
+    var q = input.value.trim().toLowerCase(), shown = 0;
+    rows.forEach(function (r) {
+      var hit = !q || r.getAttribute('data-search').indexOf(q) !== -1;
+      r.style.display = hit ? '' : 'none';
+      if (hit) shown++;
+    });
+    if (empty) empty.style.display = rows.length && !shown ? '' : 'none';
+  });
+})();
 (function () {
   var all = document.getElementById('selAll'), btn = document.getElementById('delSelected'), cnt = document.getElementById('delCount');
   if (!all) return;

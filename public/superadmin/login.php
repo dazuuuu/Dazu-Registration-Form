@@ -12,6 +12,10 @@ if (!empty($_SESSION['logged_in']) && (int)($_SESSION['role_id'] ?? 99) === 1) {
 
 $error = '';
 $email = '';
+if (!empty($_SESSION['session_expired']) || ($_GET['reason'] ?? '') === 'idle') {
+    $error = 'You were signed out after 5 minutes of inactivity. Please sign in again.';
+    unset($_SESSION['session_expired']);
+}
 $locked = ($_SESSION['sa_lock_until'] ?? 0) > time();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -37,8 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['sa_fail'] = 0;
             }
         } else {
-            session_regenerate_id(true);
-            unset($_SESSION['sa_fail'], $_SESSION['sa_lock_until']);
+            session_guard_login();   // drop whoever was signed in before on this browser
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['email'] = $user['email'];

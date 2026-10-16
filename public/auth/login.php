@@ -7,24 +7,43 @@ $userModel = new UserModel($pdo);
 $error = '';
 $success = '';
 
-if (!empty($_GET['error']) && $_GET['error'] === 'session_expired') {
-    $error = 'Your session expired — please sign in again.';
+if (!empty($_SESSION['session_expired']) || ($_GET['error'] ?? '') === 'session_expired' || ($_GET['reason'] ?? '') === 'idle') {
+    $error = 'You were signed out after 5 minutes of inactivity. Please sign in again.';
+    unset($_SESSION['session_expired']);
 }
 
+// Already signed in: offer to continue, but let a different account sign in on the same browser.
+$continueUrl = null;
 if (isLoggedIn()) {
     $role = $_SESSION['role'] ?? '';
     if ((int)($_SESSION['role_id'] ?? 99) === 1) {
-        redirect(url('superadmin/dashboard.php'));
+        $continueUrl = url('superadmin/dashboard.php');
     } elseif (in_array($role, ['admin', 'superadmin'], true) || (int)($_SESSION['role_id'] ?? 99) <= 2) {
-        redirect(url('admin/dashboard.php'));
+        $continueUrl = url('admin/dashboard.php');
     } elseif ($role === 'student') {
-        redirect(url('students/dashboard/index.php'));
+        $continueUrl = url('students/dashboard/index.php');
     } elseif ($role === 'tutor') {
-        redirect(url(tutor_admin_allowed($pdo, (int) $_SESSION['user_id']) ? 'auth/choose-portal.php' : 'tutor/dashboard/index.php'));
+        $continueUrl = url(tutor_admin_allowed($pdo, (int) $_SESSION['user_id']) ? 'auth/choose-portal.php' : 'tutor/dashboard/index.php');
     } elseif ($role === 'employee') {
-        redirect(url('employee/dashboard/index.php'));
+        $continueUrl = url('employee/dashboard/index.php');
+    } elseif ($role === 'intern') {
+        $continueUrl = url('intern/dashboard/index.php');
     } else {
-        redirect(url('profile/client/index.php'));
+        $continueUrl = url('profile/client/index.php');
+    }
+}
+
+/** Rate limit, last 15 minutes: 5 failed sign-ins for this email / reg. no., or 20 from this IP (a campus shares one IP). */
+function login_too_many_attempts(PDO $pdo, string $identifier): bool
+{
+    try {
+        $st = $pdo->prepare('SELECT SUM(email = ?), SUM(ip_address = ?) FROM login_attempts WHERE attempt_time > NOW() - INTERVAL 15 MINUTE AND (email = ? OR ip_address = ?)');
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        $st->execute([$identifier, $ip, $identifier, $ip]);
+        [$byUser, $byIp] = array_map('intval', $st->fetch(PDO::FETCH_NUM) ?: [0, 0]);
+        return $byUser >= 5 || $byIp >= 20;
+    } catch (Throwable $e) {
+        return false;
     }
 }
 
@@ -34,6 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($loginInput === '' || $password === '') {
         $error = 'Email or registration number and password are required.';
+    } elseif (login_too_many_attempts($pdo, $loginInput)) {
+        $error = 'Too many failed sign-in attempts. Please wait 15 minutes and try again.';
     } else {
         $user = $userModel->getUserByIdentifier($loginInput);
 
@@ -43,15 +64,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif (empty($user['is_active'])) {
             $error = 'Account is deactivated. Contact the administrator.';
         } else {
+            session_guard_login();   // drop whoever was signed in before on this browser
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['email'] = $user['email'];
             $_SESSION['role'] = $user['role_name'];
             $_SESSION['role_id'] = $user['role_id'];
             $_SESSION['logged_in'] = true;
-            unset($_SESSION['tutor_admin']);
             // A real sign-in replaces any leftover portal preview on this browser, so /students/ and /tutor/ use this session.
-            foreach (['DAZUPREVIEW' => 'students', 'DAZUPREVIEWT' => 'tutor'] as $previewCookie => $portal) {
+            foreach (['DAZUPREVIEW' => 'students', 'DAZUPREVIEWT' => 'tutor', 'DAZUPREVIEWI' => 'intern'] as $previewCookie => $portal) {
                 if (!empty($_COOKIE[$previewCookie])) {
                     setcookie($previewCookie, '', time() - 3600, rtrim(WEB_ROOT, '/') . '/' . $portal . '/');
                 }
@@ -73,6 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirect(url(tutor_admin_allowed($pdo, (int) $user['id']) ? 'auth/choose-portal.php' : 'tutor/dashboard/index.php'));
             } elseif ($user['role_name'] === 'employee') {
                 redirect(url('employee/dashboard/index.php'));
+            } elseif ($user['role_name'] === 'intern') {
+                redirect(url('intern/dashboard/index.php'));
             } else {
                 redirect(url('profile/client/index.php'));
             }
@@ -82,12 +105,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $page_title = 'Sign In — Dazu Training Institute';
 $standalone = true;
+$og_image = url('assets/images/share/students-share.png');
 ob_start();
 ?>
 <div class="bg-slate-50 min-h-screen py-16 flex items-center justify-center">
   <div class="max-w-md w-full mx-auto px-4">
     <div class="bg-white border border-slate-200 rounded-2xl p-8 md:p-10 space-y-8 shadow-sm">
       <div class="space-y-2 text-center">
+        <img src="<?php echo url('assets/icons/students-512.png'); ?>" alt="Dazu Student" class="w-24 h-24 mx-auto rounded-2xl">
         <span class="text-green-600 text-[10px] uppercase tracking-widest font-extrabold px-2.5 py-1 bg-green-50 border border-green-200 rounded-full">Dazu Training Institute</span>
         <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight pt-2">Sign In</h1>
         <p class="text-xs text-slate-400 font-semibold">Students, tutors and staff sign in here. Admins use the admin portal link below.</p>
@@ -98,6 +123,14 @@ ob_start();
       <?php endif; ?>
       <?php if ($success): ?>
         <div class="p-4 border border-green-200 bg-green-50 text-green-700 text-xs font-semibold rounded-xl"><?php echo htmlspecialchars($success); ?></div>
+      <?php endif; ?>
+
+      <?php if ($continueUrl): ?>
+        <div class="p-4 border border-slate-200 bg-slate-50 text-slate-700 text-xs font-semibold rounded-xl">
+          You're signed in as <strong><?php echo htmlspecialchars($_SESSION['email'] ?? $_SESSION['username'] ?? ''); ?></strong>.
+          <a href="<?php echo htmlspecialchars($continueUrl); ?>" class="text-green-700 underline">Continue</a>
+          or sign in below with a different account (this signs the current one out).
+        </div>
       <?php endif; ?>
 
       <form method="POST" class="space-y-6">

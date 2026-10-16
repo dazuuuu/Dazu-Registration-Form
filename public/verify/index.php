@@ -38,6 +38,34 @@ if (isset($where)) {
     $cert = $st->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
+// Lookup by student registration number: photo, name, courses, certificates, student ID and letter of recommendation.
+$regNo = strtoupper(trim((string) ($_GET['reg'] ?? '')));
+$student = null;
+if ($regNo !== '' && preg_match('#^[A-Z0-9/\-]{3,40}$#', $regNo)) {
+    $st = $db->prepare("SELECT id, user_id, full_name, registration_no FROM registrations WHERE UPPER(registration_no) = ? AND status = 'approved' LIMIT 1");
+    $st->execute([$regNo]);
+    if ($sr = $st->fetch(PDO::FETCH_ASSOC)) {
+        require_once __DIR__ . '/../../app/v1/services/RecommendationService.php';
+        // Every approved enrolment of the same student (or just this one when there is no portal account).
+        $st = $db->prepare(
+            "SELECT r.id, r.registration_no, r.study_mode, r.created_at, c.title,
+                    cert.certificate_no, cert.qr_code_hash, cert.issued_at,
+                    k.status AS id_status, k.valid_until AS id_valid, k.qr_hash AS id_hash
+             FROM registrations r JOIN courses c ON c.id = r.course_id
+             LEFT JOIN certificates cert ON cert.registration_id = r.id AND cert.status <> 'withdrawn'
+             LEFT JOIN student_id_cards k ON k.registration_id = r.id AND k.status IN ('generated','ready','collected')
+             WHERE r.status = 'approved' AND " . ($sr['user_id'] ? 'r.user_id = ?' : 'r.id = ?') . " ORDER BY r.created_at"
+        );
+        $st->execute([$sr['user_id'] ?: $sr['id']]);
+        $enrols = $st->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($enrols as &$en) {
+            $en['letter'] = lor_get_by_reg($db, (int) $en['id']);
+        }
+        unset($en);
+        $student = $sr + ['enrols' => $enrols, 'photo' => cert_student_photo($db, $sr['user_id'] ? (int) $sr['user_id'] : null)];
+    }
+}
+
 $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 // Status is the admin's own tracking (being prepared, issued, picked up …) and does not change what is shown here;
 // only a certificate the institute has withdrawn (revoked) is flagged.
@@ -118,7 +146,38 @@ ob_start();
   <h1>Verify a Dazu certificate</h1>
   <p class="vf-lead">Scan the QR code on the certificate with your phone camera, upload a photo or PDF of the certificate, or type the certificate number printed under the QR code.</p>
 
-  <?php if ($searched): ?>
+  <?php if ($regNo !== ''): ?>
+    <div class="vf-res" id="result">
+      <?php if (!$student): ?>
+        <div class="vf-band bad">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>
+          <div><b>No student with registration number <?php echo $e($regNo); ?></b><small>Check the number on the letter or certificate and try again.</small></div>
+        </div>
+      <?php else: ?>
+        <div class="vf-band ok">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3 3 7-7"/></svg>
+          <div><b>Registered Dazu student</b><small>Registration No. <?php echo $e($student['registration_no']); ?></small></div>
+        </div>
+        <div class="vf-body">
+          <?php if ($student['photo']): ?><img class="vf-photo" src="<?php echo $e(settings_asset_url($student['photo'])); ?>" alt="Photo of <?php echo $e($student['full_name']); ?>"><?php endif; ?>
+          <div style="flex:1;min-width:240px">
+            <p class="vf-name"><?php echo $e($student['full_name']); ?></p>
+            <?php foreach ($student['enrols'] as $en): ?>
+              <dl class="vf-dl" style="border-top:1px solid #eef2f7;padding-top:14px">
+                <div><dt>Course</dt><dd><?php echo $e($en['title']); ?><?php echo $en['study_mode'] ? ' · ' . $e(ucfirst($en['study_mode'])) : ''; ?></dd></div>
+                <div><dt>Registration No</dt><dd><?php echo $e($en['registration_no']); ?></dd></div>
+                <div><dt>Certificate</dt><dd><?php if ($en['certificate_no']): ?><a href="?c=<?php echo $e($en['qr_code_hash']); ?>#result"><?php echo $e($en['certificate_no']); ?></a><?php echo $en['issued_at'] ? ' · ' . $e(date('j M Y', strtotime($en['issued_at']))) : ''; ?><?php else: ?>Not yet awarded<?php endif; ?></dd></div>
+                <div><dt>Student ID</dt><dd><?php if ($en['id_status']): ?><a href="<?php echo $e(url('verify/id.php?k=' . $en['id_hash'])); ?>">Issued</a> · valid until <?php echo (int) $en['id_valid']; ?><?php else: ?>Not issued<?php endif; ?></dd></div>
+                <div><dt>Letter of recommendation</dt><dd><?php if ($en['letter']): ?><a href="<?php echo $e(url('letters/recommendation.php?k=' . $en['letter']['verify_hash'])); ?>" target="_blank">View letter</a> · <?php echo $e(date('j M Y', strtotime($en['letter']['created_at']))); ?><?php else: ?>Not given<?php endif; ?></dd></div>
+              </dl>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      <?php endif; ?>
+    </div>
+    <p class="vf-foot">Check that the name and photo above match the person and their documents.</p>
+    <h2 class="vf-h" style="margin-top:36px">Verify something else</h2>
+  <?php elseif ($searched): ?>
     <div class="vf-res" id="result">
       <?php if (!$cert): ?>
         <div class="vf-band bad">
@@ -198,6 +257,12 @@ ob_start();
         <button class="vf-btn">Verify</button>
       </form>
       <p class="vf-note" style="margin-top:12px">The number is printed under the QR code and at the bottom of the certificate.</p>
+      <h2 class="vf-h" style="margin-top:22px">Or a student registration number</h2>
+      <form method="GET" action="" class="vf-row">
+        <input class="vf-in" name="reg" placeholder="e.g. DCH061/26" value="<?php echo $e($regNo); ?>" required>
+        <button class="vf-btn">Verify</button>
+      </form>
+      <p class="vf-note" style="margin-top:12px">Shown on letters of recommendation. Lists the student's photo, courses, certificates, student ID and letter of recommendation.</p>
     </div>
   </div>
 </div></div>
