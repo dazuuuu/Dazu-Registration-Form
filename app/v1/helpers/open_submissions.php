@@ -9,12 +9,12 @@ require_once __DIR__ . '/assignment_files.php';
 const OS_DOC_TYPES = ['pdf', 'docx', 'xlsx', 'pptx', 'zip'];
 
 /** GET a URL without following redirects. Returns [status, body, location] or null when the site cannot be reached. */
-function os_http_get(string $url, array $headers = []): ?array
+function os_http_get(string $url, array $headers = [], bool $follow = false): ?array
 {
     if (!function_exists('curl_init')) return null;
     $ch = curl_init($url);
     curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => false, CURLOPT_TIMEOUT => 8, CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_FOLLOWLOCATION => $follow, CURLOPT_MAXREDIRS => 3, CURLOPT_TIMEOUT => 8, CURLOPT_CONNECTTIMEOUT => 5,
         CURLOPT_USERAGENT => 'DazuPortal/1.0 (+link check)', CURLOPT_HTTPHEADER => $headers, CURLOPT_HEADER => true,
         CURLOPT_PROTOCOLS => CURLPROTO_HTTPS,
     ]);
@@ -46,24 +46,7 @@ function os_check_link(string $raw): array
         if (!$parts || !preg_match('/^[A-Za-z0-9-]{1,39}$/', $parts[0])) return ['ok' => false, 'error' => 'That is not a GitHub repository or profile link.'];
         $repo = isset($parts[1]) ? preg_replace('/\.git$/', '', $parts[1]) : null;
         if ($repo !== null && !preg_match('/^[A-Za-z0-9._-]{1,100}$/', $repo)) return ['ok' => false, 'error' => 'That is not a valid GitHub repository link.'];
-        $api = 'https://api.github.com/' . ($repo !== null ? 'repos/' . $parts[0] . '/' . $repo : 'users/' . $parts[0]);
-        $r = os_http_get($api, ['Accept: application/vnd.github+json']);
-        if ($r === null || in_array($r[0], [403, 429], true) || $r[0] >= 500) {
-            // GitHub unreachable or rate-limited: accept it, but tell the tutor it was not confirmed.
-            return ['ok' => true, 'kind' => 'github', 'url' => $url, 'meta' => ['verified' => false, 'name' => $parts[0] . ($repo ? '/' . $repo : '')]];
-        }
-        if ($r[0] !== 200) {
-            return ['ok' => false, 'error' => $repo !== null ? 'That GitHub repository does not exist or is private. Make it public so your tutor can open it.' : 'That GitHub account does not exist.'];
-        }
-        $j = json_decode($r[1], true) ?: [];
-        $meta = $repo !== null
-            ? ['verified' => true, 'type' => 'repo', 'name' => (string) ($j['full_name'] ?? $parts[0] . '/' . $repo), 'description' => mb_substr((string) ($j['description'] ?? ''), 0, 300),
-               'language' => (string) ($j['language'] ?? ''), 'stars' => (int) ($j['stargazers_count'] ?? 0), 'pushed_at' => (string) ($j['pushed_at'] ?? ''),
-               'empty' => (int) ($j['size'] ?? 0) === 0]
-            : ['verified' => true, 'type' => 'profile', 'name' => (string) ($j['login'] ?? $parts[0]), 'description' => mb_substr((string) ($j['bio'] ?? ''), 0, 300),
-               'repos' => (int) ($j['public_repos'] ?? 0)];
-        if (!empty($meta['empty'])) return ['ok' => false, 'error' => 'That repository is empty. Push your code to it first.'];
-        return ['ok' => true, 'kind' => 'github', 'url' => $url, 'meta' => $meta];
+        return os_check_github($url, $parts[0], $repo);
     }
 
     if (in_array($host, ['drive.google.com', 'docs.google.com'], true)) {
@@ -86,6 +69,77 @@ function os_check_link(string $raw): array
     }
 
     return ['ok' => false, 'error' => 'Only GitHub and Google Drive / Google Docs links are accepted. For anything else, upload the document.'];
+}
+
+/** GitHub API headers; a token (GITHUB_TOKEN in the environment or app config 'github_token') raises the limit from 60 to 5000 checks an hour. */
+function os_github_headers(): array
+{
+    $h = ['Accept: application/vnd.github+json', 'X-GitHub-Api-Version: 2022-11-28'];
+    $token = getenv('GITHUB_TOKEN') ?: '';
+    if ($token === '' && is_file(APP_V1_ROOT . '/config/app.php')) {
+        $cfg = require APP_V1_ROOT . '/config/app.php';
+        $token = is_array($cfg) ? (string) ($cfg['github_token'] ?? '') : '';
+    }
+    if ($token !== '') $h[] = 'Authorization: Bearer ' . $token;
+    return $h;
+}
+
+/** Top-level files of a public repo read from its github.com page (used when the API is rate-limited). */
+function os_github_page_files(string $html): array
+{
+    preg_match_all('#"name":"([^"]{1,120})","path":"[^"]*","contentType":"(file|directory)"#', $html, $m, PREG_SET_ORDER);
+    $out = [];
+    foreach ($m as $x) $out[$x[1]] = ['name' => $x[1], 'type' => $x[2] === 'directory' ? 'dir' : 'file'];
+    return array_values($out);
+}
+
+/** Check a GitHub repo or profile really exists and is public, and list the repo's top-level files. */
+function os_check_github(string $url, string $owner, ?string $repo): array
+{
+    $label = $owner . ($repo ? '/' . $repo : '');
+    $h = os_github_headers();
+    $r = os_http_get('https://api.github.com/' . ($repo !== null ? "repos/$owner/$repo" : "users/$owner"), $h, true);
+    $limited = $r === null || in_array($r[0], [403, 429], true) || $r[0] >= 500;
+
+    if ($limited) {
+        // API unreachable or rate-limited: look at the public github.com page instead.
+        $p = os_http_get('https://github.com/' . $label, ['Accept: text/html'], true);
+        if ($p === null || $p[0] >= 500 || $p[0] === 429) {
+            return ['ok' => true, 'kind' => 'github', 'url' => $url, 'meta' => ['verified' => false, 'name' => $label]];
+        }
+        if ($p[0] !== 200) {
+            return ['ok' => false, 'error' => $repo !== null ? 'That GitHub repository does not exist or is private. Make it public so your tutor can open it.' : 'That GitHub account does not exist.'];
+        }
+        if ($repo === null) return ['ok' => true, 'kind' => 'github', 'url' => $url, 'meta' => ['verified' => true, 'type' => 'profile', 'name' => $owner]];
+        $files = os_github_page_files($p[1]);
+        if (!$files && stripos($p[1], 'This repository is empty') !== false) return ['ok' => false, 'error' => 'That repository is empty. Push your code to it first.'];
+        $desc = preg_match('#<meta name="description" content="([^"]*)"#', $p[1], $m) ? html_entity_decode($m[1], ENT_QUOTES, 'UTF-8') : '';
+        return ['ok' => true, 'kind' => 'github', 'url' => $url, 'meta' => ['verified' => true, 'type' => 'repo', 'name' => $label,
+            'description' => mb_substr($desc, 0, 300), 'files' => array_slice($files, 0, 40), 'file_count' => count($files)]];
+    }
+    if ($r[0] !== 200) {
+        return ['ok' => false, 'error' => $repo !== null ? 'That GitHub repository does not exist or is private. Make it public so your tutor can open it.' : 'That GitHub account does not exist.'];
+    }
+    $j = json_decode($r[1], true) ?: [];
+    if ($repo === null) {
+        return ['ok' => true, 'kind' => 'github', 'url' => $url, 'meta' => ['verified' => true, 'type' => 'profile', 'name' => (string) ($j['login'] ?? $owner),
+            'description' => mb_substr((string) ($j['bio'] ?? ''), 0, 300), 'repos' => (int) ($j['public_repos'] ?? 0)]];
+    }
+    $full = (string) ($j['full_name'] ?? $label);
+    $meta = ['verified' => true, 'type' => 'repo', 'name' => $full, 'description' => mb_substr((string) ($j['description'] ?? ''), 0, 300),
+             'language' => (string) ($j['language'] ?? ''), 'stars' => (int) ($j['stargazers_count'] ?? 0), 'pushed_at' => (string) ($j['pushed_at'] ?? ''),
+             'branch' => (string) ($j['default_branch'] ?? '')];
+    // The repo "size" is often 0 right after a push, so emptiness is judged from the actual file list.
+    $c = os_http_get('https://api.github.com/repos/' . $full . '/contents', $h, true);
+    if ($c !== null && $c[0] === 200) {
+        $list = json_decode($c[1], true) ?: [];
+        $meta['files'] = array_slice(array_map(fn($f) => ['name' => (string) ($f['name'] ?? ''), 'type' => ($f['type'] ?? '') === 'dir' ? 'dir' : 'file'], is_array($list) ? $list : []), 0, 40);
+        $meta['file_count'] = is_array($list) ? count($list) : 0;
+        if ($meta['file_count'] === 0) return ['ok' => false, 'error' => 'That repository is empty. Push your code to it first.'];
+    } elseif ($c !== null && $c[0] === 404) {
+        return ['ok' => false, 'error' => 'That repository is empty. Push your code to it first.'];
+    }
+    return ['ok' => true, 'kind' => 'github', 'url' => $url, 'meta' => $meta];
 }
 
 /** Tutors this student is assigned to: [tutors.id => name]. */

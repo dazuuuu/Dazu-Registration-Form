@@ -323,6 +323,11 @@ if (!function_exists('dazu_head_meta')) {
         if ($pos === false) {
             return $html;
         }
+        foreach (headers_list() as $h) {
+            if (stripos($h, 'content-type:') === 0 && stripos($h, 'text/html') === false) {
+                return $html;
+            }
+        }
         $head = substr($html, 0, $pos);
         $add = '';
         if (!preg_match('#<link[^>]+rel=["\'](?:shortcut )?icon["\']#i', $head)) {

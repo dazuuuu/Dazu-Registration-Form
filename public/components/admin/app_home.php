@@ -145,7 +145,7 @@ $ahTiles = [
         <div class="ah-empty"><i class="fas fa-circle-check text-success me-1"></i>No applications waiting.</div>
     <?php else: ?>
     <div class="ah-cards">
-        <?php foreach ($ahPending as $i => $r): $fee = (float) $r['registration_fee']; ?>
+        <?php foreach ($ahPending as $i => $r): ?>
         <div class="ah-card">
             <div class="top"><?php if ($i === 0): ?><span class="badge-p">Newest</span><?php endif; ?><b><?php echo $e($ini($r['full_name'])); ?></b></div>
             <div class="body">
@@ -153,7 +153,7 @@ $ahTiles = [
                 <div class="meta"><i class="fas fa-book-open me-1"></i><?php echo $e($r['course'] ?? 'No course'); ?> · <i class="far fa-clock ms-1 me-1"></i><?php echo $e(date('j M', strtotime($r['created_at']))); ?></div>
                 <span class="ok"><i class="fas fa-<?php echo $r['study_mode'] === 'physical' ? 'school' : 'laptop'; ?>"></i><?php echo $r['study_mode'] === 'physical' ? 'Physical' : 'Online'; ?> student</span>
                 <div class="row2">
-                    <span class="price">KSh <?php echo number_format((float) $r['course_fee']); ?><?php if ($fee > 0): ?><s>+<?php echo number_format($fee); ?> reg<?php echo $r['registration_fee_waived'] ? ' (waived)' : ''; ?></s><?php endif; ?></span>
+                    <span class="price"><?php echo $r['study_mode'] === 'physical' ? 'Physical' : 'Online'; ?></span>
                     <a class="go" href="<?php echo url('admin/registrations/view.php?id=' . (int) $r['id']); ?>">Review</a>
                 </div>
             </div>

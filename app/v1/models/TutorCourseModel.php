@@ -210,10 +210,13 @@ class TutorCourseModel {
         } elseif ($mode === 'file') {
             if (!$filePath) return ['ok' => false, 'error' => 'Attach your file.'];
         } elseif ($mode === 'github') {
-            $githubUrl = trim((string) $githubUrl);
-            if (!preg_match('#^https://(www\.)?github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/?#', $githubUrl)) {
+            require_once __DIR__ . '/../helpers/open_submissions.php';
+            $chk = os_check_link((string) $githubUrl);
+            if (!$chk['ok']) return ['ok' => false, 'error' => $chk['error']];
+            if ($chk['kind'] !== 'github' || ($chk['meta']['type'] ?? 'repo') === 'profile') {
                 return ['ok' => false, 'error' => 'Enter a GitHub repository link like https://github.com/username/project.'];
             }
+            $githubUrl = $chk['url'];
         } elseif ($answer === '') {
             return ['ok' => false, 'error' => 'Write your answer first.'];
         }

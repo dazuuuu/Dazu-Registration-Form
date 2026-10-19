@@ -187,6 +187,9 @@ $extra_js = ($extra_js ?? '') . <<<'JS'
             if (m.description) html += '<div class="text-muted">' + esc(m.description) + '</div>';
             var bits = []; if (m.language) bits.push(esc(m.language)); if (m.type === 'repo') bits.push('★ ' + (m.stars || 0)); if (m.type === 'profile') bits.push((m.repos || 0) + ' public repos');
             if (bits.length) html += '<div class="text-muted">' + bits.join(' · ') + '</div>';
+            if (m.files && m.files.length) html += '<div class="small mt-1"><span class="text-muted">' + (m.file_count || m.files.length) + ' items in the repository:</span> ' +
+                m.files.slice(0, 12).map(function (f) { return '<span class="badge bg-white text-dark border me-1"><i class="fas ' + (f.type === 'dir' ? 'fa-folder text-warning' : 'fa-file text-secondary') + ' me-1"></i>' + esc(f.name) + '</span>'; }).join('') +
+                (m.files.length > 12 ? '<span class="text-muted">+' + (m.files.length - 12) + ' more</span>' : '') + '</div>';
             html += '<div class="' + (m.verified ? 'text-success' : 'text-warning') + ' mt-1"><i class="fas ' + (m.verified ? 'fa-circle-check' : 'fa-triangle-exclamation') + ' me-1"></i>' +
                     (m.verified ? 'Link works and is open to your tutor.' : 'Could not reach the site to confirm it right now. You can still submit.') + '</div></div>';
             out.innerHTML = html;

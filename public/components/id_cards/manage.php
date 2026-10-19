@@ -11,6 +11,13 @@ $db = \Models\Connection::getInstance()->getConnection();
 $idcSelf = url($idcArea . '/id_cards/index.php');
 $page_title = 'Student ID Cards';
 
+// Manual card form: look up an existing student / tutor / intern / staff member by name to prefill the card.
+if (isset($_GET['midc_lookup'])) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['results' => midc_people_search($db, (string) $_GET['midc_lookup'])]);
+    exit;
+}
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $back = $idcSelf . (isset($_GET['status']) ? '?status=' . urlencode((string) $_GET['status']) : '');
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
@@ -48,7 +55,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             break;
         case 'manual_create':
             try {
-                $res = midc_create($db, $_POST, $_FILES['photo'] ?? [], (int) ($_SESSION['user_id'] ?? 0));
+                $in = $_POST;
+                if (!empty($in['person']) && ($p = midc_person($db, (string) $in['person']))) {
+                    // Name, role and number come from the database; the form may still adjust title, number and validity.
+                    $in['full_name'] = $p['full_name'];
+                    $in['role'] = $p['role'];
+                    if (trim((string) ($in['title'] ?? '')) === '') $in['title'] = (string) $p['title'];
+                } else {
+                    unset($in['person']);
+                }
+                $res = midc_create($db, $in, $_FILES['photo'] ?? [], (int) ($_SESSION['user_id'] ?? 0));
             } catch (\PDOException $ex) {
                 $res = ['ok' => false, 'error' => 'the manual ID cards table is not installed yet. Run System Updates (migration 071).'];
             }
@@ -277,8 +293,11 @@ ob_start();
             </div>
             <div class="modal-body">
                 <div class="row g-3">
-                    <div class="col-md-8"><label class="form-label fw-semibold">Full name</label>
-                        <input type="text" name="full_name" class="form-control" maxlength="150" required placeholder="e.g. Jane Wairimu Njoroge"></div>
+                    <div class="col-md-8 position-relative"><label class="form-label fw-semibold">Full name</label>
+                        <input type="hidden" name="person" id="midcPerson">
+                        <input type="text" name="full_name" id="midcName" class="form-control" maxlength="150" required autocomplete="off" placeholder="Start typing a student's, tutor's or staff member's name…">
+                        <div id="midcHits" class="list-group position-absolute w-100 shadow d-none" style="z-index:1060;max-height:260px;overflow:auto"></div>
+                        <div class="form-text" id="midcPicked">Pick someone from the list to fill in their details from the system, or type a new name.</div></div>
                     <div class="col-md-4"><label class="form-label fw-semibold">Role</label>
                         <select name="role" id="midcRole" class="form-select" required>
                             <option value="" disabled selected>Choose…</option>
@@ -289,9 +308,10 @@ ob_start();
                     <div class="col-md-4"><label class="form-label fw-semibold">Valid until (year)</label>
                         <input type="number" name="valid_until" class="form-control" min="<?php echo date('Y'); ?>" max="2100" value="<?php echo (int) date('Y') + 1; ?>" required></div>
                     <div class="col-md-6"><label class="form-label fw-semibold">ID number <span class="text-muted fw-normal">(optional)</span></label>
-                        <input type="text" name="id_no" class="form-control text-uppercase" maxlength="50" pattern="[A-Za-z0-9/\-]{2,50}" placeholder="Leave blank to auto-number, e.g. DTI-DIR-0007"></div>
+                        <input type="text" name="id_no" id="midcIdNo" class="form-control text-uppercase" maxlength="50" pattern="[A-Za-z0-9/\-]{2,50}" placeholder="Leave blank to auto-number, e.g. DTI-DIR-0007"></div>
                     <div class="col-md-6"><label class="form-label fw-semibold">Passport photo</label>
                         <input type="file" name="photo" id="midcPhoto" class="form-control" accept="image/jpeg,image/png,image/webp" required>
+                        <div class="form-text text-success d-none" id="midcHasPhoto"><i class="fas fa-circle-check me-1"></i>A photo is already on file and will be used unless you upload a new one.</div>
                         <div class="form-text">Passport-style, JPG/PNG/WebP, max 5 MB.</div></div>
                     <div class="col-12 text-center"><img id="midcPreview" alt="" class="d-none rounded border" style="width:100px;height:125px;object-fit:cover;border-color:#44A024!important;border-width:2px!important"></div>
                 </div>
@@ -314,6 +334,39 @@ ob_start();
         label.innerHTML = student ? 'Course' : 'Job title / department <span class="text-muted fw-normal">(optional)</span>';
         title.placeholder = student ? 'e.g. Certificate in Computer Packages' : 'e.g. Finance, ICT Department';
     });
+    const name = document.getElementById('midcName'), person = document.getElementById('midcPerson'), hits = document.getElementById('midcHits'),
+          picked = document.getElementById('midcPicked'), idNo = document.getElementById('midcIdNo'), hasPhoto = document.getElementById('midcHasPhoto');
+    const esc = s => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
+    let timer, rows = [];
+    const unpick = () => { person.value = ''; photo.required = true; hasPhoto.classList.add('d-none');
+        picked.textContent = 'Pick someone from the list to fill in their details from the system, or type a new name.'; };
+    name.addEventListener('input', () => {
+        unpick(); clearTimeout(timer);
+        const q = name.value.trim();
+        if (q.length < 2) { hits.classList.add('d-none'); return; }
+        timer = setTimeout(async () => {
+            try {
+                const u = new URL(location.href); u.search = ''; u.searchParams.set('midc_lookup', q);
+                rows = (await (await fetch(u, {headers: {Accept: 'application/json'}, credentials: 'same-origin'})).json()).results || [];
+            } catch (e) { rows = []; }
+            if (q !== name.value.trim()) return;
+            hits.innerHTML = rows.length ? rows.map((r, i) => '<button type="button" class="list-group-item list-group-item-action" data-i="' + i + '"><strong>' + esc(r.full_name) +
+                '</strong> <span class="badge bg-success-subtle text-success ms-1">' + esc(r.label) + '</span><div class="small text-muted">' +
+                esc([r.id_no, r.title].filter(Boolean).join(' · ')) + (r.has_photo ? ' · <i class="fas fa-camera"></i> photo on file' : '') + '</div></button>').join('')
+                : '<div class="list-group-item small text-muted">No one in the system matches. You can still create a card for a new name.</div>';
+            hits.classList.remove('d-none');
+        }, 250);
+    });
+    hits.addEventListener('click', e => {
+        const b = e.target.closest('[data-i]'); if (!b) return;
+        const r = rows[+b.dataset.i];
+        person.value = r.key; name.value = r.full_name; role.value = r.role; role.dispatchEvent(new Event('change'));
+        title.value = r.title || ''; idNo.value = r.id_no || '';
+        photo.required = !r.has_photo; hasPhoto.classList.toggle('d-none', !r.has_photo);
+        picked.innerHTML = '<i class="fas fa-circle-check text-success me-1"></i>Filled in from the system: <strong>' + esc(r.full_name) + '</strong> (' + esc(r.label) + ')' + (r.has_photo ? '' : '. Upload their passport photo.');
+        hits.classList.add('d-none');
+    });
+    document.addEventListener('click', e => { if (!hits.contains(e.target) && e.target !== name) hits.classList.add('d-none'); });
     photo.addEventListener('change', () => {
         const f = photo.files[0];
         if (!f) { preview.classList.add('d-none'); return; }

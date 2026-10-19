@@ -11,20 +11,17 @@ $trend = function ($now, $before) {
 $q = function (string $sql) use ($pdo) { try { return $pdo->query($sql)->fetchColumn(); } catch (Throwable $e) { return 0; } };
 $regThis = (int) $q("SELECT COUNT(*) FROM registrations WHERE created_at >= DATE_FORMAT(CURDATE(), '%Y-%m-01') AND registration_no NOT LIKE 'PREVIEW-%'");
 $regLast = (int) $q("SELECT COUNT(*) FROM registrations WHERE created_at >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01') AND created_at < DATE_FORMAT(CURDATE(), '%Y-%m-01') AND registration_no NOT LIKE 'PREVIEW-%'");
-$pendPay = (int) $q("SELECT COUNT(*) FROM payments WHERE status = 'pending'");
 $rs = $stats['registrations_by_status'] + ['approved' => 0, 'pending' => 0, 'rejected' => 0];
 $statusTotal = max(1, array_sum($rs));
 $byCourse = array_slice($stats['students_by_course'], 0, 5);
 $maxCourse = max(1, ...array_map(fn($c) => (int) $c['cnt'], $byCourse ?: [['cnt' => 1]]));
 $recent = [];
 try {
-    $recent = $pdo->query("SELECT r.id, r.full_name, r.status, r.created_at, r.study_mode, r.course_fee, c.title AS course_title,
-                                  (SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.registration_id = r.id AND p.status = 'approved') AS paid
+    $recent = $pdo->query("SELECT r.id, r.full_name, r.status, r.created_at, r.study_mode, r.course_fee, c.title AS course_title
                            FROM registrations r LEFT JOIN courses c ON c.id = r.course_id
                            WHERE r.registration_no IS NULL OR r.registration_no NOT LIKE 'PREVIEW-%' ORDER BY r.created_at DESC LIMIT 6")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) {
 }
-[$revDir, $revPct] = $trend((float) $stats['month_revenue'], (float) $stats['previous_month_revenue']);
 [$regDir, $regPct] = $trend($regThis, $regLast);
 $first = explode(' ', (string) ($_SESSION['username'] ?? 'Admin'))[0];
 try {
@@ -93,14 +90,14 @@ $statusPill = ['approved' => ['Approved', 'g'], 'pending' => ['Pending', 'o'], '
             <span class="ic" style="background:#373435"><i class="fas fa-book-open"></i></span>
             <div><div class="k">Courses &amp; Tutors</div><div class="v"><?php echo $num($stats['courses']); ?> <span class="dh-chip flat"><?php echo (int) $stats['tutors']; ?> tutors</span></div>
                 <div class="s"><span><i class="fas fa-circle" style="color:#373435"></i><?php echo (int) $stats['courses']; ?> active courses</span><span><i class="fas fa-circle" style="color:#44A024"></i><?php echo (int) $stats['tutors']; ?> active tutors</span></div></div></a>
-        <a class="dh-card dh-kpi text-decoration-none text-reset" href="<?php echo url('admin/students/index.php'); ?>">
-            <span class="ic" style="background:#2f7a14"><i class="fas fa-coins"></i></span>
-            <div><div class="k">Fees This Month</div><div class="v">KSh <?php echo $num($stats['month_revenue']); ?> <span class="dh-chip <?php echo $revDir; ?>"><?php echo $dh($revPct); ?></span></div>
-                <div class="s"><span>vs last month KSh <?php echo $num($stats['previous_month_revenue']); ?></span></div></div></a>
+        <a class="dh-card dh-kpi text-decoration-none text-reset" href="<?php echo url('admin/enquiries/index.php'); ?>">
+            <span class="ic" style="background:#2f7a14"><i class="fas fa-envelope-open-text"></i></span>
+            <div><div class="k">New Enquiries</div><div class="v"><?php echo $num($stats['new_enquiries']); ?> <span class="dh-chip <?php echo $stats['new_enquiries'] ? 'down' : 'up'; ?>"><?php echo $stats['new_enquiries'] ? 'to answer' : 'clear'; ?></span></div>
+                <div class="s"><span><i class="fas fa-circle" style="color:#2f7a14"></i>Messages from the website</span></div></div></a>
         <a class="dh-card dh-kpi text-decoration-none text-reset" href="<?php echo url('admin/registrations/index.php?status=pending'); ?>">
             <span class="ic" style="background:#e08a00"><i class="fas fa-user-clock"></i></span>
             <div><div class="k">Waiting for You</div><div class="v"><?php echo $num($stats['pending_regs']); ?> <span class="dh-chip <?php echo $stats['pending_regs'] ? 'down' : 'up'; ?>"><?php echo $stats['pending_regs'] ? 'to review' : 'clear'; ?></span></div>
-                <div class="s"><span><i class="fas fa-circle" style="color:#e08a00"></i><?php echo (int) $stats['pending_regs']; ?> applications</span><span><i class="fas fa-circle" style="color:#2b78d0"></i><?php echo $pendPay; ?> payments · <?php echo (int) $stats['new_enquiries']; ?> enquiries</span></div></div></a>
+                <div class="s"><span><i class="fas fa-circle" style="color:#e08a00"></i><?php echo (int) $stats['pending_regs']; ?> applications</span><span><i class="fas fa-circle" style="color:#2b78d0"></i><?php echo (int) $stats['new_enquiries']; ?> enquiries</span></div></div></a>
     </div>
 
     <div class="dh-row">
@@ -137,15 +134,14 @@ $statusPill = ['approved' => ['Approved', 'g'], 'pending' => ['Pending', 'o'], '
             <div class="d-flex gap-2"><input type="search" id="dhSearch" class="form-control form-control-sm" placeholder="Search students…" style="width:220px">
                 <select id="dhFilter" class="form-select form-select-sm" style="width:auto"><option value="">All status</option><option value="approved">Approved</option><option value="pending">Pending</option><option value="rejected">Rejected</option></select></div></div>
         <div class="table-responsive"><table class="table dh-table mb-0">
-            <thead><tr><th>Student</th><th>Course</th><th>Applied</th><th>Fees paid</th><th>Mode</th><th>Status</th><th class="text-end">Action</th></tr></thead>
+            <thead><tr><th>Student</th><th>Course</th><th>Applied</th><th>Mode</th><th>Status</th><th class="text-end">Action</th></tr></thead>
             <tbody>
-            <?php if (!$recent): ?><tr><td colspan="7" class="text-center text-muted py-4">No admissions yet.</td></tr><?php endif; ?>
-            <?php foreach ($recent as $i => $r): $pct = (float) $r['course_fee'] > 0 ? min(100, (int) round($r['paid'] / $r['course_fee'] * 100)) : 0; [$sl, $sc] = $statusPill[$r['status']] ?? [ucfirst($r['status']), 'b']; ?>
+            <?php if (!$recent): ?><tr><td colspan="6" class="text-center text-muted py-4">No admissions yet.</td></tr><?php endif; ?>
+            <?php foreach ($recent as $i => $r): [$sl, $sc] = $statusPill[$r['status']] ?? [ucfirst($r['status']), 'b']; ?>
                 <tr data-name="<?php echo $dh(strtolower($r['full_name'] . ' ' . $r['course_title'])); ?>" data-status="<?php echo $dh($r['status']); ?>">
                     <td><span class="dh-ava" style="background:<?php echo $tones[$i % 5]; ?>"><?php echo $dh(strtoupper(mb_substr((string) $r['full_name'], 0, 1))); ?></span><?php echo $dh($r['full_name']); ?></td>
                     <td><?php echo $dh($r['course_title'] ?? '—'); ?></td>
                     <td><?php echo date('M j, Y', strtotime($r['created_at'])); ?></td>
-                    <td><div class="dh-prog"><span class="small fw-semibold"><?php echo $pct; ?>%</span><div class="dh-bar"><div style="width:<?php echo $pct; ?>%;background:<?php echo $pct >= 100 ? '#44A024' : ($pct >= 50 ? '#2b78d0' : '#e08a00'); ?>"></div></div></div></td>
                     <td><span class="dh-pill b"><?php echo $r['study_mode'] === 'physical' ? 'Physical' : 'Online'; ?></span></td>
                     <td><span class="dh-pill <?php echo $sc; ?>"><?php echo $dh($sl); ?></span></td>
                     <td class="text-end"><a class="dh-act" href="<?php echo url('admin/registrations/view.php?id=' . (int) $r['id']); ?>" title="Open"><i class="far fa-eye"></i></a></td>

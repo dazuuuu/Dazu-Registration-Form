@@ -29,8 +29,21 @@ if (($_GET['doc'] ?? '') === 'id') {
 } else {
     require_once __DIR__ . '/../../../app/v1/models/CertificateModel.php';
     require_once __DIR__ . '/../../../app/v1/helpers/certificate_pdf.php';
+    require_once __DIR__ . '/../../../app/v1/services/CertificateService.php';
     $c = lor_certificate($db, $regId);
     $cert = $c ? (new \Models\CertificateModel($db))->getCertificateById((int) $c['id']) : null;
+    if (!$cert) {
+        // Not issued yet: show a draft built from the enrolment, so the tutor can see it before finishing the course.
+        $st = $db->prepare('SELECT r.id AS registration_id, r.user_id, r.full_name, c.title AS course_name, c.duration_months
+                            FROM registrations r JOIN courses c ON c.id = r.course_id WHERE r.id = ?');
+        $st->execute([$regId]);
+        if ($reg = $st->fetch(PDO::FETCH_ASSOC)) {
+            $tutor = cert_assigned_tutor($db, (int) $reg['user_id']);
+            $cert = $reg + ['id' => 0, 'certificate_no' => 'DRAFT', 'qr_code_hash' => str_repeat('0', 32), 'issued_at' => date('Y-m-d H:i:s'),
+                'snapshot_name' => $reg['full_name'], 'snapshot_course' => $reg['course_name'], 'snapshot_duration_months' => max(1, (int) $reg['duration_months']),
+                'taught_skills' => '', 'tutor_name' => $tutor['full_name'] ?? null, 'tutor_id' => $tutor['user_id'] ?? null];
+        }
+    }
     if (!$cert) {
         http_response_code(404);
         exit('No certificate has been generated for this student yet.');

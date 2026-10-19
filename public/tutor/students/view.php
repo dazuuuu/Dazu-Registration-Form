@@ -195,6 +195,8 @@ ob_start();
                     ? 'since ' . date('d M Y', strtotime($student['studies_completed_at'])) . ($student['studies_completed_by'] ? '' : ' (ticked automatically when all modules were done)')
                     : 'Ticks itself when the student finishes every module.'; ?></span>
             </form>
+            <p class="small mb-3"><a class="btn btn-outline-secondary btn-sm" target="_blank" href="<?php echo $docUrl('cert'); ?>"><i class="fas fa-eye me-1"></i>Preview certificate</a>
+                <span class="text-muted ms-1">A draft (number “DRAFT”) — the real one is created when you finish the course.</span></p>
             <?php $canFinish = $student['studies_completed_at'] && $balance <= 0; ?>
             <form method="POST" onsubmit="return confirm('Mark the course as finished and generate the certificate? It will be emailed to the student and added to their portal.')">
                 <?php echo csrf_field(); ?><input type="hidden" name="action" value="finish_course">
