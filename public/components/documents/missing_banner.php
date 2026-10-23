@@ -1,5 +1,5 @@
 <?php
-// Reminder on the dashboards until passport photo, T-shirt size and academic documents are provided.
+// Reminder on the dashboards until the passport photo, academic documents and signature are provided.
 // Expects: $docsLink (URL of the person's My Documents page).
 require_once __DIR__ . '/../../../app/v1/helpers/lms_files.php';
 try {

@@ -6,6 +6,8 @@
 // All stored times are UTC ('Y-m-d H:i:s'); use local()/toUtc() for East Africa Time.
 namespace Models;
 
+require_once __DIR__ . '/../services/LinkRules.php';
+
 use PDO;
 
 class AssignmentModel {
@@ -17,6 +19,8 @@ class AssignmentModel {
         'images' => 'Photos or screenshots',
         'file'   => 'File upload',
     ];
+    /** Kinds shown now. Reserved for later (stored, never shown yet): monthly, module_assessment, capstone. */
+    public const KINDS = ['daily' => 'Daily', 'weekly' => 'Weekly'];
     public const GRADING_MODES = ['marks' => 'Marks', 'pass' => 'Pass or Not yet', 'feedback' => 'Feedback only'];
     public const REASONS = [
         'power'   => 'Power or internet problem',
@@ -246,13 +250,13 @@ class AssignmentModel {
         return ucfirst(implode(', ', $names) . ' and ' . $last);
     }
 
-    /** Number shown as "Assignment N": position among the tutor's published assignments in that course. */
+    /** Number shown as "Assignment N" (or "Week N"): position among the tutor's assignments of the same kind in that course. */
     public function number(array $a): int {
         $st = $this->db->prepare(
             "SELECT COUNT(*) FROM tutor_assignments WHERE tutor_id = ? AND COALESCE(course_id, 0) = ? AND status <> 'archived'
-             AND (sort_order < ? OR (sort_order = ? AND id <= ?))"
+             AND COALESCE(kind, 'daily') = ? AND (sort_order < ? OR (sort_order = ? AND id <= ?))"
         );
-        $st->execute([(int) $a['tutor_id'], (int) $a['course_id'], (int) $a['sort_order'], (int) $a['sort_order'], (int) $a['id']]);
+        $st->execute([(int) $a['tutor_id'], (int) $a['course_id'], (string) ($a['kind'] ?? 'daily'), (int) $a['sort_order'], (int) $a['sort_order'], (int) $a['id']]);
         return max(1, (int) $st->fetchColumn());
     }
 
@@ -263,7 +267,7 @@ class AssignmentModel {
     }
 
     /** All of a tutor's assignments (or every tutor's when $tutorId is null) with counts, ordered by course then order. */
-    public function listAll(?int $tutorId, bool $withArchived = false): array {
+    public function listAll(?int $tutorId, bool $withArchived = false, bool $templates = false): array {
         $sql = "SELECT a.*, c.title AS course_title,
                     (SELECT COUNT(*) FROM tutor_assignment_recipients r WHERE r.assignment_id = a.id AND r.removed_at IS NULL) AS recipients,
                     (SELECT COUNT(*) FROM tutor_assignment_submissions s WHERE s.assignment_id = a.id AND s.submitted_at IS NOT NULL) AS submitted,
@@ -274,7 +278,9 @@ class AssignmentModel {
         $args = [];
         if ($tutorId !== null) { $sql .= " AND a.tutor_id = ?"; $args[] = $tutorId; }
         if (!$withArchived) $sql .= " AND a.status <> 'archived'";
-        $st = $this->db->prepare($sql . " ORDER BY c.title, a.course_id, a.sort_order, a.id");
+        // Templates (migration 083) are kept apart from real assignments.
+        $sql .= $templates ? " AND a.is_template = 1" : " AND COALESCE(a.is_template, 0) = 0";
+        $st = $this->db->prepare($sql . " ORDER BY c.title, a.course_id, a.kind, a.sort_order, a.id");
         $st->execute($args);
         return array_map([$this, 'decorate'], $st->fetchAll(PDO::FETCH_ASSOC));
     }
@@ -336,6 +342,11 @@ class AssignmentModel {
             $cols = ['course_id', 'title', 'description', 'details', 'instructions', 'due_at', 'sequential_lock', 'close_after_due',
                      'max_extension_days', 'submit_link', 'submit_text', 'submit_images', 'submit_file', 'link_sites', 'grading_mode',
                      'max_score', 'pass_mark_percent'];
+            // Columns from migration 083, written only when the form sends them.
+            foreach (['kind', 'weight', 'allow_resubmission', 'release_grades_at', 'publish_at', 'check_links', 'block_bad_links', 'require_own_work',
+                      'ask_ai_note', 'remind_enabled', 'remind_whatsapp', 'submit_code', 'submit_audio', 'submit_quiz', 'no_submission', 'note_id', 'class_session_id', 'group_size'] as $c) {
+                if (array_key_exists($c, $d)) $cols[] = $c;
+            }
             $vals = array_map(fn($c) => $d[$c] ?? null, $cols);
             if ($id) {
                 $old = $this->getForTutor($id, $tutorId);
@@ -508,22 +519,22 @@ class AssignmentModel {
      * Optional filters limit it to one tutor and/or course. Groups are worked out per tutor + course.
      * Side effects (by design, "never re-lock"): stamps unlocked_at the first time an item is available and closed_at when it closes.
      */
-    public function chain(int $uid, ?int $tutorId = null, ?int $courseId = null): array {
+    public function chain(int $uid, ?int $tutorId = null, ?int $courseId = null, bool $forTutor = false): array {
         $this->justUnlocked = [];
         $sql = "SELECT a.*, c.title AS course_title, r.id AS recipient_id, r.unlocked_at, r.current_due_at, r.closed_at, r.skipped_at, r.added_at,
                        s.id AS sub_id, s.status AS sub_status, s.version AS sub_version, s.submitted_at, s.score, s.grade_label, s.pass_result,
-                       s.published_at AS result_published_at, s.draft_saved_at, s.is_late, s.returned_at,
+                       s.published_at AS result_published_at, s.draft_saved_at, s.is_late, s.returned_at, s.resubmit_by, s.resubmitted_at, s.link_status,
                        (SELECT q.id FROM tutor_assignment_requests q WHERE q.assignment_id = a.id AND q.student_user_id = r.student_user_id AND q.type = 'extension' AND q.status = 'pending' LIMIT 1) AS ext_request_id,
                        (SELECT q.id FROM tutor_assignment_requests q WHERE q.assignment_id = a.id AND q.student_user_id = r.student_user_id AND q.type = 'unlock' AND q.status = 'pending' LIMIT 1) AS unlock_request_id
                 FROM tutor_assignment_recipients r
-                JOIN tutor_assignments a ON a.id = r.assignment_id AND a.status = 'published'
+                JOIN tutor_assignments a ON a.id = r.assignment_id AND a.status = 'published' AND COALESCE(a.is_template, 0) = 0
                 LEFT JOIN courses c ON c.id = a.course_id
                 LEFT JOIN tutor_assignment_submissions s ON s.assignment_id = a.id AND s.student_user_id = r.student_user_id
                 WHERE r.student_user_id = ? AND r.removed_at IS NULL";
         $args = [$uid];
         if ($tutorId) { $sql .= " AND a.tutor_id = ?"; $args[] = $tutorId; }
         if ($courseId !== null) { $sql .= " AND COALESCE(a.course_id, 0) = ?"; $args[] = $courseId; }
-        $st = $this->db->prepare($sql . " ORDER BY a.tutor_id, COALESCE(a.course_id, 0), a.sort_order, a.id");
+        $st = $this->db->prepare($sql . " ORDER BY a.tutor_id, COALESCE(a.course_id, 0), a.kind, a.sort_order, a.id");
         $st->execute($args);
 
         $now = time();
@@ -533,7 +544,8 @@ class AssignmentModel {
         $prevIndex = 0;
         $index = 0;
         foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $a) {
-            $key = $a['tutor_id'] . '-' . (int) $a['course_id'];
+            // Daily and weekly work keep their own order and lock (every older assignment is daily).
+            $key = $a['tutor_id'] . '-' . (int) $a['course_id'] . '-' . ($a['kind'] ?? 'daily');
             if ($key !== $group) { $group = $key; $prevDone = true; $index = 0; $prevIndex = 0; }
             $a = $this->decorate($a);
             $a['index'] = ++$index;
@@ -541,9 +553,15 @@ class AssignmentModel {
             $a['due'] = $a['current_due_at'] ?: $a['due_at'];
             $a['late'] = false;
             $submitted = $a['submitted_at'] !== null && in_array($a['sub_status'], ['submitted', 'returned', 'graded'], true);
+            // Practical (no submission): the tutor records the mark, so a published mark counts as done.
+            if ((int) ($a['no_submission'] ?? 0) && $a['sub_status'] === 'graded') $submitted = true;
 
+            // Grades held until release_grades_at: the student sees "Submitted" and the mark is removed here, on the server.
+            $a['marks_held'] = $a['sub_status'] === 'graded' && $a['result_published_at'] && !empty($a['release_grades_at']) && self::ts($a['release_grades_at']) > $now;
+            // The tutor still sees their own held grades (as Graded, with the "held" flag); the student does not.
+            if ($a['marks_held'] && !$forTutor) { $a['score'] = null; $a['grade_label'] = null; $a['pass_result'] = null; }
             if ($submitted) {
-                $state = $a['sub_status'] === 'graded' && $a['result_published_at'] ? 'graded' : ($a['sub_status'] === 'returned' ? 'returned' : 'submitted');
+                $state = $a['sub_status'] === 'graded' && $a['result_published_at'] && (!$a['marks_held'] || $forTutor) ? 'graded' : ($a['sub_status'] === 'returned' ? 'returned' : 'submitted');
                 if (!$a['unlocked_at']) $this->stamp($a, 'unlocked_at');
             } elseif ($a['skipped_at']) {
                 $state = 'skipped';
@@ -637,6 +655,9 @@ class AssignmentModel {
 
     /** Whether the student may still change their work: open states, or submitted/returned (not after a published final result). */
     public static function canEdit(array $item): bool {
+        if (!empty($item['marks_held'])) return false;
+        // Returned work: open until the tutor's "Resubmit by" date when one was given.
+        if (($item['state'] ?? '') === 'returned' && !empty($item['resubmit_by']) && self::ts($item['resubmit_by']) < time()) return false;
         return in_array($item['state'], ['open', 'in_progress', 'extension', 'submitted', 'returned'], true);
     }
 
@@ -669,6 +690,24 @@ class AssignmentModel {
      * @return array{ok:bool, error?:string, version?:int, resubmitted?:bool, unlocked?:int[]}
      */
     public function submit(array $item, int $uid): array {
+        $own = !$this->db->inTransaction();
+        if ($own) $this->db->beginTransaction();
+        try {
+            $r = $this->submitTx($item, $uid);
+            if ($own) $r['ok'] ? $this->db->commit() : $this->db->rollBack();
+        } catch (\Throwable $e) {
+            if ($own) $this->db->rollBack();
+            throw $e;
+        }
+        // The order chain is updated after the commit (it stamps unlock times for the next assignment).
+        if ($r['ok']) {
+            $this->chain($uid, (int) $item['tutor_id'], (int) $item['course_id']);
+            $r['unlocked'] = $this->justUnlocked;
+        }
+        return $r;
+    }
+
+    private function submitTx(array $item, int $uid): array {
         if (!self::canEdit($item)) return ['ok' => false, 'error' => 'This assignment can no longer be changed.'];
         $sub = $this->submission((int) $item['id'], $uid);
         if (!$sub) return ['ok' => false, 'error' => 'Add your work first: ' . mb_strtolower($item['types_text']) . '.'];
@@ -677,7 +716,12 @@ class AssignmentModel {
         $hasAnswers = $sub && array_filter($sub['answers'], fn($t) => trim($t) !== '');
         $images = $sub ? array_filter($sub['files'], fn($f) => $f['kind'] === 'image') : [];
         $docs = $sub ? array_filter($sub['files'], fn($f) => $f['kind'] === 'file') : [];
-        if (!$hasLinks && !$hasAnswers && !$images && !$docs) {
+        $hasCode = (int) ($item['submit_code'] ?? 0) && trim((string) ($sub['code_text'] ?? '')) !== '';
+        $hasAudio = (int) ($item['submit_audio'] ?? 0) && !empty($sub['audio_path']);
+        $quiz = (int) ($item['submit_quiz'] ?? 0) ? $this->quizQuestions((int) $item['id']) : [];
+        $quizAns = $quiz ? $this->quizAnswers((int) $sub['id']) : [];
+        if ($quiz && count(array_filter($quizAns, fn($v) => $v !== null)) < count($quiz)) return ['ok' => false, 'error' => 'Answer every quiz question before you submit.'];
+        if (!$hasLinks && !$hasAnswers && !$images && !$docs && !$hasCode && !$hasAudio && !$quiz) {
             return ['ok' => false, 'error' => 'Add your work first: ' . mb_strtolower($item['types_text']) . '.'];
         }
         if ((int) $item['submit_text'] && $questions && (int) $questions[0]['id'] !== 0) {
@@ -686,24 +730,34 @@ class AssignmentModel {
             }
         }
         $version = (int) $sub['version'] + 1;
-        $late = $item['due'] && self::ts($item['due']) < time() ? 1 : 0;
+        // A resubmission after a return is never marked Late because of the return; a Late label from the first send stays.
+        $late = $item['state'] === 'returned' ? (int) $sub['is_late'] : ($item['due'] && self::ts($item['due']) < time() ? 1 : 0);
+        if ((int) $sub['is_late']) $late = 1;
         $snapshot = [
             'links' => $sub['links'],
             'answers' => array_map(fn($q) => ['question_id' => (int) $q['id'], 'question' => $q['text'], 'answer' => $sub['answers'][(int) $q['id']] ?? ''], $questions),
             'files' => array_map(fn($f) => ['id' => (int) $f['id'], 'kind' => $f['kind'], 'name' => $f['original_name'], 'bytes' => (int) $f['bytes']], $sub['files']),
             'note' => $sub['note'],
             'late' => (bool) $late,
+            'code' => $hasCode ? (string) $sub['code_text'] : null,
+            'audio' => $hasAudio ? (string) $sub['audio_path'] : null,
+            'quiz' => $quizAns ?: null,
         ];
         $this->db->prepare("UPDATE tutor_assignment_submissions SET status = 'submitted', version = ?, submitted_at = ?, is_late = ? WHERE id = ?")
             ->execute([$version, self::now(), $late, (int) $sub['id']]);
+        // Migration 083: keep the original sent time, and mark a resubmission (status stays 'submitted' so the old ENUM is unchanged).
+        try {
+            $this->db->prepare("UPDATE tutor_assignment_submissions SET first_submitted_at = COALESCE(first_submitted_at, ?), resubmitted_at = IF(? > 1, ?, resubmitted_at) WHERE id = ?")
+                ->execute([$sub['submitted_at'] ?: self::now(), $version, self::now(), (int) $sub['id']]);
+        } catch (\Throwable $e) {
+        }
         $this->db->prepare("INSERT INTO tutor_assignment_versions (submission_id, version, kind, snapshot, actor_user_id, created_at) VALUES (?, ?, 'submission', ?, ?, ?)")
             ->execute([(int) $sub['id'], $version, json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $uid, self::now()]);
         // Asking for more time no longer matters once the work is in.
         $this->db->prepare("UPDATE tutor_assignment_requests SET status = 'cancelled' WHERE assignment_id = ? AND student_user_id = ? AND status = 'pending'")
             ->execute([(int) $item['id'], $uid]);
         $this->log((int) $item['id'], $uid, $uid, $version > 1 ? 'resubmit' : 'submit', ['version' => $version, 'late' => (bool) $late]);
-        $this->chain($uid, (int) $item['tutor_id'], (int) $item['course_id']);
-        return ['ok' => true, 'version' => $version, 'resubmitted' => $version > 1, 'unlocked' => $this->justUnlocked];
+        return ['ok' => true, 'version' => $version, 'resubmitted' => $version > 1, 'returned' => $item['state'] === 'returned', 'submission_id' => (int) $sub['id'], 'late' => (bool) $late, 'unlocked' => []];
     }
 
     /** Snapshots: kind 'submission' (every send) or 'grade' (every publish/return), newest first. */
@@ -741,6 +795,19 @@ class AssignmentModel {
      * @return array{ok:bool, error?:string, updated?:bool}
      */
     public function grade(array $ctx, array $in, string $action, int $actor): array {
+        $own = !$this->db->inTransaction();
+        if ($own) $this->db->beginTransaction();
+        try {
+            $r = $this->gradeTx($ctx, $in, $action, $actor);
+            if ($own) $r['ok'] ? $this->db->commit() : $this->db->rollBack();
+            return $r;
+        } catch (\Throwable $e) {
+            if ($own) $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    private function gradeTx(array $ctx, array $in, string $action, int $actor): array {
         $a = $ctx['a'];
         $s = $ctx['sub'];
         $mode = $a['grading_mode'];
@@ -811,6 +878,15 @@ class AssignmentModel {
             $this->db->prepare("INSERT INTO tutor_assignment_versions (submission_id, version, kind, snapshot, actor_user_id, created_at) VALUES (?, ?, 'grade', ?, ?, ?)")
                 ->execute([(int) $s['id'], (int) $st->fetchColumn(), json_encode($snap, JSON_UNESCAPED_UNICODE), $actor, $now]);
         }
+        if ($action === 'return') {
+            $items = array_values(array_filter(array_map(fn($t) => mb_substr(trim((string) $t), 0, 200), (array) ($in['return_items'] ?? [])), 'strlen'));
+            $by = !empty($in['resubmit_by']) ? $in['resubmit_by'] : null;
+            try {
+                $this->db->prepare("UPDATE tutor_assignment_submissions SET return_items = ?, resubmit_by = ? WHERE id = ?")
+                    ->execute([$items ? json_encode(array_slice($items, 0, 10), JSON_UNESCAPED_UNICODE) : null, $by, (int) $s['id']]);
+            } catch (\Throwable $e) {
+            }
+        }
         $this->log((int) $a['id'], $actor, (int) $s['student_user_id'], $action === 'draft' ? 'grade_draft' : ($action === 'return' ? 'return' : ($wasPublished ? 'grade_update' : 'grade')),
             ['score' => $score, 'label' => $label]);
         return ['ok' => true, 'updated' => $wasPublished && $action === 'publish'];
@@ -823,7 +899,8 @@ class AssignmentModel {
      * $tab: awaiting | graded | returned | all. Filters: course, assignment, q (name search).
      */
     public function queue(?int $tutorId, string $tab, array $f = []): array {
-        $where = ["s.submitted_at IS NOT NULL", "a.status <> 'archived'"];
+        // Group work is graded once: only the group's first member's submission is listed.
+        $where = ["s.submitted_at IS NOT NULL", "a.status <> 'archived'", "NOT EXISTS (SELECT 1 FROM tutor_assignment_group_members gm JOIN tutor_assignment_groups gg ON gg.id = gm.group_id AND gg.assignment_id = s.assignment_id JOIN tutor_assignment_group_members gm2 ON gm2.group_id = gg.id WHERE gm.student_user_id = s.student_user_id AND gm2.student_user_id < s.student_user_id)"];
         $args = [];
         if ($tutorId !== null) {
             $where[] = "a.tutor_id = ?";
@@ -853,6 +930,7 @@ class AssignmentModel {
             $st = $this->db->prepare(
                 "SELECT COUNT(*) FROM tutor_assignment_submissions s JOIN tutor_assignments a ON a.id = s.assignment_id
                  WHERE a.tutor_id = ? AND a.status <> 'archived' AND s.status = 'submitted' AND s.submitted_at IS NOT NULL
+                 AND NOT EXISTS (SELECT 1 FROM tutor_assignment_group_members gm JOIN tutor_assignment_groups gg ON gg.id = gm.group_id AND gg.assignment_id = s.assignment_id JOIN tutor_assignment_group_members gm2 ON gm2.group_id = gg.id WHERE gm.student_user_id = s.student_user_id AND gm2.student_user_id < s.student_user_id)
                  AND EXISTS (SELECT 1 FROM tutor_students ts WHERE ts.tutor_id = a.tutor_id AND ts.user_id = s.student_user_id)"
             );
             $st->execute([$tutorId]);
@@ -998,7 +1076,7 @@ class AssignmentModel {
         foreach (array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN)) as $uid) {
             if (!$this->isTutorStudent($tutorId, $uid)) continue;
             $cells = [];
-            foreach ($this->chain($uid, $tutorId, $courseId) as $item) $cells[(int) $item['id']] = $item;
+            foreach ($this->chain($uid, $tutorId, $courseId, true) as $item) $cells[(int) $item['id']] = $item;
             $done = count(array_filter($cells, fn($c) => in_array($c['state'], ['submitted', 'returned', 'graded'], true)));
             $rows[$uid] = ['student' => $this->student($uid), 'cells' => $cells, 'done' => $done, 'total' => count($cells)];
         }
@@ -1011,7 +1089,7 @@ class AssignmentModel {
         $out = [];
         foreach ($this->recipientIds((int) $a['id']) as $uid) {
             $item = null;
-            foreach ($this->chain($uid, (int) $a['tutor_id'], (int) $a['course_id']) as $x) {
+            foreach ($this->chain($uid, (int) $a['tutor_id'], (int) $a['course_id'], true) as $x) {
                 if ((int) $x['id'] === (int) $a['id']) { $item = $x; break; }
             }
             if (!$item) continue;
@@ -1056,7 +1134,8 @@ class AssignmentModel {
              LEFT JOIN tutor_assignment_submissions s ON s.assignment_id = a.id AND s.student_user_id = r.student_user_id
              WHERE r.removed_at IS NULL AND r.reminded_at IS NULL AND r.skipped_at IS NULL
                AND COALESCE(r.current_due_at, a.due_at) > ? AND COALESCE(r.current_due_at, a.due_at) <= ?
-               AND (s.id IS NULL OR s.submitted_at IS NULL)"
+               AND (s.id IS NULL OR s.submitted_at IS NULL)
+               AND COALESCE(a.remind_enabled, 0) = 0 AND COALESCE(a.no_submission, 0) = 0"
         );
         $st->execute([$now, $soon]);
         return $st->fetchAll(PDO::FETCH_ASSOC);
@@ -1075,5 +1154,472 @@ class AssignmentModel {
 
     public function markRequestReminded(int $id): void {
         $this->db->prepare("UPDATE tutor_assignment_requests SET reminded_at = ? WHERE id = ?")->execute([self::now(), $id]);
+    }
+
+    /* ================= Held grades and scheduled publishing (migration 083) ================= */
+
+    /** Whether grades of this assignment are held from students right now. */
+    public static function gradesHeld(array $a): bool {
+        return !empty($a['release_grades_at']) && self::ts($a['release_grades_at']) > time();
+    }
+
+    /** Return button: hidden only when the tutor turned resubmission off (older assignments have NULL and keep it). */
+    public static function allowsReturn(array $a): bool {
+        return !array_key_exists('allow_resubmission', $a) || $a['allow_resubmission'] === null || (int) $a['allow_resubmission'] === 1;
+    }
+
+    /** "Release grades now": the release time becomes now. The caller notifies (or the cron does on its next run). */
+    public function releaseGradesNow(int $id, int $actor): void {
+        $this->db->prepare("UPDATE tutor_assignments SET release_grades_at = ? WHERE id = ? AND release_grades_at > ?")->execute([self::now(), $id, self::now()]);
+        $this->log($id, $actor, null, 'release_grades');
+    }
+
+    /** Assignments whose release time has come and whose students were not yet told for that release time. */
+    public function dueGradeReleases(): array {
+        $st = $this->db->prepare(
+            "SELECT * FROM tutor_assignments WHERE status = 'published' AND release_grades_at IS NOT NULL AND release_grades_at <= ?
+             AND (grades_released_notified_at IS NULL OR grades_released_notified_at <> release_grades_at)"
+        );
+        $st->execute([self::now()]);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Published grades given before the release time (grades given after it were sent straight away by the grading page). */
+    public function heldGradedSubmissions(array $a): array {
+        $st = $this->db->prepare("SELECT * FROM tutor_assignment_submissions WHERE assignment_id = ? AND status = 'graded' AND published_at IS NOT NULL AND published_at <= ?");
+        $st->execute([(int) $a['id'], $a['release_grades_at']]);
+        return array_map([$this, 'decorateSub'], $st->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    /** Stamp only if the release time was not moved meanwhile, so a second run never sends twice. */
+    public function markReleaseNotified(array $a): bool {
+        $st = $this->db->prepare("UPDATE tutor_assignments SET grades_released_notified_at = release_grades_at WHERE id = ? AND release_grades_at = ?
+                                  AND (grades_released_notified_at IS NULL OR grades_released_notified_at <> release_grades_at)");
+        $st->execute([(int) $a['id'], $a['release_grades_at']]);
+        return $st->rowCount() > 0;
+    }
+
+    /** Drafts with a show-on time that has come. */
+    public function dueScheduled(): array {
+        $st = $this->db->prepare("SELECT id FROM tutor_assignments WHERE status = 'draft' AND publish_at IS NOT NULL AND publish_at <= ?");
+        $st->execute([self::now()]);
+        return array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /* ================= Link check results (migration 083) ================= */
+
+    /** Every link in a piece of work: the Link field plus links on the allowed sites inside written answers. */
+    public static function workLinks(array $links, array $answers): array {
+        $all = array_values($links);
+        foreach ($answers as $t) {
+            if (preg_match_all('#https://[^\s<>"\')]+#i', (string) $t, $m)) {
+                foreach ($m[0] as $u) if (\LinkRules::site((string) parse_url(rtrim($u, '.,;'), PHP_URL_HOST))) $all[] = rtrim($u, '.,;');
+            }
+        }
+        return array_slice(array_values(array_unique($all)), 0, 12);
+    }
+
+    /** Keep the worst result on the submission (bad beats unknown beats works). Never touches the sent time, Late or the mark. */
+    public function saveLinkResult(int $submissionId, array $results): void {
+        if (!$results) return;
+        $rank = ['private' => 4, 'request_access' => 4, 'not_found' => 4, 'unknown' => 2, 'works' => 1];
+        usort($results, fn($x, $y) => ($rank[$y['status']] ?? 0) <=> ($rank[$x['status']] ?? 0));
+        $w = $results[0];
+        if (!isset($rank[$w['status']])) return;
+        $this->db->prepare("UPDATE tutor_assignment_submissions SET link_status = ?, link_checked_at = ?, link_reason = ? WHERE id = ?")
+            ->execute([$w['status'], self::now(), mb_substr($w['host'] . ': ' . $w['title'], 0, 255), $submissionId]);
+    }
+
+    /** Sent work with a bad link, on assignments that check links, due in the next $hours (for the cron recheck). */
+    public function badLinksDueSoon(int $hours = 6): array {
+        $st = $this->db->prepare(
+            "SELECT s.id, s.assignment_id, s.student_user_id, s.links_json, a.link_sites, a.tutor_id
+             FROM tutor_assignment_submissions s JOIN tutor_assignments a ON a.id = s.assignment_id
+             JOIN tutor_assignment_recipients r ON r.assignment_id = a.id AND r.student_user_id = s.student_user_id
+             WHERE a.status = 'published' AND a.check_links = 1 AND s.submitted_at IS NOT NULL AND s.status IN ('submitted', 'returned')
+               AND s.link_status IN ('private', 'request_access', 'not_found')
+               AND COALESCE(r.current_due_at, a.due_at) BETWEEN ? AND ?
+               AND (s.link_checked_at IS NULL OR s.link_checked_at < ?)"
+        );
+        $st->execute([self::now(), gmdate('Y-m-d H:i:s', time() + $hours * 3600), gmdate('Y-m-d H:i:s', time() - 3600)]);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /* ================= New ways to submit, declarations (migration 083) ================= */
+
+    public function saveExtras(int $assignmentId, int $uid, ?string $code): void {
+        $subId = $this->ensureSubmission($assignmentId, $uid);
+        if ($code !== null) $this->db->prepare("UPDATE tutor_assignment_submissions SET code_text = ?, draft_saved_at = ? WHERE id = ?")->execute([$code !== '' ? $code : null, self::now(), $subId]);
+    }
+
+    public function saveAudio(int $assignmentId, int $uid, ?string $path): void {
+        $subId = $this->ensureSubmission($assignmentId, $uid);
+        $this->db->prepare("UPDATE tutor_assignment_submissions SET audio_path = ?, draft_saved_at = ? WHERE id = ?")->execute([$path, self::now(), $subId]);
+    }
+
+    /** Own-work tick and AI-use note, saved with the version being sent. */
+    public function saveDeclaration(int $submissionId, ?bool $ack, ?string $aiNote): void {
+        $this->db->prepare("UPDATE tutor_assignment_submissions SET own_work_ack = ?, ai_note = ? WHERE id = ?")
+            ->execute([$ack === null ? null : (int) $ack, $aiNote !== null && $aiNote !== '' ? mb_substr($aiNote, 0, 1000) : null, $submissionId]);
+    }
+
+    public function quizQuestions(int $assignmentId): array {
+        $st = $this->db->prepare("SELECT * FROM tutor_assignment_quiz_questions WHERE assignment_id = ? ORDER BY position, id");
+        $st->execute([$assignmentId]);
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as &$r) $r['options'] = $r['qtype'] === 'truefalse' ? ['True', 'False'] : (json_decode((string) $r['options_json'], true) ?: []);
+        return $rows;
+    }
+
+    /** $rows: list of [id|null, qtype, prompt, options[], correct index, points]. Answers keep pointing at kept rows. */
+    public function saveQuizQuestions(int $assignmentId, array $rows): void {
+        $this->syncRows('tutor_assignment_quiz_questions', $assignmentId, $rows, fn($q) => [
+            'qtype' => $q[1], 'prompt' => $q[2], 'options_json' => $q[1] === 'mcq' ? json_encode(array_values($q[3]), JSON_UNESCAPED_UNICODE) : null,
+            'correct_option' => (int) $q[4], 'points' => $q[5],
+        ]);
+    }
+
+    /** question_id => selected option (or null). */
+    public function quizAnswers(int $submissionId): array {
+        $st = $this->db->prepare("SELECT question_id, selected_option FROM tutor_assignment_quiz_answers WHERE submission_id = ?");
+        $st->execute([$submissionId]);
+        return array_map(fn($v) => $v === null ? null : (int) $v, $st->fetchAll(PDO::FETCH_KEY_PAIR));
+    }
+
+    public function saveQuizAnswers(int $assignmentId, int $uid, array $answers): void {
+        $subId = $this->ensureSubmission($assignmentId, $uid);
+        $valid = [];
+        foreach ($this->quizQuestions($assignmentId) as $q) $valid[(int) $q['id']] = count($q['options']);
+        $up = $this->db->prepare("INSERT INTO tutor_assignment_quiz_answers (submission_id, question_id, selected_option) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE selected_option = VALUES(selected_option)");
+        foreach ($answers as $qid => $opt) {
+            if (!isset($valid[(int) $qid]) || $opt === '' || $opt === null || (int) $opt < 0 || (int) $opt >= $valid[(int) $qid]) continue;
+            $up->execute([$subId, (int) $qid, (int) $opt]);
+        }
+    }
+
+    /** Marked by the system: ['got' => points, 'of' => points]. */
+    public function quizScore(int $assignmentId, int $submissionId): array {
+        $ans = $this->quizAnswers($submissionId);
+        $got = $of = 0.0;
+        foreach ($this->quizQuestions($assignmentId) as $q) {
+            $of += (float) $q['points'];
+            if (($ans[(int) $q['id']] ?? null) === (int) $q['correct_option']) $got += (float) $q['points'];
+        }
+        return ['got' => $got, 'of' => $of];
+    }
+
+    /**
+     * Practical marks (no submission): the tutor records a mark or Pass / Not yet for a student. Published at once
+     * (still hidden from the student while grades are held). $value: number for marks, 'pass' / 'not_yet' for pass mode.
+     */
+    public function recordPractical(array $a, int $uid, $value, int $actor): array {
+        $subId = $this->ensureSubmission((int) $a['id'], $uid);
+        $score = $pass = $label = null;
+        if ($a['grading_mode'] === 'marks') {
+            if ($value === '' || !is_numeric($value)) return ['ok' => false, 'error' => 'Enter a number.'];
+            $score = max(0, min((float) $a['max_score'], (float) $value));
+            $label = self::gradeLabel((float) $a['max_score'] > 0 ? $score / (float) $a['max_score'] * 100 : 0, $this->gradeScale());
+        } else {
+            $pass = in_array($value, ['pass', 'not_yet'], true) ? $value : null;
+            if (!$pass) return ['ok' => false, 'error' => 'Choose Pass or Not yet.'];
+            $label = $pass === 'pass' ? 'Pass' : 'Not yet';
+        }
+        $this->db->prepare("UPDATE tutor_assignment_submissions SET score = ?, pass_result = ?, grade_label = ?, status = 'graded', graded_by = ?, graded_at = ?,
+                            published_at = ?, grade_version = grade_version + 1 WHERE id = ?")
+            ->execute([$score, $pass, $label, $actor, self::now(), self::now(), $subId]);
+        $this->log((int) $a['id'], $actor, $uid, 'practical_mark', ['score' => $score, 'pass' => $pass]);
+        return ['ok' => true, 'submission_id' => $subId];
+    }
+
+    /** Bulk "Mark selected as Pass" for Pass or Not yet work. Only the tutor's own submissions; returns the ids marked. */
+    public function bulkPass(int $tutorId, array $submissionIds, int $actor): array {
+        $done = [];
+        foreach (array_unique(array_map('intval', $submissionIds)) as $sid) {
+            $ctx = $this->submissionForGrader($sid, $tutorId);
+            if (!$ctx || $ctx['a']['grading_mode'] !== 'pass' || $ctx['sub']['status'] !== 'submitted') continue;
+            $r = $this->grade($ctx, ['pass_result' => 'pass', 'why' => 'Pass.', 'improve' => ''], 'publish', $actor);
+            if ($r['ok']) $done[] = $sid;
+        }
+        if ($done) $this->log(null, $actor, null, 'bulk_pass', ['submission_ids' => $done]);
+        return $done;
+    }
+
+    /* ================= History, class link (migration 083) ================= */
+
+    /** Simple history for the student and tutor: every send and every return or published grade, oldest first. */
+    public function history(int $submissionId): array {
+        $out = [];
+        foreach (array_reverse($this->versions($submissionId, 'submission')) as $v) {
+            $late = !empty($v['data']['late']);
+            $out[] = ['at' => $v['created_at'], 'icon' => 'fa-paper-plane', 'text' => ((int) $v['version'] > 1 ? 'You sent version ' . (int) $v['version'] : 'You submitted') . ($late ? ' · Late' : ' · on time')];
+        }
+        foreach (array_reverse($this->versions($submissionId, 'grade')) as $v) {
+            if (($v['data']['action'] ?? '') === 'return') $out[] = ['at' => $v['created_at'], 'icon' => 'fa-rotate-left', 'text' => 'Your tutor returned it with comments'];
+        }
+        usort($out, fn($x, $y) => strcmp((string) $x['at'], (string) $y['at']));
+        return $out;
+    }
+
+    /** One Class Calendar session (classes.tutor_id is the tutor's users.id). */
+    public function classSession(int $id): ?array {
+        try {
+            $st = $this->db->prepare("SELECT id, tutor_id, title, course_id, start_utc FROM classes WHERE id = ?");
+            $st->execute([$id]);
+            return $st->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /** The tutor's classes from 14 days ago to 60 days ahead, for "After this class". Empty when the calendar is not installed. */
+    public function tutorClasses(int $tutorUserId): array {
+        try {
+            $st = $this->db->prepare("SELECT id, title, course_id, start_utc FROM classes WHERE tutor_id = ? AND status <> 'cancelled' AND start_utc BETWEEN ? AND ? ORDER BY start_utc");
+            $st->execute([$tutorUserId, gmdate('Y-m-d H:i:s', time() - 14 * 86400), gmdate('Y-m-d H:i:s', time() + 60 * 86400)]);
+            return $st->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /* ================= Saved comments, nudges, reminders (migration 083) ================= */
+
+    public function snippets(int $tutorId): array {
+        $st = $this->db->prepare("SELECT id, text FROM tutor_feedback_snippets WHERE tutor_id = ? ORDER BY sort, id");
+        $st->execute([$tutorId]);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function addSnippet(int $tutorId, string $text): void {
+        $text = mb_substr(trim($text), 0, 500);
+        if ($text === '') return;
+        $st = $this->db->prepare("SELECT 1 FROM tutor_feedback_snippets WHERE tutor_id = ? AND text = ?");
+        $st->execute([$tutorId, $text]);
+        if ($st->fetchColumn()) return;
+        $this->db->prepare("INSERT INTO tutor_feedback_snippets (tutor_id, text, sort, created_at) VALUES (?, ?, 0, ?)")->execute([$tutorId, $text, self::now()]);
+    }
+
+    public function deleteSnippet(int $tutorId, int $id): void {
+        $this->db->prepare("DELETE FROM tutor_feedback_snippets WHERE id = ? AND tutor_id = ?")->execute([$id, $tutorId]);
+    }
+
+    /** One nudge per student per assignment every 6 hours. Returns false when it is too soon. */
+    public function recordNudge(int $assignmentId, int $uid, int $tutorId, int $actor): bool {
+        $st = $this->db->prepare("SELECT 1 FROM tutor_assignment_nudges WHERE assignment_id = ? AND student_user_id = ? AND sent_at >= ?");
+        $st->execute([$assignmentId, $uid, gmdate('Y-m-d H:i:s', time() - 6 * 3600)]);
+        if ($st->fetchColumn()) return false;
+        $this->db->prepare("INSERT INTO tutor_assignment_nudges (assignment_id, student_user_id, tutor_id, sent_at) VALUES (?, ?, ?, ?)")->execute([$assignmentId, $uid, $tutorId, self::now()]);
+        $this->log($assignmentId, $actor, $uid, 'nudge');
+        return true;
+    }
+
+    /**
+     * Students to remind now: $kind '24h' (due in 1h–24h) or '1h' (due in the next hour), on assignments with reminders on,
+     * who have not sent the work and were not reminded of this kind before. Uses each student's own due date.
+     */
+    public function remindersDue(string $kind): array {
+        [$from, $to] = $kind === '1h' ? [0, 3600] : [3600, 86400];
+        $st = $this->db->prepare(
+            "SELECT r.assignment_id, r.student_user_id, a.remind_whatsapp
+             FROM tutor_assignment_recipients r JOIN tutor_assignments a ON a.id = r.assignment_id
+             LEFT JOIN tutor_assignment_submissions s ON s.assignment_id = a.id AND s.student_user_id = r.student_user_id
+             LEFT JOIN tutor_assignment_reminders_log l ON l.assignment_id = a.id AND l.student_user_id = r.student_user_id AND l.kind = ?
+             WHERE a.status = 'published' AND a.remind_enabled = 1 AND a.no_submission = 0 AND r.removed_at IS NULL AND r.skipped_at IS NULL
+               AND (s.submitted_at IS NULL) AND l.assignment_id IS NULL
+               AND COALESCE(r.current_due_at, a.due_at) > ? AND COALESCE(r.current_due_at, a.due_at) <= ?"
+        );
+        $st->execute([$kind, gmdate('Y-m-d H:i:s', time() + $from), gmdate('Y-m-d H:i:s', time() + $to)]);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Claim a reminder before sending (INSERT IGNORE on the primary key), so two runs never send it twice. */
+    public function claimReminder(int $assignmentId, int $uid, string $kind): bool {
+        $st = $this->db->prepare("INSERT IGNORE INTO tutor_assignment_reminders_log (assignment_id, student_user_id, kind, sent_at) VALUES (?, ?, ?, ?)");
+        $st->execute([$assignmentId, $uid, $kind, self::now()]);
+        return $st->rowCount() > 0;
+    }
+
+    /** "Where marks are lost": average % per rubric criterion over the graded work of one assignment. */
+    public function insights(int $assignmentId): array {
+        $st = $this->db->prepare(
+            "SELECT r.id, r.name, r.max_marks, AVG(cs.score) AS avg_score, COUNT(cs.score) AS n
+             FROM tutor_assignment_rubric r
+             LEFT JOIN tutor_assignment_criterion_scores cs ON cs.criterion_id = r.id
+                  AND cs.submission_id IN (SELECT id FROM tutor_assignment_submissions WHERE assignment_id = ? AND status = 'graded')
+             WHERE r.assignment_id = ? GROUP BY r.id, r.name, r.max_marks, r.position ORDER BY r.position"
+        );
+        $st->execute([$assignmentId, $assignmentId]);
+        $out = [];
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
+            if (!(int) $r['n'] || (float) $r['max_marks'] <= 0) continue;
+            $out[] = ['name' => $r['name'], 'percent' => (float) $r['avg_score'] / (float) $r['max_marks'] * 100, 'n' => (int) $r['n']];
+        }
+        return $out;
+    }
+
+    /* ================= Templates, duplicate, copy to the next intake (migration 083) ================= */
+
+    private const COPY_COLS = ['title', 'description', 'details', 'instructions', 'max_score', 'sequential_lock', 'close_after_due', 'max_extension_days',
+        'submit_link', 'submit_text', 'submit_images', 'submit_file', 'link_sites', 'grading_mode', 'pass_mark_percent', 'kind', 'weight',
+        'allow_resubmission', 'require_own_work', 'ask_ai_note', 'check_links', 'block_bad_links', 'remind_enabled', 'remind_whatsapp',
+        'submit_code', 'submit_audio', 'submit_quiz', 'no_submission', 'group_size'];
+
+    /**
+     * Copy an assignment as a new draft (or as a template). Copies questions, rubric, quiz and attachments.
+     * Never copies due dates, who sees it, schedules, held-grade times, student work or marks.
+     */
+    public function copyAssignment(int $id, int $tutorId, ?int $toCourseId, bool $asTemplate, int $actor, string $titleSuffix = ''): ?int {
+        $src = $this->getForTutor($id, $tutorId);
+        if (!$src) return null;
+        $courseId = $toCourseId ?? ($src['course_id'] !== null ? (int) $src['course_id'] : null);
+        $own = !$this->db->inTransaction();
+        if ($own) $this->db->beginTransaction();
+        try {
+            $cols = self::COPY_COLS;
+            $vals = array_map(fn($c) => $src[$c] ?? null, $cols);
+            $vals[0] = mb_substr($src['title'] . $titleSuffix, 0, 200);
+            $this->db->prepare("INSERT INTO tutor_assignments (tutor_id, course_id, sort_order, audience, status, is_template, copied_from_id, created_at, updated_at, " . implode(', ', $cols) . ")
+                                VALUES (?, ?, ?, 'selected', 'draft', ?, ?, ?, ?, " . implode(', ', array_fill(0, count($cols), '?')) . ")")
+                ->execute(array_merge([$tutorId, $courseId, $this->nextSortOrder($tutorId, $courseId), $asTemplate ? 1 : 0, $id, self::now(), self::now()], $vals));
+            $new = (int) $this->db->lastInsertId();
+            foreach ($this->questions($id) as $q) {
+                $this->db->prepare("INSERT INTO tutor_assignment_questions (assignment_id, position, text) VALUES (?, ?, ?)")->execute([$new, $q['position'], $q['text']]);
+            }
+            foreach ($this->rubric($id) as $r) {
+                $this->db->prepare("INSERT INTO tutor_assignment_rubric (assignment_id, position, name, max_marks) VALUES (?, ?, ?, ?)")->execute([$new, $r['position'], $r['name'], $r['max_marks']]);
+            }
+            foreach ($this->quizQuestions($id) as $q) {
+                $this->db->prepare("INSERT INTO tutor_assignment_quiz_questions (assignment_id, position, qtype, prompt, options_json, correct_option, points) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                    ->execute([$new, $q['position'], $q['qtype'], $q['prompt'], $q['options_json'], $q['correct_option'], $q['points']]);
+            }
+            foreach ($this->attachments($id) as $att) {
+                $path = null;
+                // Files are copied, so deleting one assignment's attachment never removes the other's.
+                if ($att['file_path'] && function_exists('asg_file_abs') && ($abs = asg_file_abs($att['file_path']))) {
+                    $rel = 'attachments/' . $new . '/' . bin2hex(random_bytes(16)) . '.' . pathinfo($abs, PATHINFO_EXTENSION);
+                    $dir = dirname(asg_storage_dir() . '/' . $rel);
+                    if (!is_dir($dir)) @mkdir($dir, 0775, true);
+                    if (!@copy($abs, asg_storage_dir() . '/' . $rel)) continue;
+                    $path = $rel;
+                } elseif ($att['file_path']) {
+                    continue;
+                }
+                $this->addAttachment($new, $att['kind'], $path, $att['url'], $att['original_name'], $att['label']);
+            }
+            $this->log($new, $actor, null, $asTemplate ? 'save_template' : 'copy', ['from' => $id, 'course_id' => $courseId]);
+            if ($own) $this->db->commit();
+            return $new;
+        } catch (\Throwable $e) {
+            if ($own) $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    /** Templates shared by Dazu (filled by admin later; starts empty). */
+    public function sharedTemplates(): array {
+        try {
+            return $this->db->query("SELECT id, title, data_json FROM assignment_templates ORDER BY title")->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+
+    /** New draft from a shared template. data_json holds assignment columns (only the copyable ones are used). */
+    public function fromSharedTemplate(int $templateId, int $tutorId, ?int $courseId, int $actor): ?int {
+        $st = $this->db->prepare("SELECT * FROM assignment_templates WHERE id = ?");
+        $st->execute([$templateId]);
+        $t = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$t) return null;
+        $d = array_intersect_key(json_decode((string) $t['data_json'], true) ?: [], array_flip(self::COPY_COLS));
+        $d['title'] = $d['title'] ?? $t['title'];
+        $cols = array_keys($d);
+        $this->db->prepare("INSERT INTO tutor_assignments (tutor_id, course_id, sort_order, audience, status, created_at, updated_at" . ($cols ? ', ' . implode(', ', $cols) : '') . ")
+                            VALUES (?, ?, ?, 'selected', 'draft', ?, ?" . str_repeat(', ?', count($cols)) . ")")
+            ->execute(array_merge([$tutorId, $courseId, $this->nextSortOrder($tutorId, $courseId), self::now(), self::now()], array_values($d)));
+        $new = (int) $this->db->lastInsertId();
+        $this->log($new, $actor, null, 'from_template', ['shared_template' => $templateId]);
+        return $new;
+    }
+
+    /* ================= Group work (migration 083): one submission per group, held by the first member ================= */
+
+    /** user_id => group number (1, 2, …) for an assignment. */
+    public function groupMap(int $assignmentId): array {
+        $st = $this->db->prepare("SELECT m.student_user_id, g.name FROM tutor_assignment_groups g JOIN tutor_assignment_group_members m ON m.group_id = g.id WHERE g.assignment_id = ?");
+        $st->execute([$assignmentId]);
+        $out = [];
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) $out[(int) $r['student_user_id']] = (int) preg_replace('/\D/', '', $r['name']);
+        return $out;
+    }
+
+    /** Replace the groups: $map user_id => group number (0 = alone). Up to 3 per group. */
+    public function saveGroups(int $assignmentId, array $map): void {
+        $st = $this->db->prepare("SELECT id FROM tutor_assignment_groups WHERE assignment_id = ?");
+        $st->execute([$assignmentId]);
+        foreach (array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN)) as $gid) {
+            $this->db->prepare("DELETE FROM tutor_assignment_group_members WHERE group_id = ?")->execute([$gid]);
+        }
+        $this->db->prepare("DELETE FROM tutor_assignment_groups WHERE assignment_id = ?")->execute([$assignmentId]);
+        $byGroup = [];
+        foreach ($map as $uid => $n) if ((int) $n > 0) $byGroup[(int) $n][] = (int) $uid;
+        ksort($byGroup);
+        foreach ($byGroup as $n => $uids) {
+            $this->db->prepare("INSERT INTO tutor_assignment_groups (assignment_id, name) VALUES (?, ?)")->execute([$assignmentId, 'Group ' . $n]);
+            $gid = (int) $this->db->lastInsertId();
+            foreach (array_slice($uids, 0, 3) as $uid) {
+                $this->db->prepare("INSERT INTO tutor_assignment_group_members (group_id, student_user_id) VALUES (?, ?)")->execute([$gid, $uid]);
+            }
+        }
+    }
+
+    /** Members of this student's group, first member (who holds the work) first; [] when not in a group. */
+    public function groupMembers(int $assignmentId, int $uid): array {
+        $st = $this->db->prepare(
+            "SELECT m2.student_user_id FROM tutor_assignment_group_members m
+             JOIN tutor_assignment_groups g ON g.id = m.group_id AND g.assignment_id = ?
+             JOIN tutor_assignment_group_members m2 ON m2.group_id = g.id
+             JOIN tutor_assignment_recipients r ON r.assignment_id = g.assignment_id AND r.student_user_id = m2.student_user_id AND r.removed_at IS NULL
+             WHERE m.student_user_id = ? ORDER BY m2.student_user_id"
+        );
+        $st->execute([$assignmentId, $uid]);
+        return array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+    }
+
+    /** Who holds the group's work (the student themselves when not in a group). */
+    public function workOwner(int $assignmentId, int $uid): int {
+        $m = $this->groupMembers($assignmentId, $uid);
+        return $m ? $m[0] : $uid;
+    }
+
+    /** After the group's work is sent: the other members count as submitted too (same time, Late label and version). */
+    public function mirrorGroupSubmission(int $assignmentId, int $ownerUid): array {
+        $own = $this->submission($assignmentId, $ownerUid);
+        $others = array_values(array_diff($this->groupMembers($assignmentId, $ownerUid), [$ownerUid]));
+        foreach ($others as $uid) {
+            $sid = $this->ensureSubmission($assignmentId, $uid);
+            $this->db->prepare("UPDATE tutor_assignment_submissions SET status = 'submitted', version = ?, submitted_at = ?, is_late = ?, note = ? WHERE id = ?")
+                ->execute([$own['version'], $own['submitted_at'], $own['is_late'], 'Group work: sent with the group.', $sid]);
+            $this->log($assignmentId, $ownerUid, $uid, 'group_submit', ['owner' => $ownerUid]);
+        }
+        return $others;
+    }
+
+    /** Copy the grade (or return) of the group's work to every other member; returns their submission ids. */
+    public function mirrorGroupGrade(int $assignmentId, int $ownerUid): array {
+        $src = $this->submission($assignmentId, $ownerUid);
+        $out = [];
+        foreach (array_diff($this->groupMembers($assignmentId, $ownerUid), [$ownerUid]) as $uid) {
+            $sid = $this->ensureSubmission($assignmentId, $uid);
+            $this->db->prepare(
+                "UPDATE tutor_assignment_submissions SET score = ?, grade_label = ?, pass_result = ?, feedback = ?, feedback_why = ?, feedback_well = ?, feedback_improve = ?,
+                        graded_by = ?, graded_at = ?, status = ?, published_at = ?, returned_at = ?, return_items = ?, resubmit_by = ?, grade_version = grade_version + 1 WHERE id = ?"
+            )->execute([$src['score'], $src['grade_label'], $src['pass_result'], $src['feedback'], $src['feedback_why'], $src['feedback_well'], $src['feedback_improve'],
+                        $src['graded_by'], $src['graded_at'], $src['status'], $src['published_at'], $src['returned_at'], $src['return_items'], $src['resubmit_by'], $sid]);
+            $this->db->prepare("DELETE FROM tutor_assignment_criterion_scores WHERE submission_id = ?")->execute([$sid]);
+            $this->db->prepare("INSERT INTO tutor_assignment_criterion_scores (submission_id, criterion_id, score, comment) SELECT ?, criterion_id, score, comment FROM tutor_assignment_criterion_scores WHERE submission_id = ?")
+                ->execute([$sid, (int) $src['id']]);
+            $out[] = $sid;
+        }
+        return $out;
     }
 }

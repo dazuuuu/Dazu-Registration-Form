@@ -22,7 +22,7 @@ function isStoreActive($current_dir) {
 
 // New System group: registration, courses, tutors, payments, resources, partners, testimonials
 function isSystemActive($current_dir) {
-    return in_array($current_dir, ['registrations', 'courses', 'free-courses', 'tutors', 'students', 'resources', 'partners', 'testimonials'], true);
+    return in_array($current_dir, ['registrations', 'intakes', 'courses', 'free-courses', 'tutors', 'students', 'resources', 'partners', 'testimonials'], true);
 }
 
 // Courses sub-section: paid (admin/courses) and free (admin/free-courses) are fully
@@ -184,6 +184,18 @@ function isSmsSection($section) {
                             <span>Pending Approvals</span>
                             <span class="registrations-badge" id="registrationsBadge" style="display:none;">0</span>
                         </a>
+                        <?php $ikOpen = 0; try { require_once __DIR__ . "/../../../app/v1/models/Connection.php"; $ikDb = \Models\Connection::getInstance()->getConnection(); $ikOpen = (int) $ikDb->query("SELECT COUNT(*) FROM intake_bookings WHERE status IN ('booked','contacted')")->fetchColumn(); } catch (Throwable $ikE) {} ?>
+                        <a href="<?php echo url('admin/intakes/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'intakes' && $current_page !== 'bookings.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-calendar-days"></i>
+                            <span>Intakes</span>
+                        </a>
+                        <a href="<?php echo url('admin/intakes/bookings.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'intakes' && $current_page === 'bookings.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-bookmark"></i>
+                            <span>Intake Bookings</span>
+                            <?php if ($ikOpen): ?><span class="registrations-badge"><?php echo $ikOpen; ?></span><?php endif; ?>
+                        </a>
                         <!-- COURSES SUB-SECTION: paid and free are separate listings/forms -->
                         <div class="nav-item">
                             <a href="#coursesMenu" class="nav-link <?php echo isCoursesGroupActive($current_dir) ? 'active' : ''; ?>"
@@ -216,6 +228,11 @@ function isSmsSection($section) {
                            class="nav-link <?php echo $current_dir == 'tutors' ? 'active' : ''; ?>">
                             <i class="fas fa-chalkboard-teacher"></i>
                             <span>Tutors</span>
+                        </a>
+                        <a href="<?php echo url('admin/tutors/ids.php'); ?>"
+                           class="nav-link <?php echo $current_page == 'ids.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-id-badge"></i>
+                            <span>Tutor IDs</span>
                         </a>
                         <?php if (empty($_SESSION['tutor_admin'])): ?>
                         <a href="<?php echo url('admin/tutors/permissions.php'); ?>"

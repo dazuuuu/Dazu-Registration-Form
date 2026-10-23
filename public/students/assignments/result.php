@@ -69,6 +69,14 @@ ob_start();
         <?php foreach ((array) ($latestSubmission['answers'] ?? []) as $n => $ans): ?><div class="small fw-semibold mt-2"><?php echo asg_e($ans['question']); ?></div><div class="small" style="white-space:pre-wrap"><?php echo asg_e($ans['answer']); ?></div><?php endforeach; ?>
         <?php foreach ((array) ($latestSubmission['files'] ?? []) as $f): ?><a class="asg-pill mt-2" target="_blank" href="<?php echo asg_e(asg_files_url('sub', (int) $f['id'], $f['kind'] === 'file')); ?>"><i class="fas <?php echo $f['kind'] === 'image' ? 'fa-image' : 'fa-file'; ?>"></i><?php echo asg_e($f['name']); ?></a><?php endforeach; ?>
         <?php if (!empty($latestSubmission['legacy_text'])): ?><div class="small" style="white-space:pre-wrap"><?php echo asg_e($latestSubmission['legacy_text']); ?></div><?php endif; ?>
+        <?php if (!empty($latestSubmission['code'])): ?><div class="small fw-semibold mt-2">Code box</div><pre class="asg-code p-2 small"><?php echo asg_e($latestSubmission['code']); ?></pre><?php endif; ?>
     </div></div>
+    <?php if ((int) ($a['submit_quiz'] ?? 0) && ($quizQs = $am->quizQuestions($id))): $qa = $am->quizAnswers((int) $sub['id']); $qs = $am->quizScore($id, (int) $sub['id']); ?>
+    <div class="asg-section mt-3">Quiz · <?php echo $fmt($qs['got']); ?> of <?php echo $fmt($qs['of']); ?> points</div>
+    <?php foreach ($quizQs as $n => $q): $pick = $qa[(int) $q['id']] ?? null; $right = $pick === (int) $q['correct_option']; ?>
+        <div class="asg-box mb-2 small"><div class="fw-semibold"><?php echo $n + 1; ?>. <?php echo asg_e($q['prompt']); ?></div>
+            <div><i class="fas <?php echo $right ? 'fa-check text-success' : 'fa-xmark text-danger'; ?> me-1"></i>Your answer: <?php echo asg_e($pick === null ? 'none' : ($q['options'][$pick] ?? '')); ?></div>
+            <?php if (!$right): ?><div class="text-muted">Correct answer: <?php echo asg_e($q['options'][(int) $q['correct_option']] ?? ''); ?></div><?php endif; ?></div>
+    <?php endforeach; endif; ?>
 </div>
 <?php $content = ob_get_clean(); require __DIR__ . '/../../templates/students/layout.php';

@@ -81,9 +81,14 @@ if (!function_exists('docs_storage_dir')) {
 
     function docs_profile(PDO $db, int $userId): array
     {
-        $st = $db->prepare("SELECT profile_photo_path, profile_photo_status, tshirt_size FROM user_profiles WHERE user_id = ?");
-        $st->execute([$userId]);
-        return $st->fetch(PDO::FETCH_ASSOC) ?: ['profile_photo_path' => null, 'profile_photo_status' => null, 'tshirt_size' => null];
+        try {
+            $st = $db->prepare("SELECT profile_photo_path, profile_photo_status, tshirt_size, signature_path FROM user_profiles WHERE user_id = ?");
+            $st->execute([$userId]);
+        } catch (PDOException $e) {   // before migration 077
+            $st = $db->prepare("SELECT profile_photo_path, profile_photo_status, tshirt_size, NULL AS signature_path FROM user_profiles WHERE user_id = ?");
+            $st->execute([$userId]);
+        }
+        return $st->fetch(PDO::FETCH_ASSOC) ?: ['profile_photo_path' => null, 'profile_photo_status' => null, 'tshirt_size' => null, 'signature_path' => null];
     }
 
     /**
@@ -111,12 +116,24 @@ if (!function_exists('docs_storage_dir')) {
                 $errors[] = '"' . $orig . '": give the document a name.';
                 continue;
             }
-            $v = validate_pdf_upload($one, DOC_MAX_BYTES);
-            if (!$v['ok']) {
-                $errors[] = '"' . $orig . '": ' . $v['error'];
+            // A PDF, or a photo/scan of the document (JPG or PNG).
+            $img = ($one['error'] === UPLOAD_ERR_OK && $one['tmp_name'] !== '') ? @getimagesize($one['tmp_name']) : false;
+            $ext = $img ? ([IMAGETYPE_JPEG => 'jpg', IMAGETYPE_PNG => 'png'][$img[2]] ?? null) : 'pdf';
+            if ($img && !$ext) {
+                $errors[] = '"' . $orig . '": only PDF, JPG or PNG files are accepted.';
                 continue;
             }
-            $name = time() . '_' . bin2hex(random_bytes(6)) . '.pdf';
+            if ($ext === 'pdf') {
+                $v = validate_pdf_upload($one, DOC_MAX_BYTES);
+                if (!$v['ok']) {
+                    $errors[] = '"' . $orig . '": ' . $v['error'] . ' (PDF, JPG or PNG)';
+                    continue;
+                }
+            } elseif ((int) $one['size'] > DOC_MAX_BYTES) {
+                $errors[] = '"' . $orig . '": the file is larger than 10 MB.';
+                continue;
+            }
+            $name = time() . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
             $moved = defined('UPLOAD_TEST_MODE')
                 ? @copy($one['tmp_name'], "$dir/$name")
                 : is_uploaded_file($one['tmp_name']) && @move_uploaded_file($one['tmp_name'], "$dir/$name");
@@ -156,6 +173,32 @@ if (!function_exists('docs_storage_dir')) {
         return cert_save_student_photo($db, $userId, $file);
     }
 
+    /** Save the person's own signature (PNG/JPG, max 2 MB). It is printed on their ID card. */
+    function docs_save_signature(PDO $db, int $userId, array $file): array
+    {
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) return ['ok' => false, 'error' => 'Choose an image of your signature.'];
+        if (($file['size'] ?? 0) > 2 * 1024 * 1024) return ['ok' => false, 'error' => 'The signature image must be 2 MB or smaller.'];
+        $info = @getimagesize($file['tmp_name']);
+        $ext = [IMAGETYPE_PNG => 'png', IMAGETYPE_JPEG => 'jpg'][$info[2] ?? 0] ?? null;
+        if (!$ext) return ['ok' => false, 'error' => 'Upload the signature as a PNG or JPG image.'];
+        $dir = dirname(__DIR__, 3) . '/public/uploads/signatures/students';
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) return ['ok' => false, 'error' => 'Could not save the signature.'];
+        $name = 'sig_' . $userId . '_' . bin2hex(random_bytes(6)) . '.' . $ext;
+        $moved = defined('UPLOAD_TEST_MODE') ? @copy($file['tmp_name'], "$dir/$name") : @move_uploaded_file($file['tmp_name'], "$dir/$name");
+        if (!$moved) return ['ok' => false, 'error' => 'Could not save the signature.'];
+        $rel = 'uploads/signatures/students/' . $name;
+        try {
+            $old = docs_profile($db, $userId)['signature_path'] ?? null;
+            $db->prepare('INSERT INTO user_profiles (user_id, signature_path) VALUES (?, ?) ON DUPLICATE KEY UPDATE signature_path = VALUES(signature_path)')
+               ->execute([$userId, $rel]);
+        } catch (PDOException $e) {
+            @unlink("$dir/$name");
+            return ['ok' => false, 'error' => 'Signatures are not enabled yet. Ask the office to run System Updates (migration 077).'];
+        }
+        if ($old && str_starts_with($old, 'uploads/signatures/students/')) @unlink(dirname(__DIR__, 3) . '/public/' . $old);
+        return ['ok' => true];
+    }
+
     /**
      * Handle a POST from the "My documents" page (upload / delete / photo / T-shirt) and redirect back.
      * Messages go to $_SESSION['success_msg'] / ['error_msg'].
@@ -170,7 +213,7 @@ if (!function_exists('docs_storage_dir')) {
                     $r = docs_save_many($db, $userId, $_FILES['documents'] ?? [], (array) ($_POST['doc_names'] ?? []));
                     if ($r['saved']) $_SESSION['success_msg'] = $r['saved'] . ' document' . ($r['saved'] > 1 ? 's' : '') . ' submitted.';
                     if ($r['errors']) $_SESSION['error_msg'] = implode(' ', $r['errors']);
-                    if (!$r['saved'] && !$r['errors']) $_SESSION['error_msg'] = 'Choose at least one PDF.';
+                    if (!$r['saved'] && !$r['errors']) $_SESSION['error_msg'] = 'Choose at least one file.';
                     break;
                 case 'delete':
                     docs_delete($db, $userId, (int) ($_POST['doc_id'] ?? 0));
@@ -179,6 +222,10 @@ if (!function_exists('docs_storage_dir')) {
                 case 'photo':
                     $r = docs_save_photo($db, $userId, $_FILES['photo'] ?? []);
                     $_SESSION[$r['ok'] ? 'success_msg' : 'error_msg'] = $r['ok'] ? 'Passport photo saved.' : $r['error'];
+                    break;
+                case 'signature':
+                    $r = docs_save_signature($db, $userId, $_FILES['signature'] ?? []);
+                    $_SESSION[$r['ok'] ? 'success_msg' : 'error_msg'] = $r['ok'] ? 'Signature saved. It will be printed on your ID card.' : $r['error'];
                     break;
                 case 'tshirt':
                     $ok = docs_save_tshirt($db, $userId, (string) ($_POST['tshirt_size'] ?? ''));
@@ -193,13 +240,25 @@ if (!function_exists('docs_storage_dir')) {
     /** True when the person still has to provide their passport photo or T-shirt size (or any document). */
     function docs_missing(PDO $db, int $userId): array
     {
+        // The reminder goes away once the passport photo, academic documents and (students) signature are in.
+        // Documents sent with the application count too. The T-shirt size is asked on the page but never blocks.
         $p = docs_profile($db, $userId);
         $missing = [];
-        if (empty($p['profile_photo_path'])) $missing[] = 'passport photo';
-        if (empty($p['tshirt_size'])) $missing[] = 'T-shirt size';
+        if (empty($p['profile_photo_path']) || ($p['profile_photo_status'] ?? '') === 'rejected') $missing[] = 'passport photo';
         $st = $db->prepare("SELECT COUNT(*) FROM personal_documents WHERE user_id = ?");
         $st->execute([$userId]);
-        if (!(int) $st->fetchColumn()) $missing[] = 'academic documents';
+        $docs = (int) $st->fetchColumn();
+        if (!$docs) {
+            try {
+                $st = $db->prepare("SELECT COUNT(*) FROM admission_documents a JOIN registrations r ON r.id = a.registration_id WHERE r.user_id = ?");
+                $st->execute([$userId]);
+                $docs = (int) $st->fetchColumn();
+            } catch (PDOException $e) {
+            }
+        }
+        if (!$docs) $missing[] = 'academic documents';
+        $isStudent = class_exists('SessionModel') ? SessionModel::get('role') === 'student' : false;
+        if ($isStudent && empty($p['signature_path'])) $missing[] = 'signature';
         return $missing;
     }
 }

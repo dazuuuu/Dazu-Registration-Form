@@ -19,7 +19,8 @@ Middleware::requireStudent();
 $pdo = Connection::getInstance()->getConnection();
 $uid = (int) SessionModel::get('user_id');
 $reg = (new StudentModel($pdo))->getByUserId($uid);
-if (!$reg || !empty($reg['portal_locked'])) {
+// Open even when the portal is suspended for fees: assignments and grades never depend on payment.
+if (!$reg) {
     header('Location: ' . url('students/dashboard/index.php'));
     exit();
 }

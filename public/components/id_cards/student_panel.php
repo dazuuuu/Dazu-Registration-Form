@@ -68,7 +68,9 @@ $idcHasPhoto = (bool) idc_student_photo_file($db, $userId);
                 <?php endif; ?>
             </div>
             <div class="idp-actions">
-                <?php if (in_array($st, ['generated', 'ready', 'collected'], true)): ?>
+                <?php $idcDue = idc_reg_fee_due($db, (int) $en['id']); if ($idcDue > 0): ?>
+                    <span class="small text-warning fw-semibold"><i class="fas fa-lock me-1"></i>Pay the registration fee (KSh <?php echo number_format($idcDue); ?> left) to get your ID card</span>
+                <?php elseif (in_array($st, ['generated', 'ready', 'collected'], true)): ?>
                     <a class="btn btn-sm btn-outline-secondary rounded-pill" target="_blank" href="<?php echo $idcE(url('id_cards/pdf.php?id=' . (int) $card['id'])); ?>"><i class="fas fa-eye me-1"></i>View</a>
                     <a class="btn btn-sm btn-success rounded-pill" href="<?php echo $idcE(url('id_cards/pdf.php?id=' . (int) $card['id'] . '&dl=1')); ?>"><i class="fas fa-download me-1"></i>Download</a>
                 <?php elseif ((!$st || $st === 'declined') && !$idcHasPhoto): ?>
@@ -77,7 +79,7 @@ $idcHasPhoto = (bool) idc_student_photo_file($db, $userId);
                     <button class="btn btn-sm btn-success rounded-pill" data-bs-toggle="collapse" data-bs-target="#idpReq<?php echo (int) $en['id']; ?>"><i class="fas fa-paper-plane me-1"></i>Request ID card</button>
                 <?php endif; ?>
             </div>
-            <?php if ((!$st || $st === 'declined') && $idcHasPhoto): ?>
+            <?php if ((!$st || $st === 'declined') && $idcHasPhoto && $idcDue <= 0): ?>
                 <form method="POST" action="<?php echo $idcE($docsSelf); ?>" class="collapse w-100" id="idpReq<?php echo (int) $en['id']; ?>">
                     <?php echo csrf_field(); ?><input type="hidden" name="idc_action" value="request"><input type="hidden" name="registration_id" value="<?php echo (int) $en['id']; ?>">
                     <?php if ($en['study_mode'] !== 'physical'): ?>

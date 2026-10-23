@@ -22,17 +22,29 @@ $f = $a ? [
     'questions' => array_map(fn($q) => [(int) $q['id'], $q['text']], $am->questions($id)),
     'rubric' => array_map(fn($r) => [(int) $r['id'], $r['name'], (float) $r['max_marks']], $am->rubric($id)),
     'recipients' => $am->recipientIds($id),
-] : [
+    'kind' => (string) ($a['kind'] ?? 'daily'), 'weight' => (float) ($a['weight'] ?? 1), 'allow_resubmission' => ($a['allow_resubmission'] ?? null) === null ? 1 : (int) $a['allow_resubmission'],
+    'class_session_id' => (int) ($a['class_session_id'] ?? 0), 'quiz' => array_map(fn($q) => [(int) $q['id'], $q['qtype'], $q['prompt'], $q['options'], (int) $q['correct_option'], (float) $q['points']], $am->quizQuestions($id)),
+    'overrides' => [], 'groups_on' => (int) !empty($a['group_size']), 'groups' => $am->groupMap($id),
+    'show_at' => !empty($a['publish_at']) ? 'later' : 'now', 'publish_date' => AssignmentModel::local($a['publish_at'] ?? null, 'Y-m-d'), 'publish_time' => AssignmentModel::local($a['publish_at'] ?? null, 'H:i') ?: '08:00',
+    'release' => !empty($a['release_grades_at']) ? 'later' : 'now', 'release_date' => AssignmentModel::local($a['release_grades_at'] ?? null, 'Y-m-d'), 'release_time' => AssignmentModel::local($a['release_grades_at'] ?? null, 'H:i') ?: '09:00',
+] + array_combine(['submit_code', 'submit_audio', 'submit_quiz', 'no_submission', 'check_links', 'block_bad_links', 'require_own_work', 'ask_ai_note', 'remind_enabled', 'remind_whatsapp'], array_map(fn($c) => (int) ($a[$c] ?? ($c === 'check_links' ? 1 : 0)), ['submit_code', 'submit_audio', 'submit_quiz', 'no_submission', 'check_links', 'block_bad_links', 'require_own_work', 'ask_ai_note', 'remind_enabled', 'remind_whatsapp'])) : [
     'course_id' => (int) ($_GET['course'] ?? (count($courses) === 1 ? array_key_first($courses) : 0)), 'title' => '', 'description' => '', 'details' => '', 'instructions' => '',
     'due_date' => '', 'due_time' => '17:00', 'types' => ['link'], 'link_sites' => [], 'grading_mode' => 'marks', 'max_score' => 100,
     'pass_mark_percent' => $am->gradeScale()['pass'], 'sequential_lock' => 1, 'close_after_due' => 1, 'max_extension_days' => 7,
     'questions' => [], 'rubric' => [], 'recipients' => [],
+    'kind' => in_array($_GET['kind'] ?? '', array_keys(AssignmentModel::KINDS), true) ? $_GET['kind'] : 'daily', 'weight' => 1.0, 'allow_resubmission' => 1,
+    'show_at' => 'now', 'publish_date' => '', 'publish_time' => '08:00', 'release' => 'now', 'release_date' => '', 'release_time' => '09:00',
+    'class_session_id' => 0, 'quiz' => [], 'overrides' => [], 'groups_on' => 0, 'groups' => [],
+    'submit_code' => 0, 'submit_audio' => 0, 'submit_quiz' => 0, 'no_submission' => 0, 'check_links' => 1, 'block_bad_links' => 0,
+    'require_own_work' => 0, 'ask_ai_note' => 0, 'remind_enabled' => 1, 'remind_whatsapp' => 0,
 ];
+$tutorClasses = $am->tutorClasses($me);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     asg_csrf_or_back('edit.php' . ($id ? '?id=' . $id : ''));
     $p = $_POST;
-    $publish = ($p['action'] ?? '') === 'publish';
+    // A template is never shown to students: Use it from the Templates tab to make a real assignment.
+    $publish = ($p['action'] ?? '') === 'publish' && !(int) ($a['is_template'] ?? 0);
     $courseId = (int) ($p['course_id'] ?? 0);
     $types = array_values(array_intersect(array_keys(AssignmentModel::SUBMIT_TYPES), (array) ($p['types'] ?? [])));
     $questions = [];
@@ -55,7 +67,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'sequential_lock' => !empty($p['sequential_lock']) ? 1 : 0, 'close_after_due' => !empty($p['close_after_due']) ? 1 : 0,
         'max_extension_days' => (int) ($p['max_extension_days'] ?? 7),
         'questions' => $questions, 'rubric' => $rubric, 'recipients' => array_values(array_unique(array_map('intval', (array) ($p['students'] ?? [])))),
+        'kind' => isset(AssignmentModel::KINDS[$p['kind'] ?? '']) ? $p['kind'] : 'daily', 'weight' => round((float) ($p['weight'] ?? 1), 2),
+        'allow_resubmission' => !empty($p['allow_resubmission']) ? 1 : 0,
+        'show_at' => ($p['show_at'] ?? '') === 'later' ? 'later' : 'now', 'publish_date' => trim((string) ($p['publish_date'] ?? '')), 'publish_time' => trim((string) ($p['publish_time'] ?? '')) ?: '08:00',
+        'release' => ($p['release'] ?? '') === 'later' ? 'later' : 'now', 'release_date' => trim((string) ($p['release_date'] ?? '')), 'release_time' => trim((string) ($p['release_time'] ?? '')) ?: '09:00',
     ];
+    foreach (['submit_code', 'submit_audio', 'submit_quiz', 'no_submission', 'check_links', 'block_bad_links', 'require_own_work', 'ask_ai_note', 'remind_enabled', 'remind_whatsapp'] as $c) $f[$c] = !empty($p[$c]) ? 1 : 0;
+    if ($f['no_submission']) { $types = []; foreach (['submit_code', 'submit_audio', 'submit_quiz'] as $c) $f[$c] = 0; }
+    $f['class_session_id'] = (int) ($p['class_session_id'] ?? 0);
+    if ($f['class_session_id'] && !in_array($f['class_session_id'], array_map(fn($c) => (int) $c['id'], $tutorClasses), true)) $f['class_session_id'] = 0;
+    $f['quiz'] = [];
+    foreach ((array) ($p['qz_prompt'] ?? []) as $i => $qp) {
+        $qp = trim((string) $qp);
+        if ($qp === '') continue;
+        $qt = ($p['qz_type'][$i] ?? '') === 'truefalse' ? 'truefalse' : 'mcq';
+        $opts = $qt === 'mcq' ? array_values(array_filter(array_map(fn($o) => mb_substr(trim((string) $o), 0, 200), explode("\n", (string) ($p['qz_options'][$i] ?? ''))), 'strlen')) : ['True', 'False'];
+        $correct = (int) ($p['qz_correct'][$i] ?? 1) - 1;
+        if ($qt === 'mcq' && (count($opts) < 2 || count($opts) > 6)) $errors[] = 'Quiz question ' . (count($f['quiz']) + 1) . ' needs 2 to 6 choices (one per line).';
+        if ($correct < 0 || $correct >= count($opts)) $correct = 0;
+        $f['quiz'][] = [(int) ($p['qz_id'][$i] ?? 0), $qt, mb_substr($qp, 0, 1000), $opts, $correct, max(0.5, min(100, round((float) ($p['qz_points'][$i] ?? 1), 2)))];
+    }
+    if ($f['submit_quiz'] && !$f['quiz']) $errors[] = 'Add at least one quiz question, or turn Quiz questions off.';
+    $f['groups_on'] = !empty($p['groups_on']) ? 1 : 0;
+    $f['groups'] = [];
+    foreach ((array) ($p['group'] ?? []) as $gu => $gn) if ((int) $gn > 0 && in_array((int) $gu, $f['recipients'], true)) $f['groups'][(int) $gu] = (int) $gn;
+    if ($f['groups_on'] && $f['no_submission']) $errors[] = 'Group work needs a way to submit. Turn off "No submission" or groups.';
+    if ($f['groups_on'] && max(array_count_values($f['groups']) ?: [0]) > 3) $errors[] = 'A group can have up to 3 students.';
+    $f['overrides'] = [];
+    foreach ((array) ($p['ov_student'] ?? []) as $i => $ou) {
+        $ou = (int) $ou; $od = AssignmentModel::toUtc((string) ($p['ov_due'][$i] ?? ''));
+        if ($ou && $od) $f['overrides'][$ou] = $od;
+    }
+    // An assignment already shown to students cannot be scheduled again.
+    $canSchedule = !$a || $a['status'] === 'draft';
+    $publishUtc = $canSchedule && $f['show_at'] === 'later' ? AssignmentModel::toUtc($f['publish_date'] . ' ' . $f['publish_time']) : null;
+    $releaseUtc = $f['release'] === 'later' ? AssignmentModel::toUtc($f['release_date'] . ' ' . $f['release_time']) : null;
+    if ($canSchedule && $f['show_at'] === 'later' && (!$publishUtc || AssignmentModel::ts($publishUtc) <= time())) $errors[] = 'Set a future date and time to show it to students.';
+    if ($f['release'] === 'later' && !$releaseUtc) $errors[] = 'Set the date and time to release the grades.';
+    if ($f['weight'] <= 0 || $f['weight'] > 100) $errors[] = 'Weight must be more than 0 and up to 100.';
 
     // Course and students: only the tutor's own. A course of an older assignment with no course may stay empty.
     $keepNoCourse = $a && !$a['course_id'] && !$courseId;
@@ -71,7 +120,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($f['description'] === '' || mb_strlen($f['description']) > 500) $errors[] = 'Write a short description (up to 500 characters).';
     if (!$dueUtc) $errors[] = 'Set the due date and time.';
     if (trim(strip_tags($f['details'])) === '') $errors[] = 'Write the assignment details.';
-    if (!$types) $errors[] = 'Tick at least one way students can submit.';
+    if (!$types && !$f['submit_code'] && !$f['submit_audio'] && !$f['submit_quiz'] && !$f['no_submission']) $errors[] = 'Tick at least one way students can submit.';
+    if (array_diff(array_keys($f['overrides']), $f['recipients'])) $errors[] = 'A different due date can only be given to a student who sees the assignment.';
     if ($f['grading_mode'] === 'marks') {
         if ($f['max_score'] < 1 || $f['max_score'] > 1000) $errors[] = 'Marks out of must be between 1 and 1000.';
         if ($rubric && abs(array_sum(array_column($rubric, 2)) - $f['max_score']) > 0.001) {
@@ -107,9 +157,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'link_sites' => $f['link_sites'] && in_array('link', $types, true) ? implode(',', $f['link_sites']) : null,
             'grading_mode' => $f['grading_mode'], 'max_score' => $f['grading_mode'] === 'marks' ? $f['max_score'] : 100,
             'pass_mark_percent' => $f['pass_mark_percent'],
+            'kind' => $f['kind'], 'weight' => $f['weight'], 'allow_resubmission' => $f['allow_resubmission'],
+            'release_grades_at' => $releaseUtc, 'class_session_id' => $f['class_session_id'] ?: null,
         ];
+        foreach (['submit_code', 'submit_audio', 'submit_quiz', 'no_submission', 'check_links', 'block_bad_links', 'require_own_work', 'ask_ai_note', 'remind_enabled', 'remind_whatsapp'] as $c) $data[$c] = $f[$c];
+        $data['group_size'] = $f['groups_on'] ? 3 : null;
+        // Only Publish schedules; Save draft keeps (or makes) it a plain draft that the cron never publishes.
+        if ($canSchedule) $data['publish_at'] = $publish ? $publishUtc : null;
         $saved = $am->save($tutorId, $id ?: null, $data, $questions, $f['grading_mode'] === 'marks' ? $rubric : [], $f['recipients'], $me);
         $id = $saved['id'];
+        $am->saveQuizQuestions($id, $f['submit_quiz'] ? $f['quiz'] : []);
+        // Groups can change only until somebody has sent work, so nobody's work moves to another group.
+        if (!$am->hasSubmissions($id)) $am->saveGroups($id, $f['groups_on'] ? $f['groups'] : []);
+        // A different due date for one student (Late is judged against it).
+        foreach ($f['overrides'] as $ou => $od) $am->setStudentDue($id, $ou, $od, $me, 'due_override');
 
         // Attachments: removals, then new files (private storage) and links.
         foreach ($removeAtt as $rid) $am->removeAttachment($id, $rid);
@@ -130,7 +191,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $fresh = $am->get($id);
         $msg = 'Saved as a draft. Students cannot see it yet.';
-        if ($publish && $fresh['status'] === 'draft') {
+        if ($publish && $fresh['status'] === 'draft' && $publishUtc) {
+            $am->log($id, $me, null, 'schedule', ['publish_at' => $publishUtc]);
+            $msg = 'Scheduled. Students will see it on ' . AssignmentModel::local($publishUtc) . ' EAT and get the email then.';
+        } elseif ($publish && $fresh['status'] === 'draft') {
             $uids = $am->publish($id, $me);
             (new AssignmentNotifier($pdo, $am))->published($am->get($id), $uids);
             $msg = 'Published. ' . count($uids) . ' student' . (count($uids) === 1 ? ' has' : 's have') . ' been emailed and notified.';
@@ -146,7 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $attachments = $id ? $am->attachments($id) : [];
 $isDraft = !$a || $a['status'] === 'draft';
-$orderNo = $a ? $am->number($a) : count(array_filter($am->listAll($tutorId), fn($x) => (int) $x['course_id'] === (int) $f['course_id'])) + 1;
+$orderNo = $a ? $am->number($a) : count(array_filter($am->listAll($tutorId), fn($x) => (int) $x['course_id'] === (int) $f['course_id'] && ($x['kind'] ?? 'daily') === $f['kind'])) + 1;
 $page_title = $a ? 'Edit assignment' : 'New assignment';
 $selCourse = $f['course_id'];
 // Students listed per course (a student in two of the tutor's courses appears under each); 0 = older assignment with no course.
@@ -174,6 +238,14 @@ ob_start();
                 <?php foreach ($courses as $cid => $ct): ?><option value="<?php echo (int) $cid; ?>" <?php echo (int) $cid === (int) $selCourse ? 'selected' : ''; ?>><?php echo asg_e($ct); ?></option><?php endforeach; ?>
             </select>
         </div>
+        <div class="mb-3"><label class="form-label fw-semibold">Kind</label>
+            <div class="d-flex gap-3">
+                <?php foreach (AssignmentModel::KINDS as $k => $lbl): ?>
+                <div class="form-check"><input class="form-check-input" type="radio" name="kind" value="<?php echo $k; ?>" id="kind<?php echo $k; ?>" <?php echo $f['kind'] === $k ? 'checked' : ''; ?>>
+                    <label class="form-check-label" for="kind<?php echo $k; ?>"><?php echo asg_e($lbl); ?></label></div>
+                <?php endforeach; ?>
+            </div>
+            <div class="small text-muted">Daily and weekly work are numbered and locked in their own order.</div></div>
         <div class="mb-3"><label class="form-label fw-semibold">Title</label>
             <input name="title" class="form-control" maxlength="120" required value="<?php echo asg_e($f['title']); ?>" placeholder="e.g. Build a login form"></div>
         <div class="mb-3"><label class="form-label fw-semibold">Description <span class="text-muted fw-normal">(short summary, shown at the top and in the email)</span></label>
@@ -250,7 +322,28 @@ ob_start();
             <div class="small text-muted" id="stuNone" style="display:none">No students of yours in this course.</div>
         </div>
         <div class="small fw-bold text-success mt-2"><span id="stuCount">0</span> selected</div>
+        <details class="mt-2 small"><summary class="fw-semibold text-success">Give one student a different due date</summary>
+            <div id="ovList" class="mt-2">
+                <div class="d-flex gap-2 mb-1"><select name="ov_student[]" class="form-select form-select-sm"><option value="">Student…</option>
+                    <?php foreach (($byCourse[(int) $selCourse] ?? []) as $ouid => $os): ?><option value="<?php echo (int) $ouid; ?>"><?php echo asg_e($os['full_name']); ?></option><?php endforeach; ?></select>
+                    <input type="datetime-local" name="ov_due[]" class="form-control form-control-sm"></div>
+            </div>
+            <div class="text-muted">Late is judged against this date. You can also change one student's date later from the assignment page.</div>
+        </details>
     </div>
+
+    <?php if ($isDraft): ?>
+    <div class="card-tutor p-3 mb-3">
+        <h6 class="fw-bold mb-1">Show to students</h6>
+        <div class="small text-muted mb-2">Choose when it appears. A scheduled assignment stays hidden until then, and students get the email at that time.</div>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <div class="form-check"><input class="form-check-input" type="radio" name="show_at" value="now" id="showNow" <?php echo $f['show_at'] === 'now' ? 'checked' : ''; ?>><label class="form-check-label small" for="showNow">Now</label></div>
+            <div class="form-check"><input class="form-check-input" type="radio" name="show_at" value="later" id="showLater" <?php echo $f['show_at'] === 'later' ? 'checked' : ''; ?>><label class="form-check-label small" for="showLater">On a date and time (EAT)</label></div>
+            <input type="date" name="publish_date" class="form-control form-control-sm w-auto" value="<?php echo asg_e($f['publish_date']); ?>">
+            <input type="time" name="publish_time" class="form-control form-control-sm w-auto" value="<?php echo asg_e($f['publish_time']); ?>">
+        </div>
+    </div>
+    <?php endif; ?>
 
     <div class="card-tutor p-3 mb-3">
         <h6 class="fw-bold mb-2">Students submit as</h6>
@@ -258,6 +351,36 @@ ob_start();
             <div class="form-check"><input class="form-check-input" type="checkbox" name="types[]" value="<?php echo $k; ?>" id="ty<?php echo $k; ?>" <?php echo in_array($k, $f['types'], true) ? 'checked' : ''; ?>>
                 <label class="form-check-label" for="ty<?php echo $k; ?>"><?php echo asg_e($lbl); ?></label></div>
         <?php endforeach; ?>
+        <?php foreach (['submit_code' => 'Code box (fixed-width text, never run)', 'submit_audio' => 'Audio recording (up to 2 minutes)', 'submit_quiz' => 'Quiz questions (marked by the system)', 'no_submission' => 'No submission (practical: you record the mark)'] as $k => $lbl): ?>
+            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" name="<?php echo $k; ?>" value="1" id="sw<?php echo $k; ?>" <?php echo $f[$k] ? 'checked' : ''; ?>>
+                <label class="form-check-label" for="sw<?php echo $k; ?>"><?php echo asg_e($lbl); ?></label></div>
+        <?php endforeach; ?>
+        <div id="quizBox" class="mt-2 <?php echo $f['submit_quiz'] ? '' : 'd-none'; ?>">
+            <div class="small fw-semibold mb-1">Quiz questions <span class="text-muted fw-normal">(multiple choice: one choice per line; wrong answers are hidden until grades are released)</span></div>
+            <div id="qzList">
+            <?php foreach ($f['quiz'] ?: [[0, 'mcq', '', [], 0, 1]] as $q): ?>
+                <div class="asg-box mb-2 qz-row"><input type="hidden" name="qz_id[]" value="<?php echo (int) $q[0]; ?>">
+                    <div class="d-flex gap-2 mb-1"><select name="qz_type[]" class="form-select form-select-sm w-auto"><option value="mcq">Multiple choice</option><option value="truefalse" <?php echo $q[1] === 'truefalse' ? 'selected' : ''; ?>>True or false</option></select>
+                        <input name="qz_points[]" type="number" min="0.5" step="0.5" class="form-control form-control-sm" style="max-width:90px" value="<?php echo asg_e((string) $q[5]); ?>" title="Points">
+                        <input name="qz_correct[]" type="number" min="1" class="form-control form-control-sm qz-c" style="max-width:110px" value="<?php echo (int) $q[4] + 1; ?>" title="Correct choice number">
+                        <button type="button" class="btn btn-sm btn-outline-secondary qz-del" aria-label="Remove">×</button></div>
+                    <input name="qz_prompt[]" class="form-control form-control-sm mb-1" placeholder="Question" value="<?php echo asg_e($q[2]); ?>">
+                    <textarea name="qz_options[]" class="form-control form-control-sm" rows="3" placeholder="Choices, one per line (multiple choice only)"><?php echo asg_e($q[1] === 'mcq' ? implode("\n", $q[3]) : ''); ?></textarea>
+                    <div class="small text-muted">The correct choice is the number in the third box (1 = first line; for True or false, 1 = True).</div></div>
+            <?php endforeach; ?>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-success" id="qzAdd">Add a quiz question</button>
+        </div>
+        <div class="form-check form-switch mt-2"><input class="form-check-input" type="checkbox" role="switch" name="groups_on" value="1" id="swGroups" <?php echo $f['groups_on'] ? 'checked' : ''; ?>>
+            <label class="form-check-label" for="swGroups">Students work in groups <span class="text-muted small">· one submission per group (up to 3 students), same mark and feedback</span></label></div>
+        <div id="groupBox" class="asg-box mt-2 small <?php echo $f['groups_on'] ? '' : 'd-none'; ?>">
+            <div class="text-muted mb-1">Give each chosen student a group number. Students with no number work alone.<?php echo $id && $am->hasSubmissions($id) ? ' Work has been sent, so groups can no longer change.' : ''; ?></div>
+            <?php foreach (($byCourse[(int) $selCourse] ?? []) as $guid => $gs): ?>
+                <div class="d-flex justify-content-between align-items-center py-1 grp-row" data-uid="<?php echo (int) $guid; ?>"><span><?php echo asg_e($gs['full_name']); ?></span>
+                    <select name="group[<?php echo (int) $guid; ?>]" class="form-select form-select-sm w-auto"><option value="0">Alone</option>
+                        <?php for ($gn = 1; $gn <= 20; $gn++): ?><option value="<?php echo $gn; ?>" <?php echo ($f['groups'][(int) $guid] ?? 0) === $gn ? 'selected' : ''; ?>>Group <?php echo $gn; ?></option><?php endfor; ?></select></div>
+            <?php endforeach; ?>
+        </div>
         <details class="mt-2 small" id="sitesBox" <?php echo $f['link_sites'] ? 'open' : ''; ?>><summary>Only accept links from some sites</summary>
             <div class="text-muted my-1">Leave all unticked to accept any https link.</div>
             <?php foreach (ASG_LINK_SITES as $host => $lbl): ?>
@@ -269,10 +392,31 @@ ob_start();
 
     <div class="card-tutor p-3 mb-3">
         <h6 class="fw-bold mb-1">Order</h6>
-        <div class="small text-muted mb-2">This <?php echo $a ? 'is' : 'will be'; ?> Assignment <?php echo (int) $orderNo; ?> in this course. Drag to reorder on the Assignments page.</div>
+        <div class="small text-muted mb-2">This <?php echo $a ? 'is' : 'will be'; ?> <?php echo $f['kind'] === 'weekly' ? 'Week' : 'Assignment'; ?> <?php echo (int) $orderNo; ?> in this course. Drag to reorder on the Assignments page.</div>
         <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" name="sequential_lock" value="1" id="seqLock" <?php echo $f['sequential_lock'] ? 'checked' : ''; ?>>
             <label class="form-check-label small" for="seqLock">Locked until the student submits the one before</label></div>
     </div>
+
+    <div class="card-tutor p-3 mb-3">
+        <h6 class="fw-bold mb-2">Rules</h6>
+        <?php foreach (['require_own_work' => ['Own-work tick before submitting', '"This is my own work."'], 'ask_ai_note' => ['Ask "Did you use AI? Tell us how."', 'Optional note from the student'],
+                        'check_links' => ['Check links before accepting', 'Warns the student if a Google Docs or Drive link is private'], 'block_bad_links' => ['Do not accept links that cannot be opened', '"Could not check" never blocks'],
+                        'remind_enabled' => ['Remind students who have not submitted', 'Email 24 hours and 1 hour before the due date'], 'remind_whatsapp' => ['Also send a WhatsApp or SMS reminder', 'Sent only when a gateway is set up']] as $k => [$lbl, $hint]): ?>
+            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" name="<?php echo $k; ?>" value="1" id="sw<?php echo $k; ?>" <?php echo $f[$k] ? 'checked' : ''; ?>>
+                <label class="form-check-label small" for="sw<?php echo $k; ?>"><?php echo asg_e($lbl); ?> <span class="text-muted">· <?php echo asg_e($hint); ?></span></label></div>
+        <?php endforeach; ?>
+    </div>
+
+    <?php if ($tutorClasses): ?>
+    <div class="card-tutor p-3 mb-3">
+        <h6 class="fw-bold mb-1">Connect it</h6>
+        <label class="form-label small mb-1">After this class</label>
+        <select name="class_session_id" class="form-select form-select-sm"><option value="0">None</option>
+            <?php foreach ($tutorClasses as $c): ?><option value="<?php echo (int) $c['id']; ?>" <?php echo (int) $c['id'] === (int) $f['class_session_id'] ? 'selected' : ''; ?>><?php echo asg_e(AssignmentModel::local($c['start_utc'], 'D j M, H:i') . ' · ' . $c['title']); ?></option><?php endforeach; ?>
+        </select>
+        <div class="small text-muted mt-1">Students see the class on the assignment page.</div>
+    </div>
+    <?php endif; ?>
 
     <div class="card-tutor p-3 mb-3">
         <h6 class="fw-bold mb-2">Grading</h6>
@@ -303,7 +447,18 @@ ob_start();
             <input name="template_name" class="form-control form-control-sm mt-1" placeholder="e.g. Coding project rubric">
         </div>
         <div class="input-group input-group-sm mt-2"><span class="input-group-text">Pass mark</span><input type="number" name="pass_mark_percent" min="1" max="100" class="form-control" value="<?php echo (int) $f['pass_mark_percent']; ?>"><span class="input-group-text">%</span></div>
+        <div class="input-group input-group-sm mt-2"><span class="input-group-text">Weight</span><input type="number" name="weight" min="0.25" max="100" step="0.25" class="form-control" value="<?php echo asg_e((string) (float) $f['weight']); ?>"><span class="input-group-text">in the course average</span></div>
+        <div class="small fw-semibold mt-3">Release grades</div>
+        <div class="small text-muted mb-1">Students will not see marks until you release them.</div>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+            <div class="form-check"><input class="form-check-input" type="radio" name="release" value="now" id="relNow" <?php echo $f['release'] === 'now' ? 'checked' : ''; ?>><label class="form-check-label small" for="relNow">As I mark</label></div>
+            <div class="form-check"><input class="form-check-input" type="radio" name="release" value="later" id="relLater" <?php echo $f['release'] === 'later' ? 'checked' : ''; ?>><label class="form-check-label small" for="relLater">On a date and time (EAT)</label></div>
+            <input type="date" name="release_date" class="form-control form-control-sm w-auto" value="<?php echo asg_e($f['release_date']); ?>">
+            <input type="time" name="release_time" class="form-control form-control-sm w-auto" value="<?php echo asg_e($f['release_time']); ?>">
+        </div>
         <hr>
+        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" name="allow_resubmission" value="1" id="allowResub" <?php echo $f['allow_resubmission'] ? 'checked' : ''; ?>>
+            <label class="form-check-label small" for="allowResub">Allow resubmission when I return the work</label></div>
         <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" name="close_after_due" value="1" id="closeDue" <?php echo $f['close_after_due'] ? 'checked' : ''; ?>>
             <label class="form-check-label small" for="closeDue">Closes after the due date <span class="text-muted">(off = accept late work, marked Late)</span></label></div>
         <div class="input-group input-group-sm mt-2"><span class="input-group-text">Students may ask for up to</span><input type="number" name="max_extension_days" min="0" max="60" class="form-control" value="<?php echo (int) $f['max_extension_days']; ?>"><span class="input-group-text">days extra</span></div>
@@ -379,6 +534,19 @@ $extra_js = <<<'JS'
         $$('#stuList .stu').forEach(function (r) { if (r.style.display !== 'none') $('input', r).checked = on; }); picker();
     });
     picker();
+    // Quiz questions: show when the switch is on; add and remove rows.
+    var qz = $('#swsubmit_quiz');
+    var sg = $('#swGroups');
+    if (sg) sg.addEventListener('change', function () { $('#groupBox').classList.toggle('d-none', !this.checked); });
+    if (qz) qz.addEventListener('change', function () { $('#quizBox').classList.toggle('d-none', !this.checked); });
+    $('#qzAdd').addEventListener('click', function () {
+        var row = $('#qzList .qz-row').cloneNode(true);
+        $$('input, textarea', row).forEach(function (i) { i.value = i.name === 'qz_points[]' || i.name === 'qz_correct[]' ? '1' : (i.name === 'qz_id[]' ? '0' : ''); });
+        $('#qzList').appendChild(row);
+    });
+    $('#qzList').addEventListener('click', function (e) {
+        if (e.target.classList.contains('qz-del') && $$('#qzList .qz-row').length > 1) e.target.closest('.qz-row').remove();
+    });
 })();
 </script>
 JS;

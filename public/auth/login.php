@@ -8,8 +8,12 @@ $error = '';
 $success = '';
 
 if (!empty($_SESSION['session_expired']) || ($_GET['error'] ?? '') === 'session_expired' || ($_GET['reason'] ?? '') === 'idle') {
-    $error = 'You were signed out after 5 minutes of inactivity. Please sign in again.';
+    $error = 'You were signed out after 30 minutes of inactivity. Please sign in again.';
     unset($_SESSION['session_expired']);
+}
+if (!empty($_SESSION['session_replaced'])) {
+    $error = 'You were signed out because your account was signed in on another device.';
+    unset($_SESSION['session_replaced']);
 }
 
 // Already signed in: offer to continue, but let a different account sign in on the same browser.
@@ -78,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
             session_regenerate_id(true);
+            session_guard_claim();   // students, tutors, interns, staff: this device signs out any other
 
             if (!empty($user['must_change_password'])) {
                 redirect(url('auth/change_password.php'));

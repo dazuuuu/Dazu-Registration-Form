@@ -1,18 +1,18 @@
 // public/assets/js/session-guard.js — added to signed-in pages by app/v1/helpers/session_guard.php.
-// Signs the user out after 5 minutes without activity, and when the last open tab of the site is closed.
+// Signs the user out after 30 minutes without activity, and when the last open tab of the site is closed.
 (function () {
     var el = document.querySelector('script[data-session-guard]');
     if (!el) return;
     var cfg;
     try { cfg = JSON.parse(el.getAttribute('data-session-guard')); } catch (e) { return; }
 
-    var idleMs = (cfg.idle || 300) * 1000;
+    var idleMs = (cfg.idle || 1800) * 1000;
     var lastActive = Date.now();
     var lastPing = Date.now();
     var leaving = false;
 
     function post(action, beacon) {
-        var body = new URLSearchParams({ action: action });
+        var body = new URLSearchParams({ action: action, page: cfg.page || '' });
         if (beacon && navigator.sendBeacon) return navigator.sendBeacon(cfg.ping, body);
         return fetch(cfg.ping, { method: 'POST', body: body, credentials: 'same-origin', keepalive: true }).catch(function () {});
     }
@@ -49,7 +49,17 @@
     beat();
     setInterval(beat, 2000);
 
+    // Coming back to the page (switching back to the app, or a page restored from the back/forward cache):
+    // tell the server at once so a "closed" report from when it went to the background is cancelled.
+    window.addEventListener('pageshow', function (e) { if (e.persisted) post('ping'); });
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { beat(); post('ping'); } });
+
+    // In the installed app, phones fire pagehide just for switching to another app, which would sign the user out.
+    // There only the idle limit applies.
+    var installedApp = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+
     window.addEventListener('pagehide', function () {
+        if (installedApp) return;
         var t = tabs(), now = Date.now(), others = 0;
         delete t[tabId];
         Object.keys(t).forEach(function (id) { if (now - t[id] < 6000) others++; else delete t[id]; });

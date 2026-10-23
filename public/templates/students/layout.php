@@ -15,9 +15,18 @@ require_once __DIR__ . '/../../../app/v1/models/Session.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/services/CertificateService.php';
 
-$portal_locked = $portal_locked ?? false;
 $slDb = \Models\Connection::getInstance()->getConnection();
 $slUid = (int) ($_SESSION['user_id'] ?? 0);
+if (!isset($portal_locked)) {
+    // Pages that don't check the fee lock themselves (assignments, documents…) still get the short menu.
+    try {
+        $st = $slDb->prepare("SELECT portal_locked FROM registrations WHERE user_id = ? AND status = 'approved' ORDER BY created_at DESC LIMIT 1");
+        $st->execute([$slUid]);
+        $portal_locked = (bool) $st->fetchColumn();
+    } catch (Throwable $e) {
+        $portal_locked = false;
+    }
+}
 $slMe = [];
 try {
     $st = $slDb->prepare(
@@ -55,6 +64,14 @@ if (cert_student_has_any($slUid)) {
 $slItems[] = ['announcements', 'Announcements', 'fa-bullhorn', url('students/announcements/index.php'), $slDir === 'announcements', false];
 $slItems[] = ['notifications', 'Notifications', 'fa-bell', url('students/notifications/index.php'), $slDir === 'notifications', false];
 
+if ($portal_locked) {
+    // Fees overdue: the course lessons are locked, but assignments and quizzes (receive, view, submit, grades),
+    // documents and payments stay open.
+    $slItems = array_values(array_filter($slItems, fn($i) => in_array($i[0], ['dashboard', 'payments', 'documents', 'assignments', 'classwork', 'notifications'], true)));
+    foreach ($slItems as &$slIt) { if (in_array($slIt[0], ['documents', 'assignments'], true)) { $slIt[5] = true; $slIt[6] = null; } }
+    unset($slIt);
+}
+
 $shell = [
     'portal'   => 'students',
     'role'     => 'Student portal',
@@ -63,10 +80,10 @@ $shell = [
     'user_sub' => $slMe['registration_no'] ?? 'Student',
     'photo'    => !empty($slMe['photo']) ? settings_asset_url($slMe['photo']) : null,
     'items'    => $slItems,
-    'menu'     => $portal_locked ? '' : '<li><a class="dropdown-item" href="' . url('students/documents/index.php') . '"><i class="fas fa-id-card me-2"></i>My documents &amp; ID card</a></li>'
+    'menu'     => '<li><a class="dropdown-item" href="' . url('students/documents/index.php') . '"><i class="fas fa-id-card me-2"></i>My documents &amp; ID card</a></li>'
                 . '<li><a class="dropdown-item" href="' . url('students/payments/index.php') . '"><i class="fas fa-receipt me-2"></i>Finance</a></li>',
     'logout'   => url(!empty($_SESSION['preview']) ? 'students/preview-exit.php' : 'auth/logout.php'),
-    'hide_nav' => $portal_locked,
+    'hide_nav' => false,
 ];
 ?>
 <!DOCTYPE html>

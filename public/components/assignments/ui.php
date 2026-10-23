@@ -98,5 +98,10 @@ a.asg-sq:hover{outline:3px solid rgba(68,160,36,.25)}
 .asg-drag{cursor:grab;color:#9a9d96}
 tr.asg-dragging{opacity:.4}
 .asg-tabs .btn{border-radius:999px;font-weight:600;font-size:.82rem}
+.asg-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.82rem;background:#2b2a2b;color:#e8f5e1;border-radius:10px;white-space:pre;tab-size:4}
+textarea.asg-code:focus{background:#2b2a2b;color:#e8f5e1}
+.asg-lc{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;border-radius:10px;padding:10px 12px;margin-bottom:6px;font-size:.8rem}
+.asg-lc-ok{background:#e7f4e1;color:#245c12}.asg-lc-warn{background:#fdf0d9;color:#7a4b00}.asg-lc-bad{background:#fbe3e1;color:#8f1d14}.asg-lc-grey{background:#eeefec;color:#373435}
+.asg-chip.lc-bad{background:#fdf0d9;color:#7a4b00}
 </style>
 CSS;

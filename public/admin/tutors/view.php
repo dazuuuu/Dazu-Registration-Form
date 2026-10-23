@@ -124,6 +124,9 @@ ob_start();
 ?>
 <?php if ($error): ?><div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
 <?php if (!$installed): ?><div class="alert alert-warning">Student status, moving and payroll need the latest system update. Open <strong>System → Updates</strong> and apply it (migration 048), then reload this page.</div><?php endif; ?>
+<div class="card mb-4"><div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <span><i class="fas fa-id-badge text-success me-1"></i><strong>Staff ID card &amp; signature</strong> <span class="small text-muted">Preview, photo and signature checks, printed name and ID number, print status.</span></span>
+    <a class="btn btn-sm btn-success" href="<?php echo htmlspecialchars(url('admin/tutors/id.php?id=' . $id)); ?>">Open ID card</a></div></div>
 <div class="row g-4">
 <div class="col-lg-8">
 <div class="card mb-4 border-danger"><div class="card-header fw-semibold text-danger">Delete tutor</div><div class="card-body d-flex justify-content-between align-items-center flex-wrap gap-2">

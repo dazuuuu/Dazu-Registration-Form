@@ -12,7 +12,8 @@ echo json_encode([
     'name' => $pwa['name'],
     'short_name' => $pwa['short_name'],
     'description' => $pwa['description'],
-    'start_url' => $scope . $pwa['start'],
+    // The clean address (no .php, no index.php), so opening the app never starts with a redirect.
+    'start_url' => url($pwa['portal'] . '/' . $pwa['start']),
     'scope' => $scope,
     'display' => 'standalone',
     'orientation' => 'portrait',
@@ -23,5 +24,5 @@ echo json_encode([
         ['src' => $root . "/assets/icons/$ico-512.png", 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'any'],
         ['src' => $root . "/assets/icons/$mask-512.png", 'sizes' => '512x512', 'type' => 'image/png', 'purpose' => 'maskable'],
     ],
-    'shortcuts' => array_map(fn($s) => ['name' => $s[0], 'url' => $scope . $s[1]], $pwa['shortcuts']),
+    'shortcuts' => array_map(fn($s) => ['name' => $s[0], 'url' => url($pwa['portal'] . '/' . $s[1])], $pwa['shortcuts']),
 ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT);

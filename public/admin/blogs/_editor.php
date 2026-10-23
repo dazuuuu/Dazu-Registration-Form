@@ -101,6 +101,17 @@ function dzInitEditor($el, extra) {
             dzFaq: dzInsertButton('fas fa-question-circle', 'FAQ', 'Add a question & answer', () => DZ_FAQ_HTML)
         },
         callbacks: Object.assign({
+            // Upload pictures as files (compressed on the server) instead of embedding them as base64 in the post.
+            onImageUpload: function (files) {
+                Array.prototype.forEach.call(files, function (f) {
+                    const fd = new FormData();
+                    fd.append('image', f);
+                    fetch(url('api/blog/upload_image.php'), { method: 'POST', body: fd, credentials: 'same-origin' })
+                        .then(function (r) { return r.json(); })
+                        .then(function (r) { if (r.ok) $el.summernote('insertImage', r.url); else alert('Image not added: ' + r.error); })
+                        .catch(function () { alert('The image could not be uploaded. Check your connection and try again.'); });
+                });
+            },
             onPaste: function (e) {
                 const clip = (e.originalEvent || e).clipboardData;
                 const id = dzYoutubeId(clip ? clip.getData('text/plain') : '');

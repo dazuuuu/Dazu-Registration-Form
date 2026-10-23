@@ -7,6 +7,7 @@ require_once __DIR__ . '/uploads.php';
 if (!defined('ASG_IMAGE_MAX')) {
     define('ASG_IMAGE_MAX', 5 * 1024 * 1024);
     define('ASG_FILE_MAX', 10 * 1024 * 1024);
+    define('ASG_AUDIO_MAX', 10 * 1024 * 1024);
     define('ASG_MAX_IMAGES', 10);
     define('ASG_MAX_FILES', 5);
     define('ASG_MAX_ATTACHMENTS', 10);
@@ -134,6 +135,24 @@ function asg_store_document(array $file, string $subdir, array $allowed, int $ma
         'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];
     return ['ok' => true, 'path' => "$subdir/$name", 'mime' => $mimes[$ext], 'bytes' => (int) filesize("$dir/$name")];
+}
+
+/**
+ * Store a recorded answer (browser MediaRecorder: WebM, Ogg or MP4 audio), up to 10 MB, after checking the real type.
+ * @return array{ok:bool, path?:string, mime?:string, bytes?:int, error?:string}
+ */
+function asg_store_audio(array $file, string $subdir): array
+{
+    if ($e = asg_upload_error($file, ASG_AUDIO_MAX)) return ['ok' => false, 'error' => 'The recording ' . $e];
+    $mime = asg_mime($file['tmp_name']);
+    $types = ['audio/webm' => 'webm', 'video/webm' => 'webm', 'audio/ogg' => 'ogg', 'audio/mp4' => 'm4a', 'video/mp4' => 'm4a', 'audio/x-m4a' => 'm4a', 'audio/mpeg' => 'mp3'];
+    if (!isset($types[$mime])) return ['ok' => false, 'error' => 'The recording is not a sound file.'];
+    $dir = asg_storage_dir() . '/' . $subdir;
+    if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) return ['ok' => false, 'error' => 'Could not create the upload folder.'];
+    $name = bin2hex(random_bytes(16)) . '.' . $types[$mime];
+    $moved = defined('UPLOAD_TEST_MODE') ? @copy($file['tmp_name'], "$dir/$name") : @move_uploaded_file($file['tmp_name'], "$dir/$name");
+    if (!$moved) return ['ok' => false, 'error' => 'The recording could not be saved.'];
+    return ['ok' => true, 'path' => "$subdir/$name", 'mime' => str_replace('video/', 'audio/', $mime), 'bytes' => (int) filesize("$dir/$name")];
 }
 
 /** Only http(s) links; returns the cleaned URL or null. */

@@ -22,6 +22,20 @@ $cardId = (int) ($course['id'] ?? 0);
     <?php if ($isFree): ?>
       <span class="absolute top-3 right-3 text-[10px] font-bold text-white bg-rose-500 px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">Free</span>
     <?php endif; ?>
+    <?php
+    // Intake Booking badge (only once intakes exist): Enrolment open / Enrolment closed. Book the next intake / Starts 4 Jan.
+    $ikBadge = null;
+    if (!$isFree && $cardId) {
+        try {
+            require_once __DIR__ . '/../../../app/v1/services/IntakeService.php';
+            $ikBadge = ik_badge(\Models\Connection::getInstance()->getConnection(), $cardId);
+        } catch (Throwable $ikErr) {
+            $ikBadge = null;
+        }
+    }
+    if ($ikBadge): $ikTone = ['open' => 'background:#44A024;color:#fff', 'closed' => 'background:#373435;color:#fff', 'soon' => 'background:#fff;color:#2f7a14'][$ikBadge[1]]; ?>
+      <span class="absolute top-3 left-3 max-w-[85%] text-[10px] font-bold px-2.5 py-1 rounded-full tracking-wide shadow-sm leading-tight" style="<?php echo $ikTone; ?>"><?php echo htmlspecialchars($ikBadge[0]); ?></span>
+    <?php endif; ?>
   </div>
 
   <div class="p-3 sm:p-5 flex-1 flex flex-col">

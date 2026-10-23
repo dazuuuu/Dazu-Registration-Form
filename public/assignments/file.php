@@ -37,6 +37,17 @@ if (($_GET['t'] ?? '') === 'att') {
     }
     $name = $f['original_name'] ?: $f['label'];
     $mime = $f['kind'] === 'pdf' ? 'application/pdf' : (str_ends_with($f['file_path'], '.png') ? 'image/png' : 'image/jpeg');
+} elseif (($_GET['t'] ?? '') === 'aud') {
+    // A recorded answer (id = submission id): the student who sent it, or their tutor. Never admin.
+    $sub = $am->submissionById($id);
+    if (!$sub || empty($sub['audio_path'])) asg_deny();
+    $a = $am->get((int) $sub['assignment_id']);
+    $ok = (int) $sub['student_user_id'] === $uid || in_array($uid, $am->groupMembers((int) $a['id'], (int) $sub['student_user_id']), true)
+        || ($tutor && (int) $a['tutor_id'] === (int) $tutor['id'] && $am->isTutorStudent((int) $tutor['id'], (int) $sub['student_user_id']));
+    $f = ['file_path' => $sub['audio_path']];
+    $ext = pathinfo((string) $sub['audio_path'], PATHINFO_EXTENSION);
+    $name = 'answer.' . $ext;
+    $mime = ['webm' => 'audio/webm', 'ogg' => 'audio/ogg', 'm4a' => 'audio/mp4', 'mp3' => 'audio/mpeg'][$ext] ?? 'application/octet-stream';
 } elseif (($_GET['t'] ?? '') === 'open') {
     // Open submission document: the student who sent it, the tutor it was sent to (still teaching them), or an admin.
     $f = os_get($db, $id);
@@ -50,6 +61,7 @@ if (($_GET['t'] ?? '') === 'att') {
     if (!$f) asg_deny();
     $a = $am->get((int) $f['assignment_id']);
     $ok = $isAdmin || (int) $f['student_user_id'] === $uid
+        || in_array($uid, $am->groupMembers((int) $a['id'], (int) $f['student_user_id']), true)   // group work: members share it
         || ($tutor && (int) $a['tutor_id'] === (int) $tutor['id'] && $am->isTutorStudent((int) $tutor['id'], (int) $f['student_user_id']));
     $name = $f['original_name'];
     $mime = $f['mime'];
@@ -58,7 +70,7 @@ if (!$ok) asg_deny();
 $path = asg_file_abs((string) $f['file_path']);
 if (!$path) asg_deny();
 
-$inline = !isset($_GET['download']) && in_array($mime, ['image/png', 'image/jpeg', 'application/pdf'], true);
+$inline = !isset($_GET['download']) && in_array($mime, ['image/png', 'image/jpeg', 'application/pdf', 'audio/webm', 'audio/ogg', 'audio/mp4', 'audio/mpeg'], true);
 $safe = preg_replace('/[^A-Za-z0-9 _.()-]/', '_', (string) $name) ?: 'file';
 header('Content-Type: ' . ($inline ? $mime : 'application/octet-stream'));
 header('Content-Length: ' . filesize($path));

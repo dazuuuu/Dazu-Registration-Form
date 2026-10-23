@@ -114,6 +114,7 @@ class RegistrationModel {
         $returning = $phone === 'N/A' ? null : $this->findPossibleReturningStudent($email, $phone);
         $referralNo = !empty($data['referral_registration_no']) ? trim($data['referral_registration_no']) : null;
         $locked = registration_number_lock($this->db);
+        $newId = 0;
         $regNo = registration_number_next($this->db, (int) $course['id']);
 
         $params = [
@@ -146,6 +147,7 @@ class RegistrationModel {
                      :payment_reference, :free_course_reason, :referral, :returning)";
             $params[':referral'] = $referralNo;
             $this->db->prepare($sql)->execute($params);
+            $newId = (int) $this->db->lastInsertId();   // before RELEASE_LOCK below, which resets it to 0
         } catch (\PDOException $e) {
             $missingReason = stripos($e->getMessage(), 'free_course_reason') !== false;
             if ($missingReason) {
@@ -159,6 +161,7 @@ class RegistrationModel {
                          :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
                          :payment_reference, :referral, :returning)";
                 $this->db->prepare($sql)->execute($params);
+            $newId = (int) $this->db->lastInsertId();   // before RELEASE_LOCK below, which resets it to 0
             } elseif ($referralNo !== null && str_contains($e->getMessage(), 'referral_registration_no')) {
                 unset($params[':referral']);
                 $sql = "INSERT INTO registrations
@@ -170,6 +173,7 @@ class RegistrationModel {
                          :registration_fee, :course_fee, :payment_plan, :installment_count, :installment_amount,
                          :payment_reference, :free_course_reason, :returning)";
                 $this->db->prepare($sql)->execute($params);
+            $newId = (int) $this->db->lastInsertId();   // before RELEASE_LOCK below, which resets it to 0
             } else {
                 throw $e;
             }
@@ -179,7 +183,7 @@ class RegistrationModel {
             }
         }
 
-        return ['ok' => true, 'id' => (int) $this->db->lastInsertId(), 'registration_no' => $regNo];
+        return ['ok' => true, 'id' => $newId, 'registration_no' => $regNo];
     }
 
     /**
@@ -292,4 +296,4 @@ class RegistrationModel {
         $stmt->execute([':status' => $status]);
         return $stmt->fetchAll();
     }
-}
+}

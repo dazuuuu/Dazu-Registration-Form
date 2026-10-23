@@ -141,7 +141,7 @@ if (!function_exists('upload_image')) {
         string $webDir,
         array $allowedExt = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'],
         int $maxBytes = MAX_IMAGE_UPLOAD_BYTES,
-        bool $optimize = false
+        bool $optimize = false   // images are kept exactly as uploaded (original quality)
     ): array {
         $v = validate_image_upload($file, $allowedExt, $maxBytes);
         if (!$v['ok']) {
@@ -159,9 +159,14 @@ if (!function_exists('upload_image')) {
         }
 
         $ext = $v['ext'];
-        $canOptimize = $optimize && extension_loaded('gd') && in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'avif'], true);
+        // Phone photos are often 5-16 MB: shrink them so pages (and the apps on mobile data) load fast.
+        // Small images are kept as they are; GIFs are never touched (they may be animated).
+        $dims = @getimagesize($file['tmp_name']);
+        $small = $dims && $dims[0] <= 1920 && $dims[1] <= 1920 && (int) ($file['size'] ?? 0) <= 400 * 1024;
+        $canOptimize = $optimize && !$small && extension_loaded('gd') && in_array($ext, ['jpg', 'jpeg', 'png', 'webp', 'avif'], true);
 
         if ($canOptimize) {
+            @ini_set('memory_limit', '512M');   // decoding a 4000x3000 photo needs ~50 MB
             $raw = @file_get_contents($file['tmp_name']);
             $srcImg = $raw !== false ? @imagecreatefromstring($raw) : false;
             if ($srcImg !== false) {
@@ -206,18 +211,21 @@ if (!function_exists('upload_image')) {
                 imagefilledrectangle($dstImg, 0, 0, $targetW, $targetH, $transparent);
                 imagecopyresampled($dstImg, $srcImg, 0, 0, 0, 0, $targetW, $targetH, $srcW, $srcH);
 
-                $outExt = function_exists('imagewebp') ? 'webp' : ($ext === 'png' ? 'png' : 'jpg');
+                // Same format as the upload (ID cards and PDFs read JPG/PNG); AVIF becomes WebP.
+                $outExt = $ext === 'png' ? 'png' : (in_array($ext, ['webp', 'avif'], true) && function_exists('imagewebp') ? 'webp' : 'jpg');
                 $name = time() . '_' . bin2hex(random_bytes(6)) . '.' . $outExt;
                 $dest = rtrim($absDir, '/\\') . DIRECTORY_SEPARATOR . $name;
 
                 $saved = false;
                 if ($outExt === 'webp') {
-                    $saved = @imagewebp($dstImg, $dest, 85);
+                    $saved = @imagewebp($dstImg, $dest, 82);
                 } elseif ($outExt === 'png') {
-                    $saved = @imagepng($dstImg, $dest, 7);
+                    $saved = @imagepng($dstImg, $dest, 9);
                 } else {
-                    $saved = @imagejpeg($dstImg, $dest, 85);
+                    imageinterlace($dstImg, true);   // progressive JPEG: shows quickly on slow connections
+                    $saved = @imagejpeg($dstImg, $dest, 82);
                 }
+
 
                 if ($saved) {
                     return ['ok' => true, 'path' => rtrim($webDir, '/') . '/' . $name];

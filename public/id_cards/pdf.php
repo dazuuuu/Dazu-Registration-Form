@@ -63,6 +63,10 @@ if (!$isStaff) {
         http_response_code(403);
         exit('Unauthorized access.');
     }
+    if (idc_reg_fee_due($db, (int) $card['registration_id']) > 0) {
+        http_response_code(403);
+        exit('Your ID card is available once the registration fee is paid.');
+    }
 }
 
 $print = $isStaff && !empty($_GET['print']);

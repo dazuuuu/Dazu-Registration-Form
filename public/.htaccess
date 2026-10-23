@@ -76,6 +76,8 @@ RewriteRule ^reset-password/?$ auth/reset_password.php [L,QSA]
 RewriteRule ^testimonials/submit/?$ testimonials/submit.php [L,QSA]
 RewriteRule ^blog/?$ blogs/index.php [L,QSA]
 RewriteRule ^blog/([^/]+)/?$ blogs/readmore.php?slug=$1 [L,QSA]
+# Tutor ID QR: verify/tutor/<token>
+RewriteRule ^verify/tutor/([A-Za-z0-9]{32,64})/?$ verify/tutor.php?t=$1 [L,QSA]
 RewriteRule ^(about|apply|contact|courses|gallery|projects|services|store|testimonials|verify)/?$ $1/index.php [L,QSA]
 
 # Extensionless pages: courses/view → courses/view.php

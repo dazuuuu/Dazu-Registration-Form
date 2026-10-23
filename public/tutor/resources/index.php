@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/TutorModel.php';
 require_once __DIR__ . '/../../../app/v1/models/ResourceModel.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/services/TutorIdService.php';
 
 use Models\Connection;
 use Models\TutorModel;
@@ -58,6 +59,16 @@ foreach ($documents as $doc) {
     if ($doc['doc_type'] === 'certificate' && !$certDoc) $certDoc = $doc;
 }
 
+// ID card and certificate status (the photo itself is uploaded on My ID & signature only).
+$tidT = staff_tutor($pdo, $userId);
+$tidOk = $tidT && tid_installed($pdo);
+$tidIdStatus = $tidOk ? tid_id_status($pdo, $tidT) : 'not_created';
+$tidPhoto = $tidOk ? (idc_student_photo_file($pdo, $userId) ? ($tidT['photo_status'] === 'none' ? 'ok' : $tidT['photo_status']) : 'none') : 'none';
+$tidHasSig = $tidT && sig_abs($tidT['signature_path']);
+$tidLink = url('tutor/profile/index.php');
+$tidTone = ['ok' => 'success', 'approved' => 'success', 'needs_update' => 'warning text-dark', 'requested' => 'danger', 'none' => 'secondary',
+            'preview_ready' => 'success', 'sent_to_print' => 'primary', 'printed' => 'dark', 'not_created' => 'secondary'];
+
 $page_title = 'Resources';
 ob_start();
 ?>
@@ -67,20 +78,12 @@ ob_start();
         <div class="card border-0 shadow-sm">
             <div class="card-header bg-white fw-semibold"><i class="fas fa-camera me-2"></i>Profile Photo (for ID)</div>
             <div class="card-body">
-                <p class="text-muted small">Upload a clear passport-style photo for your tutor ID card.</p>
-                <?php if ($photoUrl): ?>
-                    <div class="text-center mb-3">
-                        <img src="<?php echo htmlspecialchars($photoUrl); ?>" alt="Profile" class="rounded" style="max-width:160px;max-height:200px;object-fit:cover;">
-                        <p class="mt-2 small">Status: <span class="badge bg-<?php echo ['none'=>'secondary','pending'=>'warning','approved'=>'success','rejected'=>'danger'][$photoStatus] ?? 'secondary'; ?>"><?php echo ucfirst($photoStatus); ?></span></p>
-                    </div>
+                <p class="text-muted small">Your passport photo for the staff ID card is uploaded, checked and previewed in one place: <strong>My ID &amp; signature</strong>.</p>
+                <?php if ($tidPhoto !== 'none'): ?>
+                    <div class="text-center mb-3"><img src="<?php echo htmlspecialchars(url('id_cards/tutor_photo.php?u=' . $userId)); ?>" alt="Profile" class="rounded" style="width:128px;aspect-ratio:4/5;object-fit:cover;border:3px solid #44A024"></div>
                 <?php endif; ?>
-                <?php if ($error): ?><div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div><?php endif; ?>
-                <form method="POST" enctype="multipart/form-data">
-                    <?php echo csrf_field(); ?>
-                    <input type="hidden" name="action" value="upload_photo">
-                    <input type="file" name="profile_photo" class="form-control mb-3" accept="image/jpeg,image/png,image/webp" required>
-                    <button type="submit" class="btn btn-success"><i class="fas fa-upload me-1"></i> Upload Photo</button>
-                </form>
+                <p class="small mb-3">Status: <span class="badge bg-<?php echo $tidTone[$tidPhoto]; ?>"><?php echo TID_PHOTO_LABELS[$tidPhoto]; ?></span></p>
+                <a href="<?php echo htmlspecialchars($tidLink . '#tid-photo'); ?>" class="btn btn-success"><i class="fas fa-id-badge me-1"></i>Go to My ID &amp; signature</a>
             </div>
         </div>
     </div>
@@ -91,19 +94,19 @@ ob_start();
                 <ul class="list-group list-group-flush">
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <span><i class="fas fa-id-card me-2 text-success"></i>Tutor ID Card</span>
-                        <?php if ($idDoc): ?>
-                            <a href="<?php echo url('tutor/resources/download.php?id=' . (int)$idDoc['id']); ?>" class="btn btn-sm btn-outline-success"><i class="fas fa-download"></i> Download</a>
-                        <?php else: ?>
-                            <span class="badge bg-secondary">Pending</span>
-                        <?php endif; ?>
+                        <span class="d-flex gap-2 align-items-center">
+                            <span class="badge bg-<?php echo $tidTone[$tidIdStatus]; ?>"><?php echo TID_ID_LABELS[$tidIdStatus]; ?></span>
+                            <?php if ($idDoc): ?><a href="<?php echo url('tutor/resources/download.php?id=' . (int)$idDoc['id']); ?>" class="btn btn-sm btn-outline-success"><i class="fas fa-download"></i> Download</a><?php endif; ?>
+                            <a href="<?php echo htmlspecialchars($tidLink . '#tid-card'); ?>" class="btn btn-sm btn-outline-secondary">View preview</a>
+                        </span>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0">
                         <span><i class="fas fa-certificate me-2 text-success"></i>Certificate</span>
-                        <?php if ($certDoc): ?>
-                            <a href="<?php echo url('tutor/resources/download.php?id=' . (int)$certDoc['id']); ?>" class="btn btn-sm btn-outline-success"><i class="fas fa-download"></i> Download</a>
-                        <?php else: ?>
-                            <span class="badge bg-secondary">Pending</span>
-                        <?php endif; ?>
+                        <span class="d-flex gap-2 align-items-center">
+                            <span class="badge bg-<?php echo $tidHasSig ? 'success' : 'warning text-dark'; ?>"><?php echo $tidHasSig ? 'Sample ready' : 'Needs signature'; ?></span>
+                            <?php if ($certDoc): ?><a href="<?php echo url('tutor/resources/download.php?id=' . (int)$certDoc['id']); ?>" class="btn btn-sm btn-outline-success"><i class="fas fa-download"></i> Download</a><?php endif; ?>
+                            <a href="<?php echo htmlspecialchars($tidLink . '#tid-certificate'); ?>" class="btn btn-sm btn-outline-secondary">View preview</a>
+                        </span>
                     </li>
                 </ul>
             </div>

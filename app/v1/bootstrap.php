@@ -87,6 +87,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 require_once APP_V1_ROOT . '/helpers/session_guard.php';
 session_guard_check();
+define('DAZU_GUARD_ACTIVE', true);
 if (PHP_SAPI !== 'cli') {
     ob_start('session_guard_inject');
     ob_start('dazu_head_meta');      // favicon + share preview on every page

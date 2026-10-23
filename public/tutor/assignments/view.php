@@ -20,6 +20,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $am->setArchived($id, true, $me);
         asg_back('index.php', 'Assignment archived. Its submissions and grades are kept.');
     }
+    if ($action === 'release_grades') {
+        if (!AssignmentModel::gradesHeld($a)) asg_back($self, null, 'Grades for this assignment are not held.');
+        $am->releaseGradesNow($id, $me);
+        $n = (new AssignmentNotifier($pdo, $am))->gradesReleased($am->get($id));
+        AssignmentNotifier::flush();
+        asg_back($self, 'Grades released. ' . $n . ' student' . ($n === 1 ? ' was' : 's were') . ' told.');
+    }
+    if ($action === 'nudge_all' || $action === 'nudge') {
+        $who = $action === 'nudge_all' ? $am->recipientIds($id) : [(int) ($_POST['student'] ?? 0)];
+        $notifier = new AssignmentNotifier($pdo, $am);
+        $sent = $skipped = 0;
+        foreach ($who as $nu) {
+            if (!in_array($nu, $am->recipientIds($id), true) || !$am->isTutorStudent($tutorId, $nu)) continue;
+            $sub = $am->submission($id, $nu);
+            if ($sub && $sub['submitted_at']) continue;
+            if ($am->recordNudge($id, $nu, $tutorId, $me)) { $notifier->nudge($a, $nu); $sent++; } else { $skipped++; }
+        }
+        asg_back($self, $sent ? 'Nudge sent to ' . $sent . ' student' . ($sent === 1 ? '' : 's') . '.' . ($skipped ? ' ' . $skipped . ' already nudged in the last 6 hours.' : '') : null,
+            $sent ? null : 'Nobody to nudge. Students can be nudged once every 6 hours.');
+    }
     $uid = (int) ($_POST['student'] ?? 0);
     if (!in_array($uid, $am->recipientIds($id), true) || !$am->isTutorStudent($tutorId, $uid)) asg_back($self, null, 'That student is not on this assignment.');
     $notifier = new AssignmentNotifier($pdo, $am);
@@ -60,6 +80,21 @@ if (($_GET['export'] ?? '') === 'csv') {
     exit;
 }
 
+$kpi = ['submitted' => 0, 'late' => 0, 'graded' => 0, 'returned' => 0];
+$notSent = $lateList = [];
+$markSum = $markN = 0;
+foreach ($rows as $ruid => $r) {
+    $sb = $r['sub'];
+    if ($sb && $sb['submitted_at']) {
+        $kpi['submitted']++;
+        if (!empty($sb['is_late'])) { $kpi['late']++; $lateList[$ruid] = $r; }
+        if ($sb['status'] === 'graded') { $kpi['graded']++; if ($a['grading_mode'] === 'marks' && $sb['score'] !== null) { $markSum += (float) $sb['score']; $markN++; } }
+        if ($sb['status'] === 'returned') $kpi['returned']++;
+    } elseif (!(int) ($a['no_submission'] ?? 0) && !in_array($r['item']['state'], ['skipped', 'locked'], true)) {
+        $notSent[$ruid] = $r;
+    }
+}
+$insights = $am->insights($id);
 $requests = [];
 foreach ($am->requests($tutorId, 'pending', $id) as $q) $requests[(int) $q['student_user_id']] = $q;
 $num = $am->number($a);
@@ -71,8 +106,9 @@ ob_start();
 <div class="card-tutor p-3 p-md-4 mb-3">
     <div class="d-flex flex-wrap justify-content-between gap-2">
         <div>
-            <h4 class="mb-1">Assignment <?php echo $num; ?>: <?php echo asg_e($a['title']); ?>
-                <?php if ($a['status'] === 'draft'): ?><span class="badge bg-secondary align-middle">DRAFT</span><?php endif; ?></h4>
+            <h4 class="mb-1"><?php echo ($a['kind'] ?? 'daily') === 'weekly' ? 'Week' : 'Assignment'; ?> <?php echo $num; ?>: <?php echo asg_e($a['title']); ?>
+                <?php if ($a['status'] === 'draft'): ?><span class="badge bg-secondary align-middle"><?php echo !empty($a['publish_at']) ? 'SCHEDULED ' . asg_e(AssignmentModel::local($a['publish_at'], 'D j M, H:i')) : 'DRAFT'; ?></span><?php endif; ?>
+                <?php if (AssignmentModel::gradesHeld($a)): ?><span class="badge bg-info text-dark align-middle"><i class="fas fa-lock"></i> Grades held until <?php echo asg_e(AssignmentModel::local($a['release_grades_at'], 'D j M, H:i')); ?></span><?php endif; ?></h4>
             <div class="small text-muted">Due <?php echo asg_e(AssignmentModel::local($a['due_at'])); ?> · <?php echo asg_e($a['course_title'] ?: 'No course'); ?> · <?php echo asg_e($a['types_text']); ?> ·
                 <?php echo $a['grading_mode'] === 'marks' ? 'Marks out of ' . (int) $a['max_score'] : asg_e(AssignmentModel::GRADING_MODES[$a['grading_mode']]); ?>
                 · <?php echo $a['sequential_lock'] ? 'Opens in order' : 'Always open'; ?> · <?php echo $a['close_after_due'] ? 'Closes at the due time' : 'Late work accepted'; ?></div>
@@ -81,6 +117,10 @@ ob_start();
             <a href="edit.php?id=<?php echo $id; ?>" class="btn btn-outline-dark btn-sm">Edit</a>
             <a href="<?php echo $self; ?>&export=csv" class="btn btn-outline-dark btn-sm"><i class="fas fa-download me-1"></i>Export CSV</a>
             <?php if ($a['status'] === 'draft'): ?><a href="edit.php?id=<?php echo $id; ?>" class="btn btn-brand btn-sm">Publish…</a><?php endif; ?>
+            <?php if (AssignmentModel::gradesHeld($a)): ?>
+            <form method="POST" class="d-inline" onsubmit="return confirm('Release the grades to students now?')"><?php echo csrf_field(); ?>
+                <input type="hidden" name="action" value="release_grades"><button class="btn btn-brand btn-sm"><i class="fas fa-lock-open me-1"></i>Release grades now</button></form>
+            <?php endif; ?>
         </div>
     </div>
     <div class="d-flex flex-wrap gap-2 mt-3">
@@ -89,6 +129,51 @@ ob_start();
         <?php endforeach; ?>
         <?php if (!$rows): ?><span class="small text-muted">No students on this assignment yet.</span><?php endif; ?>
     </div>
+</div>
+
+<div class="row g-2 mb-3">
+    <?php foreach ([['Submitted', $kpi['submitted'] . ' / ' . count($rows), count($rows) ? round($kpi['submitted'] / count($rows) * 100) . '%' : ''],
+                    ['Late', $kpi['late'], 'labelled Late, no penalty'], ['Graded', $kpi['graded'], max(0, $kpi['submitted'] - $kpi['graded'] - $kpi['returned']) . ' waiting'],
+                    ['Returned', $kpi['returned'], 'waiting for resubmission'],
+                    ['Average', $markN ? round($markSum / $markN, 1) . ' / ' . (int) $a['max_score'] : '–', 'graded so far']] as [$k, $v, $sub]): ?>
+        <div class="col-6 col-md"><div class="card-tutor p-3 h-100"><div class="small text-muted"><?php echo asg_e($k); ?></div><div class="fs-4 fw-bold"><?php echo asg_e((string) $v); ?></div><div class="small text-muted"><?php echo asg_e($sub); ?></div></div></div>
+    <?php endforeach; ?>
+</div>
+
+<div class="row g-3 mb-3">
+<div class="col-lg-6">
+    <div class="card-tutor p-3 mb-3" id="notsent">
+        <div class="d-flex justify-content-between align-items-center mb-2"><h6 class="fw-bold mb-0">Not submitted yet (<?php echo count($notSent); ?>)</h6>
+            <?php if ($notSent): ?><form method="POST"><?php echo csrf_field(); ?><input type="hidden" name="action" value="nudge_all"><button class="btn btn-sm btn-brand"><i class="fas fa-bell me-1"></i>Nudge all <?php echo count($notSent); ?></button></form><?php endif; ?></div>
+        <?php if (!$notSent): ?><div class="small text-muted">Everyone has sent it.</div><?php endif; ?>
+        <?php foreach ($notSent as $nuid => $r): ?>
+            <div class="d-flex align-items-center gap-2 py-1 border-bottom flex-wrap"><span class="flex-grow-1 small fw-semibold"><?php echo asg_e($r['student']['full_name']); ?></span>
+                <span class="asg-chip st-open"><?php echo asg_e(AssignmentModel::dueText($r['item']['due'])); ?></span>
+                <form method="POST"><?php echo csrf_field(); ?><input type="hidden" name="action" value="nudge"><input type="hidden" name="student" value="<?php echo (int) $nuid; ?>"><button class="btn btn-sm btn-outline-secondary">Nudge</button></form>
+                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#dueModal" data-action="extend" data-student="<?php echo (int) $nuid; ?>" data-name="<?php echo asg_e($r['student']['full_name']); ?>">More time</button></div>
+        <?php endforeach; ?>
+    </div>
+    <?php if ($lateList): ?>
+    <div class="card-tutor p-3"><div class="d-flex justify-content-between"><h6 class="fw-bold">Late (<?php echo count($lateList); ?>)</h6><span class="small text-muted">Marked Late. No marks taken off.</span></div>
+        <?php foreach ($lateList as $r): ?><div class="d-flex align-items-center gap-2 py-1 border-bottom"><span class="flex-grow-1 small fw-semibold"><?php echo asg_e($r['student']['full_name']); ?></span>
+            <a href="../submissions/grade.php?id=<?php echo (int) $r['sub']['id']; ?>" class="btn btn-sm btn-brand">Grade</a></div><?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+</div>
+<div class="col-lg-6">
+    <?php if ($insights): ?>
+    <div class="card-tutor p-3">
+        <h6 class="fw-bold mb-0">Where marks are lost</h6><div class="small text-muted mb-2">From the work graded so far. Use it to decide what to re-teach.</div>
+        <?php foreach ($insights as $in): $pc = (int) round($in['percent']); ?>
+            <div class="d-flex justify-content-between small fw-semibold"><span><?php echo asg_e($in['name']); ?></span><span class="text-muted"><?php echo $pc; ?>% of marks</span></div>
+            <div class="asg-bar mb-2"><i style="width:<?php echo $pc; ?>%;<?php echo $pc < 60 ? 'background:#e08a00' : ''; ?>"></i></div>
+        <?php endforeach; ?>
+        <?php foreach (array_filter($insights, fn($x) => $x['percent'] < 60) as $low): ?>
+            <div class="asg-lc asg-lc-warn"><i class="fas fa-triangle-exclamation"></i><div>Most of the class lost marks on "<?php echo asg_e($low['name']); ?>". Cover it in the next class.</div></div>
+        <?php endforeach; ?>
+    </div>
+    <?php endif; ?>
+</div>
 </div>
 
 <div class="card-tutor mb-3">

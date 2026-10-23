@@ -42,7 +42,7 @@ $docsMissing = docs_missing($db, $userId);
     </div>
     <div class="col-md-6">
         <div class="card border-0 shadow-sm h-100"><div class="card-body">
-            <h6 class="fw-bold mb-2">T-shirt size <span class="text-danger">*</span></h6>
+            <h6 class="fw-bold mb-2">T-shirt size</h6>
             <form method="POST" action="<?php echo htmlspecialchars($docsSelf); ?>" class="d-flex gap-2 flex-wrap align-items-center">
                 <?php echo csrf_field(); ?><input type="hidden" name="docs_action" value="tshirt">
                 <select name="tshirt_size" class="form-select form-select-sm" style="max-width:160px" required>
@@ -58,12 +58,32 @@ $docsMissing = docs_missing($db, $userId);
     </div>
 </div>
 
+<?php if (SessionModel::get('role') === 'student'): ?>
+<div class="card border-0 shadow-sm mb-3" id="signature"><div class="card-body">
+    <h6 class="fw-bold mb-2">My signature <span class="text-danger">*</span></h6>
+    <div class="d-flex gap-3 align-items-center flex-wrap">
+        <?php if (!empty($docsProfile['signature_path'])): ?>
+            <div class="rounded border bg-white p-2"><img src="<?php echo htmlspecialchars(url($docsProfile['signature_path'])); ?>" alt="Your signature" style="height:56px;max-width:220px;object-fit:contain"></div>
+        <?php else: ?>
+            <div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted small" style="width:200px;height:72px"><i class="fas fa-signature me-1"></i>No signature yet</div>
+        <?php endif; ?>
+        <form method="POST" enctype="multipart/form-data" action="<?php echo htmlspecialchars($docsSelf); ?>" class="flex-grow-1" style="min-width:200px">
+            <?php echo csrf_field(); ?><input type="hidden" name="docs_action" value="signature">
+            <input type="file" name="signature" class="form-control form-control-sm mb-2" accept="image/png,image/jpeg" required>
+            <button class="btn btn-sm btn-success"><i class="fas fa-upload me-1"></i><?php echo empty($docsProfile['signature_path']) ? 'Upload signature' : 'Change signature'; ?></button>
+            <div class="form-text">Sign in dark ink on plain white paper and take a clear photo, or upload a PNG. Max 2 MB. It is printed on your student ID card automatically.</div>
+        </form>
+    </div>
+</div></div>
+<?php endif; ?>
+
 <div class="card border-0 shadow-sm mb-3"><div class="card-body">
     <h6 class="fw-bold mb-1">Submit academic documents <span class="text-danger">*</span></h6>
-    <p class="text-muted small mb-3">PDF only, up to 10 MB each. Select one or more files, give each a name (e.g. "KCSE Certificate", "National ID"), then submit. The admin will see them.</p>
+    <p class="text-muted small mb-3">PDF, JPG or PNG (a clear photo or scan), up to 10 MB each. Select one or more files, choose or type what each one is (e.g. "KCSE Certificate", "National ID", "Passport"), then submit. The office will see them.</p>
     <form method="POST" enctype="multipart/form-data" action="<?php echo htmlspecialchars($docsSelf); ?>" id="docsForm">
         <?php echo csrf_field(); ?><input type="hidden" name="docs_action" value="upload">
-        <input type="file" id="docsPicker" class="form-control mb-3" accept="application/pdf" multiple>
+        <input type="file" id="docsPicker" class="form-control mb-3" accept="application/pdf,image/jpeg,image/png" multiple>
+        <datalist id="docsTypes"><?php foreach (['KCSE Certificate', 'KCPE Certificate', 'Academic Transcript', 'Diploma / Degree Certificate', 'Other Academic Certificate', 'National ID', 'Passport', 'Birth Certificate', 'Recommendation Letter', 'Medical Form'] as $dt): ?><option value="<?php echo $dt; ?>"><?php endforeach; ?></datalist>
         <div id="docsRows"></div>
         <button class="btn btn-success d-none" id="docsSubmit"><i class="fas fa-paper-plane me-1"></i>Submit documents</button>
     </form>
@@ -78,7 +98,7 @@ $docsMissing = docs_missing($db, $userId);
             <?php foreach ($docsList as $d): ?>
                 <li class="list-group-item d-flex justify-content-between align-items-center gap-2 flex-wrap">
                     <div>
-                        <i class="fas fa-file-pdf text-danger me-2"></i><strong><?php echo htmlspecialchars($d['doc_name']); ?></strong>
+                        <i class="fas <?php echo preg_match('/\.(jpe?g|png)$/i', (string) $d['file_path']) ? 'fa-file-image text-primary' : 'fa-file-pdf text-danger'; ?> me-2"></i><strong><?php echo htmlspecialchars($d['doc_name']); ?></strong>
                         <div class="small text-muted"><?php echo htmlspecialchars((string) $d['original_name']); ?> · <?php echo date('d M Y', strtotime($d['uploaded_at'])); ?></div>
                     </div>
                     <div class="d-flex gap-1">
@@ -104,11 +124,11 @@ $docsMissing = docs_missing($db, $userId);
     function render() {
         rows.innerHTML = '';
         files.forEach(function (f, i) {
-            var guess = f.name.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ');
+            var guess = f.name.replace(/\.(pdf|jpe?g|png)$/i, '').replace(/[_-]+/g, ' ');
             rows.insertAdjacentHTML('beforeend',
                 '<div class="d-flex gap-2 align-items-center mb-2 flex-wrap">' +
-                '<span class="small text-muted text-truncate" style="max-width:220px"><i class="fas fa-file-pdf text-danger me-1"></i>' + esc(f.name) + '</span>' +
-                '<input type="text" name="doc_names[]" class="form-control form-control-sm flex-grow-1" style="min-width:180px" required maxlength="150" placeholder="Document name" value="' + esc(guess) + '">' +
+                '<span class="small text-muted text-truncate" style="max-width:220px"><i class="fas ' + (/^image\//.test(f.type) ? 'fa-file-image text-primary' : 'fa-file-pdf text-danger') + ' me-1"></i>' + esc(f.name) + '</span>' +
+                '<input type="text" name="doc_names[]" class="form-control form-control-sm flex-grow-1" style="min-width:180px" required maxlength="150" placeholder="What is it? e.g. KCSE Certificate" list="docsTypes" value="' + esc(guess) + '">' +
                 '<button type="button" class="btn btn-sm btn-outline-danger" data-i="' + i + '"><i class="fas fa-times"></i></button></div>');
         });
         submit.classList.toggle('d-none', files.length === 0);

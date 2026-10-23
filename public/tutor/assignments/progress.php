@@ -14,7 +14,7 @@ $cellLink = fn(array $item) => $item['sub_id'] && $item['submitted_at'] ? '../su
 if ($studentId) {
     if (!$am->isTutorStudent($tutorId, $studentId)) asg_back('progress.php', null, 'That student is not one of yours.');
     $student = $am->student($studentId);
-    $items = $am->chain($studentId, $tutorId);
+    $items = $am->chain($studentId, $tutorId, null, true);
     $page_title = 'Progress: ' . $student['full_name'];
 } else {
     $grid = $am->progress($tutorId, $courseId);

@@ -18,6 +18,17 @@ use Controllers\TutorController;
 $tc = new TutorCourseModel($pdo);
 $error = null;
 
+// Mark selected as Pass: bulk marking for "Pass or Not yet" work (own students only; checked again in the model).
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'bulk_pass') {
+    asg_csrf_or_back('index.php');
+    $done = $am->bulkPass($tutorId, (array) ($_POST['ids'] ?? []), $me);
+    $notifier = new AssignmentNotifier($pdo, $am);
+    foreach ($done as $sid) {
+        $ctx = $am->submissionForGrader($sid, $tutorId);
+        if ($ctx && !AssignmentModel::gradesHeld($ctx['a'])) $notifier->result($ctx['a'], $ctx['sub'], 'published');
+    }
+    asg_back('index.php', count($done) . ' marked as Pass.');
+}
 // Course builder grading (unchanged behaviour).
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_verify($_POST['csrf_token'] ?? null)) {
     $ctrl = new TutorController();
@@ -84,6 +95,10 @@ ob_start();
 </form>
 <div class="card-tutor">
     <?php if (!$rows): ?><div class="as-empty"><i class="fas fa-inbox"></i><?php echo $tab === 'awaiting' ? 'No submissions awaiting grading.' : 'Nothing here.'; ?></div><?php else: ?>
+    <?php $passRows = array_filter($rows, fn($r) => $r['status'] === 'submitted' && $r['grading_mode'] === 'pass'); ?>
+    <form method="POST" id="bulkPass"><?php echo csrf_field(); ?><input type="hidden" name="action" value="bulk_pass">
+    <?php if ($passRows): ?><div class="d-flex justify-content-end mb-2"><button class="btn btn-sm btn-outline-success" onclick="return confirm('Mark the selected work as Pass?')">Mark selected as Pass</button></div><?php endif; ?>
+    </form>
     <div class="table-responsive"><table class="table align-middle mb-0">
         <thead><tr><th>Student</th><th>Assignment and course</th><th>Submitted</th><th>Status</th><th></th></tr></thead>
         <tbody>
@@ -91,11 +106,12 @@ ob_start();
             $state = $r['status'] === 'graded' ? 'graded' : ($r['status'] === 'returned' ? 'returned' : 'submitted');
             $label = $r['status'] === 'submitted' ? ((int) $r['version'] > 1 ? 'Resubmitted' : 'Awaiting') : null; ?>
             <tr>
-                <td class="fw-semibold"><?php echo asg_e($r['full_name']); ?></td>
+                <td class="fw-semibold"><?php if ($r['status'] === 'submitted' && $r['grading_mode'] === 'pass'): ?><input type="checkbox" class="form-check-input me-2" form="bulkPass" name="ids[]" value="<?php echo (int) $r['id']; ?>" aria-label="Select"><?php endif; ?><?php echo asg_e($r['full_name']); ?></td>
                 <td><div class="fw-semibold"><?php echo asg_e($r['title']); ?></div><div class="small text-muted"><?php echo asg_e($r['course_title'] ?: 'No course'); ?></div></td>
                 <td class="small"><?php echo asg_e(AssignmentModel::local($r['submitted_at'], 'D j M, H:i')); ?><?php if ($r['is_late']): ?> <span class="asg-chip st-returned"><i class="fas fa-clock"></i>Late</span><?php endif; ?></td>
                 <td><?php echo $label === 'Resubmitted' ? '<span class="asg-chip st-extension"><i class="fas fa-rotate"></i>Resubmitted</span>' : asg_chip($state, $state === 'graded' ? AssignmentModel::resultText($r) : $label);
-                    if ($r['status'] === 'submitted' && $r['graded_at']): ?> <span class="small text-muted">draft grade</span><?php endif; ?></td>
+                    if ($r['status'] === 'submitted' && $r['graded_at']): ?> <span class="small text-muted">draft grade</span><?php endif; ?>
+                    <?php if (\LinkRules::isBad($r['link_status'] ?? null)): ?> <span class="asg-chip lc-bad">Needs access</span><?php endif; ?></td>
                 <td class="text-end"><a href="grade.php?id=<?php echo (int) $r['id']; ?>" class="btn btn-sm <?php echo $r['status'] === 'submitted' ? 'btn-brand' : 'btn-outline-secondary'; ?>"><?php echo $r['status'] === 'submitted' ? 'Grade' : 'Open'; ?></a></td>
             </tr>
         <?php endforeach; ?>

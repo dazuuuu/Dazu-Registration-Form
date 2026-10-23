@@ -1,12 +1,14 @@
 <?php
 // Tutor: My ID & signature. The passport photo goes on their staff ID card, which is issued and emailed automatically
 // once the photo is in. The signature is printed on the certificates of the students they trained (and on their card).
+// The page shows checks and watermarked previews of the real card and a sample certificate (components/tutor_id/panel.php).
 require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/helpers/lms_files.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/services/StaffIdService.php';
+require_once __DIR__ . '/../../../app/v1/services/TutorIdService.php';
 
 Middleware::requireTutor();
 $db = \Models\Connection::getInstance()->getConnection();
@@ -20,33 +22,31 @@ if (!$t) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
-        SessionModel::setFlash('error', 'Security check failed. Please refresh and try again.');
-    } else {
-        switch ($_POST['action'] ?? '') {
-            case 'photo':
-                $r = docs_save_photo($db, $uid, $_FILES['photo'] ?? []);
-                if (!$r['ok']) { SessionModel::setFlash('error', htmlspecialchars($r['error'])); break; }
-                $i = staff_issue($db, $uid);
-                SessionModel::setFlash('success', 'Passport photo saved.' . (!empty($i['issued']) ? ' Your staff ID card is ready' . (!empty($i['emailed']) ? ' and was emailed to you.' : '.') : ''));
-                break;
-            case 'signature':
-                $r = sig_store($_FILES['signature'] ?? []);
-                if (!$r['ok']) { SessionModel::setFlash('error', htmlspecialchars($r['error'])); break; }
-                $db->prepare('UPDATE tutors SET signature_path = ? WHERE id = ?')->execute([$r['path'], (int) $t['id']]);
-                sig_delete($t['signature_path']);
-                if (!empty($t['staff_no'])) staff_issue($db, $uid);
-                SessionModel::setFlash('success', 'Signature saved. It will appear on the certificates of students you trained.');
-                break;
-            case 'email_id':
-                if (empty($t['staff_no'])) break;
-                $card = staff_card($db, $t);
-                $r = idc_send_pdf_email($t['email'], $t['full_name'], 'Your Dazu staff ID card', 'Your staff ID card is attached, as you asked.', idc_pdf_bytes($card), idc_pdf_filename($card));
-                $sent = $r['ok'] && empty($r['skipped']);
-                SessionModel::setFlash($sent ? 'success' : 'error', $sent ? 'Sent to ' . htmlspecialchars($t['email']) . '.' : 'The email could not be sent. Download the card instead.');
-                break;
+        $_SESSION['tid_flash'] = ['error', 'Security check failed. Please refresh and try again.'];
+    } elseif (($_POST['action'] ?? '') === 'github') {
+        // Optional: shown to students in "add your tutor as a collaborator" when their GitHub link is private.
+        $gh = ltrim(trim((string) ($_POST['github_username'] ?? '')), '@');
+        if ($gh !== '' && !preg_match('/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/', $gh)) {
+            $_SESSION['tid_flash'] = ['error', 'That is not a valid GitHub name.'];
+        } else {
+            try {
+                $db->prepare("UPDATE tutors SET github_username = ? WHERE user_id = ?")->execute([$gh !== '' ? $gh : null, $uid]);
+                $_SESSION['tid_flash'] = ['success', $gh !== '' ? 'GitHub name saved.' : 'GitHub name removed.'];
+            } catch (Throwable $e) {
+                $_SESSION['tid_flash'] = ['error', 'Ask the office to run System Updates first.'];
+            }
         }
+    } elseif (($_POST['action'] ?? '') === 'email_id') {
+        if (!empty($t['staff_no'])) {
+            $card = staff_card($db, $t);
+            $r = idc_send_pdf_email($t['email'], $t['full_name'], 'Your Dazu staff ID card', 'Your staff ID card is attached, as you asked.', idc_pdf_bytes($card), idc_pdf_filename($card));
+            $sent = $r['ok'] && empty($r['skipped']);
+            $_SESSION['tid_flash'] = [$sent ? 'success' : 'error', $sent ? 'Sent to ' . $t['email'] . '.' : 'The email could not be sent. Please try again later.'];
+        }
+    } elseif (tid_installed($db)) {
+        $_SESSION['tid_flash'] = tid_handle_post($db, $t, false);   // photo, signature, edit info
     }
-    header('Location: ' . $self);
+    header('Location: ' . $self . (($_POST['tid_action'] ?? '') === 'display' ? '#tid-card' : ''));
     exit;
 }
 
@@ -55,64 +55,28 @@ if (empty($t['staff_no']) && idc_student_photo_file($db, $uid)) {
     staff_issue($db, $uid);
     $t = staff_tutor($db, $uid);
 }
-$st = $db->prepare('SELECT profile_photo_path FROM user_profiles WHERE user_id = ?');
-$st->execute([$uid]);
-$photo = (string) $st->fetchColumn();
-$sig = sig_data_uri($t['signature_path']);
-$e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
-
 $page_title = 'My ID & signature';
 ob_start();
+if (!tid_installed($db)) {
+    echo '<div class="alert alert-warning">This page is being updated. Ask the office to run System Updates (migration 080).</div>';
+} else {
+    $tidAdmin = false;
+    $tidSelf = $self;
+    require __DIR__ . '/../../components/tutor_id/panel.php';
+    if (!empty($t['staff_no'])) {
+        echo '<form method="POST" class="mt-3 text-end">' . csrf_field() . '<input type="hidden" name="action" value="email_id"><button class="btn btn-sm btn-outline-secondary"><i class="fas fa-envelope me-1"></i>Email my staff ID card to me</button></form>';
+    }
+}
+$ghSt = $db->prepare("SELECT * FROM tutors WHERE user_id = ?");
+$ghSt->execute([$uid]);
+$gh = (string) (($ghSt->fetch(PDO::FETCH_ASSOC) ?: [])['github_username'] ?? '');
 ?>
-<div class="row g-3">
-    <div class="col-lg-6">
-        <div class="card-tutor p-3 p-md-4 h-100">
-            <h6 class="fw-bold mb-1">Passport photo</h6>
-            <p class="small text-muted">A clear, front-facing photo on a plain background. It is printed on your staff ID card.</p>
-            <div class="d-flex gap-3 align-items-center flex-wrap">
-                <?php if ($photo): ?><img src="<?php echo $e(settings_asset_url($photo)); ?>" alt="Your passport photo" class="rounded border" style="width:84px;height:100px;object-fit:cover">
-                <?php else: ?><div class="rounded border d-flex align-items-center justify-content-center text-muted" style="width:84px;height:100px"><i class="fas fa-user fa-2x"></i></div><?php endif; ?>
-                <form method="POST" enctype="multipart/form-data" class="flex-grow-1"><?php echo csrf_field(); ?><input type="hidden" name="action" value="photo">
-                    <input type="file" name="photo" class="form-control form-control-sm mb-2" accept="image/jpeg,image/png,image/webp" required>
-                    <button class="btn btn-sm btn-brand"><i class="fas fa-upload me-1"></i><?php echo $photo ? 'Change photo' : 'Upload photo'; ?></button>
-                </form>
-            </div>
-        </div>
-    </div>
-    <div class="col-lg-6">
-        <div class="card-tutor p-3 p-md-4 h-100">
-            <h6 class="fw-bold mb-1">Signature</h6>
-            <p class="small text-muted">Sign in dark ink on plain white paper and upload a close, clear photo or scan. The background is removed automatically. It is printed on the certificates of the students you trained.</p>
-            <div class="d-flex gap-3 align-items-center flex-wrap">
-                <div class="rounded border d-flex align-items-center justify-content-center bg-white" style="width:180px;height:80px">
-                    <?php if ($sig): ?><img src="<?php echo $sig; ?>" alt="Your signature" style="max-width:170px;max-height:70px">
-                    <?php else: ?><span class="small text-muted">No signature yet</span><?php endif; ?>
-                </div>
-                <form method="POST" enctype="multipart/form-data" class="flex-grow-1"><?php echo csrf_field(); ?><input type="hidden" name="action" value="signature">
-                    <input type="file" name="signature" class="form-control form-control-sm mb-2" accept="image/jpeg,image/png" required>
-                    <button class="btn btn-sm btn-brand"><i class="fas fa-signature me-1"></i><?php echo $sig ? 'Replace signature' : 'Upload signature'; ?></button>
-                </form>
-            </div>
-        </div>
-    </div>
-    <div class="col-12">
-        <div class="card-tutor p-3 p-md-4">
-            <h6 class="fw-bold mb-1">Staff ID card</h6>
-            <?php if (empty($t['staff_no'])): ?>
-                <p class="small text-muted mb-0">Upload your passport photo and your staff ID card is created and emailed to you straight away.</p>
-            <?php else: ?>
-                <p class="small text-muted">Staff no. <strong><?php echo $e($t['staff_no']); ?></strong> · issued <?php echo $e(date('j M Y', strtotime($t['id_issued_at']))); ?>
-                    <?php echo $t['id_emailed_at'] ? ' · emailed to ' . $e($t['email']) : ''; ?></p>
-                <div class="d-flex flex-wrap gap-2">
-                    <a class="btn btn-sm btn-outline-secondary" target="_blank" href="<?php echo $e(url('id_cards/pdf.php?staff=' . $uid)); ?>"><i class="fas fa-eye me-1"></i>View</a>
-                    <a class="btn btn-sm btn-brand" href="<?php echo $e(url('id_cards/pdf.php?staff=' . $uid . '&dl=1')); ?>"><i class="fas fa-download me-1"></i>Download</a>
-                    <form method="POST" class="m-0"><?php echo csrf_field(); ?><input type="hidden" name="action" value="email_id">
-                        <button class="btn btn-sm btn-outline-dark"><i class="fas fa-envelope me-1"></i>Email it to me</button></form>
-                </div>
-            <?php endif; ?>
-        </div>
-    </div>
-</div>
+<form method="POST" class="card-tutor p-3 mt-3"><?php echo csrf_field(); ?><input type="hidden" name="action" value="github">
+    <label class="form-label fw-semibold mb-1" for="ghName">GitHub name <span class="text-muted fw-normal">(optional)</span></label>
+    <div class="small text-muted mb-2">When a student's GitHub project is private, we tell them to add you as a collaborator by this name.</div>
+    <div class="input-group input-group-sm" style="max-width:360px"><span class="input-group-text">@</span>
+        <input id="ghName" name="github_username" class="form-control" maxlength="39" value="<?php echo htmlspecialchars($gh, ENT_QUOTES, 'UTF-8'); ?>"><button class="btn btn-brand">Save</button></div>
+</form>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/../../templates/tutor/layout.php';

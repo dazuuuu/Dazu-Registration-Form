@@ -73,6 +73,10 @@ if (seo_is_social_crawler() && $_SERVER['REQUEST_METHOD'] !== 'POST') {
 $courseChoices = $courseModel->getAll(true);
 $allowCourseChange = true;
 
+// Intake Booking: decides whether the Enrol form shows (no intakes: always, exactly as before).
+$ikPart = 'prepare';
+include __DIR__ . '/../components/public/intake_panel.php';
+
 $reg_success = false;
 $reg_error = null;
 $issued_reg_no = '';
@@ -115,7 +119,9 @@ ob_start();
         <?php include __DIR__ . '/../components/public/dazu_course_sidebar.php'; ?>
       </div>
       <div class="lg:col-span-7">
-        <?php $pfx = 'view'; include __DIR__ . '/../components/public/dazu_admission_form.php'; ?>
+        <?php $ikPart = 'top'; include __DIR__ . '/../components/public/intake_panel.php'; ?>
+        <?php if ($ikShowForm || $reg_success): $pfx = 'view'; include __DIR__ . '/../components/public/dazu_admission_form.php'; endif; ?>
+        <?php $ikPart = 'after'; include __DIR__ . '/../components/public/intake_panel.php'; ?>
       </div>
     </div>
   </div>

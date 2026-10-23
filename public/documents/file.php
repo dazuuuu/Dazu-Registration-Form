@@ -21,8 +21,10 @@ if (!$path || strpos($path, realpath(docs_storage_dir())) !== 0 || !is_file($pat
     http_response_code(404);
     exit('File missing.');
 }
-$name = preg_replace('/[^A-Za-z0-9 _.-]/', '_', $doc['doc_name']) . '.pdf';
-header('Content-Type: application/pdf');
+$ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+$type = ['jpg' => 'image/jpeg', 'png' => 'image/png'][$ext] ?? 'application/pdf';
+$name = preg_replace('/[^A-Za-z0-9 _.-]/', '_', $doc['doc_name']) . '.' . ($type === 'application/pdf' ? 'pdf' : $ext);
+header('Content-Type: ' . $type);
 header('Content-Length: ' . filesize($path));
 header('Content-Disposition: ' . (isset($_GET['download']) ? 'attachment' : 'inline') . '; filename="' . $name . '"');
 header('X-Content-Type-Options: nosniff');

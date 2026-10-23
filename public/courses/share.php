@@ -37,6 +37,8 @@ $refParam = trim($_GET['ref'] ?? '');
 $referrer = course_share_resolve_referral($pdo, $refParam);
 $referralNo = $referrer ? $referrer['registration_no'] : null;
 
+$ikPart = 'prepare';
+include __DIR__ . '/../components/public/intake_panel.php';
 $reg_success = false;
 $reg_error = null;
 $issued_reg_no = '';
@@ -114,7 +116,9 @@ ob_start();
           $allowCourseChange = true;
           $courseChoices = $courseModel->getAll(true);
           $courseChangeUrl = url('courses/share.php') . ($refParam !== '' ? ('?ref=' . rawurlencode($refParam)) : '');
-          include __DIR__ . '/../components/public/dazu_admission_form.php';
+          $ikPart = 'top'; include __DIR__ . '/../components/public/intake_panel.php';
+          if ($ikShowForm || $reg_success) include __DIR__ . '/../components/public/dazu_admission_form.php';
+          $ikPart = 'after'; include __DIR__ . '/../components/public/intake_panel.php';
         ?>
       </div>
     </div>

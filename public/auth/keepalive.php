@@ -12,7 +12,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_SESSION['logged_in'])) {
 }
 
 if (($_POST['action'] ?? '') === 'close') {
-    $_SESSION['closing_at'] = time();
+    // Ignored when a newer page has opened since (the report arrived late).
+    if (hash_equals((string) ($_SESSION['page_token'] ?? ''), (string) ($_POST['page'] ?? ''))) {
+        $_SESSION['closing_at'] = time();
+    }
 } else {
     $_SESSION['last_activity'] = time();
 }

@@ -85,7 +85,8 @@ class AssignmentNotifier
             PortalNotifications::notify($this->db, $uid, 'grade', 'Returned for changes: ' . $a['title'], 'Read your tutor\'s comments and resubmit.', $path, $icon);
             $this->mail((int) $a['id'], $st, 'Returned for changes', 'Your tutor returned: ' . $a['title'],
                 '<p>Your tutor has looked at <strong>' . self::e($a['title']) . '</strong> and asked for some changes.</p>'
-                . self::card('What to change', nl2br(self::e((string) $sub['feedback_why'])), $sub['feedback_improve'] ? nl2br(self::e((string) $sub['feedback_improve'])) : '')
+                . self::card('What to change', nl2br(self::e((string) $sub['feedback_why'])), ($sub['feedback_improve'] ? nl2br(self::e((string) $sub['feedback_improve'])) : '')
+                    . (!empty($sub['resubmit_by']) ? '<br>Resubmit by ' . self::e(AssignmentModel::local($sub['resubmit_by'], 'D j M, g:i A')) . ' EAT. It will not be marked Late.' : ''))
                 . self::button('Open and resubmit', $path));
             return;
         }
@@ -97,6 +98,19 @@ class AssignmentNotifier
             '<p>Your tutor has ' . ($updated ? 'updated the result' : 'marked your work') . ' for <strong>' . self::e($a['title']) . '</strong>.</p>'
             . self::card($res, 'Open it to see why you got this result and what to improve.', '')
             . self::button('View result', $path));
+    }
+
+    /**
+     * Held grades reached their release time: tell each student once. The assignment is claimed first
+     * (markReleaseNotified), so a second cron run or a double click never sends twice. Returns how many were told.
+     */
+    public function gradesReleased(array $a): int
+    {
+        if (!$this->m->markReleaseNotified($a)) return 0;
+        $subs = $this->m->heldGradedSubmissions($a);
+        foreach ($subs as $sub) $this->result($a, $sub, 'published');
+        $this->m->log((int) $a['id'], null, null, 'grades_released', ['students' => count($subs)]);
+        return count($subs);
     }
 
     public function extensionRequested(int $requestId): void
@@ -167,6 +181,60 @@ class AssignmentNotifier
             . self::card('Assignment ' . $item['index'] . ': ' . $item['title'], 'Due: ' . AssignmentModel::local($item['due'], 'l j F Y, H:i'), 'If you need more time, ask for an extension before the due time.')
             . self::button('Open assignment', $path));
         return true;
+    }
+
+    /** Receipt after every send: dashboard notice and a short email. */
+    public function receipt(array $item, int $uid, int $version, bool $late): void
+    {
+        $path = 'students/assignments/view.php?id=' . (int) $item['id'];
+        $held = AssignmentModel::gradesHeld($item);
+        PortalNotifications::notify($this->db, $uid, 'assignment', 'We got your work: ' . $item['title'], 'Version ' . $version . ($late ? ' · Late' : ' · On time'), $path);
+        $this->mail((int) $item['id'], $this->m->student($uid), 'Receipt', 'We got your work: ' . $item['title'],
+            '<p><strong>Thank you. We received your work.</strong> This is your receipt. Your tutor will mark it. Marks show when your tutor releases them.</p>'
+            . self::card($item['title'], 'Sent: ' . AssignmentModel::local(AssignmentModel::now(), 'D j M Y, g:i A') . ' EAT', 'Status: ' . ($late ? 'Late' : 'On time')
+                . ($held ? ' · Marks: released ' . AssignmentModel::local($item['release_grades_at'], 'D j M, g:i A') : '') . ($version > 1 ? ' · Version ' . $version : ''))
+            . self::button('View my submission', $path));
+        try {
+            $this->db->prepare("UPDATE tutor_assignment_submissions SET receipt_sent_at = ? WHERE assignment_id = ? AND student_user_id = ?")
+                ->execute([AssignmentModel::now(), (int) $item['id'], $uid]);
+        } catch (\Throwable $e) {
+        }
+    }
+
+    /** 24-hour or 1-hour reminder ($kind '24h' | '1h') to a student who has not submitted. */
+    public function reminder(array $item, int $uid, string $kind): void
+    {
+        $path = 'students/assignments/view.php?id=' . (int) $item['id'];
+        $when = $kind === '1h' ? 'in 1 hour' : 'tomorrow';
+        PortalNotifications::notify($this->db, $uid, 'assignment', 'Reminder: ' . $item['title'] . ' is due ' . $when, AssignmentModel::dueText($item['due']), $path);
+        $this->mail((int) $item['id'], $this->m->student($uid), 'Reminder', 'Reminder: ' . $item['title'] . ' is due ' . ($kind === '1h' ? 'in 1 hour' : 'in 24 hours'),
+            '<p><strong>Your assignment is due ' . $when . '.</strong> A quick reminder from your tutor. You have not sent this assignment yet.</p>'
+            . self::card($item['title'], 'Due: ' . AssignmentModel::local($item['due'], 'D j M, g:i A') . ' EAT',
+                (int) $item['close_after_due'] ? 'It closes at the due time.' : 'Late work: still accepted, marked Late.')
+            . self::button('Open assignment', $path));
+    }
+
+    /** Nudge from the tutor to one student who has not submitted. */
+    public function nudge(array $a, int $uid): void
+    {
+        $tutor = $this->m->tutorById((int) $a['tutor_id']);
+        $path = 'students/assignments/view.php?id=' . (int) $a['id'];
+        PortalNotifications::notify($this->db, $uid, 'assignment', 'Your tutor is waiting for: ' . $a['title'], AssignmentModel::dueText($a['due_at']), $path,
+            $tutor ? PortalNotifications::photoOf($this->db, (int) $tutor['user_id']) : null);
+        $this->mail((int) $a['id'], $this->m->student($uid), 'A reminder from your tutor', 'Please send your work: ' . $a['title'],
+            '<p>' . self::e($tutor['full_name'] ?? 'Your tutor') . ' is waiting for your work on <strong>' . self::e($a['title']) . '</strong>.</p>'
+            . self::button('Open assignment', $path));
+    }
+
+    /** The tutor cannot open the student's link: ask them to fix the sharing, with the simple fix for that site. */
+    public function linkFix(array $a, int $uid, string $host, string $fix): void
+    {
+        $path = 'students/assignments/view.php?id=' . (int) $a['id'];
+        PortalNotifications::notify($this->db, $uid, 'assignment', 'Your tutor cannot open your link: ' . $a['title'], $fix, $path);
+        $this->mail((int) $a['id'], $this->m->student($uid), 'Link needs access', 'Your tutor cannot open your link: ' . $a['title'],
+            '<p>Your tutor tried to open the link you sent for <strong>' . self::e($a['title']) . '</strong>, but it is private.</p>'
+            . self::card('How to fix it (' . $host . ')', self::e($fix), 'Your work keeps its original sent time. Fixing the link does not make it Late.')
+            . self::button('Open assignment', $path));
     }
 
     /* ---------- Plumbing ---------- */

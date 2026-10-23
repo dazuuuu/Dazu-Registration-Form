@@ -33,6 +33,18 @@ class CourseRegistrationHandler
             return ['ok' => false, 'error' => 'Security check failed. Refresh and try again.'];
         }
 
+        // Intake Booking: enrolment only while an intake is open (or early access with a booking). No intakes: unchanged.
+        require_once __DIR__ . '/IntakeService.php';
+        $ikBooking = null;
+        $ikGate = ['ok' => true];
+        if (ik_installed($this->pdo)) {
+            $ikBooking = ik_session_booking($this->pdo, (int) $course['id']);
+            $ikGate = ik_enrol_check($this->pdo, (int) $course['id'], $ikBooking);
+            if (!$ikGate['ok']) {
+                return ['ok' => false, 'error' => $ikGate['error'], 'intake_closed' => true];
+            }
+        }
+
         $idDocPath = $this->uploadIdDocument($files['id_document'] ?? null);
         if (is_string($idDocPath) && str_starts_with($idDocPath, 'ERROR:')) {
             return ['ok' => false, 'error' => substr($idDocPath, 6)];
@@ -55,6 +67,11 @@ class CourseRegistrationHandler
         $result = $this->regModel->submit($data, $this->courseModel);
         if (!$result['ok']) {
             return $result;
+        }
+
+        if (!empty($ikGate['booking'])) {
+            ik_mark_converted($this->pdo, (int) $ikGate['booking']['id'], (int) $result['id']);
+            unset($_SESSION['ik_booking'][(int) $course['id']]);
         }
 
         $reg = $this->regModel->getById($result['id']) ?: array_merge($data, $result);

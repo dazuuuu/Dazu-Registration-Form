@@ -181,6 +181,9 @@ if (!function_exists('idc_generate')) {
         if ($reg['status'] !== 'approved') {
             return ['ok' => false, 'error' => 'The enrolment is not approved yet.'];
         }
+        if (($due = idc_reg_fee_due($db, $registrationId)) > 0) {
+            return ['ok' => false, 'error' => 'The registration fee is not paid yet (KSh ' . number_format($due) . ' remaining).'];
+        }
         if (trim((string) $reg['registration_no']) === '') {
             return ['ok' => false, 'error' => 'This student has no registration number yet.'];
         }
@@ -296,6 +299,23 @@ if (!function_exists('idc_student_enrolments')) {
     }
 }
 
+if (!function_exists('idc_reg_fee_due')) {
+    /**
+     * Registration fee still owed on an enrolment (0 when paid or waived). The ID card is issued only once it is 0;
+     * the rest of the course fee does not matter for the ID (the certificate needs the full fees cleared).
+     */
+    function idc_reg_fee_due(PDO $db, int $registrationId): float
+    {
+        $st = $db->prepare('SELECT registration_fee, registration_fee_waived FROM registrations WHERE id = ?');
+        $st->execute([$registrationId]);
+        $r = $st->fetch(PDO::FETCH_ASSOC);
+        if (!$r || !empty($r['registration_fee_waived']) || (float) $r['registration_fee'] <= 0) return 0.0;
+        $st = $db->prepare("SELECT COALESCE(SUM(amount), 0) FROM payments WHERE registration_id = ? AND status = 'approved'");
+        $st->execute([$registrationId]);
+        return max(0.0, (float) $r['registration_fee'] - (float) $st->fetchColumn());
+    }
+}
+
 if (!function_exists('idc_request')) {
     /** Student asks for a card for one of their own approved enrolments. */
     function idc_request(PDO $db, int $userId, int $registrationId, string $note = ''): array
@@ -304,6 +324,9 @@ if (!function_exists('idc_request')) {
         $st->execute([$registrationId, $userId]);
         if (!$st->fetchColumn()) {
             return ['ok' => false, 'error' => 'Enrolment not found.'];
+        }
+        if (($due = idc_reg_fee_due($db, $registrationId)) > 0) {
+            return ['ok' => false, 'error' => 'Pay the registration fee first (KSh ' . number_format($due) . ' remaining). Your ID card can be requested once it is paid.'];
         }
         if (!idc_student_photo_file($db, $userId)) {
             return ['ok' => false, 'error' => 'Upload your passport photo first. It is printed on your ID card.'];
@@ -326,6 +349,17 @@ if (!function_exists('idc_student_photo_file')) {
         if (!$userId) {
             return null;
         }
+        // Tutors: the private ID photo (migration 082) comes first.
+        try {
+            $st = $db->prepare('SELECT id_photo_path FROM tutors WHERE user_id = ?');
+            $st->execute([$userId]);
+            $p = (string) $st->fetchColumn();
+            if (str_starts_with($p, 'storage:tutor_photos/')) {
+                $abs = realpath(storage_path(substr($p, 8)));
+                $base = realpath(storage_path('tutor_photos'));
+                if ($abs && $base && str_starts_with($abs, $base . DIRECTORY_SEPARATOR) && is_file($abs)) return $abs;
+            }
+        } catch (Throwable $e) { /* migration 082 not run yet */ }
         $st = $db->prepare("SELECT profile_photo_path FROM user_profiles WHERE user_id = ? AND profile_photo_status <> 'rejected'");
         $st->execute([$userId]);
         $rel = (string) $st->fetchColumn();

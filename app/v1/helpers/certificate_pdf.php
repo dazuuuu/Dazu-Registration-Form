@@ -259,13 +259,16 @@ body { width: 297mm; height: 210mm; font-family: "Times New Roman", Times, serif
         . '<div style="' . $abs . 'left:88.3mm;width:56.3mm;top:168.6mm;border-top:0.45mm solid ' . $D . ';"></div>'
         . '<div style="' . $abs . 'left:158.7mm;width:56.5mm;top:168.6mm;border-top:0.45mm solid ' . $D . ';"></div>'
         . '<div style="' . $abs . 'left:78mm;width:77mm;top:171mm;' . $center . 'font-size:14pt;font-weight:bold;line-height:1;">' . $e($tutor) . '</div>'
-        . '<div style="' . $abs . 'left:78mm;width:77mm;top:176.6mm;' . $center . 'font-size:9pt;letter-spacing:1.5pt;line-height:1;">COURSE TUTOR</div>'
+        . '<div style="' . $abs . 'left:78mm;width:77mm;top:176.6mm;' . $center . 'font-size:9pt;letter-spacing:1.5pt;line-height:1;">' . $e(mb_strtoupper(trim((string) ($cert['tutor_title'] ?? '')) ?: 'Course tutor')) . '</div>'
         . '<div style="' . $abs . 'left:148.5mm;width:77mm;top:171mm;' . $center . 'font-size:14pt;font-weight:bold;line-height:1;">' . $e($director) . '</div>'
         . '<div style="' . $abs . 'left:148.5mm;width:77mm;top:176.6mm;' . $center . 'font-size:9pt;letter-spacing:1.5pt;line-height:1;">' . $e(mb_strtoupper(trim((string) ($cert['director_title'] ?? '')) ?: 'Director')) . '</div>'
 
         // Footer line
         . '<div style="' . $abs . 'left:66mm;width:165mm;top:186.4mm;' . $center . 'font-size:12pt;line-height:1;">Certificate No: ' . $e($certNo)
         . ' &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; Date of issue: ' . $e($issued) . '</div>'
+        // Optional diagonal watermark ('SAMPLE' on the tutor's sample certificate).
+        . (!empty($cert['_watermark']) ? '<div style="' . $abs . 'left:0;width:297mm;top:88mm;' . $center . 'font-size:96pt;font-weight:bold;letter-spacing:12pt;color:rgba(55,52,53,0.13);transform:rotate(-18deg);">'
+            . $e($cert['_watermark']) . '</div>' : '')
         . '</body></html>';
     }
 }
@@ -297,6 +300,15 @@ if (!function_exists('cert_pdf_bytes')) {
                     $st = $db->prepare('SELECT * FROM directors WHERE id = ?');
                     $st->execute([(int) $cert['director_id']]);
                     $dir = $st->fetch(PDO::FETCH_ASSOC) ?: null;
+                }
+            } catch (Throwable $e) {
+            }
+            // Issued with a director signature version (admin Settings): always that version.
+            try {
+                if (!empty($cert['director_signature_id'])) {
+                    $st = $db->prepare('SELECT name AS full_name, title, file_path AS signature_path FROM director_signatures WHERE id = ?');
+                    $st->execute([(int) $cert['director_signature_id']]);
+                    $dir = $st->fetch(PDO::FETCH_ASSOC) ?: $dir;
                 }
             } catch (Throwable $e) {
             }

@@ -178,7 +178,7 @@ if (!function_exists('idc_photo_uri')) {
      * The photo window (inside the green frame): the student's photo cropped to fill it, or the grey
      * silhouette placeholder. Corners are rounded with transparency since dompdf cannot clip images.
      */
-    function idc_photo_uri(?string $photoFile, float $wMm, float $hMm, float $radiusMm): string
+    function idc_photo_uri(?string $photoFile, float $wMm, float $hMm, float $radiusMm, ?array $crop = null, float $bias = 0.3): string
     {
         $s = 24; // px per mm
         $W = (int) round($wMm * $s); $H = (int) round($hMm * $s);
@@ -196,7 +196,13 @@ if (!function_exists('idc_photo_uri')) {
             $sw = imagesx($src); $sh = imagesy($src);
             $scale = max($W / $sw, $H / $sh);
             $cw = $W / $scale; $ch = $H / $scale;
-            $sx = ($sw - $cw) / 2; $sy = max(0, ($sh - $ch) * 0.3);
+            $sx = ($sw - $cw) / 2; $sy = max(0, ($sh - $ch) * $bias);
+            // An admin crop ({x, y, w} as fractions of the photo; the height follows the window's shape).
+            if ($crop && isset($crop['x'], $crop['y'], $crop['w']) && $crop['w'] > 0.05) {
+                $cw = min($sw, $crop['w'] * $sw); $ch = $cw * $H / $W;
+                if ($ch > $sh) { $ch = $sh; $cw = $ch * $W / $H; }
+                $sx = max(0, min($sw - $cw, $crop['x'] * $sw)); $sy = max(0, min($sh - $ch, $crop['y'] * $sh));
+            }
             imagealphablending($out, true);
             imagecopyresampled($out, $src, 0, 0, (int) $sx, (int) $sy, $W, $H, (int) $cw, (int) $ch);
         } else {
@@ -479,14 +485,19 @@ if (!function_exists('idc_render_html')) {
                 . $who . ' ' . $side . ', print-ready &nbsp;|&nbsp; CR80 85.6 x 54 mm &nbsp;|&nbsp; 3 mm bleed &nbsp;|&nbsp; crop marks shown</div>';
         }
 
+        // Optional diagonal watermark (e.g. 'PREVIEW' for the tutor's on-screen preview); never on the print file.
+        $wm = !empty($card['_watermark']) && !$print
+            ? '<div style="position:absolute;left:0;top:' . ($ph / 2 - 7) . 'mm;width:' . $pw . 'mm;text-align:center;font-family:Poppins;font-weight:bold;font-size:30pt;'
+              . 'color:rgba(55,52,53,0.16);letter-spacing:4pt;transform:rotate(-22deg);">' . htmlspecialchars((string) $card['_watermark'], ENT_QUOTES, 'UTF-8') . '</div>'
+            : '';
         return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>'
             . idc_font_css()
             . '@page{size:' . $pw . 'mm ' . $ph . 'mm;margin:0;}*{margin:0;padding:0;}'
             . 'body{font-family:Poppins;color:' . IDC_DARK . ';}'
             . '.page{position:relative;width:' . $pw . 'mm;height:' . $ph . 'mm;overflow:hidden;}'
             . '</style></head><body>'
-            . '<div class="page">' . $bg(idc_front_background_png()) . idc_front_html($card, $m, $m) . $marks . $caption('FRONT') . '</div>'
-            . '<div class="page" style="page-break-before:always;">' . $bg(idc_back_background_png()) . idc_back_html($card, $m, $m) . $marks . $caption('BACK') . '</div>'
+            . '<div class="page">' . $bg(idc_front_background_png()) . idc_front_html($card, $m, $m) . $marks . $caption('FRONT') . $wm . '</div>'
+            . '<div class="page" style="page-break-before:always;">' . $bg(idc_back_background_png()) . idc_back_html($card, $m, $m) . $marks . $caption('BACK') . $wm . '</div>'
             . '</body></html>';
     }
 }
@@ -495,10 +506,27 @@ if (!function_exists('idc_pdf_bytes')) {
     /** $card: a student_id_cards row (idc_get()). Adds the student's photo itself. */
     function idc_pdf_bytes(array $card, bool $print = false): string
     {
+        if (($card['_kind'] ?? '') === 'staff') {
+            // Tutor cards have their own portrait design; this keeps one generator for every tutor card.
+            require_once __DIR__ . '/tutor_card_pdf.php';
+            return tcard_pdf_bytes([$card], $print ? ['mode' => 'single', 'marks' => true] : []);
+        }
         if (!array_key_exists('_photo_file', $card)) {
             $card['_photo_file'] = class_exists('\\Models\\Connection')
                 ? idc_student_photo_file(\Models\Connection::getInstance()->getConnection(), (int) (($card['user_id'] ?? 0) ?: ($card['reg_user_id'] ?? 0)))
                 : null;
+        }
+        if (!array_key_exists('_signature_file', $card) && class_exists('\\Models\\Connection')) {
+            // The student's own signature from My Documents (migration 077).
+            $card['_signature_file'] = null;
+            try {
+                $st = \Models\Connection::getInstance()->getConnection()->prepare('SELECT signature_path FROM user_profiles WHERE user_id = ?');
+                $st->execute([(int) (($card['user_id'] ?? 0) ?: ($card['reg_user_id'] ?? 0))]);
+                $rel = ltrim((string) $st->fetchColumn(), '/');
+                $abs = dirname(__DIR__, 3) . '/public/' . $rel;
+                if ($rel !== '' && !str_contains($rel, '..') && is_file($abs)) $card['_signature_file'] = $abs;
+            } catch (Throwable $e) {
+            }
         }
         $fontCache = dirname(__DIR__) . '/storage/cache/dompdf_fonts';
         if (!is_dir($fontCache)) {

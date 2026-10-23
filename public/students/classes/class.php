@@ -27,6 +27,15 @@ $att->execute([$id, $me]);
 $att = $att->fetch(PDO::FETCH_ASSOC) ?: ['status' => null, 'self_checkin_at' => null];
 $materials = $ended ? cal_materials($db, $id) : [];
 $mins = (int) cal_settings($db)['join_open_minutes'];
+// Assignments the tutor set "after this class", given to this student (published only).
+$classWork = [];
+try {
+    $cw = $db->prepare("SELECT a.id, a.title FROM tutor_assignments a JOIN tutor_assignment_recipients r ON r.assignment_id = a.id AND r.student_user_id = ? AND r.removed_at IS NULL
+                        WHERE a.class_session_id = ? AND a.status = 'published' AND a.is_template = 0 ORDER BY a.id");
+    $cw->execute([$me, $id]);
+    $classWork = $cw->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+}
 $page_title = $v['title'];
 ob_start();
 require __DIR__ . '/../../components/classes/styles.php';
@@ -66,6 +75,10 @@ require __DIR__ . '/../../components/classes/styles.php';
             <?php foreach ($materials as $m): ?><div class="small"><i class="fas <?php echo $m['file_path'] ? 'fa-paperclip' : 'fa-link'; ?> text-success me-1"></i>
                 <a target="_blank" rel="noopener" href="<?php echo cal_e($m['file_path'] ? url('classes/file.php?id=' . (int) $m['id']) : $m['link']); ?>"><?php echo cal_e($m['title']); ?></a></div><?php endforeach; ?>
         <?php endif; ?>
+    <?php endif; ?>
+    <?php if ($classWork): ?>
+        <hr><strong>Assignment after this class</strong>
+        <?php foreach ($classWork as $w): ?><div class="small"><i class="fas fa-file-pen text-success me-1"></i><a href="<?php echo cal_e(url('students/assignments/view.php?id=' . (int) $w['id'])); ?>"><?php echo cal_e($w['title']); ?></a></div><?php endforeach; ?>
     <?php endif; ?>
 </div>
 <?php if (!$open && $v['meeting_link'] && !$ended && $v['status'] !== 'cancelled'): ?>

@@ -13,8 +13,12 @@ if (!empty($_SESSION['logged_in']) && (int)($_SESSION['role_id'] ?? 99) === 1) {
 $error = '';
 $email = '';
 if (!empty($_SESSION['session_expired']) || ($_GET['reason'] ?? '') === 'idle') {
-    $error = 'You were signed out after 5 minutes of inactivity. Please sign in again.';
+    $error = 'You were signed out after 30 minutes of inactivity. Please sign in again.';
     unset($_SESSION['session_expired']);
+}
+if (!empty($_SESSION['session_replaced'])) {
+    $error = 'You were signed out because your account was signed in on another device.';
+    unset($_SESSION['session_replaced']);
 }
 $locked = ($_SESSION['sa_lock_until'] ?? 0) > time();
 

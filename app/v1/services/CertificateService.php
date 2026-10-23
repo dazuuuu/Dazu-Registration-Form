@@ -50,17 +50,22 @@ if (!function_exists('cert_assigned_tutor')) {
         if (!$userId) {
             return null;
         }
-        $st = $db->prepare(
-            "SELECT t.id, t.user_id,
-                    TRIM(COALESCE(NULLIF(TRIM(CONCAT(COALESCE(up.first_name, ''), ' ', COALESCE(up.last_name, ''))), ''), u.email)) AS full_name
+        $sql = "SELECT t.id, t.user_id,
+                    TRIM(COALESCE(%s NULLIF(TRIM(CONCAT(COALESCE(up.first_name, ''), ' ', COALESCE(up.last_name, ''))), ''), u.email)) AS full_name
              FROM tutor_students ts
              JOIN tutors t ON t.id = ts.tutor_id
              JOIN users u ON u.id = t.user_id
              LEFT JOIN user_profiles up ON up.user_id = u.id
              WHERE ts.user_id = ?
-             ORDER BY ts.assigned_at DESC LIMIT 1"
-        );
-        $st->execute([$userId]);
+             ORDER BY ts.assigned_at DESC LIMIT 1";
+        // The tutor's printed name (tutors.display_name, migration 080) when set; the account name otherwise.
+        try {
+            $st = $db->prepare(sprintf($sql, "NULLIF(TRIM(t.display_name), ''),"));
+            $st->execute([$userId]);
+        } catch (PDOException $e) {
+            $st = $db->prepare(sprintf($sql, ''));
+            $st->execute([$userId]);
+        }
         return $st->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 }
@@ -132,6 +137,11 @@ if (!function_exists('cert_create_for_registration')) {
             $director['full_name'] ?? CERT_DIRECTOR_NAME,
         ]);
         $id = (int) $db->lastInsertId();
+        // The active director signature version from admin Settings (migration 081); the certificate keeps it.
+        try {
+            $dsig = $db->query('SELECT id, name FROM director_signatures WHERE is_active = 1 ORDER BY id DESC LIMIT 1')->fetch(PDO::FETCH_ASSOC);
+            if ($dsig) $db->prepare('UPDATE certificates SET director_signature_id = ?, ceo_name = ? WHERE id = ?')->execute([(int) $dsig['id'], $dsig['name'], $id]);
+        } catch (Throwable $e) { /* migration 081 not run yet */ }
         // Certificate number is derived from the row id so it is always unique.
         $db->prepare("UPDATE certificates SET certificate_no = ? WHERE id = ?")
            ->execute(['DDS-' . date('Y') . '-' . str_pad((string) $id, 4, '0', STR_PAD_LEFT), $id]);

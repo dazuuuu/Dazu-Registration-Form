@@ -351,6 +351,11 @@ if (!function_exists('dazu_head_meta')) {
                 . '<meta name="twitter:card" content="summary_large_image">' . "\n"
                 . '<meta name="twitter:image" content="' . $e($img) . '">' . "\n";
         }
-        return $add === '' ? $html : substr($html, 0, $pos) . $add . substr($html, $pos);
+        $html = $add === '' ? $html : substr($html, 0, $pos) . $add . substr($html, $pos);
+        // Images further down the page load only when scrolled to (the first two, usually the logo/hero, load at once).
+        $n = 0;
+        return (string) preg_replace_callback('#<img\b(?![^>]*\bloading=)([^>]*)>#i', static function ($m) use (&$n) {
+            return ++$n <= 2 ? $m[0] : '<img loading="lazy" decoding="async"' . $m[1] . '>';
+        }, $html);
     }
 }

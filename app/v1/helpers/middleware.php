@@ -11,7 +11,15 @@ class Middleware {
      */
     public static function requireAuth() {
         SessionModel::start();
-        
+        // Pages that skip the app bootstrap (e.g. the blog editor) still get the idle/close/one-device guard, so
+        // time spent writing counts as activity and the session is checked the same way everywhere.
+        if (!defined('DAZU_GUARD_ACTIVE')) {
+            define('DAZU_GUARD_ACTIVE', true);
+            require_once __DIR__ . '/session_guard.php';
+            session_guard_check();
+            if (PHP_SAPI !== 'cli') ob_start('session_guard_inject');
+        }
+
         if (!SessionModel::has('logged_in') || SessionModel::get('logged_in') !== true) {
             header('Location: ' . url('auth/login.php'));
             exit();
