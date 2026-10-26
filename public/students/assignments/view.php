@@ -157,7 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $state = $item['state'];
-$noun = ($item['kind'] ?? 'daily') === 'weekly' ? 'Week' : 'Assignment';
+$noun = \Models\AssignmentModel::noun($item['kind'] ?? 'daily');
 $page_title = $noun . ' ' . $item['index'];
 ob_start();
 ?>

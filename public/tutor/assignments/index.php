@@ -81,6 +81,7 @@ ob_start();
     <div class="d-flex gap-2 flex-wrap">
         <a href="progress.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-table-cells me-1"></i>Student progress</a>
         <a href="records.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-lines me-1"></i>Student records</a>
+        <a href="subjects.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-layer-group me-1"></i>Subjects</a>
                 <a href="edit.php" class="btn btn-brand btn-sm"><i class="fas fa-plus me-1"></i>New assignment</a>
     </div>
 </div>
@@ -129,11 +130,11 @@ ob_start();
         <?php foreach ($g['items'] as $a): ?>
             <tr data-id="<?php echo (int) $a['id']; ?>" <?php echo $tab === 'all' ? 'draggable="true"' : ''; ?>>
                 <td><?php if ($tab === 'all'): ?><i class="fas fa-grip-vertical asg-drag" title="Drag to reorder"></i><?php endif; ?></td>
-                <td class="fw-semibold"><?php echo $tab === 'templates' ? '' : ((($a['kind'] ?? 'daily') === 'weekly' ? 'W' : 'A') . $am->number($a)); ?></td>
+                <td class="fw-semibold"><?php echo $tab === 'templates' ? '' : ((['weekly' => 'W', 'monthly' => 'M'][$a['kind'] ?? 'daily'] ?? 'A') . $am->number($a)); ?></td>
                 <td style="min-width:200px">
                     <a href="view.php?id=<?php echo (int) $a['id']; ?>" class="fw-semibold text-decoration-none"><?php echo asg_e($a['title']); ?></a>
                     <?php if ($a['status'] === 'draft'): ?><span class="badge bg-secondary ms-1"><?php echo !empty($a['publish_at']) ? 'SCHEDULED ' . asg_e(\Models\AssignmentModel::local($a['publish_at'], 'D j M, H:i')) : 'DRAFT'; ?></span><?php endif; ?>
-                    <?php if (($a['kind'] ?? 'daily') === 'weekly'): ?><span class="badge bg-light text-dark ms-1">WEEKLY</span><?php endif; ?>
+                    <?php if (in_array($a['kind'] ?? 'daily', ['weekly', 'monthly'], true)): ?><span class="badge bg-light text-dark ms-1"><?php echo $a['kind'] === 'monthly' ? 'MONTHLY PROJECT' : 'WEEKLY'; ?></span><?php endif; ?>
                     <?php if (\Models\AssignmentModel::gradesHeld($a)): ?><span class="badge bg-info text-dark ms-1"><i class="fas fa-lock"></i> GRADES HELD</span><?php endif; ?>
                     <div class="small text-muted"><?php echo asg_e($a['types_text']); ?> · <?php echo asg_e(AssignmentModel::GRADING_MODES[$a['grading_mode']]); ?><?php echo $a['grading_mode'] === 'marks' ? ' out of ' . (int) $a['max_score'] : ''; ?></div>
                 </td>

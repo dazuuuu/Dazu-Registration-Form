@@ -4,6 +4,8 @@ require __DIR__ . '/../../components/assignments/tutor_boot.php';
 
 use Models\AssignmentModel;
 
+require_once __DIR__ . '/../../../app/v1/services/SubjectService.php';
+
 $id = (int) ($_GET['id'] ?? 0);
 $a = $id ? $am->getForTutor($id, $tutorId) : null;
 if ($id && (!$a || $a['status'] === 'archived')) asg_back('index.php', null, 'Assignment not found.');
@@ -23,6 +25,7 @@ $f = $a ? [
     'rubric' => array_map(fn($r) => [(int) $r['id'], $r['name'], (float) $r['max_marks']], $am->rubric($id)),
     'recipients' => $am->recipientIds($id),
     'kind' => (string) ($a['kind'] ?? 'daily'), 'weight' => (float) ($a['weight'] ?? 1), 'allow_resubmission' => ($a['allow_resubmission'] ?? null) === null ? 1 : (int) $a['allow_resubmission'],
+    'subject_id' => (int) ($a['subject_id'] ?? 0),
     'class_session_id' => (int) ($a['class_session_id'] ?? 0), 'quiz' => array_map(fn($q) => [(int) $q['id'], $q['qtype'], $q['prompt'], $q['options'], (int) $q['correct_option'], (float) $q['points']], $am->quizQuestions($id)),
     'overrides' => [], 'groups_on' => (int) !empty($a['group_size']), 'groups' => $am->groupMap($id),
     'show_at' => !empty($a['publish_at']) ? 'later' : 'now', 'publish_date' => AssignmentModel::local($a['publish_at'] ?? null, 'Y-m-d'), 'publish_time' => AssignmentModel::local($a['publish_at'] ?? null, 'H:i') ?: '08:00',
@@ -32,7 +35,7 @@ $f = $a ? [
     'due_date' => '', 'due_time' => '17:00', 'types' => ['link'], 'link_sites' => [], 'grading_mode' => 'marks', 'max_score' => 100,
     'pass_mark_percent' => $am->gradeScale()['pass'], 'sequential_lock' => 1, 'close_after_due' => 1, 'max_extension_days' => 7,
     'questions' => [], 'rubric' => [], 'recipients' => [],
-    'kind' => in_array($_GET['kind'] ?? '', array_keys(AssignmentModel::KINDS), true) ? $_GET['kind'] : 'daily', 'weight' => 1.0, 'allow_resubmission' => 1,
+    'kind' => in_array($_GET['kind'] ?? '', array_keys(AssignmentModel::KINDS), true) ? $_GET['kind'] : 'daily', 'weight' => 1.0, 'allow_resubmission' => 1, 'subject_id' => 0,
     'show_at' => 'now', 'publish_date' => '', 'publish_time' => '08:00', 'release' => 'now', 'release_date' => '', 'release_time' => '09:00',
     'class_session_id' => 0, 'quiz' => [], 'overrides' => [], 'groups_on' => 0, 'groups' => [],
     'submit_code' => 0, 'submit_audio' => 0, 'submit_quiz' => 0, 'no_submission' => 0, 'check_links' => 1, 'block_bad_links' => 0,
@@ -68,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'max_extension_days' => (int) ($p['max_extension_days'] ?? 7),
         'questions' => $questions, 'rubric' => $rubric, 'recipients' => array_values(array_unique(array_map('intval', (array) ($p['students'] ?? [])))),
         'kind' => isset(AssignmentModel::KINDS[$p['kind'] ?? '']) ? $p['kind'] : 'daily', 'weight' => round((float) ($p['weight'] ?? 1), 2),
-        'allow_resubmission' => !empty($p['allow_resubmission']) ? 1 : 0,
+        'allow_resubmission' => !empty($p['allow_resubmission']) ? 1 : 0, 'subject_id' => (int) ($p['subject_id'] ?? 0),
         'show_at' => ($p['show_at'] ?? '') === 'later' ? 'later' : 'now', 'publish_date' => trim((string) ($p['publish_date'] ?? '')), 'publish_time' => trim((string) ($p['publish_time'] ?? '')) ?: '08:00',
         'release' => ($p['release'] ?? '') === 'later' ? 'later' : 'now', 'release_date' => trim((string) ($p['release_date'] ?? '')), 'release_time' => trim((string) ($p['release_time'] ?? '')) ?: '09:00',
     ];
@@ -109,6 +112,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Course and students: only the tutor's own. A course of an older assignment with no course may stay empty.
     $keepNoCourse = $a && !$a['course_id'] && !$courseId;
     if (!$keepNoCourse && !isset($courses[$courseId])) $errors[] = 'Choose one of your courses.';
+    // Subject: required when the course has active subjects; it must be this tutor's own, in this course. Checked on the server.
+    if (isset($courses[$courseId])) {
+        $subjErr = subj_check_choice($pdo, $courseId, $tutorId, $f['subject_id'], (int) ($a['subject_id'] ?? 0), !$a);
+        if ($subjErr) $errors[] = $subjErr;
+    } elseif ($f['subject_id']) {
+        $f['subject_id'] = 0;
+    }
     $allowed = $am->tutorStudents($tutorId, $keepNoCourse ? null : $courseId);
     $forged = array_diff($f['recipients'], array_keys($allowed));
     if ($forged) {
@@ -158,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'grading_mode' => $f['grading_mode'], 'max_score' => $f['grading_mode'] === 'marks' ? $f['max_score'] : 100,
             'pass_mark_percent' => $f['pass_mark_percent'],
             'kind' => $f['kind'], 'weight' => $f['weight'], 'allow_resubmission' => $f['allow_resubmission'],
-            'release_grades_at' => $releaseUtc, 'class_session_id' => $f['class_session_id'] ?: null,
+            'release_grades_at' => $releaseUtc, 'class_session_id' => $f['class_session_id'] ?: null, 'subject_id' => $f['subject_id'] ?: null,
         ];
         foreach (['submit_code', 'submit_audio', 'submit_quiz', 'no_submission', 'check_links', 'block_bad_links', 'require_own_work', 'ask_ai_note', 'remind_enabled', 'remind_whatsapp'] as $c) $data[$c] = $f[$c];
         $data['group_size'] = $f['groups_on'] ? 3 : null;
@@ -166,6 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($canSchedule) $data['publish_at'] = $publish ? $publishUtc : null;
         $saved = $am->save($tutorId, $id ?: null, $data, $questions, $f['grading_mode'] === 'marks' ? $rubric : [], $f['recipients'], $me);
         $id = $saved['id'];
+        subj_log_assignment_change($pdo, $id, $courseId, $me, (int) ($a['subject_id'] ?? 0), (int) $f['subject_id']);
         $am->saveQuizQuestions($id, $f['submit_quiz'] ? $f['quiz'] : []);
         // Groups can change only until somebody has sent work, so nobody's work moves to another group.
         if (!$am->hasSubmissions($id)) $am->saveGroups($id, $f['groups_on'] ? $f['groups'] : []);
@@ -210,6 +221,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $attachments = $id ? $am->attachments($id) : [];
 $isDraft = !$a || $a['status'] === 'draft';
+$subjectsByCourse = [];
+foreach ($courses as $cid => $ct) {
+    foreach (subj_list($pdo, (int) $cid, $tutorId) as $sj) {
+        if ((int) $sj['is_active'] || (int) $sj['id'] === (int) $f['subject_id']) $subjectsByCourse[(int) $cid][] = $sj;
+    }
+}
 $orderNo = $a ? $am->number($a) : count(array_filter($am->listAll($tutorId), fn($x) => (int) $x['course_id'] === (int) $f['course_id'] && ($x['kind'] ?? 'daily') === $f['kind'])) + 1;
 $page_title = $a ? 'Edit assignment' : 'New assignment';
 $selCourse = $f['course_id'];
@@ -245,7 +262,24 @@ ob_start();
                     <label class="form-check-label" for="kind<?php echo $k; ?>"><?php echo asg_e($lbl); ?></label></div>
                 <?php endforeach; ?>
             </div>
-            <div class="small text-muted">Daily and weekly work are numbered and locked in their own order.</div></div>
+            <div class="small text-muted">Daily, weekly and monthly work are numbered and locked in their own order.</div></div>
+        <div class="mb-3" id="subjectBox" data-must="<?php echo !$a || (int) ($a['subject_id'] ?? 0) > 0 ? '1' : '0'; ?>"><label class="form-label fw-semibold" for="subjectSel">Subject <span class="text-muted fw-normal" id="subjectReq"></span></label>
+            <div class="input-group">
+                <select name="subject_id" id="subjectSel" class="form-select"><option value="">No subject</option>
+                    <?php foreach ($subjectsByCourse as $cid => $list): foreach ($list as $sj): ?><option value="<?php echo (int) $sj['id']; ?>" data-course="<?php echo (int) $cid; ?>" <?php echo (int) $sj['id'] === (int) $f['subject_id'] ? 'selected' : ''; ?>><?php echo asg_e($sj['name'] . ($sj['code'] ? ' (' . $sj['code'] . ')' : '') . ((int) $sj['is_active'] ? '' : ' - inactive')); ?></option><?php endforeach; endforeach; ?>
+                </select>
+                <button type="button" class="btn btn-outline-secondary" id="subjNew"><i class="fas fa-plus me-1"></i>New subject</button>
+            </div>
+            <div class="small text-muted">The subject mark is worked out by itself from the marks of the work under it. <a href="subjects.php" target="_blank">Manage subjects</a></div>
+            <div class="border rounded p-2 mt-2 d-none" id="subjForm">
+                <div class="row g-2">
+                    <div class="col-sm-6"><label class="form-label small mb-0">Name</label><input id="subjName" class="form-control form-control-sm" maxlength="120" placeholder="e.g. Python Programming"></div>
+                    <div class="col-6 col-sm-3"><label class="form-label small mb-0">Weight</label><input id="subjWeight" type="number" step="0.5" min="0.5" max="100" class="form-control form-control-sm" placeholder="default"></div>
+                    <div class="col-6 col-sm-3"><label class="form-label small mb-0">Monthly projects</label><input id="subjMonthly" type="number" min="1" max="12" value="1" class="form-control form-control-sm"></div>
+                </div>
+                <div class="d-flex gap-2 mt-2 align-items-center"><button type="button" class="btn btn-brand btn-sm" id="subjSave">Add subject</button><button type="button" class="btn btn-light btn-sm" id="subjCancel">Cancel</button><span class="small text-danger" id="subjErr"></span></div>
+            </div>
+        </div>
         <div class="mb-3"><label class="form-label fw-semibold">Title</label>
             <input name="title" class="form-control" maxlength="120" required value="<?php echo asg_e($f['title']); ?>" placeholder="e.g. Build a login form"></div>
         <div class="mb-3"><label class="form-label fw-semibold">Description <span class="text-muted fw-normal">(short summary, shown at the top and in the email)</span></label>
@@ -392,7 +426,7 @@ ob_start();
 
     <div class="card-tutor p-3 mb-3">
         <h6 class="fw-bold mb-1">Order</h6>
-        <div class="small text-muted mb-2">This <?php echo $a ? 'is' : 'will be'; ?> <?php echo $f['kind'] === 'weekly' ? 'Week' : 'Assignment'; ?> <?php echo (int) $orderNo; ?> in this course. Drag to reorder on the Assignments page.</div>
+        <div class="small text-muted mb-2">This <?php echo $a ? 'is' : 'will be'; ?> <?php echo AssignmentModel::noun($f['kind']); ?> <?php echo (int) $orderNo; ?> in this course. Drag to reorder on the Assignments page.</div>
         <div class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" name="sequential_lock" value="1" id="seqLock" <?php echo $f['sequential_lock'] ? 'checked' : ''; ?>>
             <label class="form-check-label small" for="seqLock">Locked until the student submits the one before</label></div>
     </div>
@@ -527,6 +561,32 @@ $extra_js = <<<'JS'
         $('#stuAll').checked = vis.length > 0 && vis.every(function (r) { return $('input', r).checked; });
         $('#stuCount').textContent = $$('#stuList input:checked').length;
     }
+    // Subject box: shows the subjects of the chosen course; New subject adds one without leaving the form.
+    var subjSel = $('#subjectSel'), subjMust = $('#subjectBox').dataset.must === '1';
+    var subjAll = $$('#subjectSel option[data-course]').map(function (o) { return o.cloneNode(true); });
+    function subjects() {
+        var course = $('#courseSel').value, keep = subjSel.value, n = 0;
+        $$('#subjectSel option[data-course]').forEach(function (o) { o.remove(); });
+        subjAll.forEach(function (o) { if (o.dataset.course === course) { subjSel.appendChild(o.cloneNode(true)); n++; } });
+        subjSel.value = keep; if (subjSel.value !== keep) subjSel.value = '';
+        subjSel.required = n > 0 && subjMust;
+        $('#subjectReq').textContent = n === 0 ? '(this course has no subjects yet)' : (subjMust ? '(required for this course)' : '(optional for this older assignment)');
+        $('#subjNew').disabled = !course;
+    }
+    $('#courseSel').addEventListener('change', subjects); subjects();
+    $('#subjNew').addEventListener('click', function () { $('#subjForm').classList.remove('d-none'); $('#subjName').focus(); });
+    $('#subjCancel').addEventListener('click', function () { $('#subjForm').classList.add('d-none'); $('#subjErr').textContent = ''; });
+    $('#subjSave').addEventListener('click', function () {
+        var fd = new FormData();
+        fd.append('csrf_token', $('#asgForm input[name="csrf_token"]').value); fd.append('action', 'create_ajax'); fd.append('course_id', $('#courseSel').value);
+        fd.append('name', $('#subjName').value); fd.append('weight', $('#subjWeight').value); fd.append('monthly_expected', $('#subjMonthly').value);
+        fetch('subjects.php', { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } }).then(function (r) { return r.json(); }).then(function (j) {
+            if (!j.ok) { $('#subjErr').textContent = j.error || 'Could not add the subject.'; return; }
+            var o = document.createElement('option'); o.value = j.id; o.dataset.course = $('#courseSel').value; o.textContent = j.label;
+            subjAll.push(o.cloneNode(true)); subjSel.appendChild(o); subjSel.value = String(j.id); subjSel.required = subjMust;
+            $('#subjectReq').textContent = subjMust ? '(required for this course)' : '(optional for this older assignment)'; $('#subjName').value = ''; $('#subjWeight').value = ''; $('#subjErr').textContent = ''; $('#subjForm').classList.add('d-none');
+        }).catch(function () { $('#subjErr').textContent = 'Could not add the subject. Try again.'; });
+    });
     $('#courseSel').addEventListener('change', picker); $('#stuSearch').addEventListener('input', picker);
     $('#stuList').addEventListener('change', picker);
     $('#stuAll').addEventListener('change', function () {

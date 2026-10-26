@@ -19,8 +19,13 @@ class AssignmentModel {
         'images' => 'Photos or screenshots',
         'file'   => 'File upload',
     ];
-    /** Kinds shown now. Reserved for later (stored, never shown yet): monthly, module_assessment, capstone. */
-    public const KINDS = ['daily' => 'Daily', 'weekly' => 'Weekly'];
+    /** Kinds shown now. Reserved for later (stored, never shown yet): module_assessment, capstone. */
+    public const KINDS = ['daily' => 'Daily', 'weekly' => 'Weekly', 'monthly' => 'Monthly project'];
+
+    /** The word before the number: "Assignment 3", "Week 3", "Project 3". */
+    public static function noun(?string $kind): string {
+        return ['weekly' => 'Week', 'monthly' => 'Project'][(string) $kind] ?? 'Assignment';
+    }
     public const GRADING_MODES = ['marks' => 'Marks', 'pass' => 'Pass or Not yet', 'feedback' => 'Feedback only'];
     public const REASONS = [
         'power'   => 'Power or internet problem',
@@ -344,7 +349,7 @@ class AssignmentModel {
                      'max_score', 'pass_mark_percent'];
             // Columns from migration 083, written only when the form sends them.
             foreach (['kind', 'weight', 'allow_resubmission', 'release_grades_at', 'publish_at', 'check_links', 'block_bad_links', 'require_own_work',
-                      'ask_ai_note', 'remind_enabled', 'remind_whatsapp', 'submit_code', 'submit_audio', 'submit_quiz', 'no_submission', 'note_id', 'class_session_id', 'group_size'] as $c) {
+                      'ask_ai_note', 'remind_enabled', 'remind_whatsapp', 'submit_code', 'submit_audio', 'submit_quiz', 'no_submission', 'note_id', 'class_session_id', 'group_size', 'subject_id'] as $c) {
                 if (array_key_exists($c, $d)) $cols[] = $c;
             }
             $vals = array_map(fn($c) => $d[$c] ?? null, $cols);

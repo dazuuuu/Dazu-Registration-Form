@@ -4,6 +4,8 @@ require __DIR__ . '/../../components/assignments/tutor_boot.php';
 
 use Models\AssignmentModel;
 
+require_once __DIR__ . '/../../../app/v1/services/SubjectService.php';
+
 $id = (int) ($_GET['id'] ?? 0);
 $a = $am->getForTutor($id, $tutorId);
 if (!$a) asg_back('index.php', null, 'Assignment not found.');
@@ -98,7 +100,8 @@ $insights = $am->insights($id);
 $requests = [];
 foreach ($am->requests($tutorId, 'pending', $id) as $q) $requests[(int) $q['student_user_id']] = $q;
 $num = $am->number($a);
-$page_title = 'Assignment ' . $num;
+$page_title = AssignmentModel::noun($a['kind'] ?? 'daily') . ' ' . $num;
+$subjCard = subj_card($pdo, $a, array_keys($rows));
 $defaultUnlock = AssignmentModel::localInput(gmdate('Y-m-d H:i:s', time() + 48 * 3600));
 ob_start();
 ?>
@@ -106,7 +109,7 @@ ob_start();
 <div class="card-tutor p-3 p-md-4 mb-3">
     <div class="d-flex flex-wrap justify-content-between gap-2">
         <div>
-            <h4 class="mb-1"><?php echo ($a['kind'] ?? 'daily') === 'weekly' ? 'Week' : 'Assignment'; ?> <?php echo $num; ?>: <?php echo asg_e($a['title']); ?>
+            <h4 class="mb-1"><?php echo AssignmentModel::noun($a['kind'] ?? 'daily'); ?> <?php echo $num; ?>: <?php echo asg_e($a['title']); ?>
                 <?php if ($a['status'] === 'draft'): ?><span class="badge bg-secondary align-middle"><?php echo !empty($a['publish_at']) ? 'SCHEDULED ' . asg_e(AssignmentModel::local($a['publish_at'], 'D j M, H:i')) : 'DRAFT'; ?></span><?php endif; ?>
                 <?php if (AssignmentModel::gradesHeld($a)): ?><span class="badge bg-info text-dark align-middle"><i class="fas fa-lock"></i> Grades held until <?php echo asg_e(AssignmentModel::local($a['release_grades_at'], 'D j M, H:i')); ?></span><?php endif; ?></h4>
             <div class="small text-muted">Due <?php echo asg_e(AssignmentModel::local($a['due_at'])); ?> · <?php echo asg_e($a['course_title'] ?: 'No course'); ?> · <?php echo asg_e($a['types_text']); ?> ·
@@ -130,6 +133,26 @@ ob_start();
         <?php if (!$rows): ?><span class="small text-muted">No students on this assignment yet.</span><?php endif; ?>
     </div>
 </div>
+
+<?php if ($subjCard): $sj = $subjCard['subject']; ?>
+<div class="card-tutor p-3 mb-3" id="subjectCard">
+    <div class="d-flex flex-wrap justify-content-between gap-2 align-items-start">
+        <div><h6 class="fw-bold mb-0"><?php echo asg_e($sj['name']); ?> now</h6>
+            <div class="small text-muted">Subject mark is worked out by itself from released marks. <?php echo (int) $subjCard['assignments']; ?> assignment<?php echo $subjCard['assignments'] === 1 ? '' : 's'; ?> and <?php echo (int) $subjCard['monthly']; ?> of <?php echo (int) $sj['monthly_expected']; ?> monthly project<?php echo (int) $sj['monthly_expected'] === 1 ? '' : 's'; ?> set.</div></div>
+        <a href="subjects.php?course=<?php echo (int) $sj['course_id']; ?>" class="btn btn-outline-secondary btn-sm">Subjects</a>
+    </div>
+    <?php if ($subjCard['students']): ?>
+    <div class="table-responsive mt-2"><table class="table table-sm align-middle mb-0">
+        <thead><tr><th>Student</th><th>Marked</th><th>Subject mark</th><th>Status</th></tr></thead><tbody>
+        <?php foreach ($subjCard['students'] as $suid => $m): ?><tr>
+            <td class="small"><?php echo asg_e($rows[$suid]['student']['full_name'] ?? ''); ?></td>
+            <td class="small"><?php echo (int) $m['assignments_marked']; ?> assignment<?php echo $m['assignments_marked'] === 1 ? '' : 's'; ?>, <?php echo (int) $m['monthly_marked']; ?> of <?php echo (int) $m['monthly_expected']; ?> monthly</td>
+            <td class="small fw-semibold"><?php echo asg_e($m['display']); ?><?php echo $m['word'] ? ' · ' . asg_e($m['word']) : ''; ?></td>
+            <td><span class="badge <?php echo $m['status'] === 'Final' ? 'bg-success' : ($m['status'] === 'In progress' ? 'bg-warning text-dark' : 'bg-secondary'); ?>"><?php echo asg_e($m['status']); ?></span></td></tr><?php endforeach; ?>
+        </tbody></table></div>
+    <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <div class="row g-2 mb-3">
     <?php foreach ([['Submitted', $kpi['submitted'] . ' / ' . count($rows), count($rows) ? round($kpi['submitted'] / count($rows) * 100) . '%' : ''],

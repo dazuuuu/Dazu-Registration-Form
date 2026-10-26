@@ -15,7 +15,7 @@ $doneAll = count(array_filter($everything, fn($x) => in_array($x['state'], ['sub
 $dueSoon = array_values(array_filter($everything, fn($x) => in_array($x['state'], ['open', 'in_progress', 'extension', 'returned'], true) && $x['due'] && AssignmentModel::ts($x['due']) > time() && AssignmentModel::ts($x['due']) < time() + 7 * 86400));
 usort($dueSoon, fn($x, $y) => strcmp((string) $x['due'], (string) $y['due']));
 $heldNotes = [];
-foreach ($everything as $x) if (!empty($x['marks_held'])) $heldNotes[$x['release_grades_at']][] = (($x['kind'] ?? 'daily') === 'weekly' ? 'Week ' : 'Assignment ') . $x['index'];
+foreach ($everything as $x) if (!empty($x['marks_held'])) $heldNotes[$x['release_grades_at']][] = AssignmentModel::noun($x['kind'] ?? 'daily') . ' ' . $x['index'];
 /** "6 hours left" / "2 days left". */
 $left = function (?string $due): string {
     $sec = AssignmentModel::ts($due) - time();
@@ -62,7 +62,7 @@ ob_start();
 <div class="d-flex flex-wrap gap-1 mb-3">
     <?php foreach ($filters as $k => $lbl): ?><a href="?f=<?php echo $k; ?>&amp;kind=<?php echo $kindF; ?>" class="btn btn-sm <?php echo $filter === $k ? 'btn-brand' : 'btn-light'; ?>"><?php echo $lbl; ?><?php echo $k !== 'all' && !empty($fCount[$k]) ? ' ' . (int) $fCount[$k] : ''; ?></a><?php endforeach; ?>
     <span class="mx-1"></span>
-    <?php foreach (['' => 'Daily and weekly'] + AssignmentModel::KINDS as $k => $lbl): ?><a href="?f=<?php echo $filter; ?>&amp;kind=<?php echo $k; ?>" class="btn btn-sm <?php echo $kindF === $k ? 'btn-dark' : 'btn-light'; ?>"><?php echo $lbl; ?></a><?php endforeach; ?>
+    <?php foreach (['' => 'All work'] + AssignmentModel::KINDS as $k => $lbl): ?><a href="?f=<?php echo $filter; ?>&amp;kind=<?php echo $k; ?>" class="btn btn-sm <?php echo $kindF === $k ? 'btn-dark' : 'btn-light'; ?>"><?php echo $lbl; ?></a><?php endforeach; ?>
 </div>
 <?php endif; ?>
 <div class="card-student p-3 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -91,14 +91,14 @@ ob_start();
         <div class="asg-card <?php echo $cls; ?>">
             <?php if ($st === 'locked'): ?>
                 <div class="num"><i class="fas fa-lock" aria-hidden="true"></i></div>
-                <div class="flex-grow-1"><div class="k"><?php echo ($it['kind'] ?? 'daily') === 'weekly' ? 'Week' : 'Assignment'; ?> <?php echo (int) $it['index']; ?></div>
+                <div class="flex-grow-1"><div class="k"><?php echo AssignmentModel::noun($it['kind'] ?? 'daily'); ?> <?php echo (int) $it['index']; ?></div>
                     <div class="s">Submit Assignment <?php echo (int) $it['prev_index']; ?> to unlock this one.</div></div>
                 <span class="small fw-bold text-muted">LOCKED</span>
             <?php else: ?>
                 <div class="num <?php echo in_array($st, ['graded', 'submitted'], true) ? 'done' : ''; ?>">
                     <?php echo in_array($st, ['graded', 'submitted'], true) ? '<i class="fas fa-check"></i>' : ($st === 'closed' ? '<i class="fas fa-lock"></i>' : ($st === 'skipped' ? '<i class="fas fa-forward"></i>' : (int) $it['index'])); ?></div>
                 <div class="flex-grow-1" style="min-width:0">
-                    <div class="k"><?php echo ($it['kind'] ?? 'daily') === 'weekly' ? 'Week' : 'Assignment'; ?> <?php echo (int) $it['index']; ?></div>
+                    <div class="k"><?php echo AssignmentModel::noun($it['kind'] ?? 'daily'); ?> <?php echo (int) $it['index']; ?></div>
                     <div class="t text-truncate"><?php echo asg_e($it['title']); ?></div>
                     <div class="s"><?php
                         switch ($st) {
