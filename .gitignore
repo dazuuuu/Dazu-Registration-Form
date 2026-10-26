@@ -172,3 +172,7 @@ yarn-error.log*
 /app/v1/storage/assignments/
 /app/v1/storage/signatures/
 c
+# Local-only: private tutor ID photos / print batches and stray debug output
+/app/v1/storage/tutor_photos/
+/app/v1/storage/id_print/
+/stderr
