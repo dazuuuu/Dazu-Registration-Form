@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
 require_once __DIR__ . '/../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../app/v1/helpers/course_share.php';
 require_once __DIR__ . '/../../app/v1/helpers/course_catalog.php';
+require_once __DIR__ . '/../../app/v1/helpers/enrolment_offer.php';
 require_once __DIR__ . '/../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../app/v1/services/CourseRegistrationHandler.php';
@@ -55,17 +56,38 @@ if (!course_is_shareable($course)) {
     exit;
 }
 
-$page_title = htmlspecialchars($course['title']) . ' — Apply | Dazu hub Institute';
-$page_description = mb_strimwidth(strip_tags($course['overview'] ?? ''), 0, 160, '…');
-$og_image = dazu_course_image_url($course);
+$page_title = ($course['title'] ?? 'Course') . ' — Apply | Dazu Training Institute';
+$page_description = mb_strimwidth(strip_tags($course['overview'] ?? $course['description'] ?? ''), 0, 160, '…');
+$og_image = course_og_image_url($course);
+$og_url = course_share_url((int) $course['id']);
+$share_url = $og_url;
+$share_title = 'Apply for ' . $course['title'] . ' at Dazu Training Institute';
+
+require_once __DIR__ . '/../../app/v1/helpers/seo.php';
+if (seo_is_social_crawler() && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    seo_emit_course_share_preview($course, $og_url);
+}
 
 // Courses offered in the Course Choice select. getAll(true) and course_is_shareable()
 // use the same is_active === 1 rule, so the current course is always among them.
 $courseChoices = $courseModel->getAll(true);
 $allowCourseChange = true;
 
+// Intake Booking: decides whether the Enrol form shows (no intakes: always, exactly as before).
+$ikPart = 'prepare';
+include __DIR__ . '/../components/public/intake_panel.php';
+
 $reg_success = false;
 $reg_error = null;
+$issued_reg_no = '';
+$enrolment_offer_email = '';
+
+if (!empty($_GET['applied']) && enrolment_offer_consume_show()) {
+    $offer = enrolment_offer_get();
+    $reg_success = true;
+    $issued_reg_no = (string) ($offer['registration_no'] ?? '');
+    $enrolment_offer_email = (string) ($offer['email'] ?? '');
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($courseChangeError !== null) {
@@ -74,15 +96,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $handler = new CourseRegistrationHandler($pdo);
         $result = $handler->process($_POST, $_FILES, $course, null);
         if ($result['ok']) {
-            $reg_success = true;
-        } else {
-            $reg_error = $result['error'] ?? 'Registration failed.';
+            redirect(url('courses/view.php?id=' . (int) $courseId . '&applied=1'));
+            exit;
         }
+        $reg_error = $result['error'] ?? 'Registration failed.';
     }
 }
-
-$share_url = course_share_url((int) $course['id']);
-$share_title = 'Apply for ' . $course['title'] . ' at Dazu hub Institute';
 
 ob_start();
 ?>
@@ -100,7 +119,9 @@ ob_start();
         <?php include __DIR__ . '/../components/public/dazu_course_sidebar.php'; ?>
       </div>
       <div class="lg:col-span-7">
-        <?php $pfx = 'view'; include __DIR__ . '/../components/public/dazu_admission_form.php'; ?>
+        <?php $ikPart = 'top'; include __DIR__ . '/../components/public/intake_panel.php'; ?>
+        <?php if ($ikShowForm || $reg_success): $pfx = 'view'; include __DIR__ . '/../components/public/dazu_admission_form.php'; endif; ?>
+        <?php $ikPart = 'after'; include __DIR__ . '/../components/public/intake_panel.php'; ?>
       </div>
     </div>
   </div>

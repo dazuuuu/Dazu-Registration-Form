@@ -61,7 +61,7 @@ function getYoutubeId($url) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?php echo htmlspecialchars($service['title']); ?> — Dazu Hub Institute</title>
+  <title><?php echo htmlspecialchars($service['title']); ?> — Dazu Training Institute</title>
   <meta name="description" content="<?php echo htmlspecialchars(substr($service['short_description'], 0, 160)); ?>">
   <?php
     require_once __DIR__ . '/../../app/v1/helpers/seo.php';
@@ -70,13 +70,13 @@ function getYoutubeId($url) {
         $serviceOg = $gallery[0]['image_path'];
     }
     echo seo_head_tags(
-        $service['title'] . ' — Dazu Hub Institute',
+        $service['title'] . ' — Dazu Training Institute',
         substr(strip_tags((string) $service['short_description']), 0, 160),
         $serviceOg !== '' ? $serviceOg : null
     );
   ?>
 
-  <link rel="stylesheet" href="../assets/css/theme.css">
+  <link rel="stylesheet" href="<?php echo asset('css/theme.css'); ?>">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -321,9 +321,9 @@ function getYoutubeId($url) {
 <!--section class="service-hero">
   <div class="container service-hero-inner">
     <div class="breadcrumb-wrap">
-      <a href="/Ismano/public/">Home</a>
+      <a href="<?php echo url(''); ?>">Home</a>
       <i class="fas fa-chevron-right sep"></i>
-      <a href="/Ismano/public/services/">Services</a>
+      <a href="<?php echo url('services/'); ?>">Services</a>
       <i class="fas fa-chevron-right sep"></i>
       <span><?php echo htmlspecialchars($service['title']); ?></span>
     </div>

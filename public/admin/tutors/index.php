@@ -15,41 +15,78 @@ $pdo = Connection::getInstance()->getConnection();
 $tutorModel = new TutorModel($pdo);
 $tutors = $tutorModel->listAll();
 
+// Staff ID card state per tutor (migration 080), for the ID column and the filters.
+require_once __DIR__ . '/../../../app/v1/services/TutorIdService.php';
+$idInfo = [];
+if (tid_installed($pdo)) {
+    foreach ($pdo->query('SELECT t.id, t.user_id, t.photo_status, t.signature_path, t.signature_status, t.edited_by_tutor, t.staff_no, t.id_status FROM tutors t')->fetchAll(PDO::FETCH_ASSOC) as $r) {
+        $hasPhoto = (bool) idc_student_photo_file($pdo, (int) $r['user_id']);
+        $idInfo[(int) $r['id']] = ['photo' => $hasPhoto ? ($r['photo_status'] === 'none' ? 'ok' : $r['photo_status']) : 'none',
+            'sig' => (bool) sig_abs($r['signature_path']), 'edited' => (bool) $r['edited_by_tutor'], 'id' => tid_id_status($pdo, $r)];
+    }
+}
+$idFilter = in_array($_GET['f'] ?? '', ['photo_update', 'no_photo', 'no_signature', 'edited'], true) ? $_GET['f'] : '';
+if ($idFilter) {
+    $tutors = array_values(array_filter($tutors, function ($t) use ($idInfo, $idFilter) {
+        $i = $idInfo[(int) $t['id']] ?? null;
+        if (!$i) return false;
+        return match ($idFilter) {
+            'photo_update' => in_array($i['photo'], ['needs_update', 'requested'], true),
+            'no_photo' => $i['photo'] === 'none', 'no_signature' => !$i['sig'], 'edited' => $i['edited'],
+        };
+    }));
+}
+
 $page_title = 'Tutors';
 $breadcrumbs = [['label' => 'Tutors', 'active' => true]];
+$extra_css = '<link rel="stylesheet" href="' . sa_asset('css/sheet.css') . '">';
+$extra_js = '<script src="' . sa_asset('js/sheet.js') . '"></script>';
+$col = fn(int $i): string => chr(64 + $i);
 ob_start();
 ?>
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h5 class="mb-0"><i class="fas fa-chalkboard-teacher me-2"></i>Tutors</h5>
+<div class="xl-toolbar">
+    <label class="xl-search"><i class="fas fa-magnifying-glass"></i><input type="search" data-sheet-search placeholder="Search tutor name, email or status…" autocomplete="off"></label>
+    <span class="xl-count" data-sheet-count></span>
     <a href="create.php" class="btn btn-success"><i class="fas fa-plus me-1"></i> Add Tutor</a>
 </div>
-<div class="card">
-    <div class="card-body p-0">
+<?php if ($idInfo): ?>
+<div class="d-flex flex-wrap gap-1 mb-2 small align-items-center"><span class="text-muted me-1">ID cards:</span>
+    <?php foreach (['' => 'All', 'photo_update' => 'Photo needs update', 'no_photo' => 'No photo', 'no_signature' => 'No signature', 'edited' => 'Edited by tutor'] as $k => $l): ?>
+        <a href="?f=<?php echo $k; ?>" class="btn btn-sm <?php echo $idFilter === $k ? 'btn-success' : 'btn-outline-secondary'; ?>"><?php echo $l; ?></a>
+    <?php endforeach; ?>
+</div>
+<?php endif; ?>
+<div class="xl-shell">
+    <div class="xl-formula"><span class="xl-ref" id="xlRef">A1</span><span class="xl-fx">fx</span><span class="xl-val" id="xlVal">Click a cell. Click a tutor's name to manage them.</span></div>
+    <div class="xl-sheet active" id="sheet-tutors">
+    <div class="xl-scroll">
+    <table class="xl">
+        <thead>
+            <tr class="xl-letters"><th class="rn"></th><?php for ($i = 1; $i <= 7; $i++) echo '<th>' . $col($i) . '</th>'; ?></tr>
+            <tr class="xl-head"><th class="rn"></th><th>Tutor</th><th>Email</th><th class="num">Students</th><th class="num">Courses</th><th>Status</th><th>ID card</th><th></th></tr>
+        </thead>
+        <tbody>
         <?php if (empty($tutors)): ?>
-            <p class="text-muted p-4 mb-0">No tutors yet. <a href="create.php">Create the first tutor</a>.</p>
-        <?php else: ?>
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead class="table-light"><tr><th>Name</th><th>Email</th><th>Courses</th><th>Status</th><th></th></tr></thead>
-                <tbody>
-                <?php foreach ($tutors as $t): ?>
-                    <tr>
-                        <td>
-                            <?php if ($t['photo_path']): ?>
-                                <img src="<?php echo htmlspecialchars($t['photo_path']); ?>" width="36" height="36" class="rounded-circle me-2" style="object-fit:cover;">
-                            <?php endif; ?>
-                            <strong><?php echo htmlspecialchars($tutorModel->fullName($t)); ?></strong>
-                        </td>
-                        <td><?php echo htmlspecialchars($t['email']); ?></td>
-                        <td><?php echo count($t['courses']); ?> course(s)</td>
-                        <td><span class="badge bg-<?php echo $t['is_active'] ? 'success' : 'secondary'; ?>"><?php echo $t['is_active'] ? 'Active' : 'Inactive'; ?></span></td>
-                        <td><a href="view.php?id=<?php echo (int)$t['id']; ?>" class="btn btn-sm btn-outline-primary">Manage</a></td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+            <tr data-norow="1"><th class="rn">1</th><td colspan="7" class="text-muted"><?php if ($idFilter): ?>No tutors match this filter.<?php else: ?>No tutors yet. <a href="create.php">Create the first tutor</a>.<?php endif; ?></td></tr>
         <?php endif; ?>
+        <?php foreach ($tutors as $n => $t): $name = $tutorModel->fullName($t); ?>
+            <tr>
+                <th class="rn"><?php echo $n + 1; ?></th>
+                <td><a class="xl-link" href="view.php?id=<?php echo (int)$t['id']; ?>"><?php echo htmlspecialchars($name); ?></a></td>
+                <td class="xl-wrap"><?php echo htmlspecialchars($t['email']); ?></td>
+                <td class="num"><?php echo count($t['students']); ?></td>
+                <td class="num"><?php echo count($t['courses']); ?></td>
+                <td><?php echo $t['is_active'] ? '<span class="text-success fw-semibold small">Active</span>' : '<span class="text-muted small">Inactive</span>'; ?><?php if (!empty($t['can_admin'])): ?> <span class="badge bg-dark" title="Also has the admin portal">+ Admin</span><?php endif; ?></td>
+                <td><?php $ii = $idInfo[(int) $t['id']] ?? null; if ($ii): ?><a href="id.php?id=<?php echo (int) $t['id']; ?>" class="small text-decoration-none">
+                    <?php echo TID_ID_LABELS[$ii['id']]; ?><?php if (in_array($ii['photo'], ['needs_update', 'requested', 'none'], true)): ?> · <span class="text-warning"><?php echo $ii['photo'] === 'none' ? 'no photo' : 'photo'; ?></span><?php endif; ?>
+                    <?php if (!$ii['sig']): ?> · <span class="text-warning">no signature</span><?php endif; ?><?php if ($ii['edited']): ?> · <span class="text-info">edited</span><?php endif; ?></a><?php endif; ?></td>
+                <td class="text-end text-nowrap"><a href="id.php?id=<?php echo (int)$t['id']; ?>" class="btn btn-sm btn-outline-success">ID card</a> <a href="view.php?id=<?php echo (int)$t['id']; ?>" class="btn btn-sm btn-outline-primary">Manage</a></td>
+            </tr>
+        <?php endforeach; ?>
+        </tbody>
+        <?php if ($tutors): ?><tfoot><tr><th class="rn"></th><td>Total</td><td></td><td class="num"><?php echo array_sum(array_map(fn($t) => count($t['students']), $tutors)); ?></td><td></td><td colspan="3"><?php echo count($tutors); ?> tutors</td></tr></tfoot><?php endif; ?>
+    </table>
+    </div>
     </div>
 </div>
 <?php $content = ob_get_clean(); require __DIR__ . '/../../templates/admin/layout.php';

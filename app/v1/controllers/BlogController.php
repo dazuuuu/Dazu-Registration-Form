@@ -322,6 +322,32 @@ class BlogController {
                 $fields['cta_label'] = $data['cta_label'] ?? null;
                 break;
 
+            case 'split':
+                $fields['title'] = $data['title'] ?? null;
+                $fields['content'] = $data['content'] ?? '';
+                $fields['cta_type'] = ($data['split_side'] ?? 'right') === 'left' ? 'left' : 'right';
+                if (($data['split_media'] ?? 'image') === 'youtube') {
+                    $url = trim($data['media_url'] ?? '');
+                    $fields['media_type'] = 'youtube';
+                    $fields['media_url'] = $url !== '' ? $url : null;
+                    $fields['video_id'] = $url !== '' ? $this->extractYoutubeId($url) : null;
+                } else {
+                    if (($existing['media_type'] ?? '') === 'youtube') {
+                        $fields['media_url'] = null; // switched from video to image
+                    }
+                    if (isset($data['media_file']) && is_array($data['media_file'])) {
+                        $uploaded = $this->uploadSectionFile($data['media_file']);
+                        if ($uploaded) $fields['media_url'] = $uploaded;
+                    }
+                    $fields['media_type'] = 'image';
+                    $fields['video_id'] = null;
+                }
+                break;
+
+            case 'divider':
+                $fields['title'] = trim($data['title'] ?? '') ?: null; // optional label in the middle of the line
+                break;
+
             case 'faq':
                 $questions = $data['faq_question'] ?? [];
                 $answers = $data['faq_answer'] ?? [];

@@ -17,6 +17,12 @@ function isSuperAdmin() {
     return isset($_SESSION['role_id']) && $_SESSION['role_id'] == 1;
 }
 
+/** asset() plus a ?v= file timestamp, so a changed stylesheet or script is never served stale from a phone's cache. */
+function sa_asset(string $path): string {
+    $file = dirname(__DIR__, 3) . '/public/assets/' . ltrim($path, '/');
+    return asset($path) . (is_file($file) ? '?v=' . filemtime($file) : '');
+}
+
 function redirect($url) {
     header("Location: $url");
     exit();
@@ -31,6 +37,9 @@ function getRoleBasedProfileUrl() {
     }
     if (isset($_SESSION['role']) && $_SESSION['role'] === 'tutor') {
         return url('tutor/dashboard/index.php');
+    }
+    if (isset($_SESSION['role']) && $_SESSION['role'] === 'employee') {
+        return url('employee/dashboard/index.php');
     }
     return url('profile/client/index.php');
 }

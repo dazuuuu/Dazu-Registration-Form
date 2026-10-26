@@ -1,5 +1,5 @@
 <?php
-// public/services/index.php — Dazu Hub Institute
+// public/services/index.php — Dazu Training Institute
 require_once __DIR__ . '/../../app/v1/config/paths.php';
 require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 
@@ -33,8 +33,8 @@ if ($search) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Our Services — Dazu Hub Institute</title>
-  <meta name="description" content="Training services and support offered by Dazu Hub Institute — Nairobi's hands-on tech education centre.">
+  <title>Our Services — Dazu Training Institute</title>
+  <meta name="description" content="Training services and support offered by Dazu Training Institute — Nairobi's hands-on tech education centre.">
   <?php
     require_once __DIR__ . '/../../app/v1/helpers/seo.php';
     $serviceOg = null;
@@ -45,13 +45,13 @@ if ($search) {
         }
     }
     echo seo_head_tags(
-        'Our Services — Dazu Hub Institute',
-        'Training services and support offered by Dazu Hub Institute — Nairobi\'s hands-on tech education centre.',
+        'Our Services — Dazu Training Institute',
+        'Training services and support offered by Dazu Training Institute — Nairobi\'s hands-on tech education centre.',
         $serviceOg
     );
   ?>
 
-  <link rel="stylesheet" href="../assets/css/theme.css">
+  <link rel="stylesheet" href="<?php echo asset('css/theme.css'); ?>">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -339,7 +339,7 @@ if ($search) {
   $hero_eyebrow = 'What we offer';
   $hero_title   = 'Our Services';
   $hero_sub     = 'Training, mentorship & career support';
-  $hero_desc    = 'From course enrollment to career guidance — everything Dazu Hub Institute offers to help you grow as a developer.';
+  $hero_desc    = 'From course enrollment to career guidance — everything Dazu Training Institute offers to help you grow as a developer.';
   $hero_image   = 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?w=1600&q=80';
   include __DIR__ . '/../components/public/page_hero.php';
 ?>
@@ -347,7 +347,7 @@ if ($search) {
 <!--section class="page-hero">
   <div class="container page-hero-inner">
     <div class="breadcrumb-wrap">
-      <a href="/Ismano/public/">Home</a>
+      <a href="<?php echo url(''); ?>">Home</a>
       <i class="fas fa-chevron-right sep"></i>
       <span>Services</span>
     </div>
@@ -465,7 +465,7 @@ if ($search) {
                 <div class="service-meta">
                   <span><i class="fa-regular fa-eye" aria-hidden="true"></i> <?php echo number_format($service['view_count'] ?? 0); ?></span>
                 </div>
-                <a href="readmore.php?slug=<?php echo urlencode($service['slug']); ?>" class="service-view-btn">
+                <a href="<?php echo url('services/readmore.php?slug=' . urlencode((string) $service['slug'])); ?>" class="service-view-btn">
                   Learn More <i class="fas fa-arrow-right" aria-hidden="true"></i>
                 </a>
               </div>

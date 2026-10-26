@@ -21,6 +21,9 @@ try {
     
     $blogController = new BlogController($pdo);
     
+    if (empty($_POST['blog_id']) || trim($_POST['question'] ?? '') === '' || trim($_POST['answer'] ?? '') === '') {
+        sendJsonResponse(false, 'Blog, question and answer are required.');
+    }
     $result = $blogController->addFaq($_POST['blog_id'], $_POST, $_POST['sort_order'] ?? 0);
     
     sendJsonResponse($result ? true : false, $result ? 'FAQ added successfully' : 'Failed to add FAQ');

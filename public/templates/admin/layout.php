@@ -5,6 +5,12 @@ if (!function_exists('url')) {
     require_once __DIR__ . '/../../../app/v1/config/paths.php';
 }
 
+// The superadmin has a separate portal.
+if ((int)($_SESSION['role_id'] ?? 0) === 1) {
+    header('Location: ' . url('superadmin/dashboard.php'));
+    exit();
+}
+
 // Check authentication
 if (!isset($_SESSION['user_id']) || !isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
     header('Location: ' . url('auth/login.php'));
@@ -16,7 +22,9 @@ $pending_migration_error = null;
 if (isset($pdo)) {
     try {
         require_once __DIR__ . '/../../../app/v1/services/MigrationService.php';
-        $pending_migration_count = (new MigrationService($pdo))->pendingCount();
+        $pendingReleases = (new MigrationService($pdo))->pendingReleases();
+        $pending_migration_count = count($pendingReleases);
+        $pending_update_version = $pendingReleases ? end($pendingReleases)['version'] : null;
     } catch (Throwable $e) {
         $pending_migration_error = $e->getMessage();
     }
@@ -27,13 +35,14 @@ if (isset($pdo)) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Admin — <?php echo $page_title ?? 'Dazu Hub Institute'; ?></title>
+    <title>Admin — <?php echo $page_title ?? 'Dazu Training Institute'; ?></title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <?php $pwaPortal = 'admin'; require __DIR__ . '/../../components/pwa/head.php'; ?>
     
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -566,14 +575,6 @@ if (isset($pdo)) {
 })();
 </script>
     <div class="admin-wrapper">
-        <!-- Sidebar Overlay (Mobile) -->
-        <div class="sidebar-overlay" id="sidebarOverlay"></div>
-        
-        <!-- Sidebar Toggle Button (Mobile) -->
-        <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle Sidebar">
-            <i class="fas fa-bars"></i>
-        </button>
-        
         <!-- Include Admin Sidebar -->
         <?php include_once __DIR__ . '/../../components/admin/sidebar.php'; ?>
         
@@ -657,8 +658,8 @@ if (isset($pdo)) {
                 <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2" role="alert">
                     <div>
                         <i class="fas fa-download me-2"></i>
-                        <strong>System update available.</strong>
-                        <?php echo number_format($pending_migration_count); ?> database migration<?php echo $pending_migration_count === 1 ? '' : 's'; ?> pending.
+                        <strong>Update available.</strong>
+                        V<?php echo htmlspecialchars((string) $pending_update_version); ?> is ready to install.
                     </div>
                     <a class="btn btn-sm btn-warning" href="<?php echo url('admin/system/updates.php'); ?>">
                         <i class="fas fa-database me-1"></i> Update now
@@ -698,108 +699,15 @@ if (isset($pdo)) {
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- Mobile Sidebar Script -->
-    <script>
-        (function() {
-            'use strict';
-            
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const sidebar = document.querySelector('.admin-sidebar');
-            const overlay = document.getElementById('sidebarOverlay');
-            
-            function openSidebar() {
-                if (sidebar) sidebar.classList.add('active');
-                if (overlay) overlay.classList.add('active');
-                document.body.style.overflow = 'hidden';
-                
-                // Save state
-                localStorage.setItem('adminSidebarOpen', 'true');
-            }
-            
-            function closeSidebar() {
-                if (sidebar) sidebar.classList.remove('active');
-                if (overlay) overlay.classList.remove('active');
-                document.body.style.overflow = '';
-                
-                // Save state
-                localStorage.setItem('adminSidebarOpen', 'false');
-            }
-            
-            function toggleSidebar() {
-                if (sidebar && sidebar.classList.contains('active')) {
-                    closeSidebar();
-                } else {
-                    openSidebar();
-                }
-            }
-            
-            // Toggle button click
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', toggleSidebar);
-            }
-            
-            // Overlay click
-            if (overlay) {
-                overlay.addEventListener('click', closeSidebar);
-            }
-            
-            // Close on escape key
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'Escape' && sidebar && sidebar.classList.contains('active')) {
-                    closeSidebar();
-                }
-            });
-            
-            // Handle window resize - close sidebar when switching to desktop
-            let resizeTimer;
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(function() {
-                    if (window.innerWidth > 992 && sidebar && sidebar.classList.contains('active')) {
-                        closeSidebar();
-                    }
-                }, 250);
-            });
-            
-            // Close sidebar when clicking on a link (mobile only)
-            if (sidebar) {
-                const sidebarLinks = sidebar.querySelectorAll('.nav-link');
-                sidebarLinks.forEach(function(link) {
-                    link.addEventListener('click', function() {
-                        if (window.innerWidth <= 992) {
-                            setTimeout(closeSidebar, 150);
-                        }
-                    });
-                });
-            }
-            
-            // Restore sidebar state on page load (desktop only)
-            if (window.innerWidth > 992) {
-                // On desktop, sidebar is always visible
-                if (sidebar) sidebar.classList.remove('active');
-            } else {
-                // On mobile, check saved state
-                const savedState = localStorage.getItem('adminSidebarOpen');
-                if (savedState === 'true' && sidebar) {
-                    setTimeout(function() {
-                        sidebar.classList.add('active');
-                        if (overlay) overlay.classList.add('active');
-                    }, 100);
-                }
-            }
-        })();
-    </script>
-    
     <script>
     window.ADMIN_TERMINAL_USER = <?php echo json_encode($_SESSION['username'] ?? 'admin'); ?>;
     window.ADMIN_TERMINAL_ROUTES = <?php echo json_encode([
         'dashboard' => url('admin/dashboard.php'),
         'registrations' => url('admin/registrations/index.php?status=pending'),
-        'students' => url('admin/sms/students/index.php'),
+        'students' => url('admin/registrations/index.php?status=approved'),
         'courses' => url('admin/courses/index.php'),
         'free-courses' => url('admin/free-courses/index.php'),
         'tutors' => url('admin/tutors/index.php'),
-        'payments' => url('admin/payments/index.php'),
         'orders' => url('admin/orders/index.php'),
         'enquiries' => url('admin/enquiries/index.php'),
         'projects' => url('admin/projects/index.php'),
@@ -818,9 +726,12 @@ if (isset($pdo)) {
     ], JSON_UNESCAPED_SLASHES); ?>;
     </script>
     <script src="<?php echo asset('js/admin-terminal.js'); ?>"></script>
+    <?php $pwaPortal = 'admin'; require __DIR__ . '/../../components/pwa/script.php'; ?>
+    <?php require __DIR__ . '/../../components/announcements/overlay.php'; ?>
 
     <?php if (isset($extra_js)): ?>
         <?php echo $extra_js; ?>
     <?php endif; ?>
+<?php require __DIR__ . '/../../components/cache_guard.php'; ?>
 </body>
 </html>

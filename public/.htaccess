@@ -2,17 +2,97 @@
 Options +FollowSymLinks -MultiViews
 RewriteEngine On
 
-# Pretty URLs (internal rewrite — no risky redirects)
-RewriteRule ^login/?$ auth/login.php [L]
-RewriteRule ^forgot-password/?$ auth/forgot_password.php [L]
-RewriteRule ^reset-password/?$ auth/reset_password.php [L]
-RewriteRule ^testimonials/submit/?$ testimonials/submit.php [L]
-RewriteRule ^apply/?$ apply/index.php [L]
-RewriteRule ^courses/?$ courses/index.php [L]
-RewriteRule ^about/?$ about/index.php [L]
-RewriteRule ^contact/?$ contact/index.php [L]
-RewriteRule ^projects/?$ projects/index.php [L]
-RewriteRule ^blog/?$ blogs/index.php [L]
+# Let the rules below serve /contact (not /contact/). Scoped to this app's section folders only,
+# so other projects/subdomains installed in subfolders keep Apache's normal trailing-slash behaviour.
+<IfModule mod_dir.c>
+<If "%{REQUEST_URI} =~ m#/(about|apply|blogs|contact|courses|gallery|projects|services|store|testimonials|verify)/?$#">
+DirectorySlash Off
+</If>
+</IfModule>
+
+# Folder this .htaccess lives in, as seen from the browser ("/" on the live site, "/Registration-System/public/" in a subfolder install)
+RewriteCond %{REQUEST_URI}::$1 ^(.*?/)(.*)::\2$
+RewriteRule ^(.*)$ - [E=BASE:%1]
+
+# robots.txt and sitemap.xml are built by PHP (they need the site's own domain and the live course list)
+RewriteRule ^robots\.txt$ robots.php [L]
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
+# ── 0. Leave other projects alone ──
+# Anything under a folder that is not part of this app (e.g. a subdomain installed in a subfolder)
+# is passed straight through untouched. Add a folder here if you create a new top-level section.
+RewriteRule ^(about|admin|announcements|api|apply|assets|assignments|auth|blog|blogs|calendar|classes|components|contact|courses|documents|employee|feedback|gallery|id_cards|intern|letters|profile|projects|services|store|students|superadmin|templates|testimonials|tutor|uploads|verify)(/|$) - [S=2]
+RewriteRule ^[^/]+/ - [L]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^[^/]+$ - [L]
+
+# ── 1. Old .php addresses → clean addresses (301, GET only so form posts are never broken) ──
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s[^?\s]*\.php[\s?]
+RewriteRule ^auth/login\.php$ %{ENV:BASE}login [R=301,L]
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s[^?\s]*\.php[\s?]
+RewriteRule ^auth/forgot_password\.php$ %{ENV:BASE}forgot-password [R=301,L]
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s[^?\s]*\.php[\s?]
+RewriteRule ^auth/reset_password\.php$ %{ENV:BASE}reset-password [R=301,L]
+
+# Blog post: blogs/readmore.php?slug=x → blog/x
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s[^?\s]*readmore\.php[\s?]
+RewriteCond %{QUERY_STRING} (?:^|&)slug=([^&]+)
+RewriteRule ^blogs/readmore\.php$ %{ENV:BASE}blog/%1? [R=301,L,NE]
+
+# Blog list: blogs/ or blogs/index.php → blog
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s[^?\s]*/blogs(/|/index\.php)?[\s?]
+RewriteRule ^blogs(/|/index\.php)?$ %{ENV:BASE}blog [R=301,L]
+
+# Section home pages: contact/index.php → contact (same for about, courses, projects, …)
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s[^?\s]*/index\.php[\s?]
+RewriteRule ^(about|apply|contact|courses|gallery|projects|services|store|testimonials|verify)/index\.php$ %{ENV:BASE}$1 [R=301,L]
+
+# Other public pages: courses/view.php → courses/view
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s[^?\s]*\.php[\s?]
+RewriteRule ^(about|apply|blogs|contact|courses|gallery|projects|services|store|testimonials|verify)/([A-Za-z0-9_-]+)\.php$ %{ENV:BASE}$1/$2 [R=301,L]
+
+# Dashboards and portals: admin/students/view.php → admin/students/view, …/index.php → …/
+# (GET only; JSON/file endpoints api, manifest, file, photo, search, clock and keepalive keep their .php address)
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s[^?\s]*/index\.php[\s?]
+RewriteRule ^((?:admin|superadmin|tutor|students|intern|employee|profile)(?:/[^?]*)?)/index\.php$ %{ENV:BASE}$1/ [R=301,L]
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s[^?\s]*\.php[\s?]
+RewriteCond $2 !^(api|manifest|file|search|clock|keepalive|photo)$
+RewriteRule ^((?:admin|superadmin|tutor|students|intern|employee|profile|auth)(?:/[^?]*)?)/([A-Za-z0-9_-]+)\.php$ %{ENV:BASE}$1/$2 [R=301,L]
+
+# Homepage: index.php → /
+RewriteCond %{REQUEST_METHOD} =GET
+RewriteCond %{THE_REQUEST} \s[^?\s]*/index\.php[\s?]
+RewriteRule ^index\.php$ %{ENV:BASE} [R=301,L]
+
+# ── 2. Clean addresses → real files (internal, the browser keeps the clean URL) ──
+RewriteRule ^login/?$ auth/login.php [L,QSA]
+RewriteRule ^forgot-password/?$ auth/forgot_password.php [L,QSA]
+RewriteRule ^reset-password/?$ auth/reset_password.php [L,QSA]
+RewriteRule ^testimonials/submit/?$ testimonials/submit.php [L,QSA]
+RewriteRule ^blog/?$ blogs/index.php [L,QSA]
+RewriteRule ^blog/([^/]+)/?$ blogs/readmore.php?slug=$1 [L,QSA]
+# Tutor ID QR: verify/tutor/<token>
+RewriteRule ^verify/tutor/([A-Za-z0-9]{32,64})/?$ verify/tutor.php?t=$1 [L,QSA]
+RewriteRule ^(about|apply|contact|courses|gallery|projects|services|store|testimonials|verify)/?$ $1/index.php [L,QSA]
+
+# Extensionless pages: courses/view → courses/view.php
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{REQUEST_FILENAME}.php -f
+RewriteRule ^(.+?)/?$ $1.php [L,QSA]
+
+# Other real folders without a trailing slash (e.g. /admin) → add it, as Apache normally would
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^(.*[^/])$ %{ENV:BASE}$1/ [R=301,L]
 
 # Real files and folders (css, images, api, admin, etc.)
 RewriteCond %{REQUEST_FILENAME} -f [OR]

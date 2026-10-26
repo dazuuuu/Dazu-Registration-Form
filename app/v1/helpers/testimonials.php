@@ -45,7 +45,7 @@ if (!function_exists('testimonial_youtube_id')) {
             return $m[1];
         }
         if (preg_match('#^[a-zA-Z0-9_-]{11}$#', $url, $m)) {
-            return $m[1];
+            return $m[0];
         }
         return null;
     }
@@ -103,12 +103,6 @@ if (!function_exists('testimonial_load_for_homepage')) {
         if (!$text) {
             $text = testimonial_static_text_fallbacks();
         }
-        if (!$video) {
-            $video = array_values(array_filter(
-                testimonial_static_video_fallbacks(),
-                static fn($r) => testimonial_video_embed_url($r) !== null
-            ));
-        }
 
         return ['text' => $text, 'video' => $video];
     }
@@ -133,7 +127,7 @@ if (!function_exists('testimonial_static_text_fallbacks')) {
                 'customer_name' => 'Joseph Njuguna',
                 'customer_initial' => 'JN',
                 'rating' => 5,
-                'testimonial_text' => 'Dazu Hub\'s physical labs in Room 529 gave me the confidence to deploy full-stack apps. The mentorship is practical — you write code every single day.',
+                'testimonial_text' => 'Dazu Training Institute physical labs in Room 529 gave me the confidence to deploy full-stack apps. The mentorship is practical — you write code every single day.',
                 'service_tag' => 'Software Development',
                 'role' => 'Junior Developer at Thika Tech Hub',
                 'testimonial_type' => 'text',
@@ -143,7 +137,7 @@ if (!function_exists('testimonial_static_text_fallbacks')) {
                 'customer_name' => 'Alex Kipkoech',
                 'customer_initial' => 'AK',
                 'rating' => 5,
-                'testimonial_text' => 'Cybersecurity labs with real routers and ethical hacking exercises prepared me for CompTIA-style interviews. Highly recommend Dazu Hub.',
+                'testimonial_text' => 'Cybersecurity labs with real routers and ethical hacking exercises prepared me for CompTIA-style interviews. Highly recommend Dazu Training Institute.',
                 'service_tag' => 'Cybersecurity',
                 'role' => 'Security Analyst',
                 'testimonial_type' => 'text',
@@ -165,7 +159,7 @@ if (!function_exists('testimonial_static_video_fallbacks')) {
                 'testimonial_type' => 'video',
                 'video_url' => 'https://www.youtube.com/watch?v=EUY5XaeDsCI',
                 'video_provider' => 'youtube',
-                'thumbnail_url' => '',
+                'thumbnail_url' => 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=600&q=80',
                 'bg_class' => 'from-emerald-600 to-teal-900',
                 'duration' => '0:18',
             ],
@@ -178,7 +172,7 @@ if (!function_exists('testimonial_static_video_fallbacks')) {
                 'testimonial_type' => 'video',
                 'video_url' => 'https://www.youtube.com/watch?v=wsnMje68J9M',
                 'video_provider' => 'youtube',
-                'thumbnail_url' => '',
+                'thumbnail_url' => 'https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&w=600&q=80',
                 'bg_class' => 'from-blue-700 to-indigo-950',
                 'duration' => '0:18',
             ],
@@ -191,7 +185,7 @@ if (!function_exists('testimonial_static_video_fallbacks')) {
                 'testimonial_type' => 'video',
                 'video_url' => 'https://www.youtube.com/watch?v=y0vgFgUXYAI',
                 'video_provider' => 'youtube',
-                'thumbnail_url' => '',
+                'thumbnail_url' => 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=600&q=80',
                 'bg_class' => 'from-purple-700 to-fuchsia-950',
                 'duration' => '0:18',
             ],
@@ -204,7 +198,7 @@ if (!function_exists('testimonial_static_video_fallbacks')) {
                 'testimonial_type' => 'video',
                 'video_url' => 'https://www.youtube.com/watch?v=BK0wlEJ3nR4',
                 'video_provider' => 'youtube',
-                'thumbnail_url' => '',
+                'thumbnail_url' => 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
                 'bg_class' => 'from-amber-600 to-orange-800',
                 'duration' => '0:18',
             ],
@@ -226,7 +220,7 @@ if (!function_exists('testimonial_video_embed_url')) {
         if (($t['video_provider'] ?? '') === 'vimeo' && preg_match('#vimeo\.com/(\d+)#', $url, $m)) {
             return 'https://player.vimeo.com/video/' . $m[1] . '?autoplay=1';
         }
-        if (preg_match('#^https?://#i', $url)) {
+        if (preg_match('#^(https?://|/)#i', $url)) { // full URL or an upload on this site
             return $url;
         }
         return null;

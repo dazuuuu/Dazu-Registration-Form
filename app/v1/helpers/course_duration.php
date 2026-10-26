@@ -156,3 +156,14 @@ function course_format_duration_unit(string $unit, int $value): string
     }
     return $value . ' month' . ($value === 1 ? '' : 's');
 }
+
+
+/** 'certificate' or 'diploma': the course's own setting, else certificate under 18 months and diploma from 18 months up. */
+function course_qualification(?array $course): string
+{
+    $q = (string) ($course['qualification'] ?? '');
+    if ($q === 'certificate' || $q === 'diploma') {
+        return $q;
+    }
+    return course_effective_months($course) < 18 ? 'certificate' : 'diploma';
+}

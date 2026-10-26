@@ -2,7 +2,7 @@
 // app/v1/controllers/ManualOnboardController.php
 namespace Controllers;
 
-require_once __DIR__ . '/../helpers/course_duration.php';
+require_once __DIR__ . '/../helpers/registration_number.php';
 use Models\Connection;
 use Models\CourseModel;
 use Models\PaymentModel;
@@ -49,7 +49,12 @@ class ManualOnboardController {
         $stmt = $this->db->prepare("SELECT id FROM users WHERE email = :email LIMIT 1");
         $stmt->execute([':email' => $email]);
         if ($stmt->fetchColumn()) {
-            return ['ok' => false, 'error' => 'An account with this email already exists. Use the "Existing student" tab instead.'];
+            require_once __DIR__ . '/../services/EmailConflictService.php';
+            if (empty($data['replace_existing'])) {
+                return ['ok' => false, 'error' => 'An account with this email already exists.' . \EmailConflictService::hint()];
+            }
+            $released = \EmailConflictService::release($this->db, $email);
+            if (!$released['ok']) return $released;
         }
 
         $course = $this->courseModel->getById((int) ($data['course_id'] ?? 0));
@@ -73,8 +78,8 @@ class ManualOnboardController {
         try {
             $this->db->beginTransaction();
 
-            $seq = $this->courseModel->claimNextSequence((int) $course['id']);
-            $regNo = sprintf('DH-%s%02d/%s', $course['abbreviation'], $seq, date('Y'));
+            registration_number_lock($this->db);
+            $regNo = registration_number_next($this->db, (int) $course['id']);
 
             $stmt = $this->db->prepare("SELECT id FROM roles WHERE role_name = 'student' LIMIT 1");
             $stmt->execute();
@@ -127,6 +132,7 @@ class ManualOnboardController {
                 $fullName,
                 $email,
                 $phone,
+                $data['secondary_phone'] ?? '',
                 $course,
                 $enrollment,
                 $userId,
@@ -136,6 +142,19 @@ class ManualOnboardController {
             $this->db->commit();
 
             $this->finalizeEnrollment($registrationId, $course, $enrollment, $resolvedAdmin);
+
+            // Optional: assign the student to a tutor straight away (shows on the Tutors and Salaries pages).
+            if (!empty($data['tutor_id'])) {
+                try {
+                    require_once __DIR__ . '/../models/PayrollModel.php';
+                    $payroll = new \Models\PayrollModel($this->db);
+                    if ($payroll->isInstalled()) {
+                        $payroll->assignStudents((int) $data['tutor_id'], [$userId]);
+                    }
+                } catch (\Throwable $e) {
+                    error_log('[ManualOnboardController] tutor assignment failed: ' . $e->getMessage());
+                }
+            }
 
             return [
                 'ok'            => true,
@@ -150,6 +169,8 @@ class ManualOnboardController {
             }
             error_log('[ManualOnboardController::onboardNew] ' . $e->getMessage());
             return ['ok' => false, 'error' => 'Onboarding failed: ' . $e->getMessage()];
+        } finally {
+            registration_number_unlock($this->db);
         }
     }
 
@@ -208,6 +229,7 @@ class ManualOnboardController {
         string $fullName,
         string $email,
         string $phone,
+        string $secondaryPhone,
         array $course,
         array $enrollment,
         int $userId,
@@ -215,13 +237,13 @@ class ManualOnboardController {
     ): int {
         $stmt = $this->db->prepare(
             "INSERT INTO registrations
-             (registration_no, full_name, email, phone, course_id, study_mode, id_document_path,
+             (registration_no, full_name, email, phone, secondary_phone, course_id, study_mode, id_document_path,
               registration_fee, course_fee, payment_plan, installment_count, installment_amount,
               payment_reference, possible_returning_student, enrollment_type, current_learning_month,
               fee_balance_note, fee_status, registration_fee_waived, installments_paid,
               status, reviewed_by, reviewed_at, user_id, portal_locked)
              VALUES
-             (:reg_no, :full_name, :email, :phone, :course_id, :study_mode, :id_doc,
+             (:reg_no, :full_name, :email, :phone, :secondary_phone, :course_id, :study_mode, :id_doc,
               :reg_fee, :course_fee, :plan, :inst_count, :inst_amount,
               :pay_ref, 0, 'continuing', :learning_month, :fee_note, :fee_status, :waived, :inst_paid,
               'approved', :admin, NOW(), :user_id, :locked)"
@@ -231,6 +253,7 @@ class ManualOnboardController {
             ':full_name'      => $fullName,
             ':email'          => $email,
             ':phone'          => $phone,
+            ':secondary_phone'=> $secondaryPhone,
             ':course_id'      => (int) $course['id'],
             ':study_mode'     => $enrollment['study_mode'],
             ':id_doc'         => 'admin/manual-onboarding',

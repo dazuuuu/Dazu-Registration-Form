@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Black hat hacker">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0d0e1f"/><stop offset="1" stop-color="#0f5f2f"/></linearGradient>
+    <radialGradient id="halo" cx="50%" cy="46%" r="50%"><stop offset="0" stop-color="#3dc46f" stop-opacity=".55"/><stop offset="1" stop-color="#3dc46f" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="250" r="210" fill="url(#halo)"/>
+  <!-- hoodie -->
+  <path d="M84 512 C84 402 160 346 256 346 C352 346 428 402 428 512 Z" fill="#07070d"/>
+  <path d="M176 360 Q256 410 336 360" fill="none" stroke="#1b1c34" stroke-width="6" stroke-linecap="round"/>
+  <!-- face in shadow -->
+  <ellipse cx="256" cy="278" rx="92" ry="98" fill="#0a0a13"/>
+  <!-- eyes -->
+  <g filter="url(#glow)" fill="#39ff88">
+    <path d="M192 276 L238 268 L236 288 Q214 294 192 286 Z"/>
+    <path d="M320 276 L274 268 L276 288 Q298 294 320 286 Z"/>
+    <path d="M214 330 Q256 356 298 330" fill="none" stroke="#39ff88" stroke-width="7" stroke-linecap="round"/>
+  </g>
+  <!-- hat -->
+  <ellipse cx="256" cy="206" rx="176" ry="36" fill="#020204"/>
+  <path d="M168 206 L182 108 Q256 78 330 108 L344 206 Z" fill="#06060b"/>
+  <path d="M182 108 Q256 84 330 108" fill="none" stroke="#2a2b45" stroke-width="5" stroke-linecap="round"/>
+  <path d="M171 182 Q256 204 341 182 L344 206 Q256 230 168 206 Z" fill="#15a24a"/>
+  <ellipse cx="256" cy="206" rx="176" ry="36" fill="none" stroke="#1d1e36" stroke-width="3"/>
+</svg>

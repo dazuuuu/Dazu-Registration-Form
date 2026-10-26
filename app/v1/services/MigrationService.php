@@ -11,7 +11,7 @@ class MigrationService
     public function __construct(PDO $pdo, ?string $migrationsDir = null)
     {
         $this->pdo = $pdo;
-        $this->migrationsDir = $migrationsDir ?: dirname(__DIR__, 3) . '/databases/required_migrations';
+        $this->migrationsDir = $migrationsDir ?: (defined('DATABASES_PATH') ? DATABASES_PATH : dirname(__DIR__) . '/databases') . '/required_migrations';
     }
 
     public function ensureTable(): void
@@ -29,6 +29,20 @@ class MigrationService
         $this->ensureTable();
         $applied = $this->pdo->query('SELECT filename FROM schema_migrations')->fetchAll(PDO::FETCH_COLUMN);
         return array_flip($applied ?: []);
+    }
+
+    public function appliedRows(): array
+    {
+        $this->ensureTable();
+        $rows = $this->pdo
+            ->query('SELECT filename, applied_at FROM schema_migrations ORDER BY filename ASC')
+            ->fetchAll(PDO::FETCH_ASSOC);
+
+        $applied = [];
+        foreach ($rows ?: [] as $row) {
+            $applied[(string) $row['filename']] = (string) ($row['applied_at'] ?? '');
+        }
+        return $applied;
     }
 
     public function migrationFiles(): array
@@ -57,6 +71,74 @@ class MigrationService
     public function pendingCount(): int
     {
         return count($this->pending());
+    }
+
+    public function statusRows(): array
+    {
+        $applied = $this->appliedRows();
+        $rows = [];
+        foreach ($this->migrationFiles() as $path) {
+            $filename = basename($path);
+            $rows[] = [
+                'filename' => $filename,
+                'path' => $path,
+                'status' => isset($applied[$filename]) ? 'applied' : 'pending',
+                'applied_at' => $applied[$filename] ?? null,
+                'modified_at' => is_file($path) ? date('Y-m-d H:i:s', (int) filemtime($path)) : null,
+            ];
+        }
+        return $rows;
+    }
+
+    /**
+     * Versions (from databases/releases.php) with their state, oldest first: version, title, date, notes, files,
+     * installed (all its files applied), installed_at. SQL files no release lists are grouped as a patch after the latest.
+     */
+    public function releases(): array
+    {
+        $listPath = dirname(rtrim($this->migrationsDir, '/')) . '/releases.php';
+        $list = is_file($listPath) ? (array) require $listPath : [];
+        $applied = $this->appliedRows();
+        $onDisk = array_map('basename', $this->migrationFiles());
+        $listed = [];
+        foreach ($list as $r) foreach ((array) ($r['files'] ?? []) as $f) $listed[$f] = true;
+        $loose = array_values(array_filter($onDisk, static fn ($f) => !isset($listed[$f])));
+        if ($loose) {
+            $last = $list ? (string) end($list)['version'] : '1.0';
+            $parts = explode('.', $last);
+            $next = count($parts) >= 3 ? implode('.', array_slice($parts, 0, -1)) . '.' . ((int) end($parts) + 1) : $last . '.1';
+            $list[] = ['version' => $next, 'title' => 'Maintenance update', 'date' => null,
+                       'notes' => ['Fixes and improvements'], 'files' => $loose];
+        }
+        $out = [];
+        foreach ($list as $r) {
+            $files = array_values(array_filter((array) $r['files'], static fn ($f) => in_array($f, $onDisk, true)));
+            $done = array_filter($files, static fn ($f) => isset($applied[$f]));
+            $out[] = [
+                'version' => (string) $r['version'], 'title' => (string) ($r['title'] ?? ''), 'date' => $r['date'] ?? null,
+                'notes' => (array) ($r['notes'] ?? []), 'files' => $files,
+                'installed' => count($done) === count($files),
+                'installed_at' => $done ? max(array_map(static fn ($f) => $applied[$f], $done)) : null,
+            ];
+        }
+        return $out;
+    }
+
+    /** Releases still to install, oldest first. */
+    public function pendingReleases(): array
+    {
+        return array_values(array_filter($this->releases(), static fn ($r) => !$r['installed']));
+    }
+
+    /** Version this site is on: the newest release installed with every release before it. */
+    public function currentVersion(): ?string
+    {
+        $current = null;
+        foreach ($this->releases() as $r) {
+            if (!$r['installed']) break;
+            $current = $r['version'];
+        }
+        return $current;
     }
 
     public function applyPending(?callable $onProgress = null): array

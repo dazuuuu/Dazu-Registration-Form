@@ -22,7 +22,7 @@ if (!isset($_SESSION['role_id']) || $_SESSION['role_id'] > 2) {
 
 $user_id = $_SESSION['user_id'];
 $username = $_SESSION['username'];
-$email = $_SESSION['email'];
+$email = $_SESSION['email'] ?? '';
 $role = $_SESSION['role'] ?? 'admin';
 
 $success = '';

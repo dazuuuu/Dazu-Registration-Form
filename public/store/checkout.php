@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../app/v1/helpers/currency.php';
 if (session_status() === PHP_SESSION_NONE) session_start();
 
 if (empty($_SESSION['user_id'])) {
-    header('Location: /Ismano/public/auth/login.php?redirect=' . urlencode('/Ismano/public/store/checkout.php'));
+    header('Location: ' . url('login') . '?redirect=' . urlencode(url('store/checkout.php')));
     exit();
 }
 
@@ -44,7 +44,7 @@ ob_start();
             <div class="text-center py-5">
                 <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
                 <p class="mb-3">Your cart is empty.</p>
-                <a href="/Ismano/public/store/" class="btn btn--primary"><i class="fas fa-store me-2"></i> Browse Products</a>
+                <a href="<?php echo url('store/'); ?>" class="btn btn--primary"><i class="fas fa-store me-2"></i> Browse Products</a>
             </div>
         <?php else: ?>
         <div class="row g-4">
@@ -111,7 +111,7 @@ ob_start();
                         <i class="fas fa-mobile-alt me-2"></i> Pay <?php echo format_price($subtotal); ?> with M-Pesa
                     </button>
                     <div id="payMsg" class="mt-3 small"></div>
-                    <a href="/Ismano/public/client/cart/" class="btn btn-outline-secondary w-100 mt-2">Back to cart</a>
+                    <a href="<?php echo url('client/cart/'); ?>" class="btn btn-outline-secondary w-100 mt-2">Back to cart</a>
                 </div>
             </div>
         </div>
@@ -154,13 +154,13 @@ ob_start();
             payBtn.disabled = false;
             return;
         }
-        fetch('/Ismano/public/api/store/checkout/status.php?order=' + encodeURIComponent(orderNumber))
+        fetch(<?php echo json_encode(url('api/store/checkout/status.php?order=')); ?> + encodeURIComponent(orderNumber))
             .then(function (r) { return r.json(); })
             .then(function (d) {
                 if (d.success && d.payment_status === 'paid') {
                     msg('Payment received! Redirecting to your order…', 'success');
                     window.dispatchEvent(new Event('cart:updated'));
-                    setTimeout(function () { window.location.href = '/Ismano/public/client/orders/?new=' + encodeURIComponent(orderNumber); }, 1200);
+                    setTimeout(function () { window.location.href = <?php echo json_encode(url('client/orders/?new=')); ?> + encodeURIComponent(orderNumber); }, 1200);
                 } else if (d.success && (d.payment_status === 'failed' || d.payment_status === 'cancelled')) {
                     msg('Payment was not completed. You can try again.', 'danger');
                     payBtn.disabled = false;
@@ -183,7 +183,7 @@ ob_start();
         payBtn.disabled = true;
         msg('Sending payment request to your phone…');
 
-        fetch('/Ismano/public/api/store/checkout/initiate.php', {
+        fetch(<?php echo json_encode(url('api/store/checkout/initiate.php')); ?>, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

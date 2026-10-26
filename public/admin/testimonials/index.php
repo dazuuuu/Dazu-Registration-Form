@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/../../../app/v1/config/paths.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+Middleware::requireAdmin();   // admins only (the superadmin has a separate portal)
 require_once __DIR__ . '/../../../app/v1/bootstrap.php';
 require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../../../app/v1/controllers/TestimonialController.php';
@@ -160,7 +163,7 @@ ob_start();
             <i class="fas fa-quote-left"></i> Add text
         </a>
         <a href="create_video.php" class="btn btn-sm btn-success">
-            <i class="fas fa-video"></i> Add video
+            <i class="fas fa-video"></i> Add student story
         </a>
         <a href="<?php echo url('testimonials/submit'); ?>" class="btn btn-sm btn-primary" target="_blank">
             <i class="fas fa-external-link-alt"></i> Student submit page
@@ -179,6 +182,11 @@ ob_start();
                     <div class="testimonial-header">
                         <div>
                             <strong><?php echo htmlspecialchars($testimonial['customer_name']); ?></strong>
+                            <?php if (($testimonial['testimonial_type'] ?? '') === 'video' || !empty($testimonial['video_url'])): ?>
+                                <span class="badge bg-danger ms-2"><i class="fas fa-video me-1"></i> Video</span>
+                            <?php else: ?>
+                                <span class="badge bg-secondary ms-2"><i class="fas fa-quote-left me-1"></i> Text</span>
+                            <?php endif; ?>
                             <?php if ($testimonial['role']): ?>
                                 <br><small class="text-muted"><?php echo htmlspecialchars($testimonial['role']); ?></small>
                             <?php endif; ?>
@@ -198,6 +206,23 @@ ob_start();
                                 <i class="fas fa-star<?php echo $i <= $testimonial['rating'] ? '' : '-o'; ?>"></i>
                             <?php endfor; ?>
                         </div>
+
+                        <?php if (!empty($testimonial['video_url'])): ?>
+                            <div class="d-flex align-items-center gap-3 my-2 p-2 bg-light rounded border">
+                                <?php if (!empty($testimonial['thumbnail_url'])): ?>
+                                    <img src="<?php echo htmlspecialchars($testimonial['thumbnail_url']); ?>" alt="Video thumbnail" style="width: 80px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                <?php else: ?>
+                                    <div class="bg-dark text-white rounded d-flex align-items-center justify-center" style="width: 80px; height: 50px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-video"></i>
+                                    </div>
+                                <?php endif; ?>
+                                <div class="small">
+                                    <div><strong>Video URL:</strong> <a href="<?php echo htmlspecialchars($testimonial['video_url']); ?>" target="_blank" class="text-primary text-decoration-underline"><i class="fas fa-external-link-alt me-1"></i> <?php echo htmlspecialchars($testimonial['video_url']); ?></a></div>
+                                    <span class="text-muted">Provider: <?php echo htmlspecialchars(ucfirst($testimonial['video_provider'] ?? 'youtube')); ?></span>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+
                         <div class="testimonial-text">
                             "<?php echo htmlspecialchars($testimonial['testimonial_text']); ?>"
                         </div>

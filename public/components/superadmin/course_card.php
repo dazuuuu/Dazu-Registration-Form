@@ -1,0 +1,127 @@
+<?php
+// public/components/superadmin/course_card.php — superadmin course grid card
+if (!isset($course)) {
+    return;
+}
+$cover = !empty($course['cover_image'])
+    ? settings_asset_url($course['cover_image'])
+    : url('assets/images/courses/default-course.jpg');
+$durLabel = function_exists('course_study_summary') ? course_study_summary($course) : '';
+$isActive = !empty($course['is_active']);
+$isFree = !empty($course['is_free']);
+if ($isFree && !function_exists('dazu_course_enrollment_window')) {
+    require_once __DIR__ . '/../../../app/v1/helpers/dazu_theme.php';
+}
+$enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => null, 'closed' => false];
+// Free and paid courses are separate admin sections/forms — route the Edit button to
+// whichever one this course actually belongs to.
+$editUrl = url('superadmin/courses/edit.php?id=' . (int) $course['id']);
+?>
+<div class="card h-100 shadow-sm admin-course-card">
+  <div class="admin-course-card__img-wrap">
+    <img src="<?= htmlspecialchars($cover) ?>" alt="<?= htmlspecialchars($course['title'] ?? '') ?>" class="admin-course-card__img">
+    <span class="badge <?= $isActive ? 'bg-success' : 'bg-secondary' ?> admin-course-card__status"><?= $isActive ? 'Active' : 'Inactive' ?></span>
+    <?php if (!empty($course['show_on_homepage'])): ?>
+      <span class="badge bg-primary admin-course-card__homepage" style="position:absolute; top:10px; right:10px; z-index:2; font-size:11px;"><i class="fas fa-home me-1"></i>Front-page</span>
+    <?php endif; ?>
+    <?php if ($isFree): ?>
+      <span class="badge bg-warning text-dark admin-course-card__category" style="left:auto; right:10px; top:38px;">Free</span>
+    <?php endif; ?>
+    <?php if (!empty($course['category_name'])): ?>
+      <span class="badge bg-dark admin-course-card__category"><?= htmlspecialchars($course['category_name']) ?></span>
+    <?php endif; ?>
+  </div>
+  <div class="card-body d-flex flex-column">
+    <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+      <h6 class="card-title mb-0 fw-semibold"><?= htmlspecialchars($course['title'] ?? '') ?></h6>
+      <span class="badge bg-secondary text-nowrap"><?= htmlspecialchars($course['abbreviation'] ?? '') ?></span>
+    </div>
+    <?php if ($durLabel !== ''): ?>
+      <p class="small text-muted mb-2"><i class="fas fa-clock me-1"></i><?= htmlspecialchars($durLabel) ?></p>
+    <?php endif; ?>
+    <?php if (!empty($enrollWindow['label'])): ?>
+      <p class="small mb-2 <?= $enrollWindow['closed'] ? 'text-danger' : 'text-muted' ?>">
+        <i class="fas fa-calendar-days me-1"></i><?= htmlspecialchars($enrollWindow['label']) ?>
+        <?= $enrollWindow['closed'] ? ' (closed — hidden from public list)' : '' ?>
+      </p>
+    <?php endif; ?>
+    <?php if (!empty($course['overview'])): ?>
+      <p class="small text-muted flex-grow-1 mb-2 line-clamp-2"><?= htmlspecialchars($course['overview']) ?></p>
+    <?php else: ?>
+      <div class="flex-grow-1"></div>
+    <?php endif; ?>
+    <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-auto">
+      <div>
+        <div class="small text-muted">Fee</div>
+        <div class="fw-bold text-success"><?= $isFree ? 'FREE' : 'KSh ' . number_format((float)($course['course_fee'] ?? 0), 0) ?></div>
+        <?php
+        if (!$isFree) {
+            require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
+            $adminModes = course_fee_structure_all($course);
+            foreach (['online' => 'Online', 'physical' => 'Physical'] as $mode => $label) {
+                $modeData = course_fee_mode_decode($adminModes[$mode] ?? []);
+                if (course_fee_mode_total($modeData) <= 0) {
+                    continue;
+                }
+                echo '<div class="small text-muted mt-1">' . htmlspecialchars($label) . '</div>';
+                echo '<ul class="list-unstyled small mb-0">';
+                if ((float) ($modeData['tuition_total'] ?? 0) > 0) {
+                    $isOneMonth = course_is_short_course($course);
+                    $semesters = $isOneMonth ? 1 : course_semesters_count($course);
+                    $perSemester = course_fee_mode_per_semester($course, $modeData);
+                    $tuitionLabel = 'Tuition';
+                    if ($perSemester > 0) {
+                        $tuitionLabel .= $isOneMonth
+                            ? ' (1 mo x KSh ' . number_format($perSemester, 0) . ')'
+                            : ' (' . $semesters . ' sem x KSh ' . number_format($perSemester, 0) . ')';
+                    }
+                    echo '<li class="d-flex justify-content-between gap-2"><span>' . htmlspecialchars($tuitionLabel) . '</span><span>KSh ' . number_format((float) $modeData['tuition_total'], 0) . '</span></li>';
+                }
+                foreach (($modeData['additional'] ?? []) as $item) {
+                    if (!is_array($item)) {
+                        continue;
+                    }
+                    $itemLabel = trim((string) ($item['label'] ?? ''));
+                    $amount = (float) ($item['amount'] ?? 0);
+                    if ($itemLabel === '' || $amount <= 0) {
+                        continue;
+                    }
+                    echo '<li class="d-flex justify-content-between gap-2"><span>' . htmlspecialchars($itemLabel) . '</span><span>KSh ' . number_format($amount, 0) . '</span></li>';
+                }
+                echo '</ul>';
+            }
+        }
+        ?>
+      </div>
+      <div class="text-end">
+        <div class="small text-muted">Enrolled</div>
+        <div class="fw-semibold"><?= (int)($course['last_sequence'] ?? 0) ?></div>
+      </div>
+    </div>
+  </div>
+  <div class="card-footer bg-white border-top-0 pt-0 d-flex flex-wrap gap-1 justify-content-end">
+    <?php if ($isActive): ?>
+    <a href="<?= htmlspecialchars(course_whatsapp_share_url($course)) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-success" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+    <a href="<?= course_share_url((int)$course['id']) ?>" target="_blank" rel="noopener" class="btn btn-sm btn-outline-success" title="Share link"><i class="fas fa-share-nodes"></i></a>
+    <?php endif; ?>
+    <form method="POST" class="d-inline" onsubmit="return confirm('<?= !empty($course['show_on_homepage']) ? 'Remove from front-page?' : 'Show on front-page?' ?>');">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="toggle_homepage_id" value="<?= (int)$course['id'] ?>">
+      <input type="hidden" name="set_homepage" value="<?= !empty($course['show_on_homepage']) ? '0' : '1' ?>">
+      <input type="hidden" name="redirect_query" value="<?= htmlspecialchars($_SERVER['QUERY_STRING'] ?? '') ?>">
+      <button type="submit" class="btn btn-sm <?= !empty($course['show_on_homepage']) ? 'btn-primary' : 'btn-outline-secondary' ?>" title="<?= !empty($course['show_on_homepage']) ? 'Featured on front-page (click to remove)' : 'Show on front-page' ?>">
+        <i class="fas fa-home"></i>
+      </button>
+    </form>
+    <a href="<?= htmlspecialchars($editUrl) ?>" class="btn btn-sm btn-primary"><i class="fas fa-edit me-1"></i>Edit</a>
+    <form method="POST" class="d-inline" onsubmit="return confirm('<?= $isActive ? 'Deactivate' : 'Activate' ?> this course?');">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="toggle_id" value="<?= (int)$course['id'] ?>">
+      <input type="hidden" name="set_active" value="<?= $isActive ? '0' : '1' ?>">
+      <input type="hidden" name="redirect_query" value="<?= htmlspecialchars($_SERVER['QUERY_STRING'] ?? '') ?>">
+      <button type="submit" class="btn btn-sm btn-outline-<?= $isActive ? 'danger' : 'success' ?>">
+        <i class="fas fa-<?= $isActive ? 'ban' : 'check' ?>"></i>
+      </button>
+    </form>
+  </div>
+</div>

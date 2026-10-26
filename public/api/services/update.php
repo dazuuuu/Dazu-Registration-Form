@@ -26,11 +26,12 @@ try {
     }
     
     require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
+    require_once __DIR__ . '/../../../app/v1/config/paths.php';
     
     // Handle cover image upload
     $cover_image = null;
     if (isset($_FILES['cover_image']) && $_FILES['cover_image']['error'] === 0) {
-        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . '/Ismano/public/uploads/services/covers/';
+        $upload_dir = $_SERVER['DOCUMENT_ROOT'] . url('uploads/services/covers/');
         if (!is_dir($upload_dir)) {
             mkdir($upload_dir, 0777, true);
         }
@@ -40,7 +41,7 @@ try {
         $target_file = $upload_dir . $filename;
         
         if (move_uploaded_file($_FILES['cover_image']['tmp_name'], $target_file)) {
-            $cover_image = '/Ismano/public/uploads/services/covers/' . $filename;
+            $cover_image = url('uploads/services/covers/') . $filename;
             
             // Delete old cover image
             $stmt = $pdo->prepare("SELECT cover_image FROM services WHERE id = :id");

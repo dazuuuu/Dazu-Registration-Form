@@ -383,7 +383,7 @@ ob_start();
                     <div class="card-body">
                         <ul class="category-list">
                             <li>
-                                <a href="/Ismano/public/store/" class="<?php echo !$category_slug ? 'active' : ''; ?>">
+                                <a href="<?php echo url('store/'); ?>" class="<?php echo !$category_slug ? 'active' : ''; ?>">
                                     All Products
                                     <span class="category-count">All</span>
                                 </a>
@@ -425,7 +425,7 @@ ob_start();
                         <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
                         <h3>No products found</h3>
                         <p class="text-muted">Check back later for new products</p>
-                        <a href="/Ismano/public/store/" class="btn btn--primary mt-3">
+                        <a href="<?php echo url('store/'); ?>" class="btn btn--primary mt-3">
                             <i class="fas fa-store me-2"></i> Browse All
                         </a>
                     </div>
@@ -435,7 +435,7 @@ ob_start();
                             <div class="col-md-6 col-lg-4">
                                 <div class="product-card">
                                     <div class="product-image">
-                                        <a href="details.php?slug=<?php echo $product['slug']; ?>">
+                                        <a href="<?php echo url('store/details.php?slug=' . urlencode((string) $product['slug'])); ?>">
                                             <?php if ($product['featured_image']): ?>
                                                 <img src="<?php echo $product['featured_image']; ?>" 
                                                      alt="<?php echo htmlspecialchars($product['name']); ?>"
@@ -462,7 +462,7 @@ ob_start();
                                     
                                     <div class="product-info">
                                         <h3 class="product-title">
-                                            <a href="details.php?slug=<?php echo $product['slug']; ?>">
+                                            <a href="<?php echo url('store/details.php?slug=' . urlencode((string) $product['slug'])); ?>">
                                                 <?php echo htmlspecialchars($product['name']); ?>
                                             </a>
                                         </h3>
@@ -533,7 +533,7 @@ document.querySelectorAll('.add-to-cart').forEach(button => {
         this.disabled = true;
         
         try {
-            const response = await fetch('/Ismano/public/api/store/cart/add.php', {
+            const response = await fetch(<?php echo json_encode(url('api/store/cart/add.php')); ?>, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -557,7 +557,7 @@ document.querySelectorAll('.add-to-cart').forEach(button => {
                 }, 2000);
             } else if (data.require_login) {
                 if (confirm('Please login to add items to cart. Go to login page?')) {
-                    window.location.href = '/Ismano/public/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
+                    window.location.href = <?php echo json_encode(url('login') . '?redirect='); ?> + encodeURIComponent(window.location.pathname);
                 } else {
                     this.innerHTML = originalHtml;
                     this.disabled = false;
@@ -600,7 +600,7 @@ function showToast(message, type = 'success') {
 
 // Update cart count - using new simple API
 function updateCartCount() {
-    fetch('/Ismano/public/api/count.php')
+    fetch(<?php echo json_encode(url('api/count.php')); ?>)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -628,7 +628,7 @@ async function addToCart(productId, productName, button) {
     button.disabled = true;
     
     try {
-        const response = await fetch('/Ismano/public/api/add-to-cart.php', {
+        const response = await fetch(<?php echo json_encode(url('api/add-to-cart.php')); ?>, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -657,7 +657,7 @@ async function addToCart(productId, productName, button) {
             }, 2000);
         } else if (data.require_login) {
             if (confirm('Please login to add items to cart. Go to login page?')) {
-                window.location.href = '/Ismano/public/auth/login.php?redirect=' + encodeURIComponent(window.location.pathname);
+                window.location.href = <?php echo json_encode(url('login') . '?redirect='); ?> + encodeURIComponent(window.location.pathname);
             } else {
                 button.innerHTML = originalHtml;
                 button.disabled = false;

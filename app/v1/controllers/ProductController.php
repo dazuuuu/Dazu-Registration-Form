@@ -139,7 +139,7 @@ class ProductController {
         
         $sql = "INSERT INTO product_categories (name, slug, description, parent_id) 
                 VALUES (:name, :slug, :description, :parent_id)";
-        $stmt = $this->productModel->db->prepare($sql);
+        $stmt = $this->productModel->getDb()->prepare($sql);
         $result = $stmt->execute([
             ':name' => $name,
             ':slug' => $slug,
@@ -156,7 +156,7 @@ class ProductController {
     
     public function getAllCategories() {
         $sql = "SELECT * FROM product_categories WHERE is_active = 1 ORDER BY sort_order ASC, name ASC";
-        $stmt = $this->productModel->db->prepare($sql);
+        $stmt = $this->productModel->getDb()->prepare($sql);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
@@ -164,7 +164,7 @@ class ProductController {
     public function updateCategory($id, $data) {
         $sql = "UPDATE product_categories SET name = :name, description = :description, 
                 parent_id = :parent_id, sort_order = :sort_order WHERE id = :id";
-        $stmt = $this->productModel->db->prepare($sql);
+        $stmt = $this->productModel->getDb()->prepare($sql);
         $result = $stmt->execute([
             ':id' => $id,
             ':name' => $data['name'],
@@ -179,7 +179,7 @@ class ProductController {
     public function deleteCategory($id) {
         // Check if category has products
         $sql = "SELECT COUNT(*) FROM products WHERE category_id = :id";
-        $stmt = $this->productModel->db->prepare($sql);
+        $stmt = $this->productModel->getDb()->prepare($sql);
         $stmt->execute([':id' => $id]);
         $count = $stmt->fetchColumn();
         
@@ -188,7 +188,7 @@ class ProductController {
         }
         
         $sql = "DELETE FROM product_categories WHERE id = :id";
-        $stmt = $this->productModel->db->prepare($sql);
+        $stmt = $this->productModel->getDb()->prepare($sql);
         $result = $stmt->execute([':id' => $id]);
         
         return ['success' => $result, 'message' => $result ? 'Category deleted' : 'Delete failed'];

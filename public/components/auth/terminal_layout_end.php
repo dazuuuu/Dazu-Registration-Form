@@ -1,7 +1,7 @@
             </div>
         </div>
 
-        <p class="auth-terminal-foot">&copy; <?php echo date('Y'); ?> Dazu Hub Institute — secure access terminal</p>
+        <p class="auth-terminal-foot">&copy; <?php echo date('Y'); ?> Dazu Training Institute — secure access terminal</p>
     </div>
 </div>
 

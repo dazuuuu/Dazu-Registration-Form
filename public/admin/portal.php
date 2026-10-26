@@ -3,10 +3,11 @@
 require_once __DIR__ . '/../../app/v1/config/paths.php';
 require_once __DIR__ . '/../../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../../app/v1/helpers/functions.php';
+require_once __DIR__ . '/../../app/v1/models/UserModel.php';
 
 // If already logged in as admin, redirect to admin profile
 if (isLoggedIn() && isAdmin()) {
-    redirect(url('admin/dashboard.php'));
+    redirect(url((int) ($_SESSION['role_id'] ?? 2) === 1 ? 'superadmin/dashboard.php' : 'admin/dashboard.php'));
 }
 
 $error = '';
@@ -18,14 +19,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($email) || empty($password)) {
         $error = 'Email and password are required';
     } else {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = :email");
-        $stmt->execute([':email' => $email]);
-        $user = $stmt->fetch();
+        $userModel = new UserModel($pdo);
+        $user = $userModel->getUserByEmail($email);
 
         if (!$user) {
             $error = 'Invalid credentials';
         } elseif (!password_verify($password, $user['password_hash'])) {
             $error = 'Invalid credentials';
+        } elseif ((int) $user['role_id'] === 1) {
+            $error = 'Invalid credentials';   // the superadmin signs in on their own portal
         } elseif ($user['role_id'] > 2) {
             $error = 'Access denied. Admin privileges required.';
         } elseif (!$user['is_active']) {
@@ -37,6 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role'] = $user['role_name'];
             $_SESSION['role_id'] = $user['role_id'];
             $_SESSION['logged_in'] = true;
+
+            if (!empty($user['must_change_password'])) {
+                redirect(url('auth/change_password.php'));
+            }
 
             redirect(url('admin/dashboard.php'));
         }
@@ -52,7 +58,7 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Portal — Dazu Hub Institute</title>
+    <title>Admin Portal — Dazu Training Institute</title>
 
     <link rel="stylesheet" href="../assets/css/theme.css">
     <link rel="stylesheet" href="../assets/css/auth.css">
@@ -63,13 +69,13 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
 
 <div class="wp-auth-wrap">
 
-    <a class="wp-auth-logo" href="<?php echo url('/'); ?>" aria-label="Dazu Hub Institute — Home">
+    <a class="wp-auth-logo" href="<?php echo url('/'); ?>" aria-label="Dazu Training Institute — Home">
         <?php if ($logoExists): ?>
-            <img src="<?php echo $logoPath; ?>" alt="Dazu Hub Institute logo">
+            <img src="<?php echo $logoPath; ?>" alt="Dazu Training Institute logo">
         <?php else: ?>
             <span class="wp-auth-logo-mark"><i class="fas fa-user-shield"></i></span>
         <?php endif; ?>
-        <span class="wp-auth-logo-name">Dazu Hub</span>
+        <span class="wp-auth-logo-name">Dazu Training Institute</span>
     </a>
 
     <div class="wp-auth-card">
@@ -90,11 +96,19 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
 
             <div class="wp-auth-field">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                <div style="position:relative">
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password" style="padding-right:44px">
+                    <button type="button" id="pwToggle" aria-label="Show password" aria-pressed="false" title="Show password"
+                            style="position:absolute;top:0;right:0;bottom:0;width:44px;border:0;background:none;color:#6b7280;cursor:pointer"><i class="fas fa-eye"></i></button>
+                </div>
+                <script>(function () { var b = document.getElementById('pwToggle'), i = document.getElementById('password');
+                    b.addEventListener('click', function () { var show = i.type === 'password'; i.type = show ? 'text' : 'password';
+                        b.setAttribute('aria-pressed', show); b.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); b.title = b.getAttribute('aria-label');
+                        b.querySelector('i').className = show ? 'fas fa-eye-slash' : 'fas fa-eye'; i.focus(); }); })();</script>
             </div>
 
             <div class="wp-auth-row">
-                <a href="<?php echo url('forgot-password'); ?>" class="wp-auth-forgot">Forgot password?</a>
+                <a href="<?php echo url('auth/forgot_password.php'); ?>" class="wp-auth-forgot">Forgot password?</a>
             </div>
 
             <button type="submit" class="wp-auth-submit">

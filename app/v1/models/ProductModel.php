@@ -5,6 +5,10 @@ class ProductModel {
     public function __construct($pdo) {
         $this->db = $pdo;
     }
+
+    public function getDb() {
+        return $this->db;
+    }
     
     private function generateSlug($string) {
         $string = strtolower($string);

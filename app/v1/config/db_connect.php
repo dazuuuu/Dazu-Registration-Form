@@ -11,9 +11,16 @@ try {
     );
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
     $pdo->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+    require_once __DIR__ . '/../helpers/schema_guard.php';
+    dazu_schema_guard($pdo);
 } catch (PDOException $e) {
+    // public/setup.php asks for the database login itself, so it must load even when this connection fails.
+    if (defined('DAZU_SETUP')) {
+        $pdo = null;
+        return;
+    }
     http_response_code(500);
-    die('Database connection failed. Check app/v1/config/database.php or .env DB_* settings.');
+    die('Database connection failed. Check the database settings.');
 }
 
 if (session_status() === PHP_SESSION_NONE) {

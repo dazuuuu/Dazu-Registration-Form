@@ -28,6 +28,7 @@ class TutorModel {
         );
         $rows = $stmt->fetchAll();
         foreach ($rows as &$r) {
+            $r['students'] = $this->getAssignedStudents((int) $r['id']);
             $r['courses'] = $this->getAssignedCourses((int) $r['id']);
         }
         return $rows;
@@ -45,6 +46,7 @@ class TutorModel {
         $stmt->execute([':id' => $id]);
         $row = $stmt->fetch();
         if ($row) {
+            $row['students'] = $this->getAssignedStudents($id);
             $row['courses'] = $this->getAssignedCourses($id);
         }
         return $row ?: null;
@@ -61,47 +63,124 @@ class TutorModel {
         $stmt->execute([':uid' => $userId]);
         $row = $stmt->fetch();
         if ($row) {
+            $row['students'] = $this->getAssignedStudents((int) $row['id']);
             $row['courses'] = $this->getAssignedCourses((int) $row['id']);
         }
         return $row ?: null;
     }
 
+    /**
+     * Tutors who have at least one assigned student enrolled (approved) in this course.
+     * Derived from direct tutor-student assignments, not a course-level assignment.
+     */
     public function getForCourse(int $courseId): array {
         $stmt = $this->db->prepare(
-            "SELECT t.*, u.email, up.first_name, up.last_name
+            "SELECT DISTINCT t.*, u.email, up.first_name, up.last_name
              FROM tutors t
-             JOIN course_tutors ct ON ct.tutor_id = t.id
+             JOIN tutor_students ts ON ts.tutor_id = t.id
+             JOIN registrations r ON r.user_id = ts.user_id AND r.status = 'approved'
              JOIN users u ON t.user_id = u.id
              LEFT JOIN user_profiles up ON up.user_id = u.id
-             WHERE ct.course_id = :cid AND t.is_active = 1"
+             WHERE r.course_id = :cid AND t.is_active = 1"
         );
         $stmt->execute([':cid' => $courseId]);
         return $stmt->fetchAll();
     }
 
+    /**
+     * Courses derived from this tutor's directly-assigned students' approved enrollments.
+     */
     public function getAssignedCourses(int $tutorId): array {
         $stmt = $this->db->prepare(
-            "SELECT c.id, c.title, c.abbreviation
+            "SELECT DISTINCT c.id, c.title, c.abbreviation
              FROM courses c
-             JOIN course_tutors ct ON ct.course_id = c.id
-             WHERE ct.tutor_id = :tid ORDER BY c.title"
+             JOIN registrations r ON r.course_id = c.id AND r.status = 'approved'
+             JOIN tutor_students ts ON ts.user_id = r.user_id
+             WHERE ts.tutor_id = :tid ORDER BY c.title"
         );
         $stmt->execute([':tid' => $tutorId]);
         return $stmt->fetchAll();
     }
 
+    /**
+     * True if the tutor has a directly-assigned student with an approved enrollment in this course.
+     */
     public function tutorTeachesCourse(int $tutorId, int $courseId): bool {
         $stmt = $this->db->prepare(
-            "SELECT 1 FROM course_tutors WHERE tutor_id = :tid AND course_id = :cid"
+            "SELECT 1 FROM tutor_students ts
+             JOIN registrations r ON r.user_id = ts.user_id AND r.status = 'approved'
+             WHERE ts.tutor_id = :tid AND r.course_id = :cid LIMIT 1"
         );
         $stmt->execute([':tid' => $tutorId, ':cid' => $courseId]);
         return (bool) $stmt->fetchColumn();
     }
 
     /**
+     * True if this registration (approved) belongs to a student directly assigned to the tutor.
+     */
+    public function tutorHasStudent(int $tutorId, int $registrationId): bool {
+        $stmt = $this->db->prepare(
+            "SELECT 1 FROM tutor_students ts"
+             . " JOIN registrations r ON r.user_id = ts.user_id AND r.status = 'approved'"
+             . " WHERE ts.tutor_id = :tid AND r.id = :rid LIMIT 1"
+        );
+        $stmt->execute([':tid' => $tutorId, ':rid' => $registrationId]);
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /**
+     * All registered (approved) students, for the admin assignment picker.
+     * One row per student user, with their enrolled course titles concatenated.
+     */
+    public function getRegisteredStudents(): array {
+        $stmt = $this->db->query(
+            "SELECT u.id AS user_id, u.email,
+                    COALESCE(NULLIF(TRIM(CONCAT(up.first_name, ' ', up.last_name)), ''), MAX(r.full_name)) AS full_name,
+                    GROUP_CONCAT(DISTINCT c.title ORDER BY c.title SEPARATOR ', ') AS course_titles,
+                    GROUP_CONCAT(DISTINCT CONCAT(c.title, '|', COALESCE(CONCAT(NULLIF(c.duration_months, 0), ' months'),
+                        CONCAT(NULLIF(c.weeks_of_study, 0), ' weeks'), CONCAT(NULLIF(c.days_of_study, 0), ' days'), ''))
+                        ORDER BY c.title SEPARATOR '||') AS course_rows
+             FROM registrations r
+             JOIN users u ON u.id = r.user_id
+             JOIN courses c ON c.id = r.course_id
+             LEFT JOIN user_profiles up ON up.user_id = u.id
+             WHERE r.status = 'approved' AND r.user_id IS NOT NULL
+             GROUP BY u.id, u.email, up.first_name, up.last_name
+             ORDER BY full_name"
+        );
+        return $stmt->fetchAll();
+    }
+
+    /** User IDs of students currently assigned to this tutor. */
+    public function getAssignedStudentIds(int $tutorId): array {
+        $stmt = $this->db->prepare("SELECT user_id FROM tutor_students WHERE tutor_id = :tid");
+        $stmt->execute([':tid' => $tutorId]);
+        return array_map('intval', $stmt->fetchAll(\PDO::FETCH_COLUMN));
+    }
+
+    /** Assigned students with their enrolled course titles, for display on the tutor's profile. */
+    public function getAssignedStudents(int $tutorId): array {
+        $stmt = $this->db->prepare(
+            "SELECT u.id AS user_id, u.email,
+                    COALESCE(NULLIF(TRIM(CONCAT(up.first_name, ' ', up.last_name)), ''), u.username) AS full_name,
+                    GROUP_CONCAT(DISTINCT c.title ORDER BY c.title SEPARATOR ', ') AS course_titles
+             FROM tutor_students ts
+             JOIN users u ON u.id = ts.user_id
+             LEFT JOIN user_profiles up ON up.user_id = u.id
+             LEFT JOIN registrations r ON r.user_id = u.id AND r.status = 'approved'
+             LEFT JOIN courses c ON c.id = r.course_id
+             WHERE ts.tutor_id = :tid
+             GROUP BY u.id, u.email, up.first_name, up.last_name, u.username
+             ORDER BY full_name"
+        );
+        $stmt->execute([':tid' => $tutorId]);
+        return $stmt->fetchAll();
+    }
+
+    /**
      * @return array{ok:bool, error?:string, tutor_id?:int, temp_password?:string}
      */
-    public function create(array $data, array $courseIds): array {
+    public function create(array $data, array $studentIds): array {
         $email = strtolower(trim($data['email'] ?? ''));
         $fullName = trim($data['full_name'] ?? '');
         if (!$email || !$fullName) {
@@ -114,7 +193,12 @@ class TutorModel {
         $stmt = $this->db->prepare("SELECT id FROM users WHERE email = :email");
         $stmt->execute([':email' => $email]);
         if ($stmt->fetchColumn()) {
-            return ['ok' => false, 'error' => 'A user with this email already exists.'];
+            require_once __DIR__ . '/../services/EmailConflictService.php';
+            if (empty($data['replace_existing'])) {
+                return ['ok' => false, 'error' => 'A user with this email already exists.' . \EmailConflictService::hint()];
+            }
+            $released = \EmailConflictService::release($this->db, $email);
+            if (!$released['ok']) return $released;
         }
 
         $parts = explode(' ', $fullName, 2);
@@ -159,7 +243,7 @@ class TutorModel {
             ]);
             $tutorId = (int) $this->db->lastInsertId();
 
-            $this->syncCourses($tutorId, $courseIds);
+            $this->syncStudents($tutorId, $studentIds);
 
             $this->db->commit();
             return ['ok' => true, 'tutor_id' => $tutorId, 'user_id' => $userId, 'temp_password' => $tempPassword, 'username' => $username];
@@ -169,7 +253,8 @@ class TutorModel {
         }
     }
 
-    public function update(int $tutorId, array $data, array $courseIds): array {
+    /** $studentIds null leaves the tutor's students as they are (the payroll-aware screens manage those). */
+    public function update(int $tutorId, array $data, ?array $studentIds = null): array {
         $tutor = $this->getById($tutorId);
         if (!$tutor) return ['ok' => false, 'error' => 'Tutor not found.'];
 
@@ -201,7 +286,7 @@ class TutorModel {
                 ':uid'   => $tutor['user_id'],
             ]);
 
-            $this->syncCourses($tutorId, $courseIds);
+            if ($studentIds !== null) $this->syncStudents($tutorId, $studentIds);
             $this->db->commit();
             return ['ok' => true];
         } catch (\Throwable $e) {
@@ -210,12 +295,59 @@ class TutorModel {
         }
     }
 
-    public function syncCourses(int $tutorId, array $courseIds): void {
-        $stmt = $this->db->prepare("DELETE FROM course_tutors WHERE tutor_id = :tid");
-        $stmt->execute([':tid' => $tutorId]);
-        $ins = $this->db->prepare("INSERT INTO course_tutors (course_id, tutor_id) VALUES (:cid, :tid)");
-        foreach (array_unique(array_map('intval', $courseIds)) as $cid) {
-            if ($cid > 0) $ins->execute([':cid' => $cid, ':tid' => $tutorId]);
+    /**
+     * Delete a tutor and their sign-in account. Their student assignments, course links, pauses and payroll history go with
+     * them (foreign keys cascade); students, courses and grades are kept.
+     */
+    public function delete(int $tutorId): array {
+        $stmt = $this->db->prepare("SELECT t.user_id FROM tutors t JOIN users u ON u.id = t.user_id WHERE t.id = :id AND u.role_id = :rid");
+        $stmt->execute([':id' => $tutorId, ':rid' => $this->getRoleId()]);
+        $userId = (int) $stmt->fetchColumn();
+        if ($userId <= 0) {
+            return ['ok' => false, 'error' => 'Tutor not found.'];
+        }
+        try {
+            $this->db->beginTransaction();
+            $this->db->prepare("DELETE FROM tutors WHERE id = :id")->execute([':id' => $tutorId]);
+            $this->db->prepare("DELETE FROM users WHERE id = :uid")->execute([':uid' => $userId]);
+            $this->db->commit();
+            return ['ok' => true];
+        } catch (\Throwable $e) {
+            if ($this->db->inTransaction()) $this->db->rollBack();
+            error_log('[TutorModel::delete] ' . $e->getMessage());
+            return ['ok' => false, 'error' => 'Could not delete the tutor: ' . $e->getMessage()];
+        }
+    }
+
+    public function syncStudents(int $tutorId, array $studentIds): void {
+        // Only remove students who were deselected and add students who are new. Students who stay keep their
+        // row, so their assigned date, custom rate and pauses are not lost every time a tutor is saved.
+        require_once __DIR__ . '/PayrollModel.php';
+        $payroll = new PayrollModel($this->db);
+        $wanted = array_values(array_unique(array_filter(array_map('intval', $studentIds), fn($v) => $v > 0)));
+        $existing = $this->getAssignedStudentIds($tutorId);
+        $toRemove = array_values(array_diff($existing, $wanted));
+        $toAdd = array_values(array_diff($wanted, $existing));
+
+        if (!$payroll->isInstalled()) {
+            // Payroll updates not applied yet: plain assignment, as before.
+            if ($toRemove) {
+                $in = implode(',', array_fill(0, count($toRemove), '?'));
+                $this->db->prepare("DELETE FROM tutor_students WHERE tutor_id = ? AND user_id IN ($in)")->execute(array_merge([$tutorId], $toRemove));
+            }
+            $ins = $this->db->prepare("INSERT INTO tutor_students (tutor_id, user_id) VALUES (?, ?)");
+            foreach ($toAdd as $uid) $ins->execute([$tutorId, $uid]);
+            if ($toAdd) {
+                require_once __DIR__ . '/../services/PortalNotifications.php';
+                \PortalNotifications::assignmentNotices($this->db, $tutorId, $toAdd);
+            }
+            return;
+        }
+        foreach ($toRemove as $uid) {
+            $payroll->unassignStudent($tutorId, $uid);
+        }
+        if ($toAdd) {
+            $payroll->assignStudents($tutorId, $toAdd);
         }
     }
 
@@ -233,8 +365,8 @@ class TutorModel {
                     (SELECT COUNT(*) FROM curriculum_units cu2 WHERE cu2.course_id = r.course_id AND cu2.is_active = 1) AS total_units
              FROM registrations r
              JOIN courses c ON r.course_id = c.id
-             JOIN course_tutors ct ON ct.course_id = r.course_id
-             WHERE ct.tutor_id = :tid AND r.status = 'approved'
+             JOIN tutor_students ts ON ts.user_id = r.user_id
+             WHERE ts.tutor_id = :tid AND r.status = 'approved'
              ORDER BY r.full_name"
         );
         $stmt->execute([':tid' => $tutorId]);

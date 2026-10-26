@@ -108,6 +108,54 @@ class PaymentModel {
         return (int) $this->db->lastInsertId();
     }
 
+    /**
+     * Admin manually records a payment against a student's enrolment (e.g. cash paid in person).
+     * Recorded as already-approved since the admin is the one entering it.
+     */
+    public function recordManual(int $registrationId, float $amount, string $payerReference, int $adminId, ?string $notes = null): int {
+        $stmt = $this->db->prepare(
+            "INSERT INTO payments (registration_id, amount, payer_reference, status, recorded_by, reviewed_by, reviewed_at, notes)
+             VALUES (:rid, :amount, :ref, 'approved', :admin, :admin, NOW(), :notes)"
+        );
+        $stmt->execute([
+            ':rid'    => $registrationId,
+            ':amount' => $amount,
+            ':ref'    => trim($payerReference) !== '' ? trim($payerReference) : 'Recorded by admin',
+            ':admin'  => $adminId,
+            ':notes'  => $notes !== null && trim($notes) !== '' ? trim($notes) : null,
+        ]);
+        return (int) $this->db->lastInsertId();
+    }
+
+    /**
+     * Correct the amount on an already-recorded payment (e.g. admin mistyped it). Only touches
+     * approved payments — pending/rejected ones go through the normal approve/reject flow instead.
+     * Appends a note of the correction for an audit trail; the caller regenerates the receipt.
+     */
+    public function correctAmount(int $paymentId, float $newAmount, int $adminId): array {
+        $payment = $this->getById($paymentId);
+        if (!$payment || $payment['status'] !== 'approved') {
+            return ['ok' => false, 'error' => 'Payment not found or not approved.'];
+        }
+        if ($newAmount <= 0) {
+            return ['ok' => false, 'error' => 'Enter an amount greater than zero.'];
+        }
+        $oldAmount = (float) $payment['amount'];
+        if (abs($oldAmount - $newAmount) < 0.005) {
+            return ['ok' => false, 'error' => 'That is already the recorded amount.'];
+        }
+        $note = trim((string) ($payment['notes'] ?? ''));
+        $correction = sprintf('Corrected from KES %s to KES %s on %s', number_format($oldAmount, 2), number_format($newAmount, 2), date('d M Y H:i'));
+        $note = $note !== '' ? $note . ' · ' . $correction : $correction;
+
+        $stmt = $this->db->prepare(
+            'UPDATE payments SET amount = :amount, notes = :notes, reviewed_by = :admin, reviewed_at = NOW() WHERE id = :id'
+        );
+        $stmt->execute([':amount' => $newAmount, ':notes' => $note, ':admin' => $adminId, ':id' => $paymentId]);
+
+        return ['ok' => true, 'old_amount' => $oldAmount, 'new_amount' => $newAmount];
+    }
+
     public function approve(int $paymentId, int $adminId, string $receiptNo, string $receiptHtml): bool {
         $stmt = $this->db->prepare(
             "UPDATE payments
@@ -115,12 +163,22 @@ class PaymentModel {
                  receipt_no = :receipt, receipt_html = :html
              WHERE id = :id AND status = 'pending'"
         );
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':admin'   => $adminId,
             ':receipt' => $receiptNo,
             ':html'    => $receiptHtml,
             ':id'      => $paymentId,
         ]);
+        if ($ok && $stmt->rowCount()) {
+            require_once __DIR__ . '/../services/PortalNotifications.php';
+            $p = $this->db->prepare("SELECT p.amount, r.user_id FROM payments p JOIN registrations r ON r.id = p.registration_id WHERE p.id = ?");
+            $p->execute([$paymentId]);
+            if ($row = $p->fetch(\PDO::FETCH_ASSOC)) {
+                \PortalNotifications::notify($this->db, (int) $row['user_id'], 'payment', 'Payment received',
+                    'KES ' . number_format((float) $row['amount']) . ' has been approved. Receipt ' . $receiptNo . '.', 'students/payments/index.php');
+            }
+        }
+        return $ok;
     }
 
     public function reject(int $paymentId, int $adminId, string $reason): bool {

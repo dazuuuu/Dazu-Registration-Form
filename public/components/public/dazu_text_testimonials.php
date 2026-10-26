@@ -8,7 +8,7 @@ if (!$textTestimonials) return;
     <div class="text-center max-w-2xl mx-auto mb-12">
       <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Proven Outcomes</span>
       <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Student Success Stories</h2>
-      <p class="text-slate-600 font-medium mt-4">Read how Dazu Hub alumni launched their high-growth technology careers right here in Thika.</p>
+      <p class="text-slate-600 font-medium mt-4">Read how Dazu Training Institute alumni launched high-growth technology careers through our Nairobi, Thika, and online learning paths.</p>
     </div>
 
     <div id="dazu-text-testimonials" class="max-w-4xl mx-auto">

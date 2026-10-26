@@ -1,6 +1,9 @@
 <?php
 // public/admin/blogs/create.php
 require_once __DIR__ . '/../../../app/v1/config/paths.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+Middleware::requireAdmin();   // admins only (the superadmin has a separate portal)
+require_once __DIR__ . '/../../../app/v1/config/paths.php';
 $page_title = 'Create New Blog Post';
 $breadcrumbs = [
     ['label' => 'Blog', 'url' => 'index.php'],
@@ -93,7 +96,7 @@ $allTags = $blogController->getAllTags();
                     <div class="mb-3">
                         <label class="form-label">Content *</label>
                         <textarea name="content" id="content" class="form-control" rows="15" required></textarea>
-                        <small class="text-muted">Save the post first, then use the Content Blocks builder on the edit screen to add images, galleries, YouTube videos, links, FAQs and CTA buttons.</small>
+                        <small class="text-muted">Save the post first, Use Video, Columns and FAQ in the toolbar for videos, side-by-side layouts and Q&amp;As. Click a video to resize it.</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">SEO Meta Description</label>
@@ -121,8 +124,9 @@ $allTags = $blogController->getAllTags();
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label">Featured Image</label>
-                    <input type="file" name="featured_image" id="featured_image" class="form-control" accept="image/*" form="createBlogForm">
+                    <label class="form-label">Cover Image <span class="text-danger">*</span></label>
+                    <input type="file" name="featured_image" id="featured_image" class="form-control" accept="image/jpeg,image/png,image/webp,image/gif" form="createBlogForm" required>
+                    <small class="text-muted d-block">Required. Landscape works best (about 1200×800). It is cropped to fit the blog cards.</small>
                     <img id="imagePreview" class="preview-image" style="display:none;">
                 </div>
             </div>
@@ -139,6 +143,7 @@ $allTags = $blogController->getAllTags();
                     <option value="<?php echo $category['id']; ?>"><?php echo htmlspecialchars($category['name']); ?></option>
                     <?php endforeach; ?>
                 </select>
+                <a href="categories.php" class="small d-inline-block mt-2"><i class="fas fa-folder-plus me-1"></i>Manage categories</a>
             </div>
         </div>
         
@@ -154,12 +159,12 @@ $allTags = $blogController->getAllTags();
         
         <div class="card">
             <div class="card-header">
-                <i class="fas fa-star me-2"></i> Featured
+                <i class="fas fa-fire me-2"></i> Popular slider
             </div>
             <div class="card-body">
                 <div class="form-check">
                     <input class="form-check-input" type="checkbox" name="is_featured" value="1" form="createBlogForm">
-                    <label class="form-check-label">Feature this post (shows on homepage)</label>
+                    <label class="form-check-label">Show in the Popular slider at the top of the Blog page</label>
                 </div>
             </div>
         </div>
@@ -168,23 +173,11 @@ $allTags = $blogController->getAllTags();
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.css" rel="stylesheet">
+<?php include __DIR__ . '/_editor.php'; ?>
 
 <script>
 $(document).ready(function() {
-    $('#content').summernote({
-        height: 400,
-        toolbar: [
-            ['style', ['style']],
-            ['font', ['bold', 'italic', 'underline', 'clear']],
-            ['color', ['color']],
-            ['para', ['ul', 'ol', 'paragraph']],
-            ['table', ['table']],
-            ['insert', ['link', 'picture', 'video']],
-            ['view', ['fullscreen', 'codeview', 'help']]
-        ]
-    });
+    dzInitEditor($('#content'));
 });
 
 document.getElementById('featured_image').addEventListener('change', function(e) {
@@ -200,14 +193,21 @@ document.getElementById('featured_image').addEventListener('change', function(e)
 document.getElementById('createBlogForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    formData.set('content', $('#content').summernote('code'));
-    
+
     const submitBtn = e.target.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
     submitBtn.disabled = true;
-    
+
     try {
+        let content = document.getElementById('content').value;
+        try {
+            content = $('#content').summernote('code');
+        } catch (summernoteError) {
+            console.error('Summernote unavailable, falling back to raw textarea value:', summernoteError);
+        }
+        formData.set('content', content);
+
         const response = await fetch(url('api/blog/create.php'), {
             method: 'POST',
             body: formData

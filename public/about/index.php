@@ -1,6 +1,6 @@
 <?php
-$page_title = 'About Us — Dazu Hub Institute';
-$page_description = 'Dazu Hub Tech Skills Institute in Thika Town — hands-on labs, KICD-aligned curricula, and industry-led training for the next generation of innovators.';
+$page_title = 'About Us — Dazu Training Institute';
+$page_description = 'Dazu Training Institute in Nairobi, Thika and online — hands-on labs, flexible classes, KICD-aligned curricula, and industry-led training for the next generation of innovators.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
@@ -37,16 +37,16 @@ $trainers = [
 
 $faqs = [
     [
-        'q' => 'Where is Dazu Hub Institute located physically?',
-        'a' => 'We are based in Thika Town. Our primary campus labs are in Room 529 and surrounding training rooms — visit our Contact page for directions and a live map.',
+        'q' => 'Where is Dazu Training Institute located?',
+        'a' => 'We serve learners through Thika Town, Nairobi, and online classes. Our Thika campus labs are in Room 529 and surrounding training rooms, and our Nairobi intake supports learners who prefer the city location.',
     ],
     [
         'q' => 'Are the training sessions conducted physically or online?',
-        'a' => 'Both. Most tracks offer physical lab sessions in Thika plus flexible online study modes. Choose your preferred mode when you apply for a course.',
+        'a' => 'Both. Most tracks offer physical lab sessions in Thika and Nairobi plus flexible online study modes. Choose your preferred mode when you apply for a course.',
     ],
     [
         'q' => 'Will I receive an industry-recognized certificate?',
-        'a' => 'Yes. Students who complete all modules, projects, and assessments receive a Dazu Hub Institute certificate aligned with practical industry competencies.',
+        'a' => 'Yes. Students who complete all modules, projects, and assessments receive a Dazu Training Institute certificate aligned with practical industry competencies.',
     ],
     [
         'q' => 'Do you offer flexible installment options for tuition fees?',
@@ -66,12 +66,12 @@ ob_start();
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
       <div class="space-y-6">
-        <span class="inline-block text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">About Dazu Hub</span>
+        <span class="inline-block text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">About Dazu Training Institute</span>
         <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-950 tracking-tight leading-tight uppercase">
           Empowering Next-Gen Innovators Across Kenya.
         </h1>
         <div class="space-y-4 text-slate-600 font-medium leading-relaxed">
-          <p>Dazu Hub Institute is a leading African technology and digital skills institute with campuses in Thika Town and Nairobi. We equip students, graduates, professionals, entrepreneurs, and businesses with practical, job-ready skills for Africa's growing digital economy.</p>
+          <p>Dazu Training Institute is a leading African technology and digital skills institute serving learners in Nairobi, Thika Town, and online. We equip students, graduates, professionals, entrepreneurs, and businesses with practical, job-ready skills for Africa's growing digital economy.</p>
           <p>We bridge the gap between traditional education and real industry demands through hands-on training, project-based learning, and mentorship. Our programs focus on software development, artificial intelligence, cybersecurity, data science, digital marketing, graphics design, automation, and other high-demand digital skills.</p>
           <p>Every learner builds real-world projects, gains practical experience, and develops the confidence to work, freelance, launch a business, or secure employment across Africa and beyond. Our mission is to develop skilled innovators, problem solvers, and technology leaders who drive Africa's digital transformation.</p>
         </div>
@@ -96,8 +96,8 @@ ob_start();
             <span class="block mt-2 text-[10px] uppercase tracking-widest font-bold text-slate-500">KICD-Aligned Curriculums</span>
           </div>
           <div class="bg-white border border-slate-200 rounded-xl p-6 text-center">
-            <span class="block text-3xl md:text-4xl font-extrabold text-[#15A24A]">Room 529</span>
-            <span class="block mt-2 text-[10px] uppercase tracking-widest font-bold text-slate-500">Thika Campus Rooms</span>
+            <span class="block text-3xl md:text-4xl font-extrabold text-[#15A24A]">3 Modes</span>
+            <span class="block mt-2 text-[10px] uppercase tracking-widest font-bold text-slate-500">Nairobi, Thika & Online</span>
           </div>
         </div>
       </div>
@@ -144,9 +144,9 @@ ob_start();
 <section class="bg-white py-20">
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="max-w-2xl mb-12">
-      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Life at Dazu Hub</span>
+      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Life at Dazu Training Institute</span>
       <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Our Gallery</h2>
-      <p class="text-slate-600 font-medium mt-4">A look inside our labs, classes, and student milestones across our Thika Town and Nairobi campuses.</p>
+      <p class="text-slate-600 font-medium mt-4">A look inside our labs, classes, and student milestones across our Nairobi, Thika, and online learning community.</p>
     </div>
 
     <?php if (empty($galleryItems)): ?>
@@ -230,44 +230,97 @@ ob_start();
 </script>
 
 <!-- Team -->
-<section class="bg-white border-t border-slate-100 py-20">
-  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
-    <div class="max-w-2xl mb-12">
-      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">The people behind Dazu Hub</span>
-      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Meet Our Team</h2>
-      <p class="text-slate-600 font-medium mt-4">Our founder, senior developer and tutors work together to make every learning experience practical and career-focused.</p>
-    </div>
-
-    <?php if (!$teamMembers): ?>
-      <p class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-slate-600">Our team profiles will be available soon.</p>
-    <?php else: ?>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
-        <?php foreach ($teamMembers as $t): ?>
-          <article class="group mx-auto w-full max-w-[320px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-slate-200/70">
-            <div class="relative aspect-[16/10] overflow-hidden bg-gradient-to-br from-emerald-100 via-slate-100 to-white">
-              <?php if (!empty($t['photo_path'])): ?>
-                <img class="h-full w-full object-cover transition duration-500 group-hover:scale-105" src="<?php echo htmlspecialchars(url($t['photo_path']), ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($t['name'], ENT_QUOTES); ?>">
-              <?php else: ?>
-                <div class="flex h-full w-full items-center justify-center bg-[#0c1f17] text-6xl font-extrabold text-white">
-                  <?php echo htmlspecialchars(strtoupper(substr($t['name'], 0, 1))); ?>
-                </div>
-              <?php endif; ?>
-              <div class="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-950/45 to-transparent"></div>
-              <span class="absolute bottom-4 left-4 rounded-full bg-white/95 px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-widest text-[#15803d] shadow-sm"><?php echo htmlspecialchars($t['role']); ?></span>
-            </div>
-            <div class="p-5">
-              <h3 class="text-lg font-extrabold tracking-tight text-slate-950"><?php echo htmlspecialchars($t['name']); ?></h3>
-              <span class="mt-1 block text-xs font-extrabold uppercase tracking-wider text-[#15A24A]"><?php echo htmlspecialchars($t['role']); ?></span>
-              <p class="mt-2 text-sm leading-relaxed text-slate-600"><?php echo htmlspecialchars($t['bio'] ?? ''); ?></p>
-              <div class="mt-5 flex items-center gap-2 border-t border-slate-100 pt-3 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">
-                <span class="h-2 w-2 rounded-full bg-[#15A24A]"></span>
-                Dazu Hub team
-              </div>
-            </div>
-          </article>
-        <?php endforeach; ?>
+<?php
+// Social icon links for a team member — only fields that are filled in are shown.
+$teamIcons = [
+  'phone'     => ['Call', '<path d="M6.6 10.8a15.1 15.1 0 006.6 6.6l2.2-2.2a1 1 0 011-.25 11.4 11.4 0 003.6.57 1 1 0 011 1V20a1 1 0 01-1 1A17 17 0 013 4a1 1 0 011-1h3.5a1 1 0 011 1c0 1.25.2 2.45.57 3.57a1 1 0 01-.25 1z"/>'],
+  'email'     => ['Email', '<path d="M20 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V6a2 2 0 00-2-2zm0 4l-8 5-8-5V6l8 5 8-5z"/>'],
+  'whatsapp'  => ['WhatsApp', '<path d="M17.5 14.4c-.3-.15-1.75-.86-2.02-.96-.27-.1-.47-.15-.67.15-.2.3-.77.96-.94 1.16-.17.2-.35.22-.65.07-.3-.15-1.25-.46-2.38-1.47-.88-.79-1.47-1.76-1.65-2.06-.17-.3-.02-.46.13-.6.13-.14.3-.35.45-.52.15-.18.2-.3.3-.5.1-.2.05-.38-.02-.53-.08-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51h-.57c-.2 0-.52.07-.8.37-.27.3-1.04 1.02-1.04 2.48s1.07 2.88 1.21 3.08c.15.2 2.1 3.2 5.08 4.49.71.3 1.27.49 1.7.63.72.23 1.37.2 1.88.12.58-.09 1.75-.72 2-1.41.25-.7.25-1.29.17-1.41-.07-.13-.27-.2-.57-.35zM12 2a10 10 0 00-8.6 15.1L2 22l5-1.3A10 10 0 1012 2zm0 18.2a8.2 8.2 0 01-4.2-1.15l-.3-.18-3 .78.8-2.9-.2-.3A8.2 8.2 0 1112 20.2z"/>'],
+  'tiktok'    => ['TikTok', '<path d="M16.6 5.8A4.3 4.3 0 0115.5 3h-3.1v12.4a2.6 2.6 0 11-2.6-2.6c.27 0 .53.04.78.12V9.7a5.8 5.8 0 105 5.7V9.1a7.4 7.4 0 004.3 1.4V7.4a4.3 4.3 0 01-3.3-1.6z"/>'],
+  'linkedin'  => ['LinkedIn', '<path d="M4.98 3.5a2.5 2.5 0 11-.02 5 2.5 2.5 0 01.02-5zM3 9h4v12H3zm7 0h3.8v1.7h.05c.53-1 1.83-2.05 3.77-2.05 4.03 0 4.78 2.65 4.78 6.1V21h-4v-5.6c0-1.33-.02-3.05-1.86-3.05-1.86 0-2.15 1.45-2.15 2.95V21h-4z"/>'],
+  'facebook'  => ['Facebook', '<path d="M22 12a10 10 0 10-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.78-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0022 12z"/>'],
+  'instagram' => ['Instagram', '<path d="M12 7.3a4.7 4.7 0 100 9.4 4.7 4.7 0 000-9.4zm0 7.7a3 3 0 110-6 3 3 0 010 6zm6-7.9a1.1 1.1 0 11-2.2 0 1.1 1.1 0 012.2 0zM21.9 8.1c-.1-1.6-.4-3-1.6-4.2S17.7 2.2 16 2.1C14.4 2 9.6 2 8 2.1c-1.6.1-3 .4-4.2 1.6S2.2 6.3 2.1 8c-.1 1.6-.1 6.4 0 8 .1 1.6.4 3 1.6 4.2s2.6 1.5 4.2 1.6c1.6.1 6.4.1 8 0 1.6-.1 3-.4 4.2-1.6s1.5-2.6 1.6-4.2c.1-1.6.1-6.4 0-8zm-2 9.7a3 3 0 01-1.7 1.7c-1.2.5-4 .4-5.2.4s-4.1.1-5.2-.4a3 3 0 01-1.7-1.7c-.5-1.2-.4-4-.4-5.3s-.1-4.1.4-5.2a3 3 0 011.7-1.7C7.9 5.1 10.7 5.2 12 5.2s4.1-.1 5.2.4a3 3 0 011.7 1.7c.5 1.2.4 4 .4 5.2s.1 4.1-.4 5.3z"/>'],
+];
+$teamHref = static function (string $key, string $v): string {
+  $v = trim($v);
+  if ($key === 'phone') return 'tel:' . preg_replace('/[^\d+]/', '', $v);
+  if ($key === 'email') return 'mailto:' . $v;
+  if ($key === 'whatsapp') {
+    if (preg_match('#^https?://#i', $v)) return $v;
+    $d = preg_replace('/\D/', '', $v);
+    if (str_starts_with($d, '0')) $d = '254' . substr($d, 1); // Kenyan local number → international
+    return 'https://wa.me/' . $d;
+  }
+  return preg_match('#^https?://#i', $v) ? $v : 'https://' . ltrim($v, '/');
+};
+?>
+<style>
+.dz-team{background:#f6f8f7;border-top:1px solid #eef2f0;padding:80px 16px}
+.dz-team *{box-sizing:border-box}
+.dz-team-wrap{max-width:1040px;margin:0 auto}
+.dz-team-grid{display:grid;grid-template-columns:1fr;gap:20px}
+@media(min-width:600px){.dz-team-grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:960px){.dz-team-grid{grid-template-columns:repeat(3,1fr);gap:24px}}
+.dz-team-intro{background:#15803d;background:linear-gradient(160deg,#16a34a,#14532d);color:#fff;border-radius:14px;padding:32px 28px;display:flex;flex-direction:column;justify-content:center;min-height:280px;margin-top:84px}
+.dz-team-intro h2{font-size:30px;line-height:1.2;font-weight:800;margin:0 0 14px;letter-spacing:-.01em}
+.dz-team-intro p{font-size:15px;line-height:1.6;opacity:.9;margin:0 0 24px}
+.dz-team-intro a{align-self:flex-start;background:#fff;color:#14532d;font-size:13px;font-weight:700;padding:10px 20px;border-radius:999px;text-decoration:none;transition:.15s}
+.dz-team-intro a:hover{background:#dcfce7}
+.dz-team-card{position:relative;margin-top:84px;padding:96px 26px 34px;background:#15A24A;color:#fff;text-align:center;border-radius:120px 0 120px 0;transition:transform .25s,box-shadow .25s}
+.dz-team-card:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(21,162,74,.3)}
+.dz-team-photo{position:absolute;top:-84px;left:14%;width:168px;height:168px;border-radius:50%;background:#15A24A;padding:8px;overflow:hidden}
+.dz-team-photo img,.dz-team-initial{width:100%;height:100%;border-radius:50%;object-fit:cover;object-position:top;display:block;background:#fff}
+.dz-team-initial{display:flex;align-items:center;justify-content:center;font-size:56px;font-weight:800;color:#15A24A}
+.dz-team-card h3{font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;margin:0 0 4px;color:#fff}
+.dz-team-role{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:#e2e8f0;margin-bottom:14px}
+.dz-team-bio{font-size:12.5px;line-height:1.6;color:#e2e8f0;margin:0 auto 20px;max-width:260px}
+.dz-team-social{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.dz-team-social a{width:26px;height:26px;border-radius:50%;background:#fff;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:transform .15s}
+.dz-team-social a:hover{transform:translateY(-2px)}
+.dz-team-social svg{width:14px;height:14px;fill:currentColor}
+.dz-team-social .is-phone{color:#15A24A}
+.dz-team-social .is-email{color:#EA4335}
+.dz-team-social .is-whatsapp{color:#25D366}
+.dz-team-social .is-tiktok{color:#000}
+.dz-team-social .is-linkedin{color:#0A66C2}
+.dz-team-social .is-facebook{color:#1877F2}
+.dz-team-social .is-instagram svg{fill:url(#dz-ig-grad)}
+.dz-team-empty{border:1px dashed #cbd5e1;border-radius:14px;padding:40px;text-align:center;color:#64748b;background:#fff}
+</style>
+<section class="dz-team" id="team">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="dz-ig-grad" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#FEDA75"/><stop offset=".3" stop-color="#FA7E1E"/><stop offset=".6" stop-color="#D62976"/><stop offset=".8" stop-color="#962FBF"/><stop offset="1" stop-color="#4F5BD5"/></linearGradient></defs></svg>
+  <div class="dz-team-wrap">
+    <div class="dz-team-grid">
+      <div class="dz-team-intro">
+        <h2>Meet our team</h2>
+        <p>Our founder, developers and tutors work together to make every learning experience practical and career-focused.</p>
+        <a href="<?php echo url('contact'); ?>">Join the team</a>
       </div>
-    <?php endif; ?>
+      <?php if (!$teamMembers): ?>
+        <div class="dz-team-empty" style="grid-column:span 2">Our team profiles will be available soon.</div>
+      <?php endif; ?>
+      <?php foreach ($teamMembers as $t): ?>
+        <article class="dz-team-card">
+          <div class="dz-team-photo">
+            <?php if (!empty($t['photo_path'])): ?>
+              <img src="<?php echo htmlspecialchars(url($t['photo_path']), ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($t['name'], ENT_QUOTES); ?>" loading="lazy">
+            <?php else: ?>
+              <div class="dz-team-initial"><?php echo htmlspecialchars(strtoupper(substr($t['name'], 0, 1))); ?></div>
+            <?php endif; ?>
+          </div>
+          <h3><?php echo htmlspecialchars($t['name']); ?></h3>
+          <span class="dz-team-role"><?php echo htmlspecialchars($t['role']); ?></span>
+          <?php if (!empty($t['bio'])): ?>
+            <p class="dz-team-bio"><?php echo htmlspecialchars($t['bio']); ?></p>
+          <?php endif; ?>
+            <div class="dz-team-social">
+              <?php foreach ($teamIcons as $key => [$label, $path]): $v = trim((string) ($t[$key] ?? '')); if ($v === '') continue; $ext = !in_array($key, ['phone', 'email'], true); ?>
+                <a class="is-<?php echo $key; ?>" href="<?php echo htmlspecialchars($teamHref($key, $v), ENT_QUOTES); ?>" aria-label="<?php echo htmlspecialchars($label . ' ' . $t['name'], ENT_QUOTES); ?>" title="<?php echo $label; ?>"<?php echo $ext ? ' target="_blank" rel="noopener"' : ''; ?>><svg viewBox="0 0 24 24" aria-hidden="true"><?php echo $path; ?></svg></a>
+              <?php endforeach; ?>
+            </div>
+        </article>
+      <?php endforeach; ?>
+    </div>
   </div>
 </section>
 
@@ -277,7 +330,7 @@ ob_start();
     <div class="text-center mb-12">
       <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Got Questions?</span>
       <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Frequently Asked Questions</h2>
-      <p class="text-slate-600 font-medium mt-4">Here are direct, helpful answers to the common questions about Dazu Hub courses, campus, and fees.</p>
+      <p class="text-slate-600 font-medium mt-4">Here are direct, helpful answers to the common questions about Dazu Training Institute courses, campus, and fees.</p>
     </div>
 
     <div class="space-y-3" id="dazu-faq">

@@ -53,7 +53,45 @@ spl_autoload_register(function ($class) {
 });
 
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    // Session cookies only: closing the browser drops them (see helpers/session_guard.php for idle/close logout).
+    ini_set('session.cookie_lifetime', '0');
+    // A student- or tutor-portal preview (admin menu) lives in its own session; its cookie only ever travels to
+    // /students/ (DAZUPREVIEW), /tutor/ (DAZUPREVIEWT) or /intern/ (DAZUPREVIEWI).
+    $defaultSessionName = session_name();
+    $reqPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+    foreach (['DAZUPREVIEW' => '/students', 'DAZUPREVIEWT' => '/tutor', 'DAZUPREVIEWI' => '/intern'] as $previewCookie => $previewDir) {
+        $previewBase = (defined('WEB_ROOT') ? rtrim(WEB_ROOT, '/') : '') . $previewDir;
+        if (!empty($_COOKIE[$previewCookie]) && ($reqPath === $previewBase || strpos($reqPath, $previewBase . '/') === 0)) {
+            session_name($previewCookie);
+            session_set_cookie_params(['path' => $previewBase . '/', 'httponly' => true, 'samesite' => 'Lax']);
+            session_start();
+            if (!empty($_SESSION['logged_in']) && !empty($_SESSION['preview'])) {
+                break;
+            }
+            // A preview that ended or expired: drop its cookie and fall back to the normal session, otherwise
+            // the portal and the login page keep redirecting to each other.
+            $_SESSION = [];
+            session_destroy();
+            setcookie($previewCookie, '', time() - 3600, $previewBase . '/');
+            unset($_COOKIE[$previewCookie]);
+            session_name($defaultSessionName);
+            session_id((string) ($_COOKIE[$defaultSessionName] ?? session_create_id()));
+            session_set_cookie_params(['path' => '/', 'httponly' => true, 'samesite' => 'Lax']);
+            break;
+        }
+    }
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+}
+
+require_once APP_V1_ROOT . '/helpers/session_guard.php';
+session_guard_check();
+define('DAZU_GUARD_ACTIVE', true);
+if (PHP_SAPI !== 'cli') {
+    ob_start('session_guard_inject');
+    ob_start('dazu_head_meta');      // favicon + share preview on every page
+    ob_start('dazu_clean_links');   // runs first: relative dashboard links without .php
 }
 
 require_once APP_V1_ROOT . '/helpers/functions.php';

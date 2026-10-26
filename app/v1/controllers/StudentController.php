@@ -152,9 +152,11 @@ class StudentController {
     }
 
     /**
-     * Record initial payment and send receipt on registration approval.
+     * Record initial payment and email the receipt on registration approval.
+     * $customAmount lets the admin state what was actually deposited instead of the
+     * full first-installment amount (e.g. a partial deposit).
      */
-    public function recordInitialPayment(array $reg, int $adminId): array {
+    public function recordInitialPayment(array $reg, int $adminId, ?float $customAmount = null): array {
         $resolvedAdmin = resolve_valid_user_id($this->db, $adminId, true);
         if ($resolvedAdmin === null) {
             return ['ok' => false, 'error' => 'No valid admin account for payment record.'];
@@ -166,7 +168,7 @@ class StudentController {
             (int) $reg['duration_months']
         );
         $regFee = $reg['registration_fee_waived'] ? 0 : (float) $reg['registration_fee'];
-        $initialAmount = $regFee + $installments['amount'];
+        $initialAmount = $customAmount !== null && $customAmount >= 0 ? $customAmount : $regFee + $installments['amount'];
 
         $stmt = $this->db->prepare(
             "INSERT INTO payments (registration_id, amount, payer_reference, status, recorded_by, reviewed_by, reviewed_at, notes)
@@ -190,6 +192,9 @@ class StudentController {
         $stmt->execute([':receipt' => $receiptNo, ':html' => $receiptHtml, ':id' => $paymentId]);
 
         $this->studentModel->initializeOnApproval((int) $reg['id'], $reg['payment_plan']);
+
+        $notifier = new \StudentNotifier($this->db);
+        $notifier->sendPaymentApproved($reg, array_merge($payment, ['receipt_no' => $receiptNo, 'amount' => $initialAmount]), $receiptHtml);
 
         return ['ok' => true, 'receipt_no' => $receiptNo, 'receipt_html' => $receiptHtml, 'payment_id' => $paymentId];
     }

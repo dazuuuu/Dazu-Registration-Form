@@ -1,5 +1,5 @@
 <?php
-// public/admin/payments/receipt.php — view/download receipt (admin)
+// public/admin/payments/receipt.php — view/download a payment receipt (admin)
 require_once __DIR__ . '/../../../app/v1/init.php';
 require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';

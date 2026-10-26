@@ -1,7 +1,12 @@
 <?php
-// public/components/public/footer.php — Dazu Hub Institute
+// public/components/public/footer.php — Dazu Training Institute
 $year = date('Y');
-$logoPath = url('assets/images/logo/logo.png');
+require_once __DIR__ . '/../../../app/v1/helpers/brand.php';
+require_once __DIR__ . '/../../../app/v1/helpers/site_logo.php';
+require_once __DIR__ . '/../../../app/v1/helpers/site_contact.php';
+require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
+$logoPath = site_logo_url(brand_url('mark'));
+$contact = site_contact_settings();
 ?>
 <footer class="dh-footer">
     <div class="dh-footer-top">
@@ -10,12 +15,12 @@ $logoPath = url('assets/images/logo/logo.png');
             <!-- Brand col -->
             <div class="dh-footer-brand">
                 <a href="<?php echo url('/'); ?>" class="dh-footer-logo-link">
-                    <img src="<?php echo $logoPath; ?>" alt="Dazu Hub Institute"
+                    <img src="<?php echo $logoPath; ?>" alt="Dazu Training Institute"
                          height="40" class="dh-footer-logo"
                          onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
                     <span class="dh-footer-logo-fallback" style="display:none;">
                         <span class="dh-footer-logo-mark">&lt;/&gt;</span>
-                        <span class="dh-footer-logo-text">Dazu <strong>Hub</strong></span>
+                        <span class="dh-footer-logo-text">Dazu <strong>Training Institute</strong></span>
                     </span>
                 </a>
                 <p class="dh-footer-tagline">
@@ -61,7 +66,7 @@ $logoPath = url('assets/images/logo/logo.png');
                     <li><a href="<?php echo url('about/index.php'); ?>">About Us</a></li>
                     <li><a href="<?php echo url('courses/index.php'); ?>">All Courses</a></li>
                     <li><a href="<?php echo url('contact/index.php'); ?>">Contact</a></li>
-                    <li><a href="<?php echo url('auth/student_register.php'); ?>">Apply Now</a></li>
+                    <li><a href="<?php echo url('apply'); ?>">Apply Now</a></li>
                     <li><a href="<?php echo url('auth/login.php'); ?>">Student Login</a></li>
                     <li><a href="<?php echo url('auth/login.php'); ?>">Tutor Login</a></li>
                 </ul>
@@ -71,9 +76,9 @@ $logoPath = url('assets/images/logo/logo.png');
             <div class="dh-footer-col">
                 <h6 class="dh-footer-col-title">Contact</h6>
                 <div class="dh-footer-contact-list">
-                    <a href="mailto:info@dazuhub.ac.ke" class="dh-footer-contact-item">
+                    <a href="mailto:<?php echo htmlspecialchars($contact['contact_email']); ?>" class="dh-footer-contact-item">
                         <i class="fas fa-envelope"></i>
-                        <span>info@dazuhub.ac.ke</span>
+                        <span><?php echo htmlspecialchars($contact['contact_email']); ?></span>
                     </a>
                     <a href="tel:<?php echo htmlspecialchars(site_phone_tel()); ?>" class="dh-footer-contact-item">
                         <i class="fas fa-phone"></i>
@@ -85,7 +90,7 @@ $logoPath = url('assets/images/logo/logo.png');
                     </a>
                     <div class="dh-footer-contact-item">
                         <i class="fas fa-location-dot"></i>
-                        <span>Nairobi, Kenya</span>
+                        <span><?php echo htmlspecialchars($contact['contact_address']); ?></span>
                     </div>
                 </div>
                 <a href="<?php echo url('courses/index.php'); ?>" class="dh-btn dh-btn-primary dh-footer-cta">
@@ -97,7 +102,7 @@ $logoPath = url('assets/images/logo/logo.png');
 
     <div class="dh-footer-bottom">
         <div class="dh-container dh-footer-bottom-inner">
-            <small>&copy; <?php echo $year; ?> Dazu Hub Institute. All rights reserved.</small>
+            <small>&copy; <?php echo $year; ?> Dazu Training Institute. All rights reserved.</small>
             <div class="dh-footer-bottom-links">
                 <a href="#">Privacy Policy</a>
                 <a href="#">Terms &amp; Conditions</a>

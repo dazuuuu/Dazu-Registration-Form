@@ -4,11 +4,14 @@ $current_page = basename($_SERVER['PHP_SELF']);
 $current_dir  = basename(dirname($_SERVER['PHP_SELF']));
 $username     = $_SESSION['username'] ?? 'Student';
 $portalLocked = $portal_locked ?? false;
+require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+require_once __DIR__ . '/../../../app/v1/services/CertificateService.php';
+$hasCertificate = cert_student_has_any((int) ($_SESSION['user_id'] ?? 0));
 ?>
 <nav class="student-navbar">
     <div class="container-fluid d-flex justify-content-between align-items-center">
         <a href="<?php echo url('students/dashboard/index.php'); ?>" class="student-brand">
-            <i class="fas fa-graduation-cap me-2"></i>Dazu Hub Institute
+            <i class="fas fa-graduation-cap me-2"></i>Dazu Training Institute
         </a>
 
         <div class="d-flex align-items-center gap-3 d-none d-lg-flex student-nav-desktop">
@@ -23,16 +26,27 @@ $portalLocked = $portal_locked ?? false;
                 </a>
                 <a href="<?php echo url('students/payments/index.php'); ?>"
                    class="nav-link-sm <?php echo $current_dir === 'payments' ? 'active' : ''; ?>">
-                    <i class="fas fa-money-bill-wave"></i> <span>Payments</span>
+                    <i class="fas fa-money-bill-wave"></i> <span>Finance</span>
                 </a>
                 <a href="<?php echo url('students/resources/index.php'); ?>"
                    class="nav-link-sm <?php echo $current_dir === 'resources' ? 'active' : ''; ?>">
                     <i class="fas fa-folder-open"></i> <span>Resources</span>
                 </a>
+                <a href="<?php echo url('students/documents/index.php'); ?>"
+                   class="nav-link-sm <?php echo $current_dir === 'documents' ? 'active' : ''; ?>">
+                    <i class="fas fa-id-card"></i> <span>Documents</span>
+                </a>
+                <?php if ($hasCertificate): ?>
+                <a href="<?php echo url('students/certificates/index.php'); ?>"
+                   class="nav-link-sm <?php echo $current_dir === 'certificates' ? 'active' : ''; ?>">
+                    <i class="fas fa-certificate"></i> <span>Certificates</span>
+                </a>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
 
         <div class="d-flex align-items-center gap-2">
+            <?php $pwaPortal = 'students'; require __DIR__ . '/../pwa/bell.php'; ?>
             <div class="dropdown">
                 <button class="btn student-user-btn dropdown-toggle" type="button" data-bs-toggle="dropdown">
                     <span class="student-avatar"><i class="fas fa-user"></i></span>
@@ -47,11 +61,24 @@ $portalLocked = $portal_locked ?? false;
                             <i class="fas fa-folder-open me-2"></i> Resources
                         </a></li>
                         <li><a class="dropdown-item" href="<?php echo url('students/payments/index.php'); ?>">
-                            <i class="fas fa-receipt me-2"></i> Payment History
+                            <i class="fas fa-receipt me-2"></i> Finance
                         </a></li>
+                        <li><a class="dropdown-item" href="<?php echo url('students/documents/index.php'); ?>">
+                            <i class="fas fa-id-card me-2"></i> My Documents
+                        </a></li>
+                        <?php if ($hasCertificate): ?>
+                        <li><a class="dropdown-item" href="<?php echo url('students/certificates/index.php'); ?>">
+                            <i class="fas fa-certificate me-2"></i> Certificates
+                        </a></li>
+                        <?php endif; ?>
+                        <li><a class="dropdown-item" href="<?php echo url('students/notifications/index.php'); ?>">
+                            <i class="fas fa-bell me-2"></i> Notifications
+                        </a></li>
+                        <li><a class="dropdown-item d-none" href="#" data-pwa-install><i class="fas fa-download me-2"></i> Install app</a></li>
+                        <li><a class="dropdown-item d-none" href="#" data-pwa-enable-push><i class="fas fa-bell me-2"></i> Turn on alerts</a></li>
                         <li><hr class="dropdown-divider"></li>
                     <?php endif; ?>
-                    <li><a class="dropdown-item text-danger" href="<?php echo url('auth/logout.php'); ?>">
+                    <li><a class="dropdown-item text-danger" href="<?php echo url(!empty($_SESSION['preview']) ? 'students/preview-exit.php' : 'auth/logout.php'); ?>">
                         <i class="fas fa-sign-out-alt me-2"></i> Logout
                     </a></li>
                 </ul>

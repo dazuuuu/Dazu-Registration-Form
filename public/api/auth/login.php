@@ -44,6 +44,7 @@ $redirect = match ($user['role_name']) {
     'superadmin', 'admin' => url('admin/dashboard.php'),
     'student' => url('student'),
     'tutor' => url('tutor'),
+    'employee' => url('employee/dashboard/index.php'),
     default => url(''),
 };
 

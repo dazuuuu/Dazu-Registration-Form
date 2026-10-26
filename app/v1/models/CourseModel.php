@@ -27,16 +27,19 @@ class CourseModel {
         $fee = $isFree ? 0.0 : (float) $data['course_fee'];
         $dates = $this->dateFields($data);
         $feeStructure = $isFree ? null : $this->feeStructureValue($data);
+        $semesterCount = $this->semesterCount($data);
+        $classSchedules = $this->classScheduleFields($data);
 
         try {
-            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, description, requirements, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, fee_structure, is_free, start_date, end_date, is_active, created_by)
-                    VALUES (:title, :abbreviation, :category_id, :cover_image, :description, :requirements, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :course_fee, :fee_structure, :is_free, :start_date, :end_date, 1, :created_by)";
+            $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, brochure_path, description, requirements, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, semester_count, class_schedule_online, class_schedule_physical, course_fee, fee_structure, is_free, start_date, end_date, show_on_homepage, is_active, created_by)
+                    VALUES (:title, :abbreviation, :category_id, :cover_image, :brochure_path, :description, :requirements, :overview, :duration_months, :weeks_of_study, :days_of_study, :hours_of_study, :study_schedule, :semester_count, :class_schedule_online, :class_schedule_physical, :course_fee, :fee_structure, :is_free, :start_date, :end_date, :show_on_homepage, 1, :created_by)";
             $stmt = $this->db->prepare($sql);
             $stmt->execute([
                 ':title'            => trim($data['title']),
                 ':abbreviation'     => $abbr,
                 ':category_id'      => $categoryId,
                 ':cover_image'      => $data['cover_image'] ?? null,
+                ':brochure_path'    => $data['brochure_path'] ?? null,
                 ':description'      => $data['description'] ?? '',
                 ':requirements'     => trim($data['requirements'] ?? ''),
                 ':overview'         => $data['overview'] ?? '',
@@ -45,30 +48,40 @@ class CourseModel {
                 ':days_of_study'    => $dur['days_of_study'],
                 ':hours_of_study'   => $dur['hours_of_study'],
                 ':study_schedule'   => $dur['study_schedule'],
+                ':semester_count'   => $semesterCount,
+                ':class_schedule_online' => $classSchedules['online'],
+                ':class_schedule_physical' => $classSchedules['physical'],
                 ':course_fee'       => $fee,
                 ':fee_structure'    => $feeStructure,
                 ':is_free'          => $isFree ? 1 : 0,
                 ':start_date'       => $dates['start_date'],
                 ':end_date'         => $dates['end_date'],
+                ':show_on_homepage' => !empty($data['show_on_homepage']) ? 1 : 0,
                 ':created_by'       => $this->resolveCreatedBy($createdBy),
             ]);
         } catch (\PDOException $e) {
             $missingDateCols = stripos($e->getMessage(), 'start_date') !== false
                 || stripos($e->getMessage(), 'end_date') !== false;
             if ($missingDateCols) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/migrations/035_add_course_dates_and_free_toggle.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             $missingNewCols = stripos($e->getMessage(), 'requirements') !== false
                 || stripos($e->getMessage(), 'is_free') !== false;
             if ($missingNewCols) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/migrations/033_course_requirements_and_free_flag.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             $missingStudyCols = stripos($e->getMessage(), 'weeks_of_study') !== false
                 || stripos($e->getMessage(), 'days_of_study') !== false
                 || stripos($e->getMessage(), 'hours_of_study') !== false
                 || stripos($e->getMessage(), 'study_schedule') !== false;
             if (stripos($e->getMessage(), 'fee_structure') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/required_migrations/036_course_fee_structure.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
+            }
+            if (stripos($e->getMessage(), 'semester_count') !== false || stripos($e->getMessage(), 'class_schedule_') !== false) {
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
+            }
+            if (stripos($e->getMessage(), 'brochure_path') !== false) {
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             if ($categoryId !== null && stripos($e->getMessage(), 'category_id') !== false) {
                 $sql = "INSERT INTO courses (title, abbreviation, cover_image, description, overview, duration_months, weeks_of_study, days_of_study, hours_of_study, study_schedule, course_fee, is_active, created_by)
@@ -90,8 +103,8 @@ class CourseModel {
                 ]);
             } elseif ($missingStudyCols) {
                 // DB not yet migrated (missing weeks_of_study/hours_of_study/study_schedule) — save without them
-                // rather than fatal, run databases/migrations/022_add_course_study_duration.sql and
-                // databases/migrations/024_add_course_study_schedule.sql to fix properly.
+                // rather than fatal, run app/v1/databases/migrations/022_add_course_study_duration.sql and
+                // app/v1/databases/migrations/024_add_course_study_schedule.sql to fix properly.
                 $sql = "INSERT INTO courses (title, abbreviation, category_id, cover_image, description, overview, duration_months, course_fee, is_active, created_by)
                         VALUES (:title, :abbreviation, :category_id, :cover_image, :description, :overview, :duration_months, :course_fee, 1, :created_by)";
                 $stmt = $this->db->prepare($sql);
@@ -134,10 +147,13 @@ class CourseModel {
         $fee = $isFree ? 0.0 : (float) $data['course_fee'];
         $dates = $this->dateFields($data);
         $feeStructure = $isFree ? null : $this->feeStructureValue($data);
+        $semesterCount = $this->semesterCount($data);
+        $classSchedules = $this->classScheduleFields($data);
 
         $fields = "title = :title, abbreviation = :abbreviation, category_id = :category_id, description = :description,
                    requirements = :requirements, overview = :overview, duration_months = :duration_months, weeks_of_study = :weeks_of_study,
-                   days_of_study = :days_of_study, hours_of_study = :hours_of_study, study_schedule = :study_schedule, course_fee = :course_fee,
+                   days_of_study = :days_of_study, hours_of_study = :hours_of_study, study_schedule = :study_schedule,
+                   semester_count = :semester_count, class_schedule_online = :class_schedule_online, class_schedule_physical = :class_schedule_physical, course_fee = :course_fee,
                    fee_structure = :fee_structure, is_free = :is_free, start_date = :start_date, end_date = :end_date";
         $dur = $this->durationFields($data);
         $params = [
@@ -152,6 +168,9 @@ class CourseModel {
             ':days_of_study'   => $dur['days_of_study'],
             ':hours_of_study'  => $dur['hours_of_study'],
             ':study_schedule'  => $dur['study_schedule'],
+            ':semester_count'  => $semesterCount,
+            ':class_schedule_online' => $classSchedules['online'],
+            ':class_schedule_physical' => $classSchedules['physical'],
             ':course_fee'      => $fee,
             ':fee_structure'   => $feeStructure,
             ':is_free'         => $isFree ? 1 : 0,
@@ -164,6 +183,19 @@ class CourseModel {
             $fields .= ", cover_image = :cover_image";
             $params[':cover_image'] = $data['cover_image'];
         }
+        if (!empty($data['brochure_path'])) {
+            $fields .= ", brochure_path = :brochure_path";
+            $params[':brochure_path'] = $data['brochure_path'];
+        }
+        if (array_key_exists("certificate_template", $data)) {
+            $fields .= ", certificate_template = :certificate_template";
+            $params[":certificate_template"] = $data["certificate_template"];
+        }
+
+        if (array_key_exists('show_on_homepage', $data)) {
+            $fields .= ", show_on_homepage = :show_on_homepage";
+            $params[':show_on_homepage'] = !empty($data['show_on_homepage']) ? 1 : 0;
+        }
 
         $sql = "UPDATE courses SET $fields WHERE id = :id";
         $stmt = $this->db->prepare($sql);
@@ -173,19 +205,25 @@ class CourseModel {
             $missingDateCols = stripos($e->getMessage(), 'start_date') !== false
                 || stripos($e->getMessage(), 'end_date') !== false;
             if ($missingDateCols) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/migrations/035_add_course_dates_and_free_toggle.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             $missingNewCols = stripos($e->getMessage(), 'requirements') !== false
                 || stripos($e->getMessage(), 'is_free') !== false;
             if ($missingNewCols) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/migrations/033_course_requirements_and_free_flag.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             $missingStudyCols = stripos($e->getMessage(), 'weeks_of_study') !== false
                 || stripos($e->getMessage(), 'days_of_study') !== false
                 || stripos($e->getMessage(), 'hours_of_study') !== false
                 || stripos($e->getMessage(), 'study_schedule') !== false;
             if (stripos($e->getMessage(), 'fee_structure') !== false) {
-                return ['ok' => false, 'error' => 'Database not migrated yet — run databases/required_migrations/036_course_fee_structure.sql, then retry.'];
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
+            }
+            if (stripos($e->getMessage(), 'semester_count') !== false || stripos($e->getMessage(), 'class_schedule_') !== false) {
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
+            }
+            if (stripos($e->getMessage(), 'brochure_path') !== false) {
+                return ['ok' => false, 'error' => 'The database needs the latest system update. Open System Updates, apply it, then retry.'];
             }
             if ($categoryId !== null && stripos($e->getMessage(), 'category_id') !== false) {
                 $fields = str_replace('category_id = :category_id, ', '', $fields);
@@ -195,8 +233,8 @@ class CourseModel {
                 $stmt->execute($params);
             } elseif ($missingStudyCols) {
                 // DB not yet migrated (missing weeks_of_study/hours_of_study/study_schedule) — save without them
-                // rather than fatal, run databases/migrations/022_add_course_study_duration.sql and
-                // databases/migrations/024_add_course_study_schedule.sql to fix properly.
+                // rather than fatal, run app/v1/databases/migrations/022_add_course_study_duration.sql and
+                // app/v1/databases/migrations/024_add_course_study_schedule.sql to fix properly.
                 $fields = "title = :title, abbreviation = :abbreviation, category_id = :category_id, description = :description,
                            requirements = :requirements, overview = :overview, duration_months = :duration_months, course_fee = :course_fee,
                            is_free = :is_free";
@@ -219,9 +257,41 @@ class CourseModel {
         return ['ok' => true];
     }
 
+    /** Set a course's qualification; '' / null means automatic (by duration). Silently skipped until migration 050 is applied. */
+    public function setQualification(int $id, ?string $qualification): bool {
+        $q = in_array($qualification, ['certificate', 'diploma'], true) ? $qualification : null;
+        try {
+            $ok = $this->db->prepare('UPDATE courses SET qualification = ? WHERE id = ?')->execute([$q, $id]);
+            if ($ok) {
+                require_once __DIR__ . '/../helpers/registration_number.php';
+                registration_number_resync($this->db, $id);
+            }
+            return $ok;
+        } catch (\PDOException $e) {
+            return false;
+        }
+    }
+
     public function setActive(int $id, bool $active): bool {
         $stmt = $this->db->prepare("UPDATE courses SET is_active = :a WHERE id = :id");
         return $stmt->execute([':a' => $active ? 1 : 0, ':id' => $id]);
+    }
+
+    public function setShowOnHomepage(int $id, bool $show): bool {
+        $stmt = $this->db->prepare("UPDATE courses SET show_on_homepage = :s WHERE id = :id");
+        return $stmt->execute([':s' => $show ? 1 : 0, ':id' => $id]);
+    }
+
+    public function getHomepageCourses(bool $activeOnly = true): array {
+        $sql = "SELECT c.*, cc.name AS category_name, cc.slug AS category_slug, cc.icon_path AS category_icon
+                FROM courses c
+                LEFT JOIN course_categories cc ON cc.id = c.category_id
+                WHERE c.show_on_homepage = 1";
+        if ($activeOnly) {
+            $sql .= " AND c.is_active = 1";
+        }
+        $sql .= " ORDER BY c.title ASC";
+        return $this->db->query($sql)->fetchAll(\PDO::FETCH_ASSOC);
     }
 
     public function getById(int $id): ?array {
@@ -266,6 +336,25 @@ class CourseModel {
         } catch (\PDOException $e) {
             $sql = "SELECT * FROM courses" . ($activeOnly ? " WHERE is_active = 1" : "") . " ORDER BY title ASC";
             return $this->db->query($sql)->fetchAll();
+        }
+    }
+
+    /** Count of free courses currently listed on the public site. */
+    public function countFreePublic(): int
+    {
+        try {
+            $sql = "SELECT COUNT(*) FROM courses c
+                    WHERE c.is_free = 1
+                    AND c.is_active = 1
+                    AND (c.end_date IS NULL OR c.end_date >= CURDATE())";
+            return (int) $this->db->query($sql)->fetchColumn();
+        } catch (\PDOException $e) {
+            try {
+                $sql = "SELECT COUNT(*) FROM courses c WHERE c.is_free = 1 AND c.is_active = 1";
+                return (int) $this->db->query($sql)->fetchColumn();
+            } catch (\PDOException $e2) {
+                return 0;
+            }
         }
     }
 
@@ -403,14 +492,13 @@ class CourseModel {
                 return 'Course fee must be greater than zero.';
             }
             $items = $this->feeStructureItems($data);
-            if ($items) {
-                $sum = 0.0;
-                foreach ($items as $item) {
-                    $sum += (float) ($item['amount'] ?? 0);
-                }
-                if ($sum <= 0) {
-                    return 'Fee structure amounts must add up to more than zero.';
-                }
+            $onlineSum = course_fee_mode_total($items['online'] ?? []);
+            $physicalSum = course_fee_mode_total($items['physical'] ?? []);
+            if (($onlineSum > 0 || $physicalSum > 0) && $onlineSum <= 0 && $physicalSum <= 0) {
+                return 'Fee structure amounts must add up to more than zero.';
+            }
+            if (($data['semester_count'] ?? '') !== '' && (int) $data['semester_count'] < 1) {
+                return 'Number of semesters must be at least 1.';
             }
         }
 
@@ -430,18 +518,39 @@ class CourseModel {
     private function feeStructureItems(array $data): array
     {
         require_once __DIR__ . '/../helpers/course_fee_structure.php';
+        if (isset($data['fee_structure_modes']) && is_array($data['fee_structure_modes'])) {
+            return course_fee_structure_modes_decode($data['fee_structure_modes']);
+        }
         if (isset($data['fee_structure_items']) && is_array($data['fee_structure_items'])) {
-            return course_fee_structure_decode($data['fee_structure_items']);
+            return course_fee_structure_modes_decode($data['fee_structure_items']);
         }
         if (array_key_exists('fee_structure', $data)) {
-            return course_fee_structure_decode($data['fee_structure']);
+            return course_fee_structure_modes_decode($data['fee_structure']);
         }
-        return [];
+        return ['online' => [], 'physical' => []];
     }
 
     private function feeStructureValue(array $data): ?string
     {
-        return course_fee_structure_encode($this->feeStructureItems($data));
+        return course_fee_structure_modes_encode($this->feeStructureItems($data));
+    }
+
+    private function semesterCount(array $data): int
+    {
+        $value = (int) ($data['semester_count'] ?? 0);
+        return $value > 0 ? min($value, 40) : 1;
+    }
+
+    private function classScheduleFields(array $data): array
+    {
+        $clean = static function ($value): ?string {
+            $value = trim((string) $value);
+            return $value !== '' ? mb_strimwidth($value, 0, 180, '') : null;
+        };
+        return [
+            'online' => $clean($data['class_schedule_online'] ?? ''),
+            'physical' => $clean($data['class_schedule_physical'] ?? ''),
+        ];
     }
 
     /** Blank strings from an untouched date input become NULL, not '' (invalid DATE). */

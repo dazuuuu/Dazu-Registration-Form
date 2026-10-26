@@ -7,13 +7,18 @@ require_once __DIR__ . '/../../../app/v1/helpers/contact.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../../app/v1/models/RegistrationModel.php';
+require_once __DIR__ . '/../../../app/v1/models/PayrollModel.php';
 require_once __DIR__ . '/../../../app/v1/controllers/RegistrationController.php';
 require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
+require_once __DIR__ . '/../../../app/v1/services/RegistrationFormGenerator.php';
+require_once __DIR__ . '/../../../app/v1/services/StudentNotifier.php';
+require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
 
 use Models\Connection;
 use Models\CourseModel;
 use Models\RegistrationModel;
+use Models\PayrollModel;
 use Controllers\RegistrationController;
 use Controllers\StudentController;
 
@@ -21,12 +26,65 @@ Middleware::requireAdmin();
 
 $pdo     = Connection::getInstance()->getConnection();
 $regModel = new RegistrationModel($pdo);
+$payroll = new PayrollModel($pdo);
+$tutorsReady = $payroll->isInstalled();
+$tutorChoices = $tutorsReady ? array_values(array_filter($payroll->listTutorNames(), fn($t) => $t['is_active'])) : [];
 
 $id  = (int) ($_GET['id'] ?? 0);
 $reg = $regModel->getById($id);
 if (!$reg) {
     SessionModel::setFlash('error', 'Registration not found.');
     header('Location: ' . url('admin/registrations/index.php'));
+    exit();
+}
+
+if (($_GET['action'] ?? '') === 'download_form') {
+    $pdf = RegistrationFormGenerator::pdf($reg);
+    if ($pdf === null) {
+        SessionModel::setFlash('error', 'Could not generate the registration form PDF. Run composer install to enable Dompdf.');
+        header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+        exit();
+    }
+    $fileName = RegistrationFormGenerator::fileName($reg);
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="' . $fileName . '"');
+    header('Content-Length: ' . strlen($pdf));
+    echo $pdf;
+    exit();
+}
+
+if (($_GET['action'] ?? '') === 'download_fees') {
+    $courseModel = new CourseModel($pdo);
+    $course = $courseModel->getById((int) ($reg['course_id'] ?? 0));
+    $pdf = $course ? course_fee_structure_render_pdf($course) : null;
+    if ($pdf === null) {
+        SessionModel::setFlash('error', 'Could not generate the fee structure PDF.');
+        header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+        exit();
+    }
+    $fileName = course_fee_structure_file_name($course);
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="' . $fileName . '"');
+    header('Content-Length: ' . strlen($pdf));
+    echo $pdf;
+    exit();
+}
+
+if (($_GET['action'] ?? '') === 'download_admission') {
+    require_once __DIR__ . '/../../../app/v1/services/AdmissionLetterGenerator.php';
+    $courseModel = new CourseModel($pdo);
+    $course = $courseModel->getById((int) ($reg['course_id'] ?? 0));
+    $pdf = AdmissionLetterGenerator::pdf($reg, $course ?: []);
+    if ($pdf === null) {
+        SessionModel::setFlash('error', 'Could not generate the admission letter PDF.');
+        header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+        exit();
+    }
+    $fileName = AdmissionLetterGenerator::fileName($reg);
+    header('Content-Type: application/pdf');
+    header('Content-Disposition: attachment; filename="' . $fileName . '"');
+    header('Content-Length: ' . strlen($pdf));
+    echo $pdf;
     exit();
 }
 
@@ -57,9 +115,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($action === 'approve') {
             $waive  = isset($_POST['waive_reg_fee']) && $_POST['waive_reg_fee'] === '1';
-            $result = $controller->approve($id, $waive, $adminId);
+            require_once __DIR__ . '/../../../app/v1/helpers/study_location.php';
+            $pickMode = $_POST['study_mode'] ?? '';
+            $pickLoc  = $_POST['study_location'] ?? '';
+            $depositRaw = trim($_POST['deposit_amount'] ?? '');
+            $deposit = $depositRaw === '' ? null : (float) $depositRaw;
+            if (!in_array($pickMode, ['online', 'physical'], true) || ($pickMode === 'physical' && study_location_supported($pdo) && !isset(study_locations()[$pickLoc]))) {
+                $result = ['ok' => false, 'error' => 'Choose the mode of study, and the learning location (Thika or Nairobi) for physical classes, before approving.'];
+            } elseif ($deposit !== null && $deposit < 0) {
+                $result = ['ok' => false, 'error' => 'The deposited amount cannot be negative.'];
+            } else {
+                $result = $controller->approve($id, $waive, $adminId, $deposit);
+            }
 
             if ($result['ok']) {
+                study_placement_set($pdo, $id, $pickMode, $pickLoc);
+                $tutorNote = '';
+                $tutorId = (int)($_POST['tutor_id'] ?? 0);
+                if ($tutorId > 0 && $tutorsReady) {
+                    $stmt = $pdo->prepare('SELECT user_id FROM registrations WHERE id = ?');
+                    $stmt->execute([$id]);
+                    $newUserId = (int)$stmt->fetchColumn();
+                    if ($newUserId > 0) {
+                        $payroll->assignStudents($tutorId, [$newUserId]);
+                        $tutorNote = ' Tutor assigned.';
+                    }
+                }
                 SessionModel::set('student_credentials', [
                     'registration_id' => $id,
                     'reg_no'        => $result['reg_no'],
@@ -69,7 +150,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'login_url'     => url('auth/login.php'),
                 ]);
                 SessionModel::setFlash('success',
-                    'Registration approved. Student account is <strong>active</strong>. Copy the login details below and share with the student (WhatsApp, in person, etc.).'
+                    'Registration approved. Student account is <strong>active</strong>. Copy the login details below and share with the student (WhatsApp, in person, etc.).' . $tutorNote
                 );
                 header('Location: ' . url('admin/registrations/view.php?id=' . $id));
                 exit();
@@ -87,6 +168,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $error = $result['error'];
 
+        } elseif ($action === 'assign_tutor' && $reg['status'] === 'approved' && $reg['user_id']) {
+            $tutorId = (int)($_POST['tutor_id'] ?? 0);
+            if (!$tutorsReady) {
+                $error = 'Apply the pending system update (migration 048) first.';
+            } elseif ($tutorId <= 0) {
+                $error = 'Choose a tutor.';
+            } else {
+                $n = $payroll->assignStudents($tutorId, [(int)$reg['user_id']]);
+                SessionModel::setFlash($n ? 'success' : 'error', $n ? 'Tutor assigned. It now shows on their Tutors page and on Salaries.' : 'This student is already assigned to that tutor.');
+                header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+                exit();
+            }
         } elseif ($action === 'reset_credentials' && $reg['status'] === 'approved') {
             $studentCtrl = new StudentController();
             $result = $studentCtrl->sendCredentials($id);
@@ -129,6 +222,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $error = $result['error'];
             }
+        } elseif ($action === 'email_registration_form') {
+            $notifier = new StudentNotifier($pdo, null, true);
+            $result = $notifier->sendRegistrationForm($reg);
+            if (!empty($result['ok'])) {
+                SessionModel::setFlash('success', 'Registration form emailed to ' . htmlspecialchars($reg['email']) . '.');
+                header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+                exit();
+            }
+            $error = 'Could not email registration form: ' . ($result['message'] ?? 'Unknown error.');
+        } elseif ($action === 'email_fee_structure') {
+            $notifier = new StudentNotifier($pdo, null, true);
+            $result = $notifier->sendCourseFeeStructure($reg);
+            if (!empty($result['ok'])) {
+                SessionModel::setFlash('success', 'Fee structure emailed to ' . htmlspecialchars($reg['email']) . '.');
+                header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+                exit();
+            }
+            $error = 'Could not email fee structure: ' . ($result['message'] ?? 'Unknown error.');
+        } elseif ($action === 'email_admission_letter') {
+            $notifier = new StudentNotifier($pdo, null, true);
+            $result = $notifier->sendAdmissionLetter($reg);
+            if (!empty($result['ok'])) {
+                SessionModel::setFlash('success', 'Admission letter emailed to ' . htmlspecialchars($reg['email']) . '.');
+                header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+                exit();
+            }
+            $error = 'Could not email admission letter: ' . ($result['message'] ?? 'Unknown error.');
+        } elseif ($action === 'email_documents_pack') {
+            $notifier = new StudentNotifier($pdo, null, true);
+            $result = $notifier->sendStudentDocumentsPack($reg);
+            if (!empty($result['ok'])) {
+                SessionModel::setFlash('success', 'Official documents pack (Admission Letter, Fee Structure & Course Brochure) emailed to ' . htmlspecialchars($reg['email']) . '.');
+                header('Location: ' . url('admin/registrations/view.php?id=' . $id));
+                exit();
+            }
+            $error = 'Could not email documents pack: ' . ($result['message'] ?? 'Unknown error.');
         }
 
         // Refresh after action attempt
@@ -232,6 +361,10 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
                     <div class="col-md-6">
                         <small class="text-muted d-block">Phone</small>
                         <?php echo htmlspecialchars($reg['phone']); ?>
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block">Secondary Phone</small>
+                        <?php echo !empty($reg['secondary_phone']) ? htmlspecialchars($reg['secondary_phone']) : '<span class="text-muted">Not provided</span>'; ?>
                     </div>
                     <div class="col-md-6">
                         <small class="text-muted d-block">Study Mode</small>
@@ -358,6 +491,73 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
     <!-- RIGHT COLUMN: Actions -->
     <div class="col-lg-4">
 
+        <div class="card border-info mb-4">
+            <div class="card-header bg-info text-dark fw-semibold">
+                <i class="fas fa-file-pdf me-1"></i> Registration form
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Download or email the branded registration form using the student's enrolment email.</p>
+                <a href="<?php echo url('admin/registrations/view.php?id=' . (int)$id . '&action=download_form'); ?>"
+                   class="btn btn-outline-primary w-100 mb-2">
+                    <i class="fas fa-download me-1"></i> Download form
+                </a>
+                <form method="POST" onsubmit="return confirm('Email the registration form to <?php echo htmlspecialchars($reg['email'], ENT_QUOTES); ?>?');">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="email_registration_form">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-envelope me-1"></i> Email to student
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card border-success mb-4">
+            <div class="card-header bg-success text-white fw-semibold">
+                <i class="fas fa-file-invoice-dollar me-1"></i> Fee structure
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Send the fee structure for <strong><?php echo htmlspecialchars($reg['course_title'] ?? 'this course'); ?></strong> to <?php echo htmlspecialchars($reg['email']); ?>.</p>
+                <a href="<?php echo url('admin/registrations/view.php?id=' . (int)$id . '&action=download_fees'); ?>"
+                   class="btn btn-outline-success w-100 mb-2">
+                    <i class="fas fa-download me-1"></i> Download fee structure
+                </a>
+                <form method="POST" onsubmit="return confirm('Email the fee structure to <?php echo htmlspecialchars($reg['email'], ENT_QUOTES); ?>?');">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="email_fee_structure">
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-envelope me-1"></i> Email fee structure
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card border-primary mb-4">
+            <div class="card-header bg-primary text-white fw-semibold">
+                <i class="fas fa-graduation-cap me-1"></i> Admission letter
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">Official admission letter featuring student Admission Number <strong><?php echo htmlspecialchars($reg['registration_no'] ?? 'Pending'); ?></strong>.</p>
+                <a href="<?php echo url('admin/registrations/view.php?id=' . (int)$id . '&action=download_admission'); ?>"
+                   class="btn btn-outline-primary w-100 mb-2">
+                    <i class="fas fa-download me-1"></i> Download admission letter
+                </a>
+                <form method="POST" onsubmit="return confirm('Email the admission letter to <?php echo htmlspecialchars($reg['email'], ENT_QUOTES); ?>?');">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="email_admission_letter">
+                    <button type="submit" class="btn btn-outline-primary w-100 mb-2">
+                        <i class="fas fa-envelope me-1"></i> Email admission letter
+                    </button>
+                </form>
+                <form method="POST" onsubmit="return confirm('Email all official documents (Admission Letter, Fee Structure & Course Brochure) to <?php echo htmlspecialchars($reg['email'], ENT_QUOTES); ?>?');">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="email_documents_pack">
+                    <button type="submit" class="btn btn-success w-100 fw-semibold">
+                        <i class="fas fa-folder-open me-1"></i> Email All Documents (Pack)
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <?php if ($reg['status'] === 'pending'): ?>
 
         <!-- APPROVE -->
@@ -389,10 +589,36 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
                         </div>
                     <?php endif; ?>
 
+                    <?php require_once __DIR__ . '/../../../app/v1/helpers/study_location.php'; ?>
+                    <div class="row g-2 mb-3"><?php echo study_placement_fields(['study_mode' => $reg['study_mode'] ?? ''], true, 'col-sm-6'); ?></div>
+
+                    <?php $defaultDeposit = ($reg['registration_fee_waived'] ? 0 : (float)$reg['registration_fee']) + $installments['amount']; ?>
+                    <div class="mb-3">
+                        <label class="form-label small mb-1">Amount deposited</label>
+                        <input type="number" name="deposit_amount" class="form-control form-select-sm" min="0" step="0.01"
+                               placeholder="<?php echo number_format($defaultDeposit, 2); ?>">
+                        <div class="form-text">Leave blank to record the full first payment (KSh <?php echo number_format($defaultDeposit); ?>) shown above. A receipt is emailed to the student on approval.</div>
+                    </div>
+
+                    <?php if ($tutorChoices): ?>
+                    <div class="mb-3">
+                        <label class="form-label small mb-1">Assign a tutor <span class="text-muted">(optional, can be done later)</span></label>
+                        <select name="tutor_id" class="form-select form-select-sm">
+                            <option value="">No tutor yet</option>
+                            <?php foreach ($tutorChoices as $t): ?><option value="<?php echo (int)$t['id']; ?>"><?php echo htmlspecialchars($t['full_name']); ?></option><?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php endif; ?>
+
                     <p class="text-muted small mb-3">
-                        On approval, a student account is created and a registration number is issued
-                        (<strong>DH-<?php echo htmlspecialchars($reg['abbreviation']); ?>XX/<?php echo date('Y'); ?></strong>).
-                        You will get the temporary password to copy or send via WhatsApp — no email is sent.
+                        <?php if (!empty($reg['registration_no'])): ?>
+                            This enrolment already has registration number
+                            <strong><?php echo htmlspecialchars($reg['registration_no']); ?></strong>.
+                            Approval creates the student portal account and keeps that number.
+                        <?php else: ?>
+                            On approval, a student account is created and the next registration number is issued
+                            (starting from <strong>050/<?php echo date('y'); ?></strong>).
+                        <?php endif; ?>
                     </p>
 
                     <button type="submit" class="btn btn-success w-100"
@@ -439,6 +665,28 @@ $waUrl = student_login_whatsapp_url($reg['phone'] ?? '', $reg['full_name'] ?? ''
         </div>
 
         <?php else: ?>
+
+            <?php if ($reg['status'] === 'approved' && $reg['user_id'] && $tutorsReady): $myTutors = $payroll->getStudentTutors((int)$reg['user_id']); ?>
+            <div class="card border-success mb-4">
+                <div class="card-header bg-success text-white fw-semibold"><i class="fas fa-chalkboard-teacher me-1"></i> Tutor</div>
+                <div class="card-body">
+                    <?php if ($myTutors): ?>
+                        <p class="small mb-2">Assigned to: <?php echo implode(', ', array_map(fn($t) => '<a href="' . url('admin/tutors/view.php?id=' . (int)$t['id']) . '"><strong>' . htmlspecialchars($t['full_name']) . '</strong></a>', $myTutors)); ?></p>
+                    <?php else: ?>
+                        <p class="small text-muted mb-2">No tutor assigned yet.</p>
+                    <?php endif; ?>
+                    <form method="POST" class="input-group input-group-sm"><?php echo csrf_field(); ?>
+                        <input type="hidden" name="action" value="assign_tutor">
+                        <select name="tutor_id" class="form-select" required>
+                            <option value="">Choose a tutor…</option>
+                            <?php foreach ($tutorChoices as $t): ?><option value="<?php echo (int)$t['id']; ?>"><?php echo htmlspecialchars($t['full_name']); ?></option><?php endforeach; ?>
+                        </select>
+                        <button class="btn btn-success">Assign</button>
+                    </form>
+                    <div class="form-text">Salary for the tutor starts this month. Pause, move or unassign from the tutor's page.</div>
+                </div>
+            </div>
+            <?php endif; ?>
 
             <?php if ($reg['status'] === 'approved' && $reg['user_id']): ?>
             <div class="card border-primary mb-4">

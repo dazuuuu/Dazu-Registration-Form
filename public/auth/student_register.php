@@ -3,8 +3,5 @@
 require_once __DIR__ . '/../../app/v1/config/paths.php';
 
 $courseId = (int) ($_GET['course_id'] ?? 0);
-if ($courseId > 0) {
-    redirect(url('courses/view.php?id=' . $courseId));
-}
-
-redirect(url('courses/index.php'));
+header('Location: ' . ($courseId > 0 ? url('courses/view.php?id=' . $courseId) : url('courses')), true, 301);
+exit;

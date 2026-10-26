@@ -1,4 +1,7 @@
 <?php
+require_once __DIR__ . '/../../../app/v1/config/paths.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
+Middleware::requireAdmin();   // admins only (the superadmin has a separate portal)
 require_once __DIR__ . '/../../../app/v1/bootstrap.php';
 require_once __DIR__ . '/../../../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../../../app/v1/controllers/EnquiryController.php';
@@ -9,7 +12,7 @@ $breadcrumbs = [['label' => 'Enquiries', 'active' => true]];
 
 // Get filter parameters
 $status = $_GET['status'] ?? 'all';
-$search = $_GET['search'] ?? null;
+$search = $_GET['search'] ?? '';
 $limit = 20;
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $offset = ($page - 1) * $limit;

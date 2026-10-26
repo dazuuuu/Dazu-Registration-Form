@@ -1,5 +1,5 @@
 <?php
-// public/components/public/navbar.php — Dazu Hub Institute
+// public/components/public/navbar.php — Dazu Training Institute
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (!function_exists('url')) {
     require_once __DIR__ . '/../../../app/v1/config/paths.php';
@@ -32,7 +32,8 @@ if (!function_exists('dhNavActive')) {
     }
 }
 
-$logoPath = url('assets/images/logo/logo.png');
+require_once __DIR__ . '/../../../app/v1/helpers/brand.php';
+$logoPath = brand_url('mark');
 $isLoggedIn  = !empty($_SESSION['logged_in']);
 $isAdmin     = $isLoggedIn && isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin','superadmin'], true);
 $isTutor     = $isLoggedIn && isset($_SESSION['role']) && $_SESSION['role'] === 'tutor';
@@ -53,9 +54,9 @@ $navLinks = [
 
 <header class="dh-nav" id="dhNav" role="banner">
     <div class="dh-nav-inner dh-container">
-        <a class="dh-brand" href="<?php echo url('/'); ?>" aria-label="Dazu Hub Institute — Home">
+        <a class="dh-brand" href="<?php echo url('/'); ?>" aria-label="Dazu Training Institute — Home">
             <span class="dh-brand-logo-wrap">
-                <img src="<?php echo $logoPath; ?>" alt="Dazu Hub Institute" class="dh-brand-logo" width="120" height="48"
+                <img src="<?php echo $logoPath; ?>" alt="Dazu Training Institute" class="dh-brand-logo" width="120" height="48"
                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
                 <span class="dh-brand-fallback" style="display:none;">
                     <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -106,7 +107,7 @@ $navLinks = [
                 </div>
             <?php else: ?>
                 <a href="<?php echo url('auth/login.php'); ?>" class="dh-nav-link dh-nav-login"><i class="fas fa-sign-in-alt"></i> Login</a>
-                <a href="<?php echo url('auth/student_register.php'); ?>" class="dh-btn dh-btn-primary dh-nav-cta">Apply Now</a>
+                <a href="<?php echo url('apply'); ?>" class="dh-btn dh-btn-primary dh-nav-cta">Apply Now</a>
             <?php endif; ?>
 
             <button class="dh-hamburger" id="dhHamburger" aria-label="Open menu" aria-expanded="false" aria-controls="dhDrawer">
@@ -120,7 +121,7 @@ $navLinks = [
 
 <aside class="dh-drawer" id="dhDrawer" aria-hidden="true" aria-label="Mobile navigation">
     <div class="dh-drawer-head">
-        <img src="<?php echo $logoPath; ?>" alt="Dazu Hub" height="36" onerror="this.style.display='none'">
+        <img src="<?php echo $logoPath; ?>" alt="Dazu Training Institute" height="36" onerror="this.style.display='none'">
         <button class="dh-drawer-close" id="dhDrawerClose" aria-label="Close menu"><i class="fas fa-times"></i></button>
     </div>
     <nav class="dh-drawer-body" aria-label="Mobile navigation">
@@ -129,7 +130,7 @@ $navLinks = [
                 <?php echo htmlspecialchars($link['label']); ?>
             </a>
         <?php endforeach; ?>
-        <a class="dh-drawer-link" href="<?php echo url('auth/student_register.php'); ?>" style="--di:7"><i class="fas fa-pen-to-square"></i> Apply Now</a>
+        <a class="dh-drawer-link" href="<?php echo url('apply'); ?>" style="--di:7"><i class="fas fa-pen-to-square"></i> Apply Now</a>
         <hr class="dh-drawer-divider" style="--di:8">
         <?php if ($isLoggedIn): ?>
             <?php if ($isAdmin): ?>

@@ -3,24 +3,20 @@
 // Handles uploads + DB writes for: logo, hero slides, page headers.
 // Sections via ?section=logo|hero|headers . Uses Post-Redirect-Get.
 
+require_once __DIR__ . '/../../../app/v1/init.php';
+require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';        // BASE_URL + helpers
 require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
-require_once __DIR__ . '/../../../app/v1/config/db_connect.php';      // provides $pdo
-
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
+require_once __DIR__ . '/../../../app/v1/models/CourseCategoryModel.php';
 
 // --- Admin guard ------------------------------------------------------
-if (empty($_SESSION['logged_in']) || (int) ($_SESSION['role_id'] ?? 99) > 2) {
-    header('Location: ' . BASE_URL . '/auth/login.php');
-    exit;
-}
+Middleware::requireAdmin();
 
 $settings = new SettingModel($pdo);
 
 // Filesystem root of /public  and the upload destinations.
-$PUBLIC = realpath(__DIR__ . '/../..');
+$PUBLIC = defined('PUBLIC_ROOT') ? rtrim(PUBLIC_ROOT, '/\\') : realpath(__DIR__ . '/../..');
 $DIRS = [
     'logo'    => ['abs' => $PUBLIC . '/assets/images/branding', 'web' => 'assets/images/branding'],
     'hero'    => ['abs' => $PUBLIC . '/uploads/hero',           'web' => 'uploads/hero'],
@@ -29,7 +25,7 @@ $DIRS = [
 ];
 
 $section = $_GET['section'] ?? 'logo';
-if (!in_array($section, ['logo', 'hero', 'headers', 'contact', 'receipt'], true)) {
+if (!in_array($section, ['logo', 'hero', 'headers', 'contact', 'footer', 'schedule', 'receipt', 'popular_courses'], true)) {
     $section = 'logo';
 }
 
@@ -64,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ---- LOGO -------------------------------------------------------
     if ($action === 'save_logo') {
-        $settings->set('site_name', trim($_POST['site_name'] ?? '') ?: 'Ismano');
+        $settings->set('site_name', trim($_POST['site_name'] ?? '') ?: 'Dazu Training Institute');
         $settings->set('logo_alt',  trim($_POST['logo_alt'] ?? '') ?: 'Ismano');
 
         if (!empty($_FILES['logo']['name'])) {
@@ -72,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_FILES['logo'],
                 $DIRS['logo']['abs'],
                 $DIRS['logo']['web'],
-                ['png', 'jpg', 'jpeg', 'webp']
+                ['png', 'jpg', 'jpeg', 'webp', 'svg']
             );
             if (!$res['ok']) {
                 redirect_back('logo', 'error', $res['error']);
@@ -85,17 +81,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // ---- HERO: add --------------------------------------------------
     if ($action === 'add_hero') {
-        if (empty($_FILES['image']['name'])) {
-            redirect_back('hero', 'error', 'Please choose an image to add.');
+        if (empty($_FILES['media']['name'])) {
+            redirect_back('hero', 'error', 'Please choose an image or video to add.');
         }
-        $res = upload_image($_FILES['image'], $DIRS['hero']['abs'], $DIRS['hero']['web']);
+        $mediaType = str_starts_with((string) ($_FILES['media']['type'] ?? ''), 'video/') ? 'video' : 'image';
+        $res = $mediaType === 'video'
+            ? upload_video($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web'], transcode: false)
+            : upload_image($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web'], optimize: false);
         if (!$res['ok']) {
             redirect_back('hero', 'error', $res['error']);
         }
         $settings->addHeroSlide(
             $res['path'],
             trim($_POST['caption'] ?? '') ?: null,
-            (int) ($_POST['sort_order'] ?? 0)
+            (int) ($_POST['sort_order'] ?? 0),
+            [
+                'media_type' => $mediaType,
+            ]
         );
         redirect_back('hero', 'success', 'Slide added.');
     }
@@ -104,11 +106,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'update_hero') {
         $id = (int) ($_POST['id'] ?? 0);
         if ($id > 0) {
+            $mediaType = in_array($_POST['media_type'] ?? 'image', ['image', 'video'], true) ? $_POST['media_type'] : 'image';
             $settings->updateHeroSlide($id, [
                 'caption'    => trim($_POST['caption'] ?? '') ?: null,
                 'sort_order' => (int) ($_POST['sort_order'] ?? 0),
                 'is_active'  => isset($_POST['is_active']) ? 1 : 0,
+                'media_type' => $mediaType,
             ]);
+            if (!empty($_FILES['media']['name'])) {
+                $oldSlide = $settings->getHeroSlide($id);
+                $newType = str_starts_with((string) ($_FILES['media']['type'] ?? ''), 'video/') ? 'video' : 'image';
+                $res = $newType === 'video'
+                    ? upload_video($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web'], transcode: false)
+                    : upload_image($_FILES['media'], $DIRS['hero']['abs'], $DIRS['hero']['web'], optimize: false);
+                if (!$res['ok']) {
+                    redirect_back('hero', 'error', $res['error']);
+                }
+                $settings->replaceHeroSlideMedia($id, $res['path'], $newType);
+                safe_unlink($oldSlide['image_path'] ?? null, $PUBLIC);
+            }
         }
         redirect_back('hero', 'success', 'Slide updated.');
     }
@@ -148,6 +164,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect_back('headers', 'success', 'Page banner saved.');
     }
 
+    if ($action === 'reset_footer') {
+        // Back to the original footer: every footer line and section returns (social links are kept).
+        $st = $pdo->prepare("DELETE FROM site_settings WHERE setting_key LIKE 'footer\\_%'");
+        $st->execute();
+        redirect_back('footer', 'success', 'The footer is back to its original content.');
+    }
+
+    if ($action === 'save_footer') {
+        foreach (['footer_phone', 'footer_email', 'footer_address', 'footer_hours', 'social_facebook', 'social_tiktok', 'social_youtube', 'social_instagram', 'footer_copyright'] as $key) {
+            if (isset($_POST[$key])) {
+                $settings->set($key, trim($_POST[$key]));
+            }
+        }
+        foreach (['company', 'courses', 'bottom'] as $blk) {
+            if (isset($_POST['footer_show_' . $blk])) {
+                $settings->set('footer_show_' . $blk, $_POST['footer_show_' . $blk] === '1' ? '1' : '0');
+            }
+        }
+        redirect_back('footer', 'success', 'Footer saved.');
+    }
+
     if ($action === 'save_contact') {
         $keys = [
             'contact_phone', 'contact_email', 'contact_address', 'contact_hours',
@@ -160,6 +197,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         redirect_back('contact', 'success', 'Contact & map settings saved.');
+    }
+
+    if ($action === 'save_schedule') {
+        $settings->set('class_schedule_online', mb_strimwidth(trim((string) ($_POST['class_schedule_online'] ?? '')), 0, 240, ''));
+        $settings->set('class_schedule_physical', mb_strimwidth(trim((string) ($_POST['class_schedule_physical'] ?? '')), 0, 240, ''));
+        $settings->set('class_schedule_note', mb_strimwidth(trim((string) ($_POST['class_schedule_note'] ?? '')), 0, 500, ''));
+        redirect_back('schedule', 'success', 'Class schedule saved.');
     }
 
     if ($action === 'save_receipt') {
@@ -177,7 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!is_dir($DIRS['receipt']['abs'])) {
                 mkdir($DIRS['receipt']['abs'], 0755, true);
             }
-            $res = upload_image($_FILES['receipt_logo'], $DIRS['receipt']['abs'], $DIRS['receipt']['web'], ['png', 'jpg', 'jpeg', 'webp']);
+            $res = upload_image($_FILES['receipt_logo'], $DIRS['receipt']['abs'], $DIRS['receipt']['web'], ['png', 'jpg', 'jpeg', 'webp', 'svg']);
             if (!$res['ok']) {
                 redirect_back('receipt', 'error', $res['error']);
             }
@@ -185,6 +229,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $settings->set('sms_receipt_logo_path', $res['path']);
         }
         redirect_back('receipt', 'success', 'Receipt settings saved.');
+    }
+
+    // ---- POPULAR COURSES TOGGLE ------------------------------------
+    if ($action === 'toggle_popular') {
+        $courseModel = new \Models\CourseModel($pdo);
+        $id = (int) ($_POST['course_id'] ?? 0);
+        $show = ($_POST['set_popular'] ?? '0') === '1';
+        if ($id > 0) {
+            $courseModel->setShowOnHomepage($id, $show);
+            redirect_back('popular_courses', 'success', $show ? 'Course added to homepage.' : 'Course removed from homepage.');
+        }
+        redirect_back('popular_courses', 'error', 'Invalid course.');
     }
 
     redirect_back($section, 'error', 'Unknown action.');
@@ -196,13 +252,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
-$siteName    = $settings->get('site_name', 'Ismano');
+$siteName    = $settings->get('site_name', 'Dazu Training Institute');
 $logoAlt     = $settings->get('logo_alt', 'Ismano');
 $logoUrl     = settings_asset_url($settings->get('logo_path'));
 $heroSlides  = $settings->getHeroSlides(false);
 $pageHeaders = $settings->getAllPageHeaders();
 
-$titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners', 'contact' => 'Contact & Map', 'receipt' => 'Receipts'];
+$titles = ['logo' => 'Branding', 'hero' => 'Homepage Hero', 'headers' => 'Page Banners', 'contact' => 'Contact & Map', 'footer' => 'Footer & Social', 'schedule' => 'Class Schedule', 'receipt' => 'Receipts', 'popular_courses' => 'Popular Courses'];
+
+// Popular courses data
+$courseModel = new \Models\CourseModel($pdo);
+try {
+    $catModel = new \Models\CourseCategoryModel($pdo);
+    $allCategoriesForPopular = $catModel->getAll(false);
+} catch (\Throwable $e) {
+    $allCategoriesForPopular = [];
+}
+$allActiveCoursesForPopular = $courseModel->getAll(true);
+$homepageCoursesForPopular = $courseModel->getHomepageCourses();
+$homepageCourseIds = array_map(static fn($c) => (int) $c['id'], $homepageCoursesForPopular);
 $contactPhone = $settings->get('contact_phone', '+254 750 116 600');
 $contactEmail = $settings->get('contact_email', 'admin@dazuhub.com');
 $contactAddress = $settings->get('contact_address', 'Witeithie House, Room 529, Thika Town');
@@ -211,94 +279,95 @@ $contactMapEmbed = $settings->get('contact_map_embed', '');
 $contactMapLink = $settings->get('contact_map_link', '');
 $contactMapTitle = $settings->get('contact_map_title', 'Witeithie House, Thika');
 $contactMapSubtitle = $settings->get('contact_map_subtitle', 'Room 529 (5th Floor)');
-$contactMapBlurb = $settings->get('contact_map_blurb', 'Located directly within Thika Town, near principal transport stages, making daily commutes seamless for local students.');
+foreach (['facebook', 'tiktok', 'youtube', 'instagram'] as $__s) { ${'social' . ucfirst($__s)} = $settings->get('social_' . $__s, ''); }
+$footerPhone = $settings->get('footer_phone', $contactPhone);
+$footerEmail = $settings->get('footer_email', $contactEmail);
+$footerAddress = $settings->get('footer_address', $contactAddress);
+$footerHours = $settings->get('footer_hours', $contactHours);
+$footerShow = ['company' => $settings->get('footer_show_company', '1') !== '0', 'courses' => $settings->get('footer_show_courses', '1') !== '0', 'bottom' => $settings->get('footer_show_bottom', '1') !== '0'];
+$footerCopyright = $settings->get('footer_copyright', '');
+$contactMapBlurb = $settings->get('contact_map_blurb', 'Visit our Thika campus for physical labs, or contact admissions for Nairobi classes and online learning options.');
+$classScheduleOnline = $settings->get('class_schedule_online', '8am, 12pm, 6pm');
+$classSchedulePhysical = $settings->get('class_schedule_physical', '5am');
+$classScheduleNote = $settings->get('class_schedule_note', '');
 $receiptCompany = $settings->get('sms_receipt_company_name', $siteName);
 $receiptPhone = $settings->get('sms_receipt_phone', $contactPhone);
 $receiptLocation = $settings->get('sms_receipt_location', $contactAddress);
 $receiptPobox = $settings->get('sms_receipt_pobox', '');
 $receiptFooter = $settings->get('sms_receipt_footer', 'Thank you for your payment. Please retain this receipt for your records.');
 $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: $settings->get('logo_path'));
+$page_title = $titles[$section] . ' Settings';
+$breadcrumbs = [
+    ['label' => 'Settings', 'url' => url('admin/settings/index.php')],
+    ['label' => $titles[$section], 'active' => true],
+];
+
+ob_start();
 ?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?php echo $titles[$section]; ?> — Settings</title>
-  <link rel="stylesheet" href="<?php echo BASE_URL; ?>/assets/css/theme.css">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <style>
-    :root{ --brand-sky:#00A1F3; --brand-royal:#0759F8; --brand-gold:#EBA94E; --brand-black:#000; }
-    *{ box-sizing:border-box; }
-    body{ margin:0; background:#f5f7fb; color:#101319; font-family:var(--font-body, system-ui, sans-serif); }
-    a{ text-decoration:none; color:inherit; }
-    .admin-topbar{ display:flex; align-items:center; gap:14px; background:var(--brand-black); color:#fff; padding:14px 28px; }
-    .admin-topbar .dot{ width:12px;height:12px;border-radius:3px;background:var(--brand-sky); }
-    .admin-topbar h1{ font-size:1rem; font-weight:600; margin:0; }
-    .admin-topbar .back{ margin-left:auto; color:rgba(255,255,255,.7); font-size:.85rem; }
-    .admin-topbar .back:hover{ color:var(--brand-gold); }
-    .wrap{ max-width:880px; margin:0 auto; padding:28px 24px 64px; }
-    .tabs{ display:flex; gap:6px; margin-bottom:24px; flex-wrap:wrap; }
-    .tab{ padding:9px 16px; border-radius:9px; font-size:.86rem; font-weight:600; color:#5b6472; background:#fff; border:1px solid #e6e9f0; }
-    .tab:hover{ border-color:var(--brand-sky); color:var(--brand-royal); }
-    .tab.active{ background:var(--brand-royal); color:#fff; border-color:var(--brand-royal); }
-    .flash{ padding:12px 16px; border-radius:10px; margin-bottom:22px; font-size:.9rem; font-weight:500; }
-    .flash.success{ background:#e7f7ee; color:#11704a; border:1px solid #b6e6cd; }
-    .flash.error{ background:#fdecec; color:#a4282b; border:1px solid #f3c0c1; }
-    .panel{ background:#fff; border:1px solid #e6e9f0; border-radius:16px; padding:26px; margin-bottom:22px; }
-    .panel h2{ font-family:var(--font-display, Georgia, serif); font-size:1.3rem; margin:0 0 4px; }
-    .panel .hint{ color:#8a93a3; font-size:.85rem; margin:0 0 22px; }
-    label{ display:block; font-size:.82rem; font-weight:600; color:#3a4250; margin:0 0 6px; }
-    input[type=text], input[type=number], textarea, select{
-      width:100%; padding:10px 12px; border:1px solid #d7dce6; border-radius:9px;
-      font-size:.9rem; font-family:inherit; color:#101319; background:#fff; outline:none;
-    }
-    input:focus, textarea:focus, select:focus{ border-color:var(--brand-royal); box-shadow:0 0 0 3px rgba(7,89,248,.12); }
-    .field{ margin-bottom:18px; }
-    .row{ display:grid; grid-template-columns:1fr 140px; gap:14px; }
-    .file-drop{
-      border:1.5px dashed #c7cdda; border-radius:11px; padding:16px; background:#fafbfd;
-      display:flex; align-items:center; gap:14px; font-size:.85rem; color:#5b6472;
-    }
-    .file-drop input{ font-size:.82rem; }
-    .btn{ display:inline-flex; align-items:center; gap:8px; border:none; cursor:pointer;
-      padding:11px 20px; border-radius:9px; font-size:.88rem; font-weight:600; transition:all .15s ease; }
-    .btn-primary{ background:var(--brand-royal); color:#fff; } .btn-primary:hover{ background:#0546c8; }
-    .btn-ghost{ background:#fff; color:#3a4250; border:1px solid #d7dce6; } .btn-ghost:hover{ border-color:var(--brand-sky); }
-    .btn-danger{ background:#fff; color:#b9402f; border:1px solid #f0c5bf; } .btn-danger:hover{ background:#fdecec; }
-    .logo-preview{ height:96px; border-radius:11px; border:1px solid #e6e9f0; background:#0b0d12;
-      display:flex; align-items:center; justify-content:center; overflow:hidden; margin-bottom:18px; }
-    .logo-preview img{ max-height:64px; max-width:70%; object-fit:contain; }
-    .logo-preview .muted{ color:#6b7686; font-size:.85rem; }
-    .slide{ display:grid; grid-template-columns:120px 1fr auto; gap:16px; align-items:center;
-      border:1px solid #eceff4; border-radius:12px; padding:14px; margin-bottom:12px; }
-    .slide img{ width:120px; height:74px; object-fit:cover; border-radius:8px; }
-    .slide .meta{ display:flex; flex-direction:column; gap:8px; }
-    .slide .inline{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
-    .slide .inline input[type=text]{ flex:1; min-width:140px; }
-    .slide .inline input[type=number]{ width:80px; }
-    .chk{ display:flex; align-items:center; gap:6px; font-size:.82rem; font-weight:500; color:#3a4250; }
-    .slide .actions{ display:flex; flex-direction:column; gap:8px; }
-    .empty{ color:#8a93a3; font-size:.88rem; padding:8px 0; }
-    .divider{ height:1px; background:#eceff4; margin:24px 0; }
-  </style>
-</head>
-<body>
+<style>
+.settings-edit { max-width: 980px; }
+.settings-edit .tabs { display: flex; gap: 6px; margin-bottom: 24px; flex-wrap: wrap; }
+.settings-edit .tab { padding: 9px 16px; border-radius: 9px; font-size: .86rem; font-weight: 600; color: #5b6472; background: #fff; border: 1px solid #e6e9f0; text-decoration: none; }
+.settings-edit .tab:hover { border-color: var(--brand-primary, #0D9488); color: var(--brand-primary, #0D9488); }
+.settings-edit .tab.active { background: var(--brand-primary, #0D9488); color: #fff; border-color: var(--brand-primary, #0D9488); }
+.settings-edit .flash { padding: 12px 16px; border-radius: 10px; margin-bottom: 22px; font-size: .9rem; font-weight: 500; }
+.settings-edit .flash.success { background: #e7f7ee; color: #11704a; border: 1px solid #b6e6cd; }
+.settings-edit .flash.error { background: #fdecec; color: #a4282b; border: 1px solid #f3c0c1; }
+.settings-edit .panel { background: #fff; border: 1px solid #e6e9f0; border-radius: 14px; padding: 24px; margin-bottom: 22px; box-shadow: 0 3px 14px rgba(20,35,25,.07); }
+.settings-edit .panel h2 { font-size: 1.15rem; margin: 0 0 4px; font-weight: 700; }
+.settings-edit .panel .hint { color: #8a93a3; font-size: .85rem; margin: 0 0 22px; }
+.settings-edit label { display: block; font-size: .82rem; font-weight: 600; color: #3a4250; margin: 0 0 6px; }
+.settings-edit input[type=text], .settings-edit input[type=number], .settings-edit input[type=url], .settings-edit textarea, .settings-edit select {
+  width: 100%; padding: 10px 12px; border: 1px solid #d7dce6; border-radius: 9px;
+  font-size: .9rem; font-family: inherit; color: #101319; background: #fff; outline: none;
+}
+.settings-edit input:focus, .settings-edit textarea:focus, .settings-edit select:focus { border-color: var(--brand-primary, #0D9488); box-shadow: 0 0 0 3px rgba(13,148,136,.12); }
+.settings-edit .field { margin-bottom: 18px; }
+.settings-edit .row { display: grid; grid-template-columns: 1fr 140px; gap: 14px; }
+.settings-edit .file-drop { border: 1.5px dashed #c7cdda; border-radius: 11px; padding: 16px; background: #fafbfd; display: flex; align-items: center; gap: 14px; font-size: .85rem; color: #5b6472; }
+.settings-edit .file-drop input { font-size: .82rem; }
+.settings-edit .btn { display: inline-flex; align-items: center; gap: 8px; }
+.settings-edit .btn-ghost { background: #fff; color: #3a4250; border: 1px solid #d7dce6; }
+.settings-edit .btn-ghost:hover { border-color: var(--brand-primary, #0D9488); }
+.settings-edit .logo-preview { height: 96px; border-radius: 11px; border: 1px solid #e6e9f0; background: #0b0d12; display: flex; align-items: center; justify-content: center; overflow: hidden; margin-bottom: 18px; }
+.settings-edit .logo-preview img { max-height: 64px; max-width: 70%; object-fit: contain; }
+.settings-edit .logo-preview .muted { color: #6b7686; font-size: .85rem; }
+.settings-edit .slide { display: grid; grid-template-columns: 120px 1fr auto; gap: 16px; align-items: center; border: 1px solid #eceff4; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+.settings-edit .slide img { width: 120px; height: 74px; object-fit: cover; border-radius: 8px; }
+.settings-edit .slide .meta { display: flex; flex-direction: column; gap: 8px; }
+.settings-edit .slide .inline { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.settings-edit .slide .inline input[type=text] { flex: 1; min-width: 140px; }
+.settings-edit .slide .inline input[type=number] { width: 80px; }
+.settings-edit .chk { display: flex; align-items: center; gap: 6px; font-size: .82rem; font-weight: 500; color: #3a4250; }
+.settings-edit .slide .actions { display: flex; flex-direction: column; gap: 8px; }
+.settings-edit .empty { color: #8a93a3; font-size: .88rem; padding: 8px 0; }
+.settings-edit .divider { height: 1px; background: #eceff4; margin: 24px 0; }
+@media (max-width: 767.98px) {
+  .settings-edit .row, .settings-edit .slide { display: block; }
+  .settings-edit .slide img { width: 100%; height: 150px; margin-bottom: 12px; }
+}
+</style>
 
-<div class="admin-topbar">
-  <span class="dot"></span>
-  <h1><?php echo htmlspecialchars($siteName); ?> · Settings</h1>
-  <a class="back" href="index.php"><i class="fa-solid fa-arrow-left"></i> All settings</a>
-</div>
-
-<div class="wrap">
+<div class="settings-edit">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+      <h5 class="mb-1"><i class="fas fa-cog me-2"></i><?php echo htmlspecialchars($titles[$section]); ?></h5>
+      <div class="text-muted small">Editing settings for <?php echo htmlspecialchars($siteName); ?>.</div>
+    </div>
+    <a href="<?php echo url('admin/settings/index.php'); ?>" class="btn btn-outline-secondary btn-sm">
+      <i class="fas fa-arrow-left me-1"></i> All settings
+    </a>
+  </div>
 
   <div class="tabs">
     <a class="tab <?php echo $section === 'logo' ? 'active' : ''; ?>"    href="edit.php?section=logo"><i class="fa-solid fa-image"></i> Branding</a>
     <a class="tab <?php echo $section === 'hero' ? 'active' : ''; ?>"    href="edit.php?section=hero"><i class="fa-solid fa-images"></i> Hero</a>
     <a class="tab <?php echo $section === 'headers' ? 'active' : ''; ?>" href="edit.php?section=headers"><i class="fa-solid fa-heading"></i> Page banners</a>
     <a class="tab <?php echo $section === 'contact' ? 'active' : ''; ?>" href="edit.php?section=contact"><i class="fa-solid fa-map-location-dot"></i> Contact &amp; map</a>
+    <a class="tab <?php echo $section === 'footer' ? 'active' : ''; ?>" href="edit.php?section=footer"><i class="fa-solid fa-shoe-prints"></i> Footer &amp; social</a>
+    <a class="tab <?php echo $section === 'schedule' ? 'active' : ''; ?>" href="edit.php?section=schedule"><i class="fa-solid fa-calendar-days"></i> Class schedule</a>
     <a class="tab <?php echo $section === 'receipt' ? 'active' : ''; ?>" href="edit.php?section=receipt"><i class="fa-solid fa-receipt"></i> Receipts</a>
+    <a class="tab <?php echo $section === 'popular_courses' ? 'active' : ''; ?>" href="edit.php?section=popular_courses"><i class="fa-solid fa-star"></i> Popular Courses</a>
   </div>
 
   <?php if ($flash): ?>
@@ -327,7 +396,7 @@ $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: 
         <label>Replace logo</label>
         <div class="file-drop">
           <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-          <input type="file" name="logo" accept="image/png,image/jpeg,image/webp">
+          <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml">
         </div>
       </div>
 
@@ -349,53 +418,66 @@ $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: 
 
   <?php /* ============================ HERO ============================ */ ?>
   <?php if ($section === 'hero'): ?>
-    <form class="panel" method="POST" enctype="multipart/form-data">
-      <?php echo csrf_field(); ?>
-      <input type="hidden" name="action" value="add_hero">
-      <h2>Add a hero slide</h2>
-      <p class="hint">These images appear in the homepage hero slideshow. Landscape images (1920×1080) look best.</p>
-
-      <div class="field">
-        <label>Image</label>
-        <div class="file-drop">
-          <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-          <input type="file" name="image" accept="image/*" required>
-        </div>
-      </div>
-      <div class="row">
-        <div class="field" style="margin:0;">
-          <label>Caption (optional)</label>
-          <input type="text" name="caption" placeholder="e.g. Creative workspace">
-        </div>
-        <div class="field" style="margin:0;">
-          <label>Order</label>
-          <input type="number" name="sort_order" value="0">
-        </div>
-      </div>
-      <div class="divider"></div>
-      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-plus"></i> Add slide</button>
-    </form>
-
     <div class="panel">
-      <h2>Current slides</h2>
-      <p class="hint">Uncheck “Active” to hide a slide without deleting it.</p>
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+        <div>
+          <h2>Homepage Hero Slides</h2>
+          <p class="hint mb-1">Manage the hero slides appearing on the homepage opening section. The first active slide (Order 0) is your main opening hero image.</p>
+        </div>
+      </div>
+      <div class="p-2 mb-3 rounded bg-light border text-muted small d-flex align-items-center gap-2">
+        <i class="fa-solid fa-bolt text-success"></i>
+        <span><strong>Speed Optimization:</strong> All uploaded photos are automatically downscaled and converted to ultra-lightweight WebP format to ensure rapid page loads.</span>
+      </div>
+
       <?php if (empty($heroSlides)): ?>
         <p class="empty">No slides yet. The homepage will use its built-in fallback images until you add some.</p>
       <?php else: ?>
-        <?php foreach ($heroSlides as $s): ?>
-          <div class="slide">
-            <img src="<?php echo htmlspecialchars(settings_asset_url($s['image_path'])); ?>" alt="">
-            <form method="POST" class="meta">
+        <?php foreach ($heroSlides as $idx => $s): ?>
+          <?php
+            $slideExt = strtolower(pathinfo(parse_url((string) ($s['image_path'] ?? ''), PHP_URL_PATH) ?: (string) ($s['image_path'] ?? ''), PATHINFO_EXTENSION));
+            $slideType = (($s['media_type'] ?? '') === 'video' || in_array($slideExt, ['mp4', 'webm', 'mov'], true)) ? 'video' : 'image';
+            $isPrimary = ($idx === 0);
+          ?>
+          <div class="slide" style="<?php echo $isPrimary ? 'border: 2px solid #15A24A; background: #fcfdfc;' : ''; ?>">
+            <div style="position:relative;">
+              <?php if ($slideType === 'video'): ?>
+                <video src="<?php echo htmlspecialchars(settings_asset_url($s['image_path'])); ?>" muted playsinline style="width:120px;height:74px;object-fit:cover;border-radius:8px;"></video>
+              <?php else: ?>
+                <img src="<?php echo htmlspecialchars(settings_asset_url($s['image_path'])); ?>" alt="" style="width:120px;height:74px;object-fit:cover;border-radius:8px;">
+              <?php endif; ?>
+              <?php if ($isPrimary): ?>
+                <span class="badge bg-success" style="position:absolute;top:-8px;left:-6px;font-size:0.65rem;box-shadow:0 2px 4px rgba(0,0,0,0.15);">Main Hero</span>
+              <?php endif; ?>
+            </div>
+            <form method="POST" enctype="multipart/form-data" class="meta">
               <?php echo csrf_field(); ?>
               <input type="hidden" name="action" value="update_hero">
               <input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>">
-              <div class="inline">
-                <input type="text" name="caption" value="<?php echo htmlspecialchars($s['caption'] ?? ''); ?>" placeholder="Caption">
-                <input type="number" name="sort_order" value="<?php echo (int) $s['sort_order']; ?>" title="Order">
-                <label class="chk"><input type="checkbox" name="is_active" <?php echo $s['is_active'] ? 'checked' : ''; ?>> Active</label>
+              <input type="hidden" name="media_type" value="<?php echo htmlspecialchars($slideType); ?>">
+
+              <div class="d-flex align-items-center justify-content-between gap-2">
+                <span class="small fw-bold text-dark">
+                  <?php echo $isPrimary ? '🌟 Primary Homepage Slide (Opens First)' : 'Slide ' . ($idx + 1) . ' (Carousel)'; ?>
+                </span>
+                <label class="chk mb-0"><input type="checkbox" name="is_active" <?php echo $s['is_active'] ? 'checked' : ''; ?>> Active</label>
               </div>
-              <div>
-                <button class="btn btn-ghost" type="submit"><i class="fa-solid fa-rotate"></i> Update</button>
+
+              <div class="inline">
+                <input type="text" name="caption" value="<?php echo htmlspecialchars($s['caption'] ?? ''); ?>" placeholder="Alt text / Caption (e.g. Student working on laptop)">
+                <input type="number" name="sort_order" value="<?php echo (int) $s['sort_order']; ?>" title="Order (0 = first)" style="width:80px;">
+              </div>
+
+              <div class="file-drop" style="padding:10px 14px;">
+                <i class="fa-solid fa-cloud-arrow-up" style="color:var(--brand-primary, #15A24A);font-size:1.1rem;"></i>
+                <div style="flex:1;">
+                  <div class="small fw-semibold text-dark">Replace image/video:</div>
+                  <input type="file" name="media" accept="image/*,video/mp4,video/webm,video/quicktime" style="width:100%;">
+                </div>
+              </div>
+
+              <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-primary btn-sm" type="submit"><i class="fa-solid fa-check"></i> Save Slide Changes</button>
               </div>
             </form>
             <div class="actions">
@@ -403,13 +485,40 @@ $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: 
                 <?php echo csrf_field(); ?>
                 <input type="hidden" name="action" value="delete_hero">
                 <input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>">
-                <button class="btn btn-danger" type="submit"><i class="fa-solid fa-trash"></i></button>
+                <button class="btn btn-danger btn-sm" type="submit" title="Delete slide"><i class="fa-solid fa-trash"></i></button>
               </form>
             </div>
           </div>
         <?php endforeach; ?>
       <?php endif; ?>
     </div>
+
+    <form class="panel" method="POST" enctype="multipart/form-data">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="action" value="add_hero">
+      <h2>Add another hero slide</h2>
+      <p class="hint">Add a secondary slide to the homepage hero carousel. Upload an image or video.</p>
+
+      <div class="field">
+        <label>Media file</label>
+        <div class="file-drop">
+          <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-primary, #15A24A);"></i>
+          <input type="file" name="media" accept="image/*,video/mp4,video/webm,video/quicktime" required>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field" style="margin:0;">
+          <label>Caption / alt text <span class="text-muted small">(optional)</span></label>
+          <input type="text" name="caption" placeholder="e.g. Students collaborating in campus lab">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Sort Order</label>
+          <input type="number" name="sort_order" value="<?php echo count($heroSlides); ?>">
+        </div>
+      </div>
+      <div class="divider"></div>
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-plus"></i> Add new slide</button>
+    </form>
   <?php endif; ?>
 
   <?php /* ========================= PAGE HEADERS ========================= */ ?>
@@ -530,6 +639,97 @@ $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: 
     </form>
   <?php endif; ?>
 
+  <?php if ($section === 'footer'): ?>
+    <form class="panel" method="POST">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="action" value="save_footer">
+      <h2>Website footer</h2>
+      <p class="hint">Everything shown at the bottom of every public page. Empty a line and it is removed from the footer, nothing else is forced to stay. A social icon shows only when you add its link.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field" style="margin:0;">
+          <label>Phone / WhatsApp</label>
+          <input type="text" name="footer_phone" value="<?php echo htmlspecialchars($footerPhone); ?>">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Email</label>
+          <input type="text" name="footer_email" value="<?php echo htmlspecialchars($footerEmail); ?>">
+        </div>
+      </div>
+      <div class="field">
+        <label>Address / location</label>
+        <input type="text" name="footer_address" value="<?php echo htmlspecialchars($footerAddress); ?>">
+      </div>
+      <div class="field">
+        <label>Office hours</label>
+        <input type="text" name="footer_hours" value="<?php echo htmlspecialchars($footerHours); ?>">
+      </div>
+
+      <div class="divider"></div>
+      <h2 style="font-size:1rem">Social media links</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="field" style="margin:0;"><label><i class="fa-brands fa-facebook" style="color:#1877F2"></i> Facebook</label><input type="url" name="social_facebook" value="<?php echo htmlspecialchars($socialFacebook); ?>" placeholder="https://facebook.com/yourpage"></div>
+        <div class="field" style="margin:0;"><label><i class="fa-brands fa-tiktok"></i> TikTok</label><input type="url" name="social_tiktok" value="<?php echo htmlspecialchars($socialTiktok); ?>" placeholder="https://tiktok.com/@yourhandle"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px">
+        <div class="field" style="margin:0;"><label><i class="fa-brands fa-youtube" style="color:#E53935"></i> YouTube</label><input type="url" name="social_youtube" value="<?php echo htmlspecialchars($socialYoutube); ?>" placeholder="https://youtube.com/@yourchannel"></div>
+        <div class="field" style="margin:0;"><label><i class="fa-brands fa-instagram" style="color:#C13584"></i> Instagram</label><input type="url" name="social_instagram" value="<?php echo htmlspecialchars($socialInstagram); ?>" placeholder="https://instagram.com/yourhandle"></div>
+      </div>
+
+      <div class="divider"></div>
+      <h2 style="font-size:1rem">Footer sections</h2>
+      <p class="hint">Untick a section to remove it from the footer completely.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:18px;margin-bottom:14px">
+        <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="hidden" name="footer_show_company" value="0"><input type="checkbox" name="footer_show_company" value="1" onclick="this.previousElementSibling.disabled=this.checked" <?php echo $footerShow['company'] ? 'checked' : ''; ?>> Company links</label>
+        <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="hidden" name="footer_show_courses" value="0"><input type="checkbox" name="footer_show_courses" value="1" onclick="this.previousElementSibling.disabled=this.checked" <?php echo $footerShow['courses'] ? 'checked' : ''; ?>> Courses links</label>
+        <label style="display:flex;gap:8px;align-items:center;font-weight:600"><input type="hidden" name="footer_show_bottom" value="0"><input type="checkbox" name="footer_show_bottom" value="1" onclick="this.previousElementSibling.disabled=this.checked" <?php echo $footerShow['bottom'] ? 'checked' : ''; ?>> Bottom bar (copyright, Support, Terms)</label>
+      </div>
+      <div class="field">
+        <label>Copyright line <span style="font-weight:400">(bottom of the footer; leave empty for the default)</span></label>
+        <input type="text" name="footer_copyright" value="<?php echo htmlspecialchars($footerCopyright); ?>" placeholder="© <?php echo date('Y'); ?> Dazu Training Institute. All rights reserved.">
+      </div>
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save footer</button>
+    </form>
+    <form method="POST" class="panel" style="margin-top:14px" onsubmit="return confirm('Bring back the original footer content and sections?');">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="action" value="reset_footer">
+      <p class="hint" style="margin-bottom:10px">Removed too much? This brings back every footer line and section (your social links are kept).</p>
+      <button class="btn btn-secondary" type="submit"><i class="fa-solid fa-rotate-left"></i> Restore original footer</button>
+    </form>
+  <?php endif; ?>
+
+  <?php if ($section === 'schedule'): ?>
+    <form class="panel" method="POST">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="action" value="save_schedule">
+      <h2>Class schedule</h2>
+      <p class="hint">These official class times are shown on every paid course details page. Keep them short and easy to scan.</p>
+
+      <div class="row">
+        <div class="field" style="margin:0;">
+          <label>Online classes</label>
+          <input type="text" name="class_schedule_online" maxlength="240"
+                 placeholder="e.g. 8am, 12pm, 6pm"
+                 value="<?php echo htmlspecialchars($classScheduleOnline ?? ''); ?>">
+        </div>
+        <div class="field" style="margin:0;">
+          <label>Physical classes</label>
+          <input type="text" name="class_schedule_physical" maxlength="240"
+                 placeholder="e.g. 5am"
+                 value="<?php echo htmlspecialchars($classSchedulePhysical ?? ''); ?>">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Schedule note <span class="text-muted small">(optional)</span></label>
+        <textarea name="class_schedule_note" rows="3" maxlength="500" placeholder="e.g. Students confirm their selected slot after admission."><?php echo htmlspecialchars($classScheduleNote ?? ''); ?></textarea>
+      </div>
+
+      <div class="divider"></div>
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save class schedule</button>
+    </form>
+  <?php endif; ?>
+
   <?php if ($section === 'receipt'): ?>
     <form class="panel" method="POST" enctype="multipart/form-data">
       <?php echo csrf_field(); ?>
@@ -549,7 +749,7 @@ $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: 
         <label>Receipt logo (optional)</label>
         <div class="file-drop">
           <i class="fa-solid fa-cloud-arrow-up" style="font-size:1.3rem;color:var(--brand-sky);"></i>
-          <input type="file" name="receipt_logo" accept="image/png,image/jpeg,image/webp">
+          <input type="file" name="receipt_logo" accept="image/png,image/jpeg,image/webp,image/svg+xml">
         </div>
       </div>
 
@@ -580,6 +780,134 @@ $receiptLogoUrl = settings_asset_url($settings->get('sms_receipt_logo_path') ?: 
     </form>
   <?php endif; ?>
 
+  <?php /* ===================== POPULAR COURSES ===================== */ ?>
+  <?php if ($section === 'popular_courses'): ?>
+    <div class="panel">
+      <h2><i class="fa-solid fa-star text-warning me-2"></i>Popular Courses (Homepage)</h2>
+      <p class="hint">Choose which courses appear on the homepage. Only courses marked here will be displayed. If none are selected, all active courses are shown.</p>
+
+      <div class="field" style="margin-bottom:14px;">
+        <input type="text" id="popular-courses-search" placeholder="Search courses by title, abbreviation, or category…" autocomplete="off" style="max-width:460px;">
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start;">
+        <!-- LEFT: Available courses -->
+        <div>
+          <h6 style="font-weight:700; font-size:.92rem; margin:0 0 10px; color:#3a4250;">Available Courses <span id="available-count" class="text-muted" style="font-weight:400;"></span></h6>
+          <div id="available-courses-list" style="display:flex; flex-direction:column; gap:8px; max-height:520px; overflow-y:auto; padding-right:4px;">
+            <?php foreach ($allActiveCoursesForPopular as $course):
+              if (in_array((int) $course['id'], $homepageCourseIds, true)) continue;
+            ?>
+              <div class="popular-course-row" data-search="<?php echo htmlspecialchars(strtolower(($course['title'] ?? '') . ' ' . ($course['abbreviation'] ?? '') . ' ' . ($course['category_name'] ?? ''))); ?>">
+                <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #e6e9f0; border-radius:10px; background:#fafbfd;">
+                  <?php
+                    $cover = !empty($course['cover_image']) ? settings_asset_url($course['cover_image']) : url('assets/images/courses/default-course.jpg');
+                  ?>
+                  <img src="<?php echo htmlspecialchars($cover); ?>" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:8px; flex-shrink:0; border:1px solid #e6e9f0;">
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; font-size:.88rem; color:#101319; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?php echo htmlspecialchars($course['title']); ?></div>
+                    <div style="font-size:.78rem; color:#8a93a3;">
+                      <?php echo htmlspecialchars($course['abbreviation'] ?? ''); ?>
+                      <?php if (!empty($course['category_name'])): ?>
+                        · <?php echo htmlspecialchars($course['category_name']); ?>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                  <form method="POST" style="margin:0;">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="toggle_popular">
+                    <input type="hidden" name="course_id" value="<?php echo (int) $course['id']; ?>">
+                    <input type="hidden" name="set_popular" value="1">
+                    <button type="submit" class="btn btn-sm btn-outline-success" title="Add to homepage" style="padding:4px 10px; font-size:.78rem;">
+                      <i class="fas fa-plus me-1"></i>Add
+                    </button>
+                  </form>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+          <div id="available-empty" style="display:none; color:#8a93a3; font-size:.85rem; padding:16px 0; text-align:center;">No matching courses found.</div>
+        </div>
+
+        <!-- RIGHT: Homepage courses -->
+        <div>
+          <h6 style="font-weight:700; font-size:.92rem; margin:0 0 10px; color:#3a4250;">On Homepage <span class="badge bg-warning text-dark" style="font-size:.75rem;"><?php echo count($homepageCoursesForPopular); ?></span></h6>
+          <div id="homepage-courses-list" style="display:flex; flex-direction:column; gap:8px; max-height:520px; overflow-y:auto; padding-right:4px;">
+            <?php if (empty($homepageCoursesForPopular)): ?>
+              <div style="color:#8a93a3; font-size:.85rem; padding:16px 0; text-align:center; border:1.5px dashed #d7dce6; border-radius:10px;">No popular courses selected yet.<br>All active courses will show on the homepage.</div>
+            <?php else: ?>
+              <?php foreach ($homepageCoursesForPopular as $course): ?>
+                <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid #fde68a; border-radius:10px; background:#fffbeb;">
+                  <?php
+                    $cover = !empty($course['cover_image']) ? settings_asset_url($course['cover_image']) : url('assets/images/courses/default-course.jpg');
+                  ?>
+                  <img src="<?php echo htmlspecialchars($cover); ?>" alt="" style="width:44px; height:44px; object-fit:cover; border-radius:8px; flex-shrink:0; border:1px solid #fde68a;">
+                  <div style="flex:1; min-width:0;">
+                    <div style="font-weight:600; font-size:.88rem; color:#101319; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"><?php echo htmlspecialchars($course['title']); ?></div>
+                    <div style="font-size:.78rem; color:#8a93a3;">
+                      <?php echo htmlspecialchars($course['abbreviation'] ?? ''); ?>
+                      <?php if (!empty($course['category_name'])): ?>
+                        · <?php echo htmlspecialchars($course['category_name']); ?>
+                      <?php endif; ?>
+                    </div>
+                  </div>
+                  <form method="POST" style="margin:0;">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="toggle_popular">
+                    <input type="hidden" name="course_id" value="<?php echo (int) $course['id']; ?>">
+                    <input type="hidden" name="set_popular" value="0">
+                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove from homepage" style="padding:4px 10px; font-size:.78rem;">
+                      <i class="fas fa-times me-1"></i>Remove
+                    </button>
+                  </form>
+                </div>
+              <?php endforeach; ?>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    (function() {
+      const input = document.getElementById('popular-courses-search');
+      const list = document.getElementById('available-courses-list');
+      const emptyMsg = document.getElementById('available-empty');
+      const countEl = document.getElementById('available-count');
+      const rows = list ? list.querySelectorAll('.popular-course-row') : [];
+
+      function updateCount() {
+        let visible = 0;
+        rows.forEach(r => { if (r.style.display !== 'none') visible++; });
+        if (countEl) countEl.textContent = '(' + visible + ')';
+        if (emptyMsg) emptyMsg.style.display = visible === 0 ? 'block' : 'none';
+      }
+      updateCount();
+
+      if (input) {
+        input.addEventListener('input', function() {
+          const q = this.value.trim().toLowerCase();
+          rows.forEach(function(row) {
+            const blob = row.getAttribute('data-search') || '';
+            row.style.display = (!q || blob.includes(q)) ? '' : 'none';
+          });
+          updateCount();
+        });
+      }
+    })();
+    </script>
+
+    <style>
+      @media (max-width: 767.98px) {
+        .panel > div[style*="grid-template-columns"] {
+          display: flex !important;
+          flex-direction: column !important;
+        }
+      }
+    </style>
+  <?php endif; ?>
+
 </div>
-</body>
-</html>
+<?php
+$content = ob_get_clean();
+require __DIR__ . '/../../templates/admin/layout.php';

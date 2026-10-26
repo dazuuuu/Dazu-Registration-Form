@@ -4,21 +4,19 @@ require_once __DIR__ . '/../../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/TutorModel.php';
-require_once __DIR__ . '/../../../app/v1/models/CourseModel.php';
 require_once __DIR__ . '/../../../app/v1/controllers/TutorController.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
 
 use Models\Connection;
 use Models\TutorModel;
-use Models\CourseModel;
 use Controllers\TutorController;
 
+require_once __DIR__ . '/../../../app/v1/services/EmailConflictService.php';
 Middleware::requireAdmin();
 
 $pdo = Connection::getInstance()->getConnection();
 $tutorModel = new TutorModel($pdo);
-$courseModel = new CourseModel($pdo);
-$courses = $courseModel->getAll(true);
+$students = $tutorModel->getRegisteredStudents();
 $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -38,14 +36,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'email'       => $_POST['email'] ?? '',
                 'phone'       => $_POST['phone'] ?? '',
                 'bio'         => $_POST['bio'] ?? '',
+                'replace_existing' => !empty($_POST['replace_existing']),
                 'photo_path'  => $photoPath,
-            ], $_POST['course_ids'] ?? [], isset($_POST['send_email']));
+            ], $_POST['student_ids'] ?? [], isset($_POST['send_email']));
             if ($result['ok']) {
                 $msg = 'Tutor created.';
                 if (!empty($result['email_sent'])) $msg .= ' Login credentials emailed.';
                 elseif (!empty($result['email_error'])) $msg .= ' Warning: ' . $result['email_error'];
                 SessionModel::setFlash('success', $msg);
-                header('Location: /Registration-System/public/admin/tutors/view.php?id=' . $result['tutor_id']);
+                header('Location: view.php?id=' . $result['tutor_id']);
                 exit();
             }
             $error = $result['error'];
@@ -63,18 +62,30 @@ ob_start();
 <?php echo csrf_field(); ?>
 <div class="row g-3">
     <div class="col-md-6"><label class="form-label">Full Name *</label><input name="full_name" class="form-control" required></div>
-    <div class="col-md-6"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" required></div>
+    <div class="col-md-6"><label class="form-label">Email *</label><input type="email" name="email" class="form-control" required><?php echo EmailConflictService::checkbox(); ?></div>
     <div class="col-md-6"><label class="form-label">Phone</label><input name="phone" class="form-control"></div>
     <div class="col-md-6"><label class="form-label">Photo</label><input type="file" name="photo" class="form-control" accept="image/*"></div>
     <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" class="form-control" rows="3"></textarea></div>
-    <div class="col-12"><label class="form-label">Assign Courses (select multiple)</label>
-        <select name="course_ids[]" class="form-select" multiple size="6">
-            <?php foreach ($courses as $c): ?>
-                <option value="<?php echo (int)$c['id']; ?>"><?php echo htmlspecialchars($c['title']); ?></option>
+    <div class="col-12"><label class="form-label">Assign Students (select multiple)</label>
+        <input type="text" class="form-control mb-2" id="studentFilter" placeholder="Filter students by name, email or course...">
+        <select name="student_ids[]" id="studentSelect" class="form-select" multiple size="8">
+            <?php foreach ($students as $s): ?>
+                <option value="<?php echo (int)$s['user_id']; ?>" data-search="<?php echo htmlspecialchars(strtolower($s['full_name'] . ' ' . $s['email'] . ' ' . $s['course_titles'])); ?>">
+                    <?php echo htmlspecialchars($s['full_name']); ?> — <?php echo htmlspecialchars($s['email']); ?><?php echo $s['course_titles'] ? ' (' . htmlspecialchars($s['course_titles']) . ')' : ''; ?>
+                </option>
             <?php endforeach; ?>
         </select>
-        <small class="text-muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple courses.</small>
+        <small class="text-muted">Hold Ctrl (Windows) or Cmd (Mac) to select multiple students. A tutor can have as many students as needed.</small>
+        <?php if (empty($students)): ?><p class="text-muted small mb-0 mt-1">No registered students yet.</p><?php endif; ?>
     </div>
+    <script>
+    document.getElementById('studentFilter')?.addEventListener('input', function () {
+        var q = this.value.toLowerCase();
+        document.querySelectorAll('#studentSelect option').forEach(function (opt) {
+            opt.hidden = q !== '' && (opt.dataset.search || '').indexOf(q) === -1;
+        });
+    });
+    </script>
     <div class="col-12"><div class="form-check">
         <input class="form-check-input" type="checkbox" name="send_email" value="1" id="sendEmail" checked>
         <label class="form-check-label" for="sendEmail">Email login credentials to tutor</label>
