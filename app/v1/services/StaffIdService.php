@@ -56,6 +56,11 @@ if (!function_exists('staff_tutor')) {
                     if (array_key_exists($k, $cache) && $v !== null) $cache[$k] = (string) $v;
                 }
             } catch (Throwable $e) { /* migration 081 not run yet: defaults */ }
+            // The tutor ID card shows the dazu.ac.ke domain only: a saved setting that still names dazuhub falls back to the default (blank for the 2nd website).
+            $def = tcard_defaults();
+            foreach (['email', 'website_1', 'website_2', 'verify_base'] as $k) {
+                if (preg_match('/dazuhub/i', (string) $cache[$k])) $cache[$k] = $def[$k];
+            }
         }
         return $cache;
     }

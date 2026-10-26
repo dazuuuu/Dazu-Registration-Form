@@ -11,14 +11,15 @@ $photoAbs = idc_student_photo_file($db, $uidT);
 $st = $db->prepare('SELECT profile_photo_path FROM user_profiles WHERE user_id = ?');
 $st->execute([$uidT]);
 $photoRel = (string) $st->fetchColumn() . ($t['id_photo_path'] ?? '');
-$photoSrc = url('id_cards/tutor_photo.php?u=' . $uidT) . '&v=' . md5($photoRel);   // private photo, permission-checked
+// A tutor (also in the Tutor portal preview, whose session cookie only travels to /tutor/) uses the routes under tutor/profile/; the office uses id_cards/.
+$photoSrc = $tidAdmin ? url('id_cards/tutor_photo.php?u=' . $uidT) . '&v=' . md5($photoRel) : url('tutor/profile/id_photo.php') . '?v=' . md5($photoRel);   // private photo, permission-checked
 $sigUri = sig_data_uri($t['signature_path']);
 $photoStatus = $photoAbs ? ($t['photo_status'] === 'none' ? 'ok' : $t['photo_status']) : ($t['photo_status'] === 'requested' ? 'requested' : 'none');
 $sigStatus = $sigUri ? ($t['signature_status'] === 'none' ? 'ok' : $t['signature_status']) : ($t['signature_status'] === 'requested' ? 'requested' : 'none');
 $idStatus = tid_id_status($db, $t);
 $pq = $tidAdmin ? '&tutor=' . $uidT : '';
-$cardPdf = url('id_cards/tutor_preview.php?doc=card' . $pq) . '&v=' . md5(($t['updated_at'] ?? '') . $photoRel . $t['signature_path']);
-$certPdf = url('id_cards/tutor_preview.php?doc=cert' . $pq) . '&v=' . md5(($t['updated_at'] ?? '') . $t['signature_path']);
+$cardPdf = ($tidAdmin ? url('id_cards/tutor_preview.php?doc=card' . $pq) : url('tutor/profile/id_preview.php?doc=card')) . '&v=' . md5(($t['updated_at'] ?? '') . $photoRel . $t['signature_path']);
+$certPdf = ($tidAdmin ? url('id_cards/tutor_preview.php?doc=cert' . $pq) : url('tutor/profile/id_preview.php?doc=cert')) . '&v=' . md5(($t['updated_at'] ?? '') . $t['signature_path']);
 $tone = ['ok' => 'success', 'approved' => 'success', 'needs_update' => 'warning', 'requested' => 'danger', 'none' => 'secondary',
          'preview_ready' => 'success', 'sent_to_print' => 'primary', 'printed' => 'dark', 'not_created' => 'secondary'];
 $pill = fn(string $k, string $label) => '<span class="badge rounded-pill bg-' . $tone[$k] . ($tone[$k] === 'warning' ? ' text-dark' : '') . '">' . $e($label) . '</span>';
@@ -44,6 +45,8 @@ unset($_SESSION['tid_flash']);
 .tid-crop:after{content:"";position:absolute;inset:0;border:3px solid #44A024;border-radius:12px;pointer-events:none}
 @media (max-width:767.98px){.tid-flip .tid-back{display:none}.tid-flip.flipped .tid-front{display:none}.tid-flip.flipped .tid-back{display:block}}
 @media (min-width:768px){.tid-flipbtn{display:none}}
+/* Phone: keep Save and update preview in reach, just above the bottom tab bar. */
+@media (max-width:991.98px){.tid-savebar{position:sticky;bottom:calc(88px + env(safe-area-inset-bottom,0px));z-index:5;padding:8px 0 0;background:linear-gradient(to top,#fff 70%,rgba(255,255,255,0))}.tid-savebar .btn{padding:.7rem 1rem;font-size:1rem;box-shadow:0 6px 18px rgba(68,160,36,.35)}}
 </style>
 
 <?php if ($flash): ?><div class="alert alert-<?php echo ['success' => 'success', 'warning' => 'warning', 'error' => 'danger'][$flash[0]] ?? 'info'; ?> py-2"><?php echo $e($flash[1]); ?></div><?php endif; ?>
@@ -159,7 +162,7 @@ unset($_SESSION['tid_flash']);
                             <?php else: ?><div class="input-group input-group-sm mb-1"><span class="input-group-text"><i class="fas fa-lock"></i></span><input class="form-control" value="<?php echo $e($t['staff_no'] ?: 'Not created yet'); ?>" readonly disabled></div><div class="form-text mt-0 mb-2">Assigned by the office.</div><?php endif; ?>
                             <label class="form-label small fw-semibold mb-1">QR code</label>
                             <div class="input-group input-group-sm mb-3"><span class="input-group-text"><i class="fas fa-qrcode"></i></span><input class="form-control" value="System generated" readonly disabled></div>
-                            <button class="btn btn-sm btn-brand btn-success w-100">Save and update preview</button>
+                            <div class="tid-savebar"><button class="btn btn-sm btn-brand btn-success w-100">Save and update preview</button></div>
                             <?php if ($tidAdmin && !empty($t['edited_by_tutor'])): ?></form><form method="POST" action="<?php echo $e($tidSelf); ?>" class="mt-2"><?php echo csrf_field(); ?><input type="hidden" name="tid_action" value="clear_edited"><button class="btn btn-sm btn-link p-0">Mark the tutor's edit as checked</button><?php endif; ?>
                         </form>
                     </div>
@@ -222,7 +225,14 @@ unset($_SESSION['tid_flash']);
                 var vp = page.getViewport({ scale: 1 }), scale = Math.min(4, 1400 / vp.width), v = page.getViewport({ scale: scale });
                 cv.width = v.width; cv.height = v.height;
                 return page.render({ canvasContext: cv.getContext('2d'), viewport: v }).promise;
-            }).catch(function () { cv.replaceWith(Object.assign(document.createElement('div'), { className: 'small text-muted p-3 border rounded', textContent: 'The preview could not be shown. Refresh the page.' })); });
+            }).catch(function (err) {
+                // Say what went wrong, not only "refresh": the server answers 401 / 403 / 404 with a reason.
+                var s = err && err.status, msg = s === 401 ? 'Your session has ended. Log in again to see your preview.'
+                    : s === 403 ? 'This preview is not available for this account.'
+                    : s === 404 ? 'Your tutor profile was not found. Ask the office to check your account.'
+                    : 'The preview could not be drawn. Refresh the page. If it still fails, tell the office.';
+                cv.replaceWith(Object.assign(document.createElement('div'), { className: 'small text-muted p-3 border rounded', textContent: msg }));
+            });
             cv.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
         });
     }

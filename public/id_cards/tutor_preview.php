@@ -22,9 +22,14 @@ if (($_GET['doc'] ?? '') === 'sample' && tid_is_admin()) {
 $me = (int) ($_SESSION['user_id'] ?? 0);
 $who = tid_is_admin() && !empty($_GET['tutor']) ? (int) $_GET['tutor'] : $me;
 $t = staff_tutor($db, $who);
-if (!$t || ($who !== $me && !tid_is_admin())) {
-    http_response_code(404);
-    exit('Not found.');
+if (!$t) {
+    // A logged-in account that is not a tutor (and is not an admin asking for a tutor) gets 403, not 404.
+    // 404 is only for an admin asking for a tutor that does not exist. The reason goes to the error log.
+    $missing = tid_is_admin() && $who !== $me;
+    error_log('[tutor id preview] ' . ($missing ? '404 no such tutor' : '403 this account is not a tutor (an admin must pass ?tutor=)')
+        . ' (user ' . $me . ', role ' . ($_SESSION['role'] ?? 'none') . ', session ' . session_name() . ', asked for ' . $who . ')');
+    http_response_code($missing ? 404 : 403);
+    exit($missing ? 'Not found.' : 'This preview is not available for this account.');
 }
 $doc = ($_GET['doc'] ?? 'card') === 'cert' ? 'cert' : 'card';
 // No photo yet: the card is still drawn (the photo frame shows a placeholder), so the tutor sees how it will look.

@@ -28,8 +28,8 @@ if (!function_exists('tcard_defaults')) {
     {
         return [
             'property_line' => 'This card is the property of', 'org_name' => 'Dazu Training Institute',
-            'contact_line' => 'If found, please contact', 'phone' => '+254 722 922 454', 'email' => 'admin@dazuhub.com',
-            'website_1' => 'www.dazu.ac.ke', 'website_2' => 'www.dazuhub.com', 'locations_line' => 'Our locations',
+            'contact_line' => 'If found, please contact', 'phone' => '+254 722 922 454', 'email' => 'admin@dazu.ac.ke',
+            'website_1' => 'www.dazu.ac.ke', 'website_2' => '', 'locations_line' => 'Our locations',
             'branch_1_name' => 'Thika Branch', 'branch_1_address' => 'Witeithie House, 5th floor, Room 529',
             'branch_2_name' => 'Nairobi Branch', 'branch_2_address' => 'Cianda House, 4th floor, Room 406B, Koinange Street',
             'verify_base' => 'https://dazu.ac.ke', 'show_photo_on_verify' => '1',
@@ -145,6 +145,21 @@ if (!function_exists('tcard_logo')) {
             require_once __DIR__ . '/certificate_pdf.php';
             $abs = cert_logo_file();
             $sz = $abs ? @getimagesize($abs) : null;
+            // A transparent PNG makes dompdf spend ~4 s per use (it blends every pixel in PHP). The card is white behind the logo,
+            // so a flattened, right-sized JPEG looks identical and renders in milliseconds. Cached; rebuilt when the logo file changes.
+            if ($abs && $sz && function_exists('imagecreatefromstring') && is_dir($dir = idc_cache_dir())) {
+                $cached = $dir . '/tutorcard_logo_' . md5($abs . filemtime($abs) . filesize($abs)) . '.jpg';
+                if (!is_file($cached) && ($src = @imagecreatefromstring((string) file_get_contents($abs)))) {
+                    $w = min(480, imagesx($src)); $h = (int) round(imagesy($src) * $w / imagesx($src));
+                    $flat = imagecreatetruecolor($w, $h);
+                    imagefill($flat, 0, 0, imagecolorallocate($flat, 255, 255, 255));
+                    imagecopyresampled($flat, $src, 0, 0, 0, 0, $w, $h, imagesx($src), imagesy($src));
+                    imagejpeg($flat, $cached, 92);
+                }
+                if (is_file($cached)) {
+                    $abs = $cached;
+                }
+            }
             $logo = $abs && $sz ? [_idc_file_uri($abs), $sz[0] / max(1, $sz[1])] : null;
         }
         return $logo;
