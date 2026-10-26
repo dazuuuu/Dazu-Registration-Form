@@ -97,6 +97,16 @@ if (!function_exists('cert_eligibility')) {
         if ($balance > 0) {
             return ['ok' => false, 'reason' => 'Fee balance of KES ' . number_format($balance) . ' must be cleared first.', 'reg' => $reg, 'balance' => $balance];
         }
+        // Courses with a capstone need all four conditions (course finished, fees 100%, capstone passed and released, course average 50+).
+        // The check is cap_certificate_readiness(): the one place that decides it. Courses without a capstone keep the old rule.
+        if (!empty($reg['user_id'])) {
+            require_once __DIR__ . '/CapstoneStatus.php';
+            $gate = cap_certificate_gate($db, (int) $reg['user_id'], (int) $reg['course_id'], (int) $reg['id']);
+            if ($gate['applies'] && !$gate['ok']) {
+                cert_log_refused($db, (int) $reg['user_id'], (int) $reg['course_id'], (string) $gate['failed']);
+                return ['ok' => false, 'reason' => $gate['reason'], 'reg' => $reg, 'failed' => $gate['failed']];
+            }
+        }
         return ['ok' => true, 'reg' => $reg, 'balance' => 0.0];
     }
 }
@@ -225,10 +235,48 @@ if (!function_exists('cert_save_signature')) {
     }
 }
 
-if (!function_exists('cert_issue')) {
-    /** Mark a certificate issued (keeps the first issue date). Statuses are admin-only tracking. */
-    function cert_issue(PDO $db, int $certId): void
+if (!function_exists('cert_log_refused')) {
+    /** Audit log: a certificate was refused because a condition was not met (and which one). */
+    function cert_log_refused(PDO $db, int $uid, int $courseId, string $failed): void
     {
+        try {
+            $db->prepare('INSERT INTO capstone_events (event, actor_user_id, student_user_id, details) VALUES (?, ?, ?, ?)')
+               ->execute(['certificate_refused', (int) ($_SESSION['user_id'] ?? 0) ?: null, $uid, json_encode(['course' => $courseId, 'condition' => $failed])]);
+        } catch (Throwable $e) {
+        }
+    }
+
+    /**
+     * May this certificate be issued now? For a capstone course all four conditions must still be true (a fee reversed, a mark
+     * corrected or "course finished" undone after the certificate was prepared stops it). Other courses: always yes.
+     * @return array{ok:bool, reason:string, failed:?string}
+     */
+    function cert_can_issue(PDO $db, int $certId): array
+    {
+        try {
+            $q = $db->prepare('SELECT r.id, r.user_id, r.course_id FROM certificates c JOIN registrations r ON r.id = c.registration_id WHERE c.id = ?');
+            $q->execute([$certId]);
+            $reg = $q->fetch(PDO::FETCH_ASSOC);
+            if ($reg && $reg['user_id']) {
+                require_once __DIR__ . '/CapstoneStatus.php';
+                $g = cap_certificate_gate($db, (int) $reg['user_id'], (int) $reg['course_id'], (int) $reg['id']);
+                if ($g['applies'] && !$g['ok']) {
+                    cert_log_refused($db, (int) $reg['user_id'], (int) $reg['course_id'], (string) $g['failed']);
+                    return ['ok' => false, 'reason' => $g['reason'], 'failed' => $g['failed']];
+                }
+            }
+        } catch (Throwable $e) {
+            // capstone tables not installed: the old rules apply
+        }
+        return ['ok' => true, 'reason' => '', 'failed' => null];
+    }
+}
+
+if (!function_exists('cert_issue')) {
+    /** Mark a certificate issued (keeps the first issue date). Statuses are admin-only tracking. Refused for a capstone course that is not Ready. */
+    function cert_issue(PDO $db, int $certId): bool
+    {
+        if (!cert_can_issue($db, $certId)['ok']) return false;
         $st = $db->prepare("UPDATE certificates SET status = 'issued', issued_at = COALESCE(issued_at, NOW())
                       WHERE id = ? AND status NOT IN ('issued', 'collected')");
         $st->execute([$certId]);
@@ -240,7 +288,13 @@ if (!function_exists('cert_issue')) {
                 PortalNotifications::notify($db, (int) $row['user_id'], 'certificate', 'Your certificate is ready 🎓',
                     $row['snapshot_course'] . ' — download it from your portal.', 'students/certificates/index.php');
             }
+            try {
+                $db->prepare('INSERT INTO capstone_events (event, actor_user_id, details) VALUES (?, ?, ?)')
+                   ->execute(['certificate_issued', (int) ($_SESSION['user_id'] ?? 0) ?: null, json_encode(['certificate' => $certId])]);
+            } catch (Throwable $e) {
+            }
         }
+        return true;
     }
 }
 

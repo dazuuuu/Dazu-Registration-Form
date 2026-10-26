@@ -21,7 +21,7 @@ RewriteRule ^sitemap\.xml$ sitemap.php [L]
 # ── 0. Leave other projects alone ──
 # Anything under a folder that is not part of this app (e.g. a subdomain installed in a subfolder)
 # is passed straight through untouched. Add a folder here if you create a new top-level section.
-RewriteRule ^(about|admin|announcements|api|apply|assets|assignments|auth|blog|blogs|calendar|classes|components|contact|courses|documents|employee|feedback|gallery|id_cards|intern|letters|profile|projects|services|store|students|superadmin|templates|testimonials|tutor|uploads|verify)(/|$) - [S=2]
+RewriteRule ^(about|admin|announcements|api|apply|assets|assignments|auth|blog|blogs|calendar|capstone|classes|components|contact|courses|documents|employee|feedback|gallery|id_cards|intern|letters|profile|projects|services|store|students|superadmin|templates|testimonials|tutor|uploads|verify)(/|$) - [S=2]
 RewriteRule ^[^/]+/ - [L]
 RewriteCond %{REQUEST_FILENAME} -d
 RewriteRule ^[^/]+$ - [L]

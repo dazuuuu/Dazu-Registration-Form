@@ -7,7 +7,7 @@
 //  6 the submission row always holds the newest grade, so a resubmission uses the newest marked version;
 //  7 late work is never reduced;  8 missing work is not zero unless the tutor marked 0;  9 nothing counted = "No marks yet";
 // 10 for the student and their tutor only: never used for certificates and never shown to admin.
-// Kinds counted now: daily, weekly. Later kinds (monthly, module_assessment, capstone) count the same way through weight.
+// Kinds counted now: daily, weekly and capstone (the capstone has the biggest weight). Later kinds (monthly, module_assessment) count the same way through weight.
 
 class AssignmentAverage
 {
@@ -94,7 +94,7 @@ class AssignmentAverage
     public static function rowsForStudent(PDO $db, int $uid, ?int $tutorId = null): array
     {
         $sql = "SELECT a.id, a.title, a.tutor_id, a.course_id, c.title AS course_title, a.kind, a.weight, a.grading_mode, a.max_score,
-                       a.release_grades_at, a.sort_order, COALESCE(r.current_due_at, a.due_at) AS due,
+                       a.release_grades_at, a.sort_order, a.subject_id, COALESCE(r.current_due_at, a.due_at) AS due,
                        s.status AS sub_status, s.submitted_at, s.score, s.pass_result, s.published_at AS result_published_at, s.is_late
                 FROM tutor_assignment_recipients r
                 JOIN tutor_assignments a ON a.id = r.assignment_id AND a.status = 'published' AND a.is_template = 0
@@ -105,7 +105,13 @@ class AssignmentAverage
         if ($tutorId !== null) { $sql .= " AND a.tutor_id = ?"; $args[] = $tutorId; }
         $st = $db->prepare($sql . " ORDER BY c.title, a.course_id, a.kind, a.sort_order, a.id");
         $st->execute($args);
-        return $st->fetchAll(PDO::FETCH_ASSOC);
+        $rows = $st->fetchAll(PDO::FETCH_ASSOC);
+        // The capstone counts like any other marked item (kind 'capstone', its own weight, newest attempt, released marks only).
+        if (is_file(__DIR__ . '/CapstoneService.php')) {
+            require_once __DIR__ . '/CapstoneService.php';
+            $rows = array_merge($rows, cap_average_rows($db, $uid, $tutorId));
+        }
+        return $rows;
     }
 
     /** Per course for one student: course_id => [course, ...compute()]. */

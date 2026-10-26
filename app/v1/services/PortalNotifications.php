@@ -9,7 +9,7 @@ class PortalNotifications
 {
     /** Kinds of notification a person can switch on or off: key => [label, notification types in it]. Everything starts off. */
     public const CATEGORIES = [
-        'assignments'  => ['Assignments, quizzes and grades', ['assignment', 'assignment_request', 'submission', 'grade', 'graded', 'quiz', 'module', 'module_done']],
+        'assignments'  => ['Assignments, quizzes and grades', ['assignment', 'assignment_request', 'submission', 'grade', 'graded', 'quiz', 'module', 'module_done', 'capstone']],
         'announcements'=> ['Announcements', ['announcement']],
         'classes'      => ['Classes and timetable changes', ['class']],
         'students'     => ['Students and tutors assigned to me', ['student_assigned', 'tutor_assigned']],

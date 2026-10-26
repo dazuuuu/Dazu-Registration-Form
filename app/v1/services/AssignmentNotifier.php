@@ -16,8 +16,8 @@ class AssignmentNotifier
     private static array $queue = [];
     private static bool $registered = false;
 
-    private PDO $db;
-    private AssignmentModel $m;
+    protected PDO $db;
+    protected AssignmentModel $m;
 
     public function __construct(PDO $db, ?AssignmentModel $m = null)
     {
@@ -254,7 +254,7 @@ class AssignmentNotifier
             $body . self::button('Decide now', $path));
     }
 
-    private function mail(int $assignmentId, array $to, string $heading, string $subject, string $body): void
+    protected function mail(int $assignmentId, array $to, string $heading, string $subject, string $body): void
     {
         if (empty($to['email']) || !filter_var($to['email'], FILTER_VALIDATE_EMAIL)) return;
         $first = trim(explode(' ', trim((string) ($to['full_name'] ?? '')))[0] ?? '');
@@ -290,7 +290,7 @@ class AssignmentNotifier
         }
     }
 
-    private static function layout(string $heading, string $body): string
+    protected static function layout(string $heading, string $body): string
     {
         $g = '#44A024';
         return '<div style="background:#f4f5f1;padding:24px 12px;font-family:Poppins,Arial,Helvetica,sans-serif;color:#1d1b1c">'
@@ -304,7 +304,7 @@ class AssignmentNotifier
             . 'Dazu Training Institute &nbsp;|&nbsp; 0722 922 454 &nbsp;|&nbsp; dazu.ac.ke</div></div></div>';
     }
 
-    private static function card(string $title, string $line1, string $line2): string
+    protected static function card(string $title, string $line1, string $line2): string
     {
         return '<div style="background:#f4f5f1;border-left:5px solid #44A024;border-radius:10px;padding:14px 18px;margin:16px 0">'
             . '<div style="font-weight:700;font-size:15px;margin-bottom:4px">' . self::e($title) . '</div>'
@@ -312,18 +312,18 @@ class AssignmentNotifier
             . ($line2 !== '' ? '<div style="color:#6b7067;font-size:13px;margin-top:2px">' . $line2 . '</div>' : '') . '</div>';
     }
 
-    private static function button(string $label, string $path): string
+    protected static function button(string $label, string $path): string
     {
         return '<p style="margin:20px 0 8px"><a href="' . self::e(PortalNotifications::absolute($path)) . '" style="display:inline-block;background:#44A024;color:#ffffff;'
             . 'padding:11px 26px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;letter-spacing:.03em">' . self::e(strtoupper($label)) . '</a></p>';
     }
 
-    private static function small(string $text): string
+    protected static function small(string $text): string
     {
         return '<p style="border-top:1px solid #e9ebe6;margin-top:18px;padding-top:10px;color:#6b7067;font-size:12px;font-style:italic">' . self::e($text) . '</p>';
     }
 
-    private static function e($v): string
+    protected static function e($v): string
     {
         return htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
     }

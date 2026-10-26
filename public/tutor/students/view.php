@@ -195,6 +195,7 @@ ob_start();
                     ? 'since ' . date('d M Y', strtotime($student['studies_completed_at'])) . ($student['studies_completed_by'] ? '' : ' (ticked automatically when all modules were done)')
                     : 'Ticks itself when the student finishes every module.'; ?></span>
             </form>
+            <p class="small mb-2"><a class="btn btn-outline-dark btn-sm" href="<?php echo htmlspecialchars(url('tutor/capstone/finish.php?student=' . $studentUserId . '&course=' . (int) $student['course_id'])); ?>"><i class="fas fa-flag-checkered me-1"></i>Mark course finished (capstone &amp; certificate checklist)</a></p>
             <p class="small mb-3"><a class="btn btn-outline-secondary btn-sm" target="_blank" href="<?php echo $docUrl('cert'); ?>"><i class="fas fa-eye me-1"></i>Preview certificate</a>
                 <span class="text-muted ms-1">A draft (number “DRAFT”) — the real one is created when you finish the course.</span></p>
             <?php $canFinish = $student['studies_completed_at'] && $balance <= 0; ?>

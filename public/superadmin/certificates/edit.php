@@ -51,6 +51,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $status = in_array($_POST['status'] ?? '', ['being_prepared', 'awaiting_director_signature', 'issued', 'collected', 'withdrawn'], true)
         ? $_POST['status'] : $cert['status'];
+    // A capstone course: the certificate can only be issued while all four conditions are still true (server-side, also for a direct POST).
+    if (in_array($status, ['issued', 'collected'], true) && !in_array($cert['status'], ['issued', 'collected'], true)) {
+        $can = cert_can_issue($db, (int) $id);
+        if (!$can['ok']) {
+            $_SESSION['error_msg'] = 'The certificate cannot be issued yet: ' . $can['reason'];
+            header('Location: ' . $self);
+            exit;
+        }
+    }
     $updateData = [
         'status'                   => $status,
         'snapshot_duration_months' => max(1, (int) ($_POST['snapshot_duration_months'] ?? $cert['snapshot_duration_months'])),
