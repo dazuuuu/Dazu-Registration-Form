@@ -51,6 +51,8 @@ ob_start();
     </div>
 <?php endif; endforeach; ?>
 
+<?php try { require __DIR__ . '/../../components/certificates/apply_panel.php'; } catch (Throwable $e) { error_log('[apply panel] ' . $e->getMessage()); } ?>
+
 <div class="card border-0 shadow-sm rounded-4 mb-4">
     <div class="card-body p-4 d-flex flex-wrap align-items-center gap-3">
         <?php if ($photo): ?>

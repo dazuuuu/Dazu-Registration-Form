@@ -29,6 +29,13 @@ try {
     if ($tlTutor = $tlAm->tutorByUser($tlUid)) $tlAwaiting = $tlAm->awaitingCount((int) $tlTutor['id']);
 } catch (Throwable $e) {
 }
+// Certificate requests badge: requests waiting for this tutor.
+$tlCertPending = 0;
+try {
+    require_once __DIR__ . '/../../../app/v1/services/CertificateApplication.php';
+    if (!empty($tlTutor)) $tlCertPending = certapp_pending_count($tlDb, (int) $tlTutor['id']);
+} catch (Throwable $e) {
+}
 
 // [key, label, icon, href, active, on tab bar, section heading, short tab label, badge count]
 $tlItems = [
@@ -40,6 +47,8 @@ $tlItems = [
     ['courses', 'My Courses', 'fa-book-open', url('tutor/courses/index.php'), $tlDir === 'courses', false],
     ['resources', 'Resources', 'fa-folder-open', url('tutor/resources/index.php'), $tlDir === 'resources', false],
     ['assignments', 'Assignments', 'fa-file-pen', url('tutor/assignments/index.php'), $tlDir === 'assignments', false],
+    ['capstone', 'Capstone', 'fa-graduation-cap', url('tutor/capstone/index.php'), $tlDir === 'capstone', false],
+    ['certificates', 'Certificate requests', 'fa-award', url('tutor/certificates/index.php'), $tlDir === 'certificates', false, null, 'Certificates', $tlCertPending],
     ['quizzes', 'Quizzes', 'fa-circle-question', url('tutor/quizzes/index.php'), $tlDir === 'quizzes', false],
     ['announcements', 'Announcements', 'fa-bullhorn', url('tutor/announcements/index.php'), $tlDir === 'announcements', false],
     ['helpers', 'Intern Helpers', 'fa-hands-helping', url('tutor/helpers/index.php'), $tlDir === 'helpers', false],
@@ -81,8 +90,10 @@ $shell['tabs'] = [
         ['Resources', 'fa-folder-open', url('tutor/resources/index.php'), $tlOn(['resources'])],
         ['Questions & quizzes', 'fa-circle-question', url('tutor/quizzes/index.php'), $tlOn(['quizzes'])],
         ['Assignments', 'fa-file-pen', url('tutor/assignments/index.php'), $tlOn(['assignments'])],
+        ['Capstone', 'fa-graduation-cap', url('tutor/capstone/index.php'), $tlOn(['capstone'])],
+        ['Certificate requests' . ($tlCertPending ? ' (' . $tlCertPending . ')' : ''), 'fa-award', url('tutor/certificates/index.php'), $tlOn(['certificates'])],
         ['Grade work' . ($tlAwaiting ? ' (' . $tlAwaiting . ')' : ''), 'fa-clipboard-check', url('tutor/submissions/index.php'), $tlOn(['submissions'])],
-    ], $tlOn(['calendar', 'courses', 'modules', 'resources', 'quizzes', 'assignments', 'submissions'])],
+    ], $tlOn(['calendar', 'courses', 'modules', 'resources', 'quizzes', 'assignments', 'capstone', 'certificates', 'submissions'])],
     ['link', 'Announce', 'fa-bullhorn', url('tutor/announcements/index.php?new=1'), $tlOn(['announcements'])],
     ['sheet', 'more', 'More', 'fa-grip', array_merge(
         [['My ID & signature', 'fa-id-badge', url('tutor/profile/index.php'), $tlOn(['profile'])],

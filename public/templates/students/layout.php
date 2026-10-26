@@ -56,10 +56,19 @@ $slItems = [
     ['classes', 'My Classes', 'fa-calendar-days', url('students/classes/index.php'), $slDir === 'classes', true, null, 'Classes'],
     ['documents', 'My Documents', 'fa-id-card', url('students/documents/index.php'), $slDir === 'documents', false, 'More', 'Docs'],
     ['assignments', 'Assignments', 'fa-file-pen', url('students/assignments/index.php'), $slDir === 'assignments', false],
+];
+// Capstone: only when the tutor has scheduled or opened one for this student (a draft shows nothing).
+try {
+    require_once __DIR__ . '/../../../app/v1/services/CapstoneService.php';
+    if (cap_student_has_any($slDb, $slUid)) $slItems[] = ['capstone', 'Capstone', 'fa-graduation-cap', url('students/capstone/index.php'), $slDir === 'capstone', false];
+} catch (Throwable $e) {
+}
+$slItems = array_merge($slItems, [
     ['classwork', 'Quizzes', 'fa-circle-question', url('students/classwork/index.php'), $slDir === 'classwork', false],
     ['resources', 'Resources', 'fa-folder-open', url('students/resources/index.php'), $slDir === 'resources', false],
-];
-if (cert_student_has_any($slUid)) {
+]);
+// Everyone can open Certificates: it shows what is still missing and, when ready, the Apply button.
+if (true) {
     $slItems[] = ['certificates', 'Certificates', 'fa-award', url('students/certificates/index.php'), $slDir === 'certificates', false];
 }
 $slItems[] = ['announcements', 'Announcements', 'fa-bullhorn', url('students/announcements/index.php'), $slDir === 'announcements', false];
@@ -68,7 +77,7 @@ $slItems[] = ['notifications', 'Notifications', 'fa-bell', url('students/notific
 if ($portal_locked) {
     // Fees overdue: the course lessons are locked, but assignments and quizzes (receive, view, submit, grades),
     // documents and payments stay open.
-    $slItems = array_values(array_filter($slItems, fn($i) => in_array($i[0], ['dashboard', 'payments', 'documents', 'assignments', 'classwork', 'notifications'], true)));
+    $slItems = array_values(array_filter($slItems, fn($i) => in_array($i[0], ['dashboard', 'payments', 'documents', 'assignments', 'capstone', 'classwork', 'notifications'], true)));
     foreach ($slItems as &$slIt) { if (in_array($slIt[0], ['documents', 'assignments'], true)) { $slIt[5] = true; $slIt[6] = null; } }
     unset($slIt);
 }
