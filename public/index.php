@@ -16,7 +16,7 @@ $__routed = (function (): ?string {
     }
 
     $sections = 'about|apply|blogs|contact|courses|gallery|projects|services|store|testimonials|verify';
-    $fixed = ['login' => 'auth/login.php', 'forgot-password' => 'auth/forgot_password.php',
+    $fixed = ['robots.txt' => 'robots.php', 'sitemap.xml' => 'sitemap.php', 'login' => 'auth/login.php', 'forgot-password' => 'auth/forgot_password.php',
               'reset-password' => 'auth/reset_password.php', 'blog' => 'blogs/index.php'];
     $file = null;
     if (isset($fixed[$rel])) {
@@ -43,6 +43,17 @@ if ($__routed !== null) {
     exit;
 }
 unset($__routed);
+
+// Any other address that is not the homepage does not exist: answer "Page not found" (404), never the homepage,
+// so broken links are visible and search engines do not index them as copies of the homepage.
+$__path = trim(rawurldecode(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/'), '/');
+$__base = trim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+if ($__base !== '' && strpos($__path . '/', $__base . '/') === 0) $__path = trim(substr($__path, strlen($__base)), '/');
+if ($__path !== '' && $__path !== 'index.php') {
+    require __DIR__ . '/404.php';
+    exit;
+}
+unset($__path, $__base);
 
 $page_title = 'Dazu Training Institute — Practical Tech Training in Nairobi, Thika & Online';
 $page_description = 'Hands-on software development, cybersecurity, data analytics and AI courses at Dazu Training Institute in Nairobi, Thika and online.';

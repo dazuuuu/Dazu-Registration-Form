@@ -75,8 +75,12 @@ function isSmsSection($section) {
     <div class="sidebar-nav">
         <div class="nav flex-column">
             <?php ob_start(); // top-level items are reordered below (Settings → Sidebar Menu Order) ?>
-            <?php if (!empty($_SESSION['tutor_admin'])): ?>
-            <!-- A tutor using granted admin rights: one tap back to their own portal -->
+            <?php
+            require_once __DIR__ . '/../../../app/v1/helpers/tutor_permissions.php';
+            require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+            $sbBackToTutor = !empty($_SESSION['tutor_admin']) || admin_also_tutor($pdo ?? \Models\Connection::getInstance()->getConnection(), (int) ($_SESSION['user_id'] ?? 0));
+            if ($sbBackToTutor): ?>
+            <!-- A tutor using granted admin rights, or an admin who also teaches: one tap to their own tutor portal -->
             <a href="<?php echo url('tutor/dashboard/index.php'); ?>" class="nav-link" style="background:rgba(13,148,136,.15)">
                 <i class="fas fa-chalkboard-teacher"></i>
                 <span>My Tutor Portal</span>
@@ -89,6 +93,13 @@ function isSmsSection($section) {
                 <i class="fas fa-tachometer-alt"></i>
                 <span>Dashboard</span>
             </a>
+            <?php if (empty($_SESSION['tutor_admin']) && (int) $role_id === 2): ?>
+            <a href="<?php echo url('admin/expenses/index.php'); ?>"
+               class="nav-link <?php echo $current_dir == 'expenses' ? 'active' : ''; ?>">
+                <i class="fas fa-receipt"></i>
+                <span>Expense requests</span>
+            </a>
+            <?php endif; ?>
             <a href="<?php echo url('admin/announcements/index.php'); ?>"
                class="nav-link <?php echo $current_dir == 'announcements' ? 'active' : ''; ?>">
                 <i class="fas fa-bullhorn"></i>
@@ -184,16 +195,16 @@ function isSmsSection($section) {
                             <span>Pending Approvals</span>
                             <span class="registrations-badge" id="registrationsBadge" style="display:none;">0</span>
                         </a>
-                        <?php $ikOpen = 0; try { require_once __DIR__ . "/../../../app/v1/models/Connection.php"; $ikDb = \Models\Connection::getInstance()->getConnection(); $ikOpen = (int) $ikDb->query("SELECT COUNT(*) FROM intake_bookings WHERE status IN ('booked','contacted')")->fetchColumn(); } catch (Throwable $ikE) {} ?>
+                        <?php $ikOpen = 0; try { require_once __DIR__ . "/../../../app/v1/models/Connection.php"; $ikDb = \Models\Connection::getInstance()->getConnection(); $ikOpen = (int) $ikDb->query("SELECT COUNT(*) FROM enrolment_bookings WHERE status = 'waiting'")->fetchColumn(); } catch (Throwable $ikE) {} ?>
                         <a href="<?php echo url('admin/intakes/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'intakes' && $current_page !== 'bookings.php' ? 'active' : ''; ?>">
                             <i class="fas fa-calendar-days"></i>
-                            <span>Intakes</span>
+                            <span>Enrolment</span>
                         </a>
                         <a href="<?php echo url('admin/intakes/bookings.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'intakes' && $current_page === 'bookings.php' ? 'active' : ''; ?>">
                             <i class="fas fa-bookmark"></i>
-                            <span>Intake Bookings</span>
+                            <span>Bookings</span>
                             <?php if ($ikOpen): ?><span class="registrations-badge"><?php echo $ikOpen; ?></span><?php endif; ?>
                         </a>
                         <!-- COURSES SUB-SECTION: paid and free are separate listings/forms -->

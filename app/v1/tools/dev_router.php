@@ -22,7 +22,7 @@ if ($rel !== '' && is_file($root . '/' . $rel)) {
     return false;
 }
 
-$fixed = ['login' => 'auth/login.php', 'forgot-password' => 'auth/forgot_password.php', 'reset-password' => 'auth/reset_password.php',
+$fixed = ['robots.txt' => 'robots.php', 'sitemap.xml' => 'sitemap.php', 'login' => 'auth/login.php', 'forgot-password' => 'auth/forgot_password.php', 'reset-password' => 'auth/reset_password.php',
           'blog' => 'blogs/index.php', 'testimonials/submit' => 'testimonials/submit.php'];
 if (isset($fixed[$rel])) {
     return $serve($fixed[$rel]);

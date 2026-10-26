@@ -19,7 +19,7 @@ try {
 }
 $tlName = trim(($tlMe['first_name'] ?? '') . ' ' . ($tlMe['last_name'] ?? '')) ?: ($_SESSION['username'] ?? 'Tutor');
 $tlDir = basename(dirname($_SERVER['PHP_SELF']));
-$tlAdmin = empty($_SESSION['preview']) && tutor_admin_allowed($tlDb, $tlUid);
+$tlAdmin = empty($_SESSION['preview']) && (tutor_admin_allowed($tlDb, $tlUid) || admin_also_tutor($tlDb, $tlUid));
 // Submissions badge: assignment work awaiting a grade.
 $tlAwaiting = 0;
 try {

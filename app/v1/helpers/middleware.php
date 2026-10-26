@@ -66,9 +66,26 @@ class Middleware {
                 }
                 return;
             }
+            // An admin who also teaches (admin account with a tutor record) switches to their tutor portal.
+            require_once __DIR__ . '/tutor_permissions.php';
+            require_once __DIR__ . '/../models/Connection.php';
+            if (admin_also_tutor(\Models\Connection::getInstance()->getConnection(), (int) SessionModel::get('user_id', 0))) {
+                self::enterAdminTutorMode();
+                return;
+            }
             header('Location: ' . url('auth/login.php?error=access_denied'));
             exit();
         }
+    }
+
+    /** An admin who also teaches, in the tutor portal: tutor role for this session; the admin portal switches back. */
+    private static function enterAdminTutorMode(): void {
+        require_once __DIR__ . '/../models/Connection.php';
+        $st = \Models\Connection::getInstance()->getConnection()->prepare("SELECT id FROM roles WHERE role_name = 'tutor'");
+        $st->execute();
+        SessionModel::set('role', 'tutor');
+        SessionModel::set('role_id', (int) $st->fetchColumn());
+        SessionModel::set('admin_tutor', true);
     }
 
     /**
@@ -141,9 +158,14 @@ class Middleware {
             // A tutor who has been given admin rights may use the admin portal too.
             require_once __DIR__ . '/tutor_permissions.php';
             require_once __DIR__ . '/../models/Connection.php';
-            if (SessionModel::get('role') === 'tutor'
-                && tutor_admin_allowed(\Models\Connection::getInstance()->getConnection(), (int) SessionModel::get('user_id', 0))) {
+            $db = \Models\Connection::getInstance()->getConnection();
+            $uid = (int) SessionModel::get('user_id', 0);
+            if (SessionModel::get('role') === 'tutor' && tutor_admin_allowed($db, $uid)) {
                 self::enterAdminMode();
+            } elseif (SessionModel::get('role') === 'tutor' && admin_also_tutor($db, $uid)) {
+                // An admin who also teaches, coming back from their tutor portal: their real admin role again.
+                SessionModel::set('role', 'admin');
+                SessionModel::set('role_id', 2);
             } else {
                 header('Location: ' . url('auth/login.php?error=access_denied'));
                 exit();

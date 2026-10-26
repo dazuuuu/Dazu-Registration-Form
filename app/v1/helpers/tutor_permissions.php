@@ -20,6 +20,25 @@ if (!function_exists('tutor_admin_allowed')) {
         }
     }
 
+    /**
+     * True when this is a real admin account (role admin) that also has an active tutor record, like the Nairobi admin
+     * who also teaches. They move between both portals; the global login opens their tutor portal first.
+     */
+    function admin_also_tutor(PDO $db, int $userId): bool
+    {
+        if ($userId <= 0) return false;
+        try {
+            $st = $db->prepare(
+                "SELECT 1 FROM users u JOIN roles r ON r.id = u.role_id JOIN tutors t ON t.user_id = u.id
+                 WHERE u.id = ? AND u.is_active = 1 AND r.role_name = 'admin' AND t.is_active = 1"
+            );
+            $st->execute([$userId]);
+            return (bool) $st->fetchColumn();
+        } catch (Throwable $e) {
+            return false;
+        }
+    }
+
     /** Only a real admin or the superadmin may change permissions (not a tutor who is using granted admin rights). */
     function tutor_permissions_can_manage(): bool
     {

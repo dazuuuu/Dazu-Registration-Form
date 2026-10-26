@@ -37,6 +37,18 @@ if (isLoggedIn()) {
     }
 }
 
+/** Role id of 'tutor' when this admin account is also an active tutor (they get the tutor portal here), else 0. */
+function login_admin_tutor_role(PDO $pdo, int $userId): int
+{
+    try {
+        $st = $pdo->prepare("SELECT (SELECT id FROM roles WHERE role_name = 'tutor') FROM tutors WHERE user_id = ? AND is_active = 1");
+        $st->execute([$userId]);
+        return (int) $st->fetchColumn();
+    } catch (Throwable $e) {
+        return 0;
+    }
+}
+
 /** Rate limit, last 15 minutes: 5 failed sign-ins for this email / reg. no., or 20 from this IP (a campus shares one IP). */
 function login_too_many_attempts(PDO $pdo, string $identifier): bool
 {
@@ -67,6 +79,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userModel->logLoginAttempt($loginInput, $_SERVER['REMOTE_ADDR'] ?? '');
         } elseif (empty($user['is_active'])) {
             $error = 'Account is deactivated. Contact the administrator.';
+        } elseif ((int) $user['role_id'] === 2 && !($adminTutorRoleId = login_admin_tutor_role($pdo, (int) $user['id']))) {
+            // This page is for students, tutors and staff. Admins sign in on the admin portal.
+            $error = 'Admins sign in on the admin portal.';
+            $adminPortalHint = true;
         } else {
             session_guard_login();   // drop whoever was signed in before on this browser
             $_SESSION['user_id'] = $user['id'];
@@ -75,6 +91,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['role'] = $user['role_name'];
             $_SESSION['role_id'] = $user['role_id'];
             $_SESSION['logged_in'] = true;
+            // An admin who also teaches (e.g. the Nairobi admin) opens only the tutor portal from here.
+            if (!empty($adminTutorRoleId)) {
+                $_SESSION['role'] = 'tutor';
+                $_SESSION['role_id'] = $adminTutorRoleId;
+                $_SESSION['admin_tutor'] = true;   // "Admin portal" in the tutor menu switches without signing in again
+                $user['role_name'] = 'tutor';
+                $user['role_id'] = $adminTutorRoleId;
+            }
             // A real sign-in replaces any leftover portal preview on this browser, so /students/ and /tutor/ use this session.
             foreach (['DAZUPREVIEW' => 'students', 'DAZUPREVIEWT' => 'tutor', 'DAZUPREVIEWI' => 'intern'] as $previewCookie => $portal) {
                 if (!empty($_COOKIE[$previewCookie])) {
@@ -120,11 +144,12 @@ ob_start();
         <img src="<?php echo url('assets/icons/students-512.png'); ?>" alt="Dazu Student" class="w-24 h-24 mx-auto rounded-2xl">
         <span class="text-green-600 text-[10px] uppercase tracking-widest font-extrabold px-2.5 py-1 bg-green-50 border border-green-200 rounded-full">Dazu Training Institute</span>
         <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight pt-2">Sign In</h1>
-        <p class="text-xs text-slate-400 font-semibold">Students, tutors and staff sign in here. Admins use the admin portal link below.</p>
+        <p class="text-xs text-slate-400 font-semibold">Students and tutors sign in here. Admins use the admin portal.</p>
       </div>
 
       <?php if ($error): ?>
-        <div class="p-4 border border-red-200 bg-red-50 text-red-700 text-xs font-semibold rounded-xl"><?php echo htmlspecialchars($error); ?></div>
+        <div class="p-4 border border-red-200 bg-red-50 text-red-700 text-xs font-semibold rounded-xl"><?php echo htmlspecialchars($error); ?>
+          <?php if (!empty($adminPortalHint)): ?> <a href="<?php echo url('admin/portal.php'); ?>" class="underline">Open the admin portal</a><?php endif; ?></div>
       <?php endif; ?>
       <?php if ($success): ?>
         <div class="p-4 border border-green-200 bg-green-50 text-green-700 text-xs font-semibold rounded-xl"><?php echo htmlspecialchars($success); ?></div>

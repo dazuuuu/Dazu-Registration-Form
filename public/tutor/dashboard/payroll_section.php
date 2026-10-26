@@ -90,6 +90,43 @@ $remaining = $pay['balance'];
             <p class="text-muted mb-3">Nothing earned yet. You start earning in the month a student is assigned to you.</p>
         <?php endif; ?>
 
+        <?php
+        require_once __DIR__ . '/../../../app/v1/models/PayrollRequestModel.php';
+        $prm = new \Models\PayrollRequestModel($pdo);
+        if ($prm->isInstalled()): $myReqs = $prm->list((int) $tutor['id']); ?>
+        <div class="border rounded p-3 mb-3" id="payroll-fix">
+            <div class="fw-semibold mb-1">Something not right?</div>
+            <p class="small text-muted mb-2">Ask the superadmin to unassign a student you no longer teach (their unpaid shares are removed), mark a student as completed (no more shares after that month), or correct your balance. Nothing changes until it is approved.</p>
+            <form method="POST" action="<?php echo url('tutor/payroll/request.php'); ?>" class="row g-2 align-items-end"><?php echo csrf_field(); ?>
+                <div class="col-md-3"><label class="form-label small mb-0">What</label>
+                    <select name="type" class="form-select form-select-sm" id="fixType"><?php foreach (\Models\PayrollRequestModel::TYPES as $k => $l): ?><option value="<?php echo $k; ?>"><?php echo htmlspecialchars($l); ?></option><?php endforeach; ?></select></div>
+                <div class="col-md-3 fix-student"><label class="form-label small mb-0">Student</label>
+                    <select name="student" class="form-select form-select-sm"><option value="">Choose…</option><?php foreach ($pay['current_students'] as $cs): ?><option value="<?php echo (int) $cs['user_id']; ?>"><?php echo htmlspecialchars($cs['student_name']); ?></option><?php endforeach; ?></select></div>
+                <div class="col-md-2 fix-date d-none"><label class="form-label small mb-0">Completed on</label><input type="date" name="completed_on" class="form-control form-control-sm" max="<?php echo date('Y-m-d'); ?>"></div>
+                <div class="col-md-2 fix-amount d-none"><label class="form-label small mb-0">Amount (KES, minus to reduce)</label><input name="amount" class="form-control form-control-sm" inputmode="decimal" placeholder="-5000"></div>
+                <div class="col-md-4"><label class="form-label small mb-0">Why</label><input name="reason" class="form-control form-control-sm" maxlength="2000" required></div>
+                <div class="col-md-2"><button class="btn btn-sm btn-brand w-100">Send</button></div>
+            </form>
+            <?php if ($myReqs): ?>
+            <div class="table-responsive mt-2"><table class="table table-sm mb-0 small">
+                <?php foreach (array_slice($myReqs, 0, 8) as $mr): ?>
+                <tr><td><?php echo htmlspecialchars(\Models\PayrollRequestModel::TYPES[$mr['type']] . ($mr['student_name'] ? ': ' . $mr['student_name'] : '') . ($mr['type'] === 'adjust' ? ' ' . PayrollCalculator::money((float) $mr['amount']) : '')); ?>
+                    <div class="text-muted"><?php echo htmlspecialchars($mr['reason']); ?><?php echo $mr['decision_note'] ? ' · Superadmin: ' . htmlspecialchars($mr['decision_note']) : ''; ?></div></td>
+                    <td class="text-end"><span class="badge bg-<?php echo ['pending' => 'warning text-dark', 'approved' => 'success', 'declined' => 'secondary', 'cancelled' => 'light text-dark'][$mr['status']]; ?>"><?php echo ucfirst($mr['status']); ?></span>
+                        <?php if ($mr['status'] === 'pending'): ?><form method="POST" action="<?php echo url('tutor/payroll/request.php'); ?>" class="d-inline"><?php echo csrf_field(); ?><input type="hidden" name="action" value="cancel"><input type="hidden" name="id" value="<?php echo (int) $mr['id']; ?>"><button class="btn btn-link btn-sm p-0 ms-1">Cancel</button></form><?php endif; ?></td></tr>
+                <?php endforeach; ?>
+            </table></div>
+            <?php endif; ?>
+            <?php if (!empty($pay['adjustments'])): ?>
+            <div class="small mt-2"><span class="fw-semibold">Corrections applied:</span>
+                <?php foreach ($pay['adjustments'] as $adj): ?><div class="text-muted"><?php echo htmlspecialchars(PayrollCalculator::monthLabel($adj['for_month']) . ': ' . PayrollCalculator::money((float) $adj['amount']) . ' · ' . $adj['reason']); ?></div><?php endforeach; ?></div>
+            <?php endif; ?>
+        </div>
+        <script>(function () { var t = document.getElementById('fixType'); if (!t) return; function up() { var v = t.value, f = t.form;
+            f.querySelector('.fix-student').classList.toggle('d-none', v === 'adjust'); f.querySelector('.fix-date').classList.toggle('d-none', v !== 'complete'); f.querySelector('.fix-amount').classList.toggle('d-none', v !== 'adjust'); }
+            t.addEventListener('change', up); up(); })();</script>
+        <?php endif; ?>
+
         <?php if (!empty($pay['payments'])): ?>
         <div class="fw-semibold small mb-1">Payments from the institute</div>
         <div class="table-responsive">

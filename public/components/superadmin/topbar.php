@@ -10,6 +10,7 @@ $sa_nav = [
     ['Tutors',    'superadmin/tutors/index.php',        '/superadmin/tutors/',       'fa-chalkboard-user'],
     ['Payments',  'superadmin/payments/index.php',      '/superadmin/payments/',     'fa-money-bill-wave'],
     ['Salaries',  'superadmin/payroll/index.php',       '/superadmin/payroll/',      'fa-wallet'],
+    ['Accounting','superadmin/accounting/index.php',    '/superadmin/accounting/',   'fa-scale-balanced'],
     ['Admins',    'superadmin/admins/index.php',        '/superadmin/admins/',       'fa-user-shield'],
     ['Announce',  'superadmin/announcements/index.php', '/superadmin/announcements/', 'fa-bullhorn'],
     ['Certificates','superadmin/certificates/index.php', '/certificates/',            'fa-certificate'],
@@ -41,6 +42,10 @@ $sa_more = [
     'Money' => [
         ['Payments', 'superadmin/payments/index.php', 'fa-money-bill-wave'],
         ['Salaries', 'superadmin/payroll/index.php', 'fa-wallet'],
+        ['Accounting', 'superadmin/accounting/index.php', 'fa-scale-balanced'],
+        ['Requests (expenses, tutor shares)', 'superadmin/accounting/requests.php', 'fa-inbox'],
+        ['Expense tracker', 'superadmin/accounting/expenses.php', 'fa-receipt'],
+        ['Statement', 'superadmin/accounting/statement.php', 'fa-file-invoice-dollar'],
         ['Fee finance', 'superadmin/sms/finance/index.php', 'fa-chart-line'],
         ['Sales', 'superadmin/sms/sales/index.php', 'fa-cash-register'],
     ],

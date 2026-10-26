@@ -68,5 +68,27 @@ check('employee started after pay day: nothing yet', $e['earned_to_date'], 0.0);
 $e = C::employeeLedger(60000, '2026-01-01', '2026-02-10', 28, [], '2026-06-01');
 check('employee left before Feb pay day', $e['earned_to_date'], 60000.0);
 
+// Student marked completed in May: a 6-month course from March earns March–May only.
+$l = C::ledger([['start' => '2026-03-10', 'months' => 6, 'rate' => null, 'completed_on' => '2026-05-20']], [], '2026-12');
+check('completed student stops after that month', $l['earned_to_date'], 15000.0);
+check('completed student course ends in May', $l['students'][0]['end_month'], '2026-05');
+
+// Approved corrections change what is owed in their month; payments are untouched.
+$l = C::ledger([['start' => '2026-03-10', 'months' => 6, 'rate' => null]], [['amount' => 5000, 'month' => '2026-03']], '2026-05', [], [['amount' => -7000, 'month' => '2026-05']]);
+check('adjustment lowers the balance', $l['balance'], 3000.0);
+check('adjustment does not count as paid', $l['paid_to_date'], 5000.0);
+check('adjustment shown in its month', $l['months'][2]['earned'], -2000.0);
+check('adjusted total', $l['adjusted_to_date'], -7000.0);
+
+// Unpaid share of one student: payments cover the oldest months first.
+// Two students at 5,000 from March to May = 30,000 earned; 15,000 paid covers March and half of April.
+$two = C::ledger([['start' => '2026-03-01', 'months' => 6, 'rate' => null, 'user_id' => 1], ['start' => '2026-03-01', 'months' => 6, 'rate' => null, 'user_id' => 2]],
+    [['amount' => 15000, 'month' => '2026-03']], '2026-05');
+$keys = $two['students'][0]['earned_month_keys'];
+check('unpaid share: half of April and all of May', C::unpaidShare($two['months'], $keys, 5000, 15000, $two['balance']), 7500.0);
+check('unpaid share: nothing when all is paid', C::unpaidShare($two['months'], $keys, 5000, 30000, 0), 0.0);
+check('unpaid share: everything when nothing is paid', C::unpaidShare($two['months'], $keys, 5000, 0, $two['balance']), 15000.0);
+check('unpaid share never above the balance', C::unpaidShare($two['months'], $keys, 5000, 0, 4000), 4000.0);
+
 echo $fail ? "\n$fail failed\n" : "\nAll passed\n";
 exit($fail ? 1 : 0);

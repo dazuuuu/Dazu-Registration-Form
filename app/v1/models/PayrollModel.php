@@ -102,7 +102,7 @@ class PayrollModel
     public function getCurrentStudents(int $tutorId): array
     {
         $stmt = $this->db->prepare(
-            "SELECT ts.user_id, ts.assigned_at, ts.monthly_rate, ts.months_offset,
+            "SELECT ts.user_id, ts.assigned_at, ts.monthly_rate, ts.months_offset, " . ($this->hasCompletedColumn() ? "ts.completed_on," : "NULL AS completed_on,") . "
                     COALESCE(NULLIF(TRIM(CONCAT_WS(' ', up.first_name, up.last_name)), ''), r.full_name, u.username) AS student_name,
                     u.email, r.id AS registration_id, r.registration_no,
                     c.id AS course_id, c.title AS course_title, c.abbreviation,
@@ -589,7 +589,10 @@ class PayrollModel
         }
 
         $payLines = array_map(fn($p) => ['amount' => $p['amount'], 'month' => $p['paid_for_month']], $payments);
-        $ledger = PayrollCalculator::ledger($lines, $payLines, $asOf, $tutorPauses);
+        $adjustments = $this->getAdjustments($tutorId);
+        $ledger = PayrollCalculator::ledger($lines, $payLines, $asOf, $tutorPauses,
+            array_map(fn($a) => ['amount' => $a['amount'], 'month' => $a['for_month']], $adjustments));
+        $ledger['adjustments'] = $adjustments;
 
         $ledger['current_students'] = array_values(array_filter($ledger['students'], fn($s) => $s['kind'] === 'current'));
         $ledger['former_students'] = array_values(array_filter($ledger['students'], fn($s) => $s['kind'] === 'former'));
@@ -616,5 +619,60 @@ class PayrollModel
         $ledger['due_now'] = $prevRow ? max(0.0, $prevRow['balance']) : 0.0;
         $ledger['active_students'] = count(array_filter($ledger['current_students'], fn($s) => $s['earning_now']));
         return $ledger;
+    }
+
+    /* ---------- Corrections approved by the superadmin (migration 084) ---------- */
+
+    private ?bool $completedCol = null;
+
+    private function hasCompletedColumn(): bool
+    {
+        if ($this->completedCol === null) {
+            try {
+                $this->db->query("SELECT completed_on FROM tutor_students LIMIT 0");
+                $this->completedCol = true;
+            } catch (\Throwable $e) {
+                $this->completedCol = false;
+            }
+        }
+        return $this->completedCol;
+    }
+
+    public function getAdjustments(int $tutorId): array
+    {
+        try {
+            $st = $this->db->prepare("SELECT * FROM tutor_payroll_adjustments WHERE tutor_id = ? ORDER BY for_month, id");
+            $st->execute([$tutorId]);
+            return $st->fetchAll(\PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            return []; // migration 084 not run yet
+        }
+    }
+
+    public function addAdjustment(int $tutorId, ?int $studentUserId, float $amount, string $forMonth, string $reason, ?int $requestId, ?int $by): void
+    {
+        $this->db->prepare("INSERT INTO tutor_payroll_adjustments (tutor_id, student_user_id, amount, for_month, reason, request_id, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())")
+            ->execute([$tutorId, $studentUserId, round($amount, 2), PayrollCalculator::monthKey($forMonth) . '-01', mb_substr($reason, 0, 255), $requestId, $by]);
+    }
+
+    /** What is still unpaid for one current student (payments are taken to cover the oldest months first). */
+    public function unpaidForStudent(int $tutorId, int $userId): float
+    {
+        $ledger = $this->getLedger($tutorId);
+        foreach ($ledger['current_students'] as $s) {
+            if ((int) $s['user_id'] === $userId) {
+                $paid = (float) $ledger['paid_to_date'];
+                return PayrollCalculator::unpaidShare($ledger['months'], $s['earned_month_keys'], (float) $s['rate'], $paid, (float) $ledger['balance']);
+            }
+        }
+        return 0.0;
+    }
+
+    /** Stop a student's months after the month of $date (student finished early). */
+    public function markCompleted(int $tutorId, int $userId, string $date): bool
+    {
+        $st = $this->db->prepare("UPDATE tutor_students SET completed_on = ? WHERE tutor_id = ? AND user_id = ?");
+        $st->execute([$date, $tutorId, $userId]);
+        return $st->rowCount() > 0;
     }
 }

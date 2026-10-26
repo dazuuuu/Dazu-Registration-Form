@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/AdminAccountModel.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
 require_once __DIR__ . '/../../../app/v1/services/EmployeeNotifier.php';
+require_once __DIR__ . '/../../../app/v1/models/ExpenseModel.php';
 
 use Models\Connection;
 use Models\AdminAccountModel;
@@ -14,6 +15,12 @@ Middleware::requireSuperPortal();
 
 $pdo = Connection::getInstance()->getConnection();
 $admins = new AdminAccountModel($pdo);
+$exm = new \Models\ExpenseModel($pdo);
+try {
+    $branchOf = $exm->branches();
+} catch (Throwable $t) {
+    $branchOf = null;   // migration 084 not run yet
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $back = 'index.php';
@@ -26,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'create') {
         $r = $admins->create((string)($_POST['full_name'] ?? ''), (string)($_POST['email'] ?? ''), (string)($_POST['phone'] ?? ''), !empty($_POST['replace_existing']));
         if ($r['ok']) {
+            if ($branchOf !== null) $exm->setBranch((int) $r['user_id'], $_POST['branch'] ?? null);
             $admin = $admins->get($r['user_id']);
             $msg = 'Admin created.';
             if (isset($_POST['send_email'])) {
@@ -39,6 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             SessionModel::setFlash('error', $r['error']);
         }
+    } elseif ($action === 'branch' && $branchOf !== null && $admins->get($id)) {
+        $exm->setBranch($id, $_POST['branch'] ?? null);
+        SessionModel::setFlash('success', 'Branch saved.');
     } elseif ($action === 'toggle') {
         $target = $admins->get($id);
         $ok = $target && $admins->setActive($id, !$target['is_active']);
@@ -69,6 +80,10 @@ ob_start();
                 <label class="form-label">Full name</label><input name="full_name" class="form-control mb-3" required>
                 <label class="form-label">Email <span class="text-muted small">(they sign in with this)</span></label><input type="email" name="email" class="form-control mb-1" required inputmode="email"><div class="mb-3"><?php echo EmailConflictService::checkbox(); ?></div>
                 <label class="form-label">Phone <span class="text-muted small">(optional)</span></label><input name="phone" class="form-control mb-3" maxlength="30" inputmode="tel">
+                <?php if ($branchOf !== null): ?>
+                <label class="form-label">Branch <span class="text-muted small">(for expense requests)</span></label>
+                <select name="branch" class="form-select mb-3"><option value="">None</option><?php foreach (\Models\ExpenseModel::ADMIN_BRANCHES as $bk => $bl): ?><option value="<?php echo $bk; ?>"><?php echo $bl; ?></option><?php endforeach; ?></select>
+                <?php endif; ?>
                 <div class="form-check mb-3"><input type="checkbox" name="send_email" value="1" class="form-check-input" id="se" checked><label for="se" class="form-check-label">Email their sign-in details</label></div>
                 <button class="btn btn-primary w-100"><i class="fas fa-user-shield me-1"></i>Create admin</button>
             </form>
@@ -85,6 +100,11 @@ ob_start();
                         <div class="fw-semibold"><?php echo htmlspecialchars($a['full_name']); ?>
                             <?php echo $a['is_active'] ? '<span class="badge bg-success ms-1">Active</span>' : '<span class="badge bg-secondary ms-1">Inactive</span>'; ?></div>
                         <div class="text-muted small text-break"><?php echo htmlspecialchars($a['email']); ?></div>
+                        <?php if ($branchOf !== null): ?>
+                        <form method="POST" class="d-flex gap-1 mt-1"><?php echo csrf_field(); ?><input type="hidden" name="action" value="branch"><input type="hidden" name="id" value="<?php echo (int)$a['id']; ?>">
+                            <select name="branch" class="form-select form-select-sm w-auto" onchange="this.form.submit()" aria-label="Branch"><option value="">No branch</option>
+                                <?php foreach (\Models\ExpenseModel::ADMIN_BRANCHES as $bk => $bl): ?><option value="<?php echo $bk; ?>" <?php echo ($branchOf[(int)$a['id']] ?? '') === $bk ? 'selected' : ''; ?>><?php echo $bl; ?> branch</option><?php endforeach; ?></select></form>
+                        <?php endif; ?>
                     </div>
                     <div class="d-flex gap-2 flex-wrap">
                         <form method="POST" onsubmit="return confirm('Reset the password and email new sign-in details?');"><?php echo csrf_field(); ?><input type="hidden" name="action" value="reset"><input type="hidden" name="id" value="<?php echo (int)$a['id']; ?>">

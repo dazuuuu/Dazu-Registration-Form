@@ -7,6 +7,57 @@ require_once __DIR__ . '/WebPush.php';
 
 class PortalNotifications
 {
+    /** Kinds of notification a person can switch on or off: key => [label, notification types in it]. Everything starts off. */
+    public const CATEGORIES = [
+        'assignments'  => ['Assignments, quizzes and grades', ['assignment', 'assignment_request', 'submission', 'grade', 'graded', 'quiz', 'module', 'module_done']],
+        'announcements'=> ['Announcements', ['announcement']],
+        'classes'      => ['Classes and timetable changes', ['class']],
+        'students'     => ['Students and tutors assigned to me', ['student_assigned', 'tutor_assigned']],
+        'certificates' => ['Certificates and finishing a course', ['certificate', 'studies_completed']],
+        'id_cards'     => ['ID cards and ID photos', ['id_card']],
+        'money'        => ['Payments and expense requests', ['payment', 'expense']],
+        'interns'      => ['Interns, their tasks and reports', ['intern', 'intern_message', 'teaching']],
+        'account'      => ['My account and access rights', ['permissions', 'preview']],
+        'other'        => ['Everything else', []],
+    ];
+
+    public static function categoryOf(string $type): string
+    {
+        foreach (self::CATEGORIES as $key => [, $types]) {
+            if (in_array($type, $types, true)) return $key;
+        }
+        return 'other';
+    }
+
+    /** Switched-on categories for a person: category => true. Null when the choices table is not installed yet. */
+    public static function choices(PDO $db, int $userId): ?array
+    {
+        static $cache = [];
+        if (!array_key_exists($userId, $cache)) {
+            try {
+                $st = $db->prepare("SELECT category FROM notification_preferences WHERE user_id = ? AND enabled = 1");
+                $st->execute([$userId]);
+                $cache[$userId] = array_fill_keys($st->fetchAll(PDO::FETCH_COLUMN), true);
+            } catch (Throwable $e) {
+                $cache[$userId] = null;   // migration 087 not run yet: keep today's behaviour
+            }
+        }
+        return $cache[$userId];
+    }
+
+    /** Save a person's choices: the categories they switched on (all others off). */
+    public static function saveChoices(PDO $db, int $userId, array $on): void
+    {
+        $up = $db->prepare("INSERT INTO notification_preferences (user_id, category, enabled, updated_at) VALUES (?, ?, ?, NOW())
+                            ON DUPLICATE KEY UPDATE enabled = VALUES(enabled), updated_at = NOW()");
+        foreach (array_keys(self::CATEGORIES) as $key) $up->execute([$userId, $key, in_array($key, $on, true) ? 1 : 0]);
+    }
+
+    public static function deleteAll(PDO $db, int $userId): void
+    {
+        $db->prepare("DELETE FROM portal_notifications WHERE user_id = ?")->execute([$userId]);
+    }
+
     private static array $queue = [];
     private static bool $flushRegistered = false;
 
@@ -17,6 +68,9 @@ class PortalNotifications
     public static function notify(PDO $db, int $userId, string $type, string $title, string $body = '', string $path = '', ?string $icon = null): void
     {
         if ($userId <= 0) return;
+        // Only kinds the person switched on (Notifications page). Nothing is stored or pushed otherwise.
+        $choices = self::choices($db, $userId);
+        if ($choices !== null && empty($choices[self::categoryOf($type)])) return;
         // Older uploads were saved with the dev folder in front; keep only the path inside public/.
         $icon = $icon ? ltrim(preg_replace('#^/?Registration-System/public/#', '', $icon), '/') : null;
         try {

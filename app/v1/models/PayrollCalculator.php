@@ -118,7 +118,7 @@ class PayrollCalculator
      * @return array {as_of, default_rate, students[], months[], earned_to_date, paid_to_date, balance,
      *                this_month{month,brought_forward,earned,paid,balance}, monthly_run_rate, active_students}
      */
-    public static function ledger(array $students, array $payments, ?string $asOf = null, array $tutorPauses = []): array
+    public static function ledger(array $students, array $payments, ?string $asOf = null, array $tutorPauses = [], array $adjustments = []): array
     {
         $asOfIdx = self::monthIndex($asOf ?? self::currentMonth());
         $defaultCents = self::cents(self::DEFAULT_MONTHLY_RATE);
@@ -133,6 +133,8 @@ class PayrollCalculator
             $isCustom = isset($s['rate']) && $s['rate'] !== null && $s['rate'] !== '';
             $rateCents = $isCustom ? self::cents($s['rate']) : $defaultCents;
             $startIdx = self::monthIndex((string) $s['start']);
+            // A student marked completed earns nothing after the month they completed.
+            $lastIdx = !empty($s['completed_on']) ? self::monthIndex((string) $s['completed_on']) : null;
 
             // The months this student earns, in order. Months paused before or at the as-of month are skipped.
             $earn = [];
@@ -146,11 +148,15 @@ class PayrollCalculator
                 $months = max(0, (int) ($s['months'] ?? 0));
                 $studentPaused = !empty($s['pauses']) ? self::pausedMonths($s['pauses'], $startIdx, $asOfIdx) : [];
                 for ($i = $startIdx; count($earn) < $months; $i++) {
+                    if ($lastIdx !== null && $i > $lastIdx) {
+                        break;
+                    }
                     if ($i <= $asOfIdx && (isset($tutorPaused[$i]) || isset($studentPaused[$i]))) {
                         continue;
                     }
                     $earn[] = $i;
                 }
+                $months = count($earn);
             }
             $set = array_fill_keys($earn, true);
             $elapsed = count(array_filter($earn, fn($i) => $i <= $asOfIdx));
@@ -182,6 +188,14 @@ class PayrollCalculator
             $paymentIdxs[] = $idx;
         }
 
+        // Approved corrections (signed: negative = less is owed) count in their month like earnings.
+        $adjByMonth = [];
+        foreach ($adjustments as $a) {
+            $idx = min(self::monthIndex((string) $a['month']), $asOfIdx);
+            $adjByMonth[$idx] = ($adjByMonth[$idx] ?? 0) + self::cents($a['amount']);
+            $paymentIdxs[] = $idx;
+        }
+
         $starts = [];
         foreach ($rows as $r) {
             $first = $r['_set'] ? min(array_keys($r['_set'])) : null;
@@ -205,6 +219,7 @@ class PayrollCalculator
                         $active++;
                     }
                 }
+                $earned += $adjByMonth[$i] ?? 0;
                 $paid = $paidByMonth[$i] ?? 0;
                 $broughtForward = $balance;
                 $balance = $balance + $earned - $paid;
@@ -251,7 +266,30 @@ class PayrollCalculator
             'this_month'       => $thisMonth,
             'monthly_run_rate' => $runRate / 100.0,
             'active_students'  => $activeNow,
+            'adjusted_to_date' => array_sum($adjByMonth) / 100.0,
         ];
+    }
+
+    /**
+     * The unpaid part of one student's earnings. Payments ($paid in total) cover the oldest months first; in each month
+     * the unpaid fraction applies equally to every student who earned that month. Never more than the tutor's balance.
+     * $months: ledger months [{month, earned}]; $studentMonths: 'YYYY-MM' keys the student earned; $rate: their monthly rate.
+     */
+    public static function unpaidShare(array $months, array $studentMonths, float $rate, float $paid, float $balance): float
+    {
+        $mine = array_flip($studentMonths);
+        $cum = 0.0;
+        $unpaid = 0.0;
+        foreach ($months as $m) {
+            $earned = max(0.0, (float) $m['earned']);
+            if ($earned <= 0) continue;
+            $before = $cum;
+            $cum += $earned;
+            if (!isset($mine[$m['month']])) continue;
+            $fraction = max(0.0, min(1.0, ($cum - max($paid, $before)) / $earned));
+            $unpaid += $rate * $fraction;
+        }
+        return round(max(0.0, min($unpaid, $balance)), 2);
     }
 
     /** Day of the month an employee is paid in the given month (a pay day of 31 means the last day of a short month). */

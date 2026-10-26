@@ -14,6 +14,10 @@ DirectorySlash Off
 RewriteCond %{REQUEST_URI}::$1 ^(.*?/)(.*)::\2$
 RewriteRule ^(.*)$ - [E=BASE:%1]
 
+# robots.txt and sitemap.xml are built by PHP (they need the site's own domain and the live course list)
+RewriteRule ^robots\.txt$ robots.php [L]
+RewriteRule ^sitemap\.xml$ sitemap.php [L]
+
 # ── 0. Leave other projects alone ──
 # Anything under a folder that is not part of this app (e.g. a subdomain installed in a subfolder)
 # is passed straight through untouched. Add a folder here if you create a new top-level section.

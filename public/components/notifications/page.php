@@ -13,10 +13,23 @@ if (isset($_GET['open'])) {
     exit;
 }
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_verify($_POST['csrf_token'] ?? null)) {
-    PortalNotifications::markAllRead($db, $uid);
+    $act = $_POST['action'] ?? 'read_all';
+    if ($act === 'choices') {
+        try {
+            PortalNotifications::saveChoices($db, $uid, array_map('strval', (array) ($_POST['on'] ?? [])));
+            $_SESSION['flash']['success'] = 'Saved. You will only be told about what you switched on.';
+        } catch (Throwable $e) {
+            $_SESSION['flash']['error'] = 'Could not save. Ask the office to run System Updates (migration 087).';
+        }
+    } elseif ($act === 'delete_all') {
+        PortalNotifications::deleteAll($db, $uid);
+    } else {
+        PortalNotifications::markAllRead($db, $uid);
+    }
     header('Location: ' . url($notifBase . '/notifications/index.php'));
     exit;
 }
+$choices = PortalNotifications::choices($db, $uid);
 $page = max(1, (int) ($_GET['p'] ?? 1));
 $items = PortalNotifications::latest($db, $uid, 30, ($page - 1) * 30);
 $unread = PortalNotifications::unreadCount($db, $uid);
@@ -28,8 +41,26 @@ ob_start();
     <div class="d-flex gap-2">
         <button type="button" class="btn btn-sm btn-outline-success d-none" data-pwa-enable-push><i class="fas fa-bell me-1"></i>Turn on phone alerts</button>
         <?php if ($unread): ?><form method="POST" class="m-0"><?php echo csrf_field(); ?><button class="btn btn-sm btn-outline-secondary">Mark all as read</button></form><?php endif; ?>
+        <?php if ($items): ?><form method="POST" class="m-0" onsubmit="return confirm('Delete all your notifications?')"><?php echo csrf_field(); ?><input type="hidden" name="action" value="delete_all"><button class="btn btn-sm btn-outline-danger">Delete all</button></form><?php endif; ?>
     </div>
 </div>
+<?php if ($choices !== null): ?>
+<details class="card border-0 shadow-sm mb-3" <?php echo $choices ? '' : 'open'; ?>>
+    <summary class="card-body py-3 fw-semibold" style="cursor:pointer"><i class="fas fa-sliders me-2 text-success"></i>Choose what you are told about
+        <span class="small text-muted fw-normal ms-1"><?php echo $choices ? count($choices) . ' switched on' : 'everything is off'; ?></span></summary>
+    <form method="POST" class="card-body pt-0"><?php echo csrf_field(); ?><input type="hidden" name="action" value="choices">
+        <p class="small text-muted">You only get notifications (here and on your phone) for what you switch on. Everything else is not sent at all.</p>
+        <div class="row g-2">
+        <?php foreach (PortalNotifications::CATEGORIES as $key => [$label]): ?>
+            <div class="col-md-6"><div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" name="on[]" value="<?php echo htmlspecialchars($key); ?>" id="nc_<?php echo htmlspecialchars($key); ?>" <?php echo !empty($choices[$key]) ? 'checked' : ''; ?>>
+                <label class="form-check-label" for="nc_<?php echo htmlspecialchars($key); ?>"><?php echo htmlspecialchars($label); ?></label></div></div>
+        <?php endforeach; ?>
+        </div>
+        <button class="btn btn-sm btn-success mt-3">Save my choices</button>
+    </form>
+</details>
+<?php endif; ?>
 <div class="card border-0 shadow-sm">
     <?php if (!$items): ?>
         <p class="text-muted p-4 mb-0 text-center">No notifications yet.</p>
