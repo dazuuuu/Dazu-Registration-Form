@@ -1,6 +1,6 @@
 <?php
 // Serves a class material from private storage. Allowed: the tutor who owns the class, or a student of that class
-// once the class has ended (materials are shown after the class).
+// (materials and notes show to the class's students as soon as they are added, before or after the class).
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../app/v1/models/Connection.php';
@@ -16,7 +16,7 @@ $ok = false;
 if ($m) {
     if ((int) $m['tutor_id'] === $uid) {
         $ok = true;
-    } elseif (($_SESSION['role'] ?? '') === 'student' && strtotime($m['end_utc'] . ' UTC') <= time()) {
+    } elseif (($_SESSION['role'] ?? '') === 'student') {
         $ok = (bool) cal_student_class($db, $uid, (int) $m['class_id']);
     }
 }

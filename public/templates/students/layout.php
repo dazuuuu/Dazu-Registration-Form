@@ -13,6 +13,7 @@ Middleware::requireStudent();
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/helpers/user_photo.php';
 require_once __DIR__ . '/../../../app/v1/services/CertificateService.php';
 
 $slDb = \Models\Connection::getInstance()->getConnection();
@@ -78,7 +79,7 @@ $shell = [
     'title'    => $page_title ?? 'Student Portal',
     'user'     => $slName,
     'user_sub' => $slMe['registration_no'] ?? 'Student',
-    'photo'    => !empty($slMe['photo']) ? settings_asset_url($slMe['photo']) : null,
+    'photo'    => user_photo_url($slDb, $slUid),
     'items'    => $slItems,
     'menu'     => '<li><a class="dropdown-item" href="' . url('students/documents/index.php') . '"><i class="fas fa-id-card me-2"></i>My documents &amp; ID card</a></li>'
                 . '<li><a class="dropdown-item" href="' . url('students/payments/index.php') . '"><i class="fas fa-receipt me-2"></i>Finance</a></li>',

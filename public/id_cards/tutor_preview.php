@@ -27,10 +27,7 @@ if (!$t || ($who !== $me && !tid_is_admin())) {
     exit('Not found.');
 }
 $doc = ($_GET['doc'] ?? 'card') === 'cert' ? 'cert' : 'card';
-if ($doc === 'card' && !idc_student_photo_file($db, $who)) {
-    http_response_code(404);
-    exit('Upload a passport photo first.');
-}
+// No photo yet: the card is still drawn (the photo frame shows a placeholder), so the tutor sees how it will look.
 $pdf = $doc === 'cert' ? tid_sample_certificate_pdf($db, $t) : tid_card_preview_pdf($db, $t);
 header('Content-Type: application/pdf');
 header('Content-Disposition: inline; filename="preview.pdf"');

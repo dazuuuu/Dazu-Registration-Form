@@ -12,6 +12,7 @@ use Models\TutorCourseModel;
 
 Middleware::requireTutor();
 $pdo = Connection::getInstance()->getConnection();
+require_once __DIR__ . '/../../../app/v1/helpers/user_photo.php';
 $tutorModel = new TutorModel($pdo);
 $tutor = $tutorModel->getByUserId((int)$_SESSION['user_id']);
 $students = $tutorModel->getStudentsForTutor((int)$tutor['id']);
@@ -62,7 +63,7 @@ ob_start();
 ?>
     <div class="ts-card" data-q="<?php echo htmlspecialchars(mb_strtolower($s['full_name'] . ' ' . $s['registration_no'] . ' ' . $s['course_title'] . ' ' . $s['email'])); ?>">
         <div class="ts-top">
-            <span class="as-ava"><?php echo htmlspecialchars($ini); ?></span>
+            <?php $avUrl = user_photo_url($pdo, (int) ($s['user_id'] ?? 0)); ?><span class="as-ava"><?php if ($avUrl): ?><img src="<?php echo htmlspecialchars($avUrl); ?>" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"><?php else: echo htmlspecialchars($ini); endif; ?></span>
             <div style="min-width:0;flex:1">
                 <div class="nm text-truncate"><?php echo htmlspecialchars($s['full_name']); ?></div>
                 <div class="sb"><?php echo htmlspecialchars($s['registration_no']); ?> · <?php echo $s['study_mode'] === 'physical' ? 'Physical' : 'Online'; ?></div>

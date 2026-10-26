@@ -49,7 +49,6 @@ if (cal_post_ok()) {
 
 // Values to show: what was posted, else the class, else defaults.
 $cur = $class ? cal_class_students($db, $id) : [];
-$v = fn($k, $d = '') => cal_e($in[$k] ?? $d);
 $cs = $class ? cal_from_utc($class['start_utc'], $tz) : null;
 $defaults = $class ? ['title' => $class['title'], 'course_id' => $class['course_id'], 'topic' => $class['topic'], 'subtopics' => $class['subtopics'], 'notes' => $class['notes'],
     'mode' => $class['mode'], 'campus' => $class['campus'], 'room' => $class['room'], 'meeting_link' => $class['meeting_link'], 'date' => $cs->format('Y-m-d'),
@@ -59,6 +58,8 @@ $defaults = $class ? ['title' => $class['title'], 'course_id' => $class['course_
     'start_time' => cal_fmt($makeup['start_utc'], $tz), 'end_time' => cal_fmt($makeup['end_utc'], $tz)]
   : ['date' => preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($_GET['date'] ?? '')) ? $_GET['date'] : (new DateTime('tomorrow', new DateTimeZone($tz)))->format('Y-m-d'), 'start_time' => '10:00', 'end_time' => '12:00', 'mode' => 'physical']);
 $in += $defaults;
+// Defined after the merge: an arrow function copies $in when it is created, so earlier it saw only the (empty) POST.
+$v = fn($k, $d = '') => cal_e($in[$k] ?? $d);
 $picked = array_map('intval', (array) ($in['students'] ?? ($class ? array_column($cur, 'student_id') : ($makeup && ($s = (int) ($_GET['student'] ?? 0)) ? [$s] : []))));
 $overrides = (array) ($in['student_mode'] ?? array_column(array_filter($cur, fn($r) => $r['mode_override']), 'mode_override', 'student_id'));
 $campuses = cal_list_setting($db, 'campuses');

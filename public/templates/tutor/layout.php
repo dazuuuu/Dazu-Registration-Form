@@ -6,6 +6,7 @@ Middleware::requireTutor();
 require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
 require_once __DIR__ . '/../../../app/v1/helpers/tutor_permissions.php';
+require_once __DIR__ . '/../../../app/v1/helpers/user_photo.php';
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 
 $tlDb = \Models\Connection::getInstance()->getConnection();
@@ -54,7 +55,7 @@ $shell = [
     'title'    => $page_title ?? 'Tutor Portal',
     'user'     => $tlName,
     'user_sub' => 'Tutor',
-    'photo'    => !empty($tlMe['profile_photo_path']) ? settings_asset_url($tlMe['profile_photo_path']) : null,
+    'photo'    => user_photo_url($tlDb, $tlUid),   // the real photo (private ID photo or profile photo), never a placeholder
     'items'    => $tlItems,
     'menu'     => ($tlAdmin ? '<li><a class="dropdown-item" href="' . url('admin/dashboard.php') . '"><i class="fas fa-user-shield me-2"></i>Admin portal</a></li>' : ''),
     'logout'   => url(!empty($_SESSION['preview']) ? 'tutor/preview-exit.php' : 'auth/logout.php'),

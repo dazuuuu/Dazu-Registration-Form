@@ -25,7 +25,7 @@ $open = cal_join_open($db, $v);
 $att = $db->prepare('SELECT status, self_checkin_at FROM class_attendance WHERE class_id = ? AND student_id = ?');
 $att->execute([$id, $me]);
 $att = $att->fetch(PDO::FETCH_ASSOC) ?: ['status' => null, 'self_checkin_at' => null];
-$materials = $ended ? cal_materials($db, $id) : [];
+$materials = $v['status'] !== 'cancelled' ? cal_materials($db, $id) : [];   // shown as soon as the tutor adds them
 $mins = (int) cal_settings($db)['join_open_minutes'];
 // Assignments the tutor set "after this class", given to this student (published only).
 $classWork = [];
@@ -70,6 +70,9 @@ require __DIR__ . '/../../components/classes/styles.php';
     <?php if ($ended && $v['status'] !== 'cancelled'): ?>
         <hr>
         <div class="mb-2"><strong>Your attendance:</strong> <?php echo $att['status'] ? '<span class="cl-pill ' . cal_e($att['status']) . '">' . CAL_ATT[$att['status']] . '</span>' : '<span class="cl-muted">not marked yet</span>'; ?></div>
+    <?php endif; ?>
+    <?php if ($v['status'] !== 'cancelled' && ($v['notes'] || $materials)): ?>
+        <hr>
         <?php if ($v['notes']): ?><div class="mb-2"><strong>Notes from your tutor</strong><div class="small" style="white-space:pre-line"><?php echo cal_e($v['notes']); ?></div></div><?php endif; ?>
         <?php if ($materials): ?><strong>Materials</strong>
             <?php foreach ($materials as $m): ?><div class="small"><i class="fas <?php echo $m['file_path'] ? 'fa-paperclip' : 'fa-link'; ?> text-success me-1"></i>

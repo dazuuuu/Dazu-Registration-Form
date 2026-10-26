@@ -96,7 +96,15 @@ $logoExists = isset($_SERVER['DOCUMENT_ROOT']) && is_file($_SERVER['DOCUMENT_ROO
 
             <div class="wp-auth-field">
                 <label for="password">Password</label>
-                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                <div style="position:relative">
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password" style="padding-right:44px">
+                    <button type="button" id="pwToggle" aria-label="Show password" aria-pressed="false" title="Show password"
+                            style="position:absolute;top:0;right:0;bottom:0;width:44px;border:0;background:none;color:#6b7280;cursor:pointer"><i class="fas fa-eye"></i></button>
+                </div>
+                <script>(function () { var b = document.getElementById('pwToggle'), i = document.getElementById('password');
+                    b.addEventListener('click', function () { var show = i.type === 'password'; i.type = show ? 'text' : 'password';
+                        b.setAttribute('aria-pressed', show); b.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); b.title = b.getAttribute('aria-label');
+                        b.querySelector('i').className = show ? 'fas fa-eye-slash' : 'fas fa-eye'; i.focus(); }); })();</script>
             </div>
 
             <div class="wp-auth-row">

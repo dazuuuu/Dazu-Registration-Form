@@ -253,7 +253,7 @@ if (!function_exists('cal_e')) {
             'campus' => $physical ? $c['campus'] : null, 'room' => $physical ? $c['room'] : null,
             'meeting_link' => $online ? $c['meeting_link'] : null,
             'cancel_reason' => $c['cancel_reason'], 'moved_from_utc' => $c['moved_from_utc'], 'moved_reason' => $c['moved_reason'],
-            'notes' => cal_is_past($c) ? $c['notes'] : null,   // the tutor's notes show after the class
+            'notes' => $c['notes'],   // the tutor's notes show to the class's students as soon as they are written
             'tutor' => $tutorName, 'makeup_for_class_id' => $c['makeup_for_class_id'],
         ];
     }

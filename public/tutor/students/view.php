@@ -131,9 +131,9 @@ ob_start();
     </a>
 </div>
 
-<?php $ini = strtoupper(implode('', array_map(fn($w) => mb_substr($w, 0, 1), array_slice(preg_split('/\s+/', trim($student['full_name'])), 0, 2)))); ?>
+<?php require_once __DIR__ . '/../../../app/v1/helpers/user_photo.php'; $ini = strtoupper(implode('', array_map(fn($w) => mb_substr($w, 0, 1), array_slice(preg_split('/\s+/', trim($student['full_name'])), 0, 2)))); ?>
 <div class="card-tutor mb-3"><div class="p-3 d-flex flex-wrap gap-3 align-items-center">
-    <span class="as-ava" style="width:56px;height:56px;font-size:1.1rem;border-radius:16px"><?php echo htmlspecialchars($ini); ?></span>
+    <?php $avUrl = user_photo_url($pdo, (int) ($student['user_id'] ?? 0)); ?><span class="as-ava" style="width:56px;height:56px;font-size:1.1rem;border-radius:16px;overflow:hidden"><?php if ($avUrl): ?><img src="<?php echo htmlspecialchars($avUrl); ?>" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit"><?php else: echo htmlspecialchars($ini); endif; ?></span>
     <div class="flex-grow-1" style="min-width:200px">
         <div class="fw-semibold fs-5 lh-sm"><?php echo htmlspecialchars($student['full_name']); ?></div>
         <div class="small text-muted"><?php echo htmlspecialchars($student['registration_no']); ?> · <?php echo htmlspecialchars($student['course_title']); ?> · <?php echo $student['study_mode'] === 'physical' ? 'Physical' : 'Online'; ?></div>

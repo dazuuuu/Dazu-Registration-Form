@@ -85,7 +85,16 @@ $sa_isActive = fn(string $frag): bool => strpos(strtok($sa_uri, '?'), $frag) !==
         <button type="button" class="sa-install" id="saInstall" title="Install the app on this device"><i class="fas fa-download"></i><span>Install app</span></button>
         <a class="sa-icon d-none d-md-inline-flex" href="<?php echo url('superadmin/settings.php'); ?>" title="Settings"><i class="fas fa-gear"></i></a>
         <a class="sa-icon d-none d-md-inline-flex" href="<?php echo url('superadmin/logout.php'); ?>" title="Sign out"><i class="fas fa-arrow-right-from-bracket"></i></a>
-        <span class="sa-avatar" title="<?php echo htmlspecialchars((string)($_SESSION['email'] ?? '')); ?>"><?php echo htmlspecialchars($sa_initial); ?></span>
+        <?php
+        $sa_photo = null;
+        try {
+            require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+            require_once __DIR__ . '/../../../app/v1/helpers/user_photo.php';
+            $sa_photo = user_photo_url(\Models\Connection::getInstance()->getConnection(), (int) ($_SESSION['user_id'] ?? 0));
+        } catch (Throwable $e) {
+        }
+        ?>
+        <span class="sa-avatar" style="overflow:hidden" title="<?php echo htmlspecialchars((string)($_SESSION['email'] ?? '')); ?>"><?php if ($sa_photo): ?><img src="<?php echo htmlspecialchars($sa_photo); ?>" alt="" style="width:100%;height:100%;object-fit:cover"><?php else: echo htmlspecialchars($sa_initial); endif; ?></span>
     </div>
 </header>
 

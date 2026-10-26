@@ -59,13 +59,13 @@ RewriteCond %{THE_REQUEST} \s[^?\s]*\.php[\s?]
 RewriteRule ^(about|apply|blogs|contact|courses|gallery|projects|services|store|testimonials|verify)/([A-Za-z0-9_-]+)\.php$ %{ENV:BASE}$1/$2 [R=301,L]
 
 # Dashboards and portals: admin/students/view.php → admin/students/view, …/index.php → …/
-# (GET only; JSON/file endpoints api, manifest, file, search, clock and keepalive keep their .php address)
+# (GET only; JSON/file endpoints api, manifest, file, photo, search, clock and keepalive keep their .php address)
 RewriteCond %{REQUEST_METHOD} =GET
 RewriteCond %{THE_REQUEST} \s[^?\s]*/index\.php[\s?]
 RewriteRule ^((?:admin|superadmin|tutor|students|intern|employee|profile)(?:/[^?]*)?)/index\.php$ %{ENV:BASE}$1/ [R=301,L]
 RewriteCond %{REQUEST_METHOD} =GET
 RewriteCond %{THE_REQUEST} \s[^?\s]*\.php[\s?]
-RewriteCond $2 !^(api|manifest|file|search|clock|keepalive)$
+RewriteCond $2 !^(api|manifest|file|search|clock|keepalive|photo)$
 RewriteRule ^((?:admin|superadmin|tutor|students|intern|employee|profile|auth)(?:/[^?]*)?)/([A-Za-z0-9_-]+)\.php$ %{ENV:BASE}$1/$2 [R=301,L]
 
 # Homepage: index.php → /

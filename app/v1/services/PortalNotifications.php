@@ -133,6 +133,12 @@ class PortalNotifications
     /** Profile picture of a person (tutor photo first, then their passport photo), for the notification picture. */
     public static function photoOf(PDO $db, int $userId): ?string
     {
+        // The permission-checked photo route works for private tutor ID photos and public profile photos alike.
+        try {
+            require_once __DIR__ . '/../helpers/user_photo.php';
+            if (idc_student_photo_file($db, $userId)) return 'profile/photo.php?u=' . $userId;
+        } catch (Throwable $e) {
+        }
         try {
             $st = $db->prepare(
                 "SELECT COALESCE(NULLIF(t.photo_path, ''), NULLIF(up.profile_photo_path, '')) FROM users u

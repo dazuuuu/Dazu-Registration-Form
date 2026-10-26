@@ -2,6 +2,7 @@
 // Phone home screen for the tutor portal (below 992px, glass look from components/app_shell/glass.php).
 // Expects $tc, $myStudents, $pending, $tutor, $stats from tutor/dashboard/index.php.
 $th = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+require_once __DIR__ . '/../../../app/v1/helpers/user_photo.php';
 $thIni = fn(string $n) => strtoupper(implode('', array_map(fn($w) => mb_substr($w, 0, 1), array_slice(preg_split('/\s+/', trim($n)), 0, 2))));
 $thProg = [];
 foreach (array_slice($myStudents, 0, 30) as $s) {
@@ -80,7 +81,7 @@ $thCirc = 2 * M_PI * 30;
     <div class="th-row">
         <?php foreach (array_slice($myStudents, 0, 12) as $s): $p = $thProg[(int) $s['id']] ?? $tc->progressFor($s); ?>
         <a class="th-glass th-card" href="<?php echo url('tutor/students/view.php?id=' . (int) $s['id']); ?>">
-            <div class="th-who"><span class="av"><?php echo $th($thIni($s['full_name'])); ?></span>
+            <div class="th-who"><?php $avUrl = user_photo_url($pdo, (int) ($s['user_id'] ?? 0)); ?><span class="av" style="overflow:hidden"><?php if ($avUrl): ?><img src="<?php echo $th($avUrl); ?>" alt="" style="width:100%;height:100%;object-fit:cover"><?php else: echo $th($thIni($s['full_name'])); endif; ?></span>
                 <div style="min-width:0"><b><?php echo $th($s['full_name']); ?></b><small><?php echo $th($s['course_title']); ?></small></div></div>
             <div class="th-when"><span class="ic"><i class="fas fa-chart-line"></i></span>
                 <div class="flex-grow-1"><b><?php echo $p['total'] ? (int) $p['percent'] . '% done' : 'Not started'; ?></b>

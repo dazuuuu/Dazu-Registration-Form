@@ -176,8 +176,18 @@ ob_start();
             <label class="block text-xs font-bold uppercase tracking-widest text-slate-500" for="password">Password</label>
             <a href="<?php echo url('auth/forgot_password.php'); ?>" class="text-[10px] font-bold text-green-600 hover:underline">Forgot password?</a>
           </div>
-          <input type="password" id="password" name="password" required autocomplete="current-password"
-                 class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-green-600">
+          <div class="relative">
+            <input type="password" id="password" name="password" required autocomplete="current-password"
+                   class="w-full px-4 py-3 pr-12 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-green-600">
+            <button type="button" id="pwToggle" aria-label="Show password" aria-pressed="false" title="Show password"
+                    class="absolute inset-y-0 right-0 px-4 flex items-center text-slate-400 hover:text-green-600">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3" stroke-width="2"/><path data-slash stroke-linecap="round" stroke-width="2" d="M4 4l16 16" style="display:none"/></svg>
+            </button>
+          </div>
+          <script>(function () { var b = document.getElementById('pwToggle'), i = document.getElementById('password');
+            b.addEventListener('click', function () { var show = i.type === 'password'; i.type = show ? 'text' : 'password';
+              b.setAttribute('aria-pressed', show); b.setAttribute('aria-label', show ? 'Hide password' : 'Show password'); b.title = b.getAttribute('aria-label');
+              b.querySelector('[data-slash]').style.display = show ? '' : 'none'; i.focus(); }); })();</script>
         </div>
         <button type="submit" class="w-full py-3.5 text-xs font-extrabold uppercase tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-xl">Sign In</button>
       </form>

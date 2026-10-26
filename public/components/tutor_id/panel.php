@@ -115,8 +115,9 @@ unset($_SESSION['tid_flash']);
                     <?php if ($tidAdmin && !empty($t['edited_by_tutor'])): ?><span class="badge rounded-pill bg-info text-dark">Edited by tutor</span><?php endif; ?></div>
             </div>
             <?php if (!$photoAbs): ?>
-                <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0"><span><i class="fas fa-camera me-1"></i>Upload your passport photo and your staff ID card is created and emailed to you straight away.</span><a href="#tid-photo" class="btn btn-sm btn-warning">Update photo</a></div>
-            <?php else: ?>
+                <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3"><span><i class="fas fa-camera me-1"></i>This is how your ID will look. Upload your passport photo and your staff ID card is created and emailed to you straight away.</span><a href="#tid-photo" class="btn btn-sm btn-warning">Upload photo</a></div>
+            <?php endif; ?>
+            <?php if (true): // the preview always shows; without a photo the frame shows a placeholder ?>
                 <?php if ($photoStatus === 'needs_update' || $photoStatus === 'requested'): ?><div class="alert alert-warning py-2 d-flex justify-content-between align-items-center flex-wrap gap-2"><span><i class="fas fa-triangle-exclamation me-1"></i>A better photo will make your card print more clearly.</span><a href="#tid-photo" class="btn btn-sm btn-warning">Update photo</a></div><?php endif; ?>
                 <?php if ($nameWarn): ?><div class="alert alert-warning py-2 small"><i class="fas fa-text-width me-1"></i><?php echo $e($nameWarn); ?></div><?php endif; ?>
                 <div class="row g-4 align-items-start">
