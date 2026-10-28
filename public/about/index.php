@@ -105,36 +105,35 @@ ob_start();
   </div>
 </section>
 
-<!-- Value pillars -->
+<!-- Vision, mission, core commitment -->
 <section class="bg-slate-50 border-y border-slate-100 py-20">
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="max-w-2xl mb-12">
-      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Value Pillars</span>
-      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Our Core Mission and Values</h2>
-      <p class="text-slate-600 font-medium mt-4">We operate under three primary philosophies to guarantee value for every single minute spent in our technical lectures.</p>
+      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Who We Are</span>
+      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Our Vision, Mission and Commitment</h2>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <div class="bg-white border border-slate-200 rounded-2xl p-8">
         <div class="w-12 h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-[#15A24A] mb-6">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"/><circle cx="12" cy="12" r="5" stroke-width="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
         </div>
-        <h3 class="text-sm font-extrabold text-slate-950 uppercase tracking-wide mb-3">Career Alignment</h3>
-        <p class="text-slate-600 text-sm leading-relaxed">Our courses align closely with technical requirements drafted by software studios, networking firms, and business sectors.</p>
+        <h3 class="text-sm font-extrabold text-slate-950 uppercase tracking-wide mb-3">Our Vision</h3>
+        <p class="text-slate-600 text-sm leading-relaxed">To be Africa&rsquo;s leading hub for technology, innovation, digital and practical skills.</p>
       </div>
       <div class="bg-white border border-slate-200 rounded-2xl p-8">
         <div class="w-12 h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-[#15A24A] mb-6">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"/><circle cx="12" cy="12" r="5" stroke-width="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
         </div>
-        <h3 class="text-sm font-extrabold text-slate-950 uppercase tracking-wide mb-3">Lab-First Philosophy</h3>
-        <p class="text-slate-600 text-sm leading-relaxed">We believe skills are built through practice. Our training follows an 80% practical and 20% theory approach, where learners spend most of their time working on real projects, solving real problems, and using industry-standard tools. Every session is designed to build hands-on experience, confidence, and job-ready skills that prepare students for employment, freelancing, entrepreneurship, and professional growth.</p>
+        <h3 class="text-sm font-extrabold text-slate-950 uppercase tracking-wide mb-3">Our Mission</h3>
+        <p class="text-slate-600 text-sm leading-relaxed">To equip learners with practical digital skills for careers, entrepreneurship, and innovation.</p>
       </div>
       <div class="bg-white border border-slate-200 rounded-2xl p-8">
         <div class="w-12 h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-[#15A24A] mb-6">
           <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
         </div>
-        <h3 class="text-sm font-extrabold text-slate-950 uppercase tracking-wide mb-3">Uncompromising Integrity</h3>
-        <p class="text-slate-600 text-sm leading-relaxed">Honest mentoring, clear evaluation rubrics, and high accountability for every enrolled student.</p>
+        <h3 class="text-sm font-extrabold text-slate-950 uppercase tracking-wide mb-3">Our Core Commitment</h3>
+        <p class="text-slate-600 text-sm leading-relaxed">Practical Skills. Digital Innovation. Limitless Opportunities.</p>
       </div>
     </div>
   </div>
@@ -255,49 +254,36 @@ $teamHref = static function (string $key, string $v): string {
 };
 ?>
 <style>
-.dz-team{background:#f6f8f7;border-top:1px solid #eef2f0;padding:80px 16px}
+.dz-team{background:#fff;padding:80px 16px 90px}
 .dz-team *{box-sizing:border-box}
-.dz-team-wrap{max-width:1040px;margin:0 auto}
-.dz-team-grid{display:grid;grid-template-columns:1fr;gap:20px}
-@media(min-width:600px){.dz-team-grid{grid-template-columns:repeat(2,1fr)}}
-@media(min-width:960px){.dz-team-grid{grid-template-columns:repeat(3,1fr);gap:24px}}
-.dz-team-intro{background:#15803d;background:linear-gradient(160deg,#16a34a,#14532d);color:#fff;border-radius:14px;padding:32px 28px;display:flex;flex-direction:column;justify-content:center;min-height:280px;margin-top:84px}
-.dz-team-intro h2{font-size:30px;line-height:1.2;font-weight:800;margin:0 0 14px;letter-spacing:-.01em}
-.dz-team-intro p{font-size:15px;line-height:1.6;opacity:.9;margin:0 0 24px}
-.dz-team-intro a{align-self:flex-start;background:#fff;color:#14532d;font-size:13px;font-weight:700;padding:10px 20px;border-radius:999px;text-decoration:none;transition:.15s}
-.dz-team-intro a:hover{background:#dcfce7}
-.dz-team-card{position:relative;margin-top:84px;padding:96px 26px 34px;background:#15A24A;color:#fff;text-align:center;border-radius:120px 0 120px 0;transition:transform .25s,box-shadow .25s}
-.dz-team-card:hover{transform:translateY(-4px);box-shadow:0 18px 40px rgba(21,162,74,.3)}
-.dz-team-photo{position:absolute;top:-84px;left:14%;width:168px;height:168px;border-radius:50%;background:#15A24A;padding:8px;overflow:hidden}
-.dz-team-photo img,.dz-team-initial{width:100%;height:100%;border-radius:50%;object-fit:cover;object-position:top;display:block;background:#fff}
-.dz-team-initial{display:flex;align-items:center;justify-content:center;font-size:56px;font-weight:800;color:#15A24A}
-.dz-team-card h3{font-size:17px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;margin:0 0 4px;color:#fff}
-.dz-team-role{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.03em;color:#e2e8f0;margin-bottom:14px}
-.dz-team-bio{font-size:12.5px;line-height:1.6;color:#e2e8f0;margin:0 auto 20px;max-width:260px}
-.dz-team-social{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
-.dz-team-social a{width:26px;height:26px;border-radius:50%;background:#fff;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:transform .15s}
-.dz-team-social a:hover{transform:translateY(-2px)}
-.dz-team-social svg{width:14px;height:14px;fill:currentColor}
-.dz-team-social .is-phone{color:#15A24A}
-.dz-team-social .is-email{color:#EA4335}
-.dz-team-social .is-whatsapp{color:#25D366}
-.dz-team-social .is-tiktok{color:#000}
-.dz-team-social .is-linkedin{color:#0A66C2}
-.dz-team-social .is-facebook{color:#1877F2}
-.dz-team-social .is-instagram svg{fill:url(#dz-ig-grad)}
-.dz-team-empty{border:1px dashed #cbd5e1;border-radius:14px;padding:40px;text-align:center;color:#64748b;background:#fff}
+.dz-team-wrap{max-width:1120px;margin:0 auto}
+.dz-team-title{text-align:center;font-size:clamp(28px,3.6vw,40px);line-height:1.2;font-weight:700;color:#1e293b;letter-spacing:-.02em;margin:0 auto 64px;max-width:520px;text-transform:none}
+.dz-team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 14px}
+@media(min-width:640px){.dz-team-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:960px){.dz-team-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:56px 10px}}
+.dz-team-photo{position:relative;aspect-ratio:1/0.88;border-radius:14px;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
+/* soft pastel backdrops, in the same order as the design */
+.dz-team-card:nth-child(8n+1) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#f1fbe2 100%)}
+.dz-team-card:nth-child(8n+2) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#e3d3fb 100%)}
+.dz-team-card:nth-child(8n+3) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#fbd3e6 100%)}
+.dz-team-card:nth-child(8n+4) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#d3e7fb 100%)}
+.dz-team-card:nth-child(8n+5) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#dbefc8 100%)}
+.dz-team-card:nth-child(8n+6) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#c9ece6 100%)}
+.dz-team-card:nth-child(8n+7) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#cfdde8 100%)}
+.dz-team-card:nth-child(8n+8) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#f6e6d6 100%)}
+.dz-team-photo img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
+.dz-team-initial{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:700;color:#334155}
+.dz-team-name{font-size:19px;line-height:1.3;font-weight:600;color:#0f172a;margin:18px 0 6px;text-transform:none;letter-spacing:-.01em}
+.dz-team-role{display:block;font-size:14px;color:#64748b}
+.dz-team-empty{border:1px dashed #cbd5e1;border-radius:14px;padding:40px;text-align:center;color:#64748b;grid-column:1/-1}
 </style>
 <section class="dz-team" id="team">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="dz-ig-grad" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#FEDA75"/><stop offset=".3" stop-color="#FA7E1E"/><stop offset=".6" stop-color="#D62976"/><stop offset=".8" stop-color="#962FBF"/><stop offset="1" stop-color="#4F5BD5"/></linearGradient></defs></svg>
   <div class="dz-team-wrap">
+    <h2 class="dz-team-title">A Team That Never Says Impossible</h2>
     <div class="dz-team-grid">
-      <div class="dz-team-intro">
-        <h2>Meet our team</h2>
-        <p>Our founder, developers and tutors work together to make every learning experience practical and career-focused.</p>
-        <a href="<?php echo url('contact'); ?>">Join the team</a>
-      </div>
       <?php if (!$teamMembers): ?>
-        <div class="dz-team-empty" style="grid-column:span 2">Our team profiles will be available soon.</div>
+        <div class="dz-team-empty">Our team profiles will be available soon.</div>
       <?php endif; ?>
       <?php foreach ($teamMembers as $t): ?>
         <article class="dz-team-card">
@@ -308,16 +294,8 @@ $teamHref = static function (string $key, string $v): string {
               <div class="dz-team-initial"><?php echo htmlspecialchars(strtoupper(substr($t['name'], 0, 1))); ?></div>
             <?php endif; ?>
           </div>
-          <h3><?php echo htmlspecialchars($t['name']); ?></h3>
+          <h3 class="dz-team-name"><?php $tn = trim((string) $t['name']); echo htmlspecialchars($tn === mb_strtoupper($tn) ? mb_convert_case(mb_strtolower($tn), MB_CASE_TITLE) : $tn); ?></h3>
           <span class="dz-team-role"><?php echo htmlspecialchars($t['role']); ?></span>
-          <?php if (!empty($t['bio'])): ?>
-            <p class="dz-team-bio"><?php echo htmlspecialchars($t['bio']); ?></p>
-          <?php endif; ?>
-            <div class="dz-team-social">
-              <?php foreach ($teamIcons as $key => [$label, $path]): $v = trim((string) ($t[$key] ?? '')); if ($v === '') continue; $ext = !in_array($key, ['phone', 'email'], true); ?>
-                <a class="is-<?php echo $key; ?>" href="<?php echo htmlspecialchars($teamHref($key, $v), ENT_QUOTES); ?>" aria-label="<?php echo htmlspecialchars($label . ' ' . $t['name'], ENT_QUOTES); ?>" title="<?php echo $label; ?>"<?php echo $ext ? ' target="_blank" rel="noopener"' : ''; ?>><svg viewBox="0 0 24 24" aria-hidden="true"><?php echo $path; ?></svg></a>
-              <?php endforeach; ?>
-            </div>
         </article>
       <?php endforeach; ?>
     </div>

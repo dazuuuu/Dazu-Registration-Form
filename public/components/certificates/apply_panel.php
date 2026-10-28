@@ -19,7 +19,8 @@ foreach ($apRegs->fetchAll(PDO::FETCH_ASSOC) as $apReg):
 <div class="card border-0 shadow-sm rounded-4 mb-4"><div class="card-body p-4">
     <div class="d-flex flex-wrap justify-content-between gap-2"><h5 class="mb-1"><?php echo htmlspecialchars($apReg['title']); ?> · your certificate was sent</h5><span class="badge bg-success align-self-start">Sent <?php echo htmlspecialchars(date('j M Y', strtotime($apApp['sent_at'] . ' UTC'))); ?></span></div>
     <p class="small text-muted mb-2">Also ready for you:</p>
-    <a class="btn btn-sm btn-outline-secondary me-1" href="<?php echo url('capstone/transcript.php?course=' . $apCid); ?>"><i class="fas fa-file-lines me-1"></i>Transcript</a>
+    <?php require_once __DIR__ . '/../../../app/v1/services/TranscriptService.php';
+    if (tr_installed($db) && tr_released($db, $userId, $apCid)): ?><a class="btn btn-sm btn-outline-secondary me-1" href="<?php echo url('capstone/transcript.php?course=' . $apCid); ?>"><i class="fas fa-file-lines me-1"></i>Transcript</a><?php endif; ?>
     <a class="btn btn-sm btn-outline-secondary" href="<?php echo url('capstone/letter.php?course=' . $apCid); ?>" target="_blank"><i class="fas fa-envelope-open-text me-1"></i>Letter of recommendation</a>
 </div></div>
         <?php endif;

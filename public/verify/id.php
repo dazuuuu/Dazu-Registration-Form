@@ -23,7 +23,7 @@ if (preg_match('/^[a-f0-9]{16,64}$/', $key)) {
         $st = \Models\Connection::getInstance()->getConnection()->prepare(
             "SELECT IF(t.is_active = 1 AND u.is_active = 1, 'approved', 'inactive') AS reg_status, 'generated' AS status,
                     YEAR(DATE_ADD(t.id_issued_at, INTERVAL 2 YEAR)) AS valid_until, 'Tutor' AS snapshot_course,
-                    COALESCE(NULLIF(TRIM(CONCAT(COALESCE(up.first_name,''), ' ', COALESCE(up.last_name,''))), ''), u.username) AS snapshot_name, 1 AS staff
+                    COALESCE(NULLIF(TRIM(CONCAT(COALESCE(up.first_name,''), ' ', COALESCE(up.last_name,''))), ''), u.username) AS snapshot_name, 1 AS staff, u.email
              FROM tutors t JOIN users u ON u.id = t.user_id LEFT JOIN user_profiles up ON up.user_id = u.id WHERE t.id_qr_hash = ? LIMIT 1"
         );
         $st->execute([$key]);
@@ -47,6 +47,26 @@ if (preg_match('/^[a-f0-9]{16,64}$/', $key)) {
     }
 }
 $staffCard = !empty($card['staff']);
+// Staff (tutors, admins, any Dazu staff): name, photo and position come from the website's Team section (Admin → Team),
+// matched by email, then by name.
+$photo = null;
+if ($staffCard) {
+    try {
+        $st = \Models\Connection::getInstance()->getConnection()->prepare(
+            "SELECT name, position, photo FROM team_members
+             WHERE (? <> '' AND email <> '' AND LOWER(email) = LOWER(?)) OR LOWER(TRIM(name)) = LOWER(TRIM(?))
+             ORDER BY (? <> '' AND LOWER(email) = LOWER(?)) DESC LIMIT 1"
+        );
+        $em = (string) ($card['email'] ?? '');
+        $st->execute([$em, $em, (string) $card['snapshot_name'], $em, $em]);
+        if ($tm = $st->fetch(PDO::FETCH_ASSOC)) {
+            if (trim((string) $tm['name']) !== '') $card['snapshot_name'] = $tm['name'];
+            if (trim((string) $tm['position']) !== '') $card['snapshot_course'] = $tm['position'];
+            $rel = ltrim((string) $tm['photo'], '/');
+            if ($rel !== '' && is_file(__DIR__ . '/../' . $rel)) $photo = url($rel);
+        }
+    } catch (Throwable $e) { /* no team section */ }
+}
 $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 $expired = $card && (int) $card['valid_until'] > 0 && (int) $card['valid_until'] < (int) date('Y');
 $active = $card && !$expired && $card['reg_status'] === 'approved';
@@ -74,8 +94,8 @@ CSS;
 ob_start();
 ?>
 <div class="vi"><div class="vi-wrap">
-  <span class="vi-chip">Student ID Verification</span>
-  <h1>Dazu student ID card</h1>
+  <span class="vi-chip"><?php echo $staffCard ? 'Staff' : 'Student'; ?> ID Verification</span>
+  <h1>Dazu <?php echo $staffCard ? 'staff' : 'student'; ?> ID card</h1>
   <div class="vi-res">
     <?php if (!$card): ?>
       <div class="vi-band bad">
@@ -93,8 +113,9 @@ ob_start();
         <?php endif; ?>
       </div>
       <div class="vi-body">
+        <?php if ($photo): ?><img src="<?php echo $e($photo); ?>" alt="" style="width:110px;height:110px;object-fit:cover;border-radius:50%;display:block;margin:0 auto 14px;border:3px solid #eaf4e4"><?php endif; ?>
         <p class="vi-name"><?php echo $e($card['snapshot_name']); ?></p>
-        <div class="vi-k"><?php echo $staffCard ? 'Role' : 'Course'; ?></div><div class="vi-v"><?php echo $e($card['snapshot_course']); ?></div>
+        <div class="vi-k"><?php echo $staffCard ? 'Position' : 'Course'; ?></div><div class="vi-v"><?php echo $e($card['snapshot_course']); ?></div>
         <div class="vi-k">Status</div><div class="vi-v"><?php echo $active ? 'Active' : ($expired ? 'Expired' : 'Inactive'); ?><?php echo $card['valid_until'] ? ' · valid until ' . (int) $card['valid_until'] : ''; ?></div>
       </div>
     <?php endif; ?>

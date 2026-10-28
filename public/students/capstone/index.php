@@ -24,11 +24,12 @@ foreach ($list as $c) {
     $rel = cap_release_state($pdo, $uid, $cid);
     if ($rel['transcript']) $doneCourses[$cid] = $c['course_title'];
 }
-foreach ($doneCourses as $cid => $ct): ?>
+require_once __DIR__ . '/../../../app/v1/services/TranscriptService.php';
+foreach ($doneCourses as $cid => $ct): $hasTr = tr_installed($pdo) && tr_sync($pdo, $uid, $cid) !== 'none' && tr_released($pdo, $uid, $cid); ?>
     <div class="card-tutor p-3 p-md-4 mb-3" style="border:2px solid #44A024">
         <div class="fw-bold"><i class="fas fa-award text-success me-1"></i>Your course is complete: <?php echo asg_e($ct); ?></div>
-        <div class="small text-muted mb-2">Your transcript and your letter of recommendation are ready.</div>
-        <a class="btn btn-brand btn-sm" href="<?php echo asg_e(url('capstone/transcript.php?course=' . $cid)); ?>">Open my transcript</a>
+        <div class="small text-muted mb-2"><?php echo $hasTr ? 'Your transcript and your letter of recommendation are ready.' : 'Your letter of recommendation is ready.'; ?></div>
+        <?php if ($hasTr): ?><a class="btn btn-brand btn-sm" href="<?php echo asg_e(url('capstone/transcript.php?course=' . $cid)); ?>">Open my transcript</a><?php endif; ?>
         <a class="btn btn-outline-dark btn-sm" target="_blank" href="<?php echo asg_e(url('capstone/letter.php?course=' . $cid . '&dl=1')); ?>"><i class="fas fa-download me-1"></i>Download my letter of recommendation</a>
     </div>
 <?php endforeach; ?>

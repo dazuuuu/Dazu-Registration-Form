@@ -283,25 +283,3 @@ body.sa-body,body.sa-auth-body{overflow-x:hidden;max-width:100vw}
 .sa-pin-err{min-height:22px;color:var(--sa-bad);font-size:.82rem;font-weight:600;margin-bottom:6px}
 @media (max-width:1024px){.sa-lockable-panel .sa-gate{padding-top:80px}.sa-view-more{padding:14px 26px}}
 
-/* ---------- desktop panel: dark sidebar + white top bar (1025px and up) ---------- */
-.sa-side,.sa-welcome{display:none}
-@media (min-width:1025px){
-  :root{--sa-side:250px}
-  body.sa-body{padding:0;background:#f4f5f9}
-  .sa-side{display:flex;flex-direction:column;position:fixed;inset:0 auto 0 0;width:var(--sa-side);background:#1c2132;color:#c9ccd8;z-index:50;padding:22px 0 16px}
-  .sa-side-brand{display:flex;align-items:center;gap:10px;padding:0 24px 18px;margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,.08);text-decoration:none;color:#fff;font-weight:800;letter-spacing:.03em;line-height:1.1}
-  .sa-side-brand img{border-radius:8px}
-  .sa-side-brand small{display:block;font-weight:500;font-size:.68rem;letter-spacing:0;color:#9aa0b4;margin-top:3px}
-  .sa-side-nav{flex:1;min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#3a4058 transparent;padding-bottom:10px}
-  .sa-side-sep{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:#8a90a6;padding:18px 24px 8px}
-  .sa-side-nav a,.sa-side-out{display:flex;align-items:center;gap:14px;padding:11px 24px;color:#d3d6e0;text-decoration:none;font-size:.9rem;font-weight:500;transition:background .15s,color .15s}
-  .sa-side-nav a i,.sa-side-out i{width:18px;text-align:center;color:#9aa0b4}
-  .sa-side-nav a:hover,.sa-side-out:hover{background:rgba(255,255,255,.06);color:#fff}
-  .sa-side-nav a.active{background:linear-gradient(90deg,rgba(255,255,255,.16),rgba(255,255,255,.04));color:#fff;font-weight:600}
-  .sa-side-nav a.active i{color:var(--sa-primary-2)}
-  .sa-side-out{margin-top:6px;border-top:1px solid rgba(255,255,255,.08);padding-top:16px}
-  .sa-frame{margin:0 0 0 var(--sa-side);max-width:none;border-radius:0;box-shadow:none;background:#f4f5f9;padding:0 32px 40px;min-height:100vh}
-  .sa-top{position:sticky;top:0;z-index:40;background:#fff;margin:0 -32px 28px;padding:16px 32px;border-bottom:1px solid var(--sa-line);flex-wrap:nowrap;max-width:none;width:calc(100% + 64px)}
-  .sa-top .sa-brand,.sa-top .sa-nav{display:none}
-  .sa-welcome{display:block;font-size:1.15rem;font-weight:700;color:var(--sa-ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-}

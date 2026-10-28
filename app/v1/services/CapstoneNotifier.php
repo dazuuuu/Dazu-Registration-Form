@@ -169,8 +169,11 @@ class CapstoneNotifier extends AssignmentNotifier
     /** The student is Ready: one notice and one email. No marks, no result word. */
     public function completionReady(int $uid, string $course, int $courseId): void
     {
-        $this->tell($uid, 'Your course is complete. Your transcript and letter of recommendation are ready.', $course,
-            'capstone/transcript.php?course=' . $courseId, 'Your course is complete');
+        // Only courses of 12 months and longer have a transcript (TranscriptService); the capstone page shows it once it is released.
+        require_once __DIR__ . '/TranscriptService.php';
+        $tr = tr_installed($this->db) && tr_course_eligible($this->db, $courseId);
+        $this->tell($uid, $tr ? 'Your course is complete. Your transcript and letter of recommendation are ready.' : 'Your course is complete. Your letter of recommendation is ready.', $course,
+            'students/capstone/index.php', 'Your course is complete');
     }
 
     public function courseFinished(int $uid, string $course): void

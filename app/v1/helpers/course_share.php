@@ -46,7 +46,7 @@ if (!function_exists('course_og_image_url')) {
     {
         $id = (int) ($course['id'] ?? 0);
         if ($id > 0) {
-            return course_share_absolute_url(url('courses/cover.php?id=' . $id));
+            return course_share_absolute_url(url('courses/cover')) . '?id=' . $id;   // the clean address: no redirect for the crawler to follow
         }
         require_once __DIR__ . '/dazu_theme.php';
         require_once __DIR__ . '/seo.php';

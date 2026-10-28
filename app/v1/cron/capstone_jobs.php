@@ -23,5 +23,9 @@ require_once __DIR__ . '/../services/CapstoneService.php';
 
 $pdo = \Models\Connection::getInstance()->getConnection();
 $r = cap_tick($pdo);
+require_once __DIR__ . '/../services/TranscriptService.php';
+$tr = tr_sweep($pdo);   // academic transcripts (12-month courses and longer) that became ready
+require_once __DIR__ . '/../services/StudentLetterService.php';
+$sl = sl_sweep($pdo);   // letters of recommendation (every student): course finished + fees paid
 AssignmentNotifier::flush();   // send the queued emails now (the CLI has no "after the page" moment)
-echo date('c') . ' capstone: opened ' . $r['opened'] . ', opens-soon ' . $r['soon'] . ', reminders ' . $r['reminders'] . ', released ' . $r['released'] . ', transcripts+letters ' . $r['transcripts'] . ', certificate buttons opened ' . $r['certificates'] . ', tutor reminders ' . $r['cert_reminders'] . "\n";
+echo date('c') . ' capstone: opened ' . $r['opened'] . ', opens-soon ' . $r['soon'] . ', reminders ' . $r['reminders'] . ', released ' . $r['released'] . ', transcripts+letters ' . $r['transcripts'] . ', certificate buttons opened ' . $r['certificates'] . ', tutor reminders ' . $r['cert_reminders'] . ', academic transcripts released ' . $tr . ', letters made ' . $sl . "\n";

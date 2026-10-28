@@ -308,10 +308,15 @@ if (!function_exists('dazu_share_image_for_path')) {
 if (!function_exists('dazu_favicon_tags')) {
     function dazu_favicon_tags(): string
     {
-        return '<link rel="icon" href="' . url('favicon.ico') . '" sizes="any">' . "\n"
-            . '  <link rel="icon" type="image/png" sizes="32x32" href="' . url('assets/icons/favicon-32.png') . '">' . "\n"
-            . '  <link rel="icon" type="image/png" sizes="192x192" href="' . url('assets/icons/favicon-192.png') . '">' . "\n"
-            . '  <link rel="apple-touch-icon" href="' . url('assets/icons/favicon-180.png') . '">' . "\n";
+        // ?v= changes whenever an icon file changes, so browsers drop a cached old favicon.
+        $v = static function (string $rel): string {
+            $f = dirname(__DIR__, 3) . '/public/' . $rel;
+            return url($rel) . (is_file($f) ? '?v=' . filemtime($f) : '');
+        };
+        return '<link rel="icon" href="' . $v('favicon.ico') . '" sizes="any">' . "\n"
+            . '  <link rel="icon" type="image/png" sizes="32x32" href="' . $v('assets/icons/favicon-32.png') . '">' . "\n"
+            . '  <link rel="icon" type="image/png" sizes="192x192" href="' . $v('assets/icons/favicon-192.png') . '">' . "\n"
+            . '  <link rel="apple-touch-icon" href="' . $v('assets/icons/favicon-180.png') . '">' . "\n";
     }
 }
 

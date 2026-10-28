@@ -60,6 +60,13 @@ if ($regNo !== '' && preg_match('#^[A-Z0-9/\-]{3,40}$#', $regNo)) {
         $enrols = $st->fetchAll(PDO::FETCH_ASSOC);
         foreach ($enrols as &$en) {
             $en['letter'] = lor_get_by_reg($db, (int) $en['id']);
+            $en['sletter'] = null;   // the letter of recommendation (migration 095): final letters only, never a draft
+            try {
+                $sq = $db->prepare('SELECT generated_at FROM student_letters WHERE registration_id = ?');
+                $sq->execute([(int) $en['id']]);
+                $en['sletter'] = $sq->fetchColumn() ?: null;
+            } catch (Throwable $ex) {
+            }
         }
         unset($en);
         $student = $sr + ['enrols' => $enrols, 'photo' => cert_student_photo($db, $sr['user_id'] ? (int) $sr['user_id'] : null)];
@@ -168,7 +175,7 @@ ob_start();
                 <div><dt>Registration No</dt><dd><?php echo $e($en['registration_no']); ?></dd></div>
                 <div><dt>Certificate</dt><dd><?php if ($en['certificate_no']): ?><a href="?c=<?php echo $e($en['qr_code_hash']); ?>#result"><?php echo $e($en['certificate_no']); ?></a><?php echo $en['issued_at'] ? ' · ' . $e(date('j M Y', strtotime($en['issued_at']))) : ''; ?><?php else: ?>Not yet awarded<?php endif; ?></dd></div>
                 <div><dt>Student ID</dt><dd><?php if ($en['id_status']): ?><a href="<?php echo $e(url('verify/id.php?k=' . $en['id_hash'])); ?>">Issued</a> · valid until <?php echo (int) $en['id_valid']; ?><?php else: ?>Not issued<?php endif; ?></dd></div>
-                <div><dt>Letter of recommendation</dt><dd><?php if ($en['letter']): ?><a href="<?php echo $e(url('letters/recommendation.php?k=' . $en['letter']['verify_hash'])); ?>" target="_blank">View letter</a> · <?php echo $e(date('j M Y', strtotime($en['letter']['created_at']))); ?><?php else: ?>Not given<?php endif; ?></dd></div>
+                <div><dt>Letter of recommendation</dt><dd><?php if ($en['sletter']): ?>Issued <?php echo $e(date('j M Y', strtotime($en['sletter']))); ?><?php elseif ($en['letter']): ?><a href="<?php echo $e(url('letters/recommendation.php?k=' . $en['letter']['verify_hash'])); ?>" target="_blank">View letter</a> · <?php echo $e(date('j M Y', strtotime($en['letter']['created_at']))); ?><?php else: ?>Not given<?php endif; ?></dd></div>
               </dl>
             <?php endforeach; ?>
           </div>

@@ -141,6 +141,10 @@ ob_start();
     </div>
     <div class="d-flex flex-wrap gap-2">
     <?php if ($hasIdCard): ?><a class="btn btn-outline-secondary" target="_blank" href="<?php echo $docUrl('id'); ?>"><i class="fas fa-id-card me-1"></i>Student ID</a><?php endif; ?>
+    <?php require_once __DIR__ . '/../../../app/v1/services/StudentLetterService.php';
+    if (sl_installed($pdo)): ?><a class="btn btn-outline-secondary" target="_blank" href="<?php echo htmlspecialchars(url('letters/student.php?reg=' . $regId)); ?>"><i class="fas fa-envelope-open-text me-1"></i>Letter</a><?php endif; ?>
+    <?php require_once __DIR__ . '/../../../app/v1/services/TranscriptService.php';
+    if (tr_installed($pdo) && tr_course_eligible($pdo, (int) $student['course_id'])): ?><a class="btn btn-outline-secondary" target="_blank" href="<?php echo htmlspecialchars(url('capstone/transcript.php?course=' . (int) $student['course_id'] . '&student=' . (int) $student['user_id'])); ?>"><i class="fas fa-file-lines me-1"></i>Transcript</a><?php endif; ?>
     <a class="btn btn-outline-secondary" target="_blank" href="<?php echo htmlspecialchars(url('id_cards/pdf.php?staff=' . (int) $_SESSION['user_id'])); ?>" title="Your staff ID card (upload your photo in My ID &amp; signature first)"><i class="fas fa-id-badge me-1"></i>My ID</a>
     <form method="POST" action="credentials.php" onsubmit="return confirm('Email this student a new temporary password? Their current password will stop working.')">
         <?php echo csrf_field(); ?><input type="hidden" name="reg_id" value="<?php echo $regId; ?>"><input type="hidden" name="return" value="view">

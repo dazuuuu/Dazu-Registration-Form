@@ -70,6 +70,12 @@ if ($file === null) {
     exit();
 }
 
+// A small 1200x630 JPEG: WhatsApp shows no picture for large covers (about 300 KB and up).
+require_once __DIR__ . '/../../app/v1/helpers/seo.php';
+if ($small = seo_share_jpeg_file($file)) {
+    $file = $small;
+}
+
 $mime = 'image/jpeg';
 if (function_exists('mime_content_type')) {
     $detected = @mime_content_type($file);

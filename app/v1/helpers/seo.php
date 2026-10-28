@@ -45,6 +45,60 @@ if (!function_exists('seo_image_url')) {
     }
 }
 
+if (!function_exists('seo_share_jpeg_file')) {
+    /**
+     * The 1200x630 JPEG copy of a local image for link previews (made once, kept in public/uploads/share/).
+     * Returns $src itself when it is already a small 1200x630 JPEG, and null when it is not an image that can be read.
+     */
+    function seo_share_jpeg_file(string $src): ?string
+    {
+        if (!function_exists('imagecreatetruecolor') || !is_file($src)) return null;
+        $info = @getimagesize($src);
+        if (!$info || !in_array($info[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP, IMAGETYPE_GIF], true)) return null;
+        if ($info[2] === IMAGETYPE_JPEG && $info[0] === 1200 && $info[1] === 630 && filesize($src) < 250000) return $src;
+        $dir = dirname(__DIR__, 3) . '/public/uploads/share';
+        $out = $dir . '/' . substr(md5($src . '|' . filemtime($src) . '|' . filesize($src)), 0, 20) . '.jpg';
+        if (is_file($out)) return $out;
+        if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) return null;
+        $im = @imagecreatefromstring((string) file_get_contents($src));
+        if (!$im) return null;
+        $w = imagesx($im); $h = imagesy($im);
+        $k = max(1200 / $w, 630 / $h);   // fill the frame, crop the overflow (centred)
+        $cw = (int) round(1200 / $k); $ch = (int) round(630 / $k);
+        $dst = imagecreatetruecolor(1200, 630);
+        imagefill($dst, 0, 0, imagecolorallocate($dst, 255, 255, 255));   // transparent PNGs go on white
+        imagecopyresampled($dst, $im, 0, 0, (int) (($w - $cw) / 2), (int) (($h - $ch) / 2), 1200, 630, $cw, $ch);
+        imageinterlace($dst, true);   // progressive: smaller, and loads in at once
+        return @imagejpeg($dst, $out, 76) ? $out : null;
+    }
+}
+
+if (!function_exists('seo_share_image')) {
+    /**
+     * WhatsApp shows no picture when the image is large (about 300 KB and up), and slider or team photos are often 1 MB PNGs.
+     * A local image is turned into a 1200x630 JPEG (cropped to fill, about 100-200 KB) once, kept in uploads/share/, and that
+     * copy is used for og:image. A remote image, or one that cannot be read, is used as it is.
+     */
+    function seo_share_image(string $absUrl): string
+    {
+        if (!function_exists('imagecreatetruecolor')) return $absUrl;
+        $path = (string) parse_url($absUrl, PHP_URL_PATH);
+        $host = (string) parse_url($absUrl, PHP_URL_HOST);
+        $myHost = preg_replace('/:\d+$/', '', (string) ($_SERVER['HTTP_HOST'] ?? ''));
+        if ($path === '' || ($host !== '' && $myHost !== '' && strcasecmp($host, $myHost) !== 0)) return $absUrl;
+        $public = dirname(__DIR__, 3) . '/public';
+        $base = defined('WEB_ROOT') ? rtrim((string) WEB_ROOT, '/') : '';
+        $rel = ltrim($base !== '' && str_starts_with($path, $base . '/') ? substr($path, strlen($base)) : $path, '/');
+        $src = realpath($public . '/' . rawurldecode($rel));
+        if (!$src || !str_starts_with($src, realpath($public) . DIRECTORY_SEPARATOR) || !is_file($src)) return $absUrl;
+        $out = seo_share_jpeg_file($src);
+        if ($out === null) return $absUrl;
+        if ($out === $src) return $absUrl;
+        $name = basename($out);
+        return course_share_absolute_url(url('uploads/share/' . $name));
+    }
+}
+
 if (!function_exists('seo_head_tags')) {
     function seo_head_tags(?string $title, ?string $description, ?string $image = null, ?string $url = null): string
     {
@@ -52,7 +106,7 @@ if (!function_exists('seo_head_tags')) {
         $description = $description !== null && $description !== ''
             ? $description
             : 'Practical tech training in Thika Town — software, cybersecurity, data analytics and AI.';
-        $image = seo_image_url($image) ?: seo_default_image();
+        $image = seo_share_image(seo_image_url($image) ?: seo_default_image());
         $url = $url ?: seo_current_url();
 
         $e = static function (string $v): string {

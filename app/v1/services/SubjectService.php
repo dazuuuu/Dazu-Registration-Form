@@ -140,6 +140,9 @@ if (!function_exists('subjectMarks')) {
         $db->prepare('INSERT INTO course_subjects (course_id, tutor_id, name, code, weight, monthly_expected, sort_order, is_active, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?)')
            ->execute([$courseId, $tutorId, $d['name'], $d['code'], $d['weight'], $d['monthly_expected'], $order, gmdate('Y-m-d H:i:s')]);
         $id = (int) $db->lastInsertId();
+        // The transcript number of the subject (101, 102, ...): given now, once, by the system.
+        require_once __DIR__ . '/TranscriptService.php';
+        tr_number_one_subject($db, $id, $courseId);
         subj_log($db, $id, $courseId, null, $actorUserId, 'subject_created', $d);
         return ['ok' => true, 'id' => $id];
     }

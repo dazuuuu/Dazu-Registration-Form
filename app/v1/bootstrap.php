@@ -120,3 +120,31 @@ if (!empty($appConfig['timezone']) && isset($pdo)) {
         // Non-fatal: OTP expiry uses MySQL NOW() on both write and read.
     }
 }
+
+// A page that crashes (fatal error) used to show half a page and nothing else, because the server hides PHP errors.
+// Now the error is written to storage/logs/fatal.log (Superadmin → File check shows it) and the visitor sees a short message.
+if (!defined('DAZU_FATAL_LOG')) {
+    define('DAZU_FATAL_LOG', true);
+    register_shutdown_function(static function (): void {
+        $err = error_get_last();
+        if (!$err || !in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR, E_RECOVERABLE_ERROR], true)) return;
+        $root = dirname(__DIR__, 2);
+        $dir = function_exists('storage_path') ? storage_path('logs') : __DIR__ . '/storage/logs';
+        if (is_dir($dir) || @mkdir($dir, 0775, true)) {
+            if (!is_file($dir . '/.htaccess')) @file_put_contents($dir . '/.htaccess', "Require all denied\nDeny from all\n");
+            $line = '[' . gmdate('Y-m-d H:i:s') . ' UTC] ' . ($_SERVER['REQUEST_METHOD'] ?? 'CLI') . ' ' . ($_SERVER['REQUEST_URI'] ?? '') . ' | '
+                  . str_replace($root . '/', '', $err['message']) . ' in ' . str_replace($root . '/', '', $err['file']) . ':' . $err['line'];
+            $log = $dir . '/fatal.log';
+            if (is_file($log) && filesize($log) > 512000) @rename($log, $log . '.old');
+            @file_put_contents($log, preg_replace('/\s+/', ' ', $line) . "\n", FILE_APPEND | LOCK_EX);
+        }
+        if (PHP_SAPI !== 'cli') {
+            while (ob_get_level() > 0) @ob_end_clean();   // drop the half-printed page
+            if (!headers_sent()) { http_response_code(500); header('Content-Type: text/html; charset=UTF-8'); }
+            echo '<!DOCTYPE html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Something went wrong</title>'
+               . '<div style="font-family:system-ui,sans-serif;max-width:480px;margin:15vh auto;padding:0 16px;text-align:center;color:#334155">'
+               . '<h1 style="font-size:20px">Something went wrong on this page</h1><p>The problem was recorded for the office. Please try again in a few minutes.</p>'
+               . '<p><a href="javascript:history.back()" style="color:#15A24A">Go back</a></p></div>';
+        }
+    });
+}
