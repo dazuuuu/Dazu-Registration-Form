@@ -20,6 +20,7 @@ if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) {
     http_response_code(404);
     exit;
 }
+while (ob_get_level()) ob_end_clean();   // nothing but the image bytes
 header('Content-Type: ' . $mime);
 header('Content-Length: ' . filesize($abs));
 header('Cache-Control: private, max-age=86400');   // the URL changes (v=…) whenever the photo changes

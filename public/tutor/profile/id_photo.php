@@ -14,13 +14,17 @@ function tidph_refuse(int $status, string $reason): void
 }
 
 if (empty($_SESSION['logged_in']) || empty($_SESSION['user_id'])) tidph_refuse(401, 'not logged in');
-if (($_SESSION['role'] ?? '') !== 'tutor') tidph_refuse(403, 'the account is not a tutor');
 $me = (int) $_SESSION['user_id'];
 if (isset($_GET['u']) && (int) $_GET['u'] !== $me) tidph_refuse(403, 'asked for another tutor\'s photo');
 $db = \Models\Connection::getInstance()->getConnection();
-$abs = staff_tutor($db, $me) ? idc_student_photo_file($db, $me) : null;
+// Any account with a tutor record (also an admin who teaches, whose session role may still be "admin").
+if (!staff_tutor($db, $me)) tidph_refuse(403, 'the account is not a tutor');
+$abs = idc_student_photo_file($db, $me);
 if (!$abs) tidph_refuse(404, 'no photo');
-header('Content-Type: ' . (str_ends_with(strtolower($abs), '.png') ? 'image/png' : 'image/jpeg'));
+$mime = (new finfo(FILEINFO_MIME_TYPE))->file($abs);
+if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) tidph_refuse(404, 'not an image (' . $mime . ')');
+while (ob_get_level()) ob_end_clean();   // nothing but the image bytes (a stray space from an included file breaks the picture)
+header('Content-Type: ' . $mime);
 header('Content-Length: ' . filesize($abs));
 header('Cache-Control: private, max-age=300');
 header('X-Content-Type-Options: nosniff');

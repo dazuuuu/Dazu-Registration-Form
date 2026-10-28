@@ -56,9 +56,9 @@ function session_guard_check(): void {
     }
 }
 
-/** Admins (and the superadmin) may be signed in on several devices; everyone else on one. */
+/** Admins (and the superadmin) may be signed in on several devices; everyone else on one. An admin in their tutor portal (admin_tutor) stays an admin here. */
 function session_guard_single_device(): bool {
-    return (int) ($_SESSION['role_id'] ?? 0) > 2 && empty($_SESSION['preview']) && empty($_SESSION['tutor_admin']);
+    return (int) ($_SESSION['role_id'] ?? 0) > 2 && empty($_SESSION['preview']) && empty($_SESSION['tutor_admin']) && empty($_SESSION['admin_tutor']);
 }
 
 function session_guard_db(): ?PDO {

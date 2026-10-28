@@ -10,12 +10,21 @@ Middleware::requireAuth();
 $db = \Models\Connection::getInstance()->getConnection();
 $me = (int) ($_SESSION['user_id'] ?? 0);
 $who = (int) ($_GET['u'] ?? $me);
-$abs = ($who === $me || tid_is_admin()) && staff_tutor($db, $who) ? idc_student_photo_file($db, $who) : null;
-if (!$abs) {
+// Admins by role name or role number (an admin coming from their tutor portal may still carry the tutor role name).
+$isAdmin = tid_is_admin() || (int) ($_SESSION['role_id'] ?? 99) <= 2 || !empty($_SESSION['admin_tutor']);
+$refuse = function (string $why) use ($me, $who) {
+    error_log('[tutor photo] 404 ' . $why . ' (viewer ' . $me . ', tutor user ' . $who . ', role ' . ($_SESSION['role'] ?? 'none') . ')');
     http_response_code(404);
     exit;
-}
-header('Content-Type: ' . (str_ends_with(strtolower($abs), '.png') ? 'image/png' : 'image/jpeg'));
+};
+if ($who !== $me && !$isAdmin) $refuse('not allowed');
+if (!staff_tutor($db, $who)) $refuse('no tutor record');
+$abs = idc_student_photo_file($db, $who);
+if (!$abs) $refuse('no photo file on the server');
+$mime = (new finfo(FILEINFO_MIME_TYPE))->file($abs);
+if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true)) $refuse('not an image (' . $mime . ')');
+while (ob_get_level()) ob_end_clean();   // nothing but the image bytes
+header('Content-Type: ' . $mime);
 header('Content-Length: ' . filesize($abs));
 header('Cache-Control: private, max-age=300');
 header('X-Content-Type-Options: nosniff');
