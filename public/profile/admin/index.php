@@ -50,6 +50,11 @@ $stmt = $pdo->prepare("SELECT COUNT(*) as total FROM blogs WHERE status = 'publi
 $stmt->execute();
 $totalBlogs = $stmt->fetch(PDO::FETCH_ASSOC)['total'];
 
+require_once __DIR__ . '/../../../app/v1/helpers/profile_photo.php';
+$db = $pdo;
+$uid = (int) $user_id;
+pp_handle($db, $uid, url('profile/admin/index.php'));   // profile photo: change or delete
+
 // Handle profile update
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_profile'])) {
     $first_name = trim($_POST['first_name'] ?? '');
@@ -220,6 +225,8 @@ if ($error) {
         font-weight: 500;
     }
 </style>
+
+<?php require __DIR__ . '/../../components/profile/photo_card.php'; ?>
 
 <div class="row">
     <!-- Admin Stats Cards -->

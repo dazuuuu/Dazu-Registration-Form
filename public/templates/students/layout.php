@@ -73,11 +73,12 @@ if (true) {
 }
 $slItems[] = ['announcements', 'Announcements', 'fa-bullhorn', url('students/announcements/index.php'), $slDir === 'announcements', false];
 $slItems[] = ['notifications', 'Notifications', 'fa-bell', url('students/notifications/index.php'), $slDir === 'notifications', false];
+$slItems[] = ['profile', 'My profile', 'fa-user-circle', url('students/profile/index.php'), $slDir === 'profile', false];
 
 if ($portal_locked) {
     // Fees overdue: the course lessons are locked, but assignments and quizzes (receive, view, submit, grades),
     // documents and payments stay open.
-    $slItems = array_values(array_filter($slItems, fn($i) => in_array($i[0], ['dashboard', 'payments', 'documents', 'assignments', 'capstone', 'classwork', 'notifications'], true)));
+    $slItems = array_values(array_filter($slItems, fn($i) => in_array($i[0], ['dashboard', 'payments', 'documents', 'assignments', 'capstone', 'classwork', 'notifications', 'profile'], true)));
     foreach ($slItems as &$slIt) { if (in_array($slIt[0], ['documents', 'assignments'], true)) { $slIt[5] = true; $slIt[6] = null; } }
     unset($slIt);
 }

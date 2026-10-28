@@ -43,12 +43,7 @@ if (!function_exists('sms_receipt_settings')) {
                     $defaults[$field] = $val;
                 }
             }
-            if ($defaults['logo_path'] === '') {
-                $siteLogo = $settings->get('logo_path');
-                if ($siteLogo) {
-                    $defaults['logo_path'] = $siteLogo;
-                }
-            }
+            $defaults['logo_path'] = 'assets/images/logo/logo.png';   // always the Dazu brand logo
         } catch (Throwable $e) {
             // use defaults
         }

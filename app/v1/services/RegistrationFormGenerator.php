@@ -145,7 +145,7 @@ class RegistrationFormGenerator
                 return '';
             }
             $settings = new SettingModel($pdo);
-            $rel = trim((string) $settings->get('logo_path', ''));
+            $rel = 'assets/images/logo/logo.png';   // always the Dazu brand logo
             if ($rel === '' || preg_match('#^https?://#i', $rel)) {
                 return '';
             }

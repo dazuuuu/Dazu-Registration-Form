@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../../app/v1/controllers/StudentController.php';
 require_once __DIR__ . '/../../../app/v1/services/StudentNotifier.php';
 require_once __DIR__ . '/../../../app/v1/services/CourseChangeService.php';
 require_once __DIR__ . '/../../../app/v1/helpers/study_location.php';
+require_once __DIR__ . '/../../../app/v1/helpers/record_payment.php';
 
 use Models\Connection;
 use Models\RegistrationModel;
@@ -35,6 +36,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: ' . $self); exit();
     }
     $action = $_POST['action'] ?? '';
+    $students_m = new \Models\StudentModel($pdo);
+    $ownReg = function (int $rid) use ($courseSvc, $reg): bool {
+        foreach ($courseSvc->enrolments($reg) as $e) if ((int) $e['id'] === $rid) return true;
+        return false;
+    };
+    if ($action === 'record_payment') {
+        // A payment made at the office or by M-Pesa: recorded as approved, receipt emailed, portal unlocked.
+        $rid = (int) ($_POST['payment_reg_id'] ?? 0);
+        $amount = (float) ($_POST['amount'] ?? 0);
+        if (!$ownReg($rid)) {
+            SessionModel::setFlash('error', 'Choose which course this payment is for.');
+        } elseif ($amount <= 0) {
+            SessionModel::setFlash('error', 'Enter an amount greater than zero.');
+        } else {
+            [$type, $msg] = sa_record_payment($pdo, $rid, $amount, (string) ($_POST['reference'] ?? ''), $_POST['notes'] ?? null, (int) ($_SESSION['user_id'] ?? 0));
+            SessionModel::setFlash($type, $msg);
+        }
+        header('Location: ' . $self); exit();
+    }
+    if ($action === 'unlock_portal' || $action === 'lock_portal') {
+        $rid = (int) ($_POST['lock_reg_id'] ?? 0);
+        if ($ownReg($rid)) {
+            if ($action === 'unlock_portal') $students_m->unlockPortal($rid); else $students_m->lockPortal($rid);
+            SessionModel::setFlash('success', $action === 'unlock_portal' ? 'Portal unlocked.' : 'Portal locked.');
+        }
+        header('Location: ' . $self); exit();
+    }
     if ($action === 'delete_student') {
         // Permanent: the admin must type the registration number to confirm.
         if (strcasecmp(trim((string) ($_POST['confirm_reg_no'] ?? '')), (string) $reg['registration_no']) !== 0) {
@@ -156,6 +184,42 @@ ob_start();
     <div class="col-6 col-lg-3"><div class="card h-100 <?php echo $bal > 0 ? 'border-danger' : ''; ?>"><div class="card-body"><div class="text-muted small">Balance</div><div class="fs-4 fw-bold <?php echo $bal > 0 ? 'text-danger' : 'text-success'; ?>"><?php echo $k($bal); ?></div></div></div></div>
     <div class="col-6 col-lg-3"><div class="card h-100"><div class="card-body"><div class="text-muted small">Registered</div><div class="fs-6 fw-bold"><?php echo !empty($reg['created_at']) ? date('d M Y', strtotime($reg['created_at'])) : '—'; ?></div></div></div></div>
 </div>
+
+<div class="card mb-3 border-success"><div class="card-body">
+    <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <div class="fw-semibold"><i class="fas fa-money-bill-wave text-success me-2"></i>Payments &amp; portal</div>
+        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#recordPayModal"><i class="fas fa-plus me-1"></i>Record payment</button>
+    </div>
+    <?php foreach ($enrols as $e): $locked = !empty($e['portal_locked']); ?>
+    <form method="POST" class="d-flex flex-wrap gap-2 align-items-center mt-3"><?php echo csrf_field(); ?>
+        <input type="hidden" name="lock_reg_id" value="<?php echo (int) $e['id']; ?>">
+        <span class="small"><?php echo htmlspecialchars((string) $e['course_title']); ?>:</span>
+        <?php if ($locked): ?>
+            <span class="badge bg-danger">Portal locked</span>
+            <button class="btn btn-sm btn-outline-success" name="action" value="unlock_portal"><i class="fas fa-lock-open me-1"></i>Unlock now</button>
+        <?php else: ?>
+            <span class="badge bg-success">Portal open</span>
+            <button class="btn btn-sm btn-outline-danger" name="action" value="lock_portal" onclick="return confirm('Lock this student\'s portal?');"><i class="fas fa-lock me-1"></i>Lock</button>
+        <?php endif; ?>
+    </form>
+    <?php endforeach; ?>
+</div></div>
+
+<div class="modal fade" id="recordPayModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><form method="POST" class="modal-content"><?php echo csrf_field(); ?><input type="hidden" name="action" value="record_payment">
+    <div class="modal-header"><h5 class="modal-title">Record a payment</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <label class="form-label">Course</label>
+        <select name="payment_reg_id" class="form-select mb-2" required><?php foreach ($enrols as $e): ?><option value="<?php echo (int) $e['id']; ?>"><?php echo htmlspecialchars((string) $e['course_title']); ?></option><?php endforeach; ?></select>
+        <label class="form-label">Amount (KES)</label>
+        <input type="number" name="amount" class="form-control mb-2" min="1" step="1" inputmode="numeric" required>
+        <label class="form-label">Reference (M-Pesa code, receipt no.)</label>
+        <input type="text" name="reference" class="form-control mb-2" maxlength="100">
+        <label class="form-label">Notes <span class="text-muted">(optional)</span></label>
+        <input type="text" name="notes" class="form-control" maxlength="255">
+        <div class="form-text">The payment is approved straight away, a receipt is emailed and the student's portal is unlocked.</div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-success">Record payment</button></div>
+</form></div></div>
 
 <div class="row g-3">
     <div class="col-lg-7">

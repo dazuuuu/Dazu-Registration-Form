@@ -1,32 +1,13 @@
 <?php
-// Site logo from Admin → Settings → Branding (logo_path). Navbar is not driven by this helper.
+// The site logo: always the Dazu brand logo (assets/images/logo/logo.png, same as app/v1/assets/brand/dazu-logo.png).
 
 require_once __DIR__ . '/brand.php';
 
 if (!function_exists('site_logo_rel_path')) {
+    /** The Dazu logo everywhere (website, emails, receipts, forms): assets/images/logo/logo.png. A logo uploaded in Settings is no longer used. */
     function site_logo_rel_path(): ?string
     {
-        static $cached = false;
-        static $path = null;
-        if ($cached) {
-            return $path;
-        }
-        $cached = true;
-        try {
-            if (!class_exists('SettingModel')) {
-                require_once __DIR__ . '/../models/SettingModel.php';
-            }
-            global $pdo;
-            if (!isset($pdo)) {
-                require_once __DIR__ . '/../config/db_connect.php';
-            }
-            $settings = new SettingModel($pdo);
-            $val = trim((string) $settings->get('logo_path', ''));
-            $path = $val !== '' ? $val : null;
-        } catch (Throwable $e) {
-            $path = null;
-        }
-        return $path;
+        return 'assets/images/logo/logo.png';
     }
 }
 

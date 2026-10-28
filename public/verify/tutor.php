@@ -1,6 +1,6 @@
 <?php
 // Public tutor ID verification: the QR on the front of every tutor card opens verify/tutor/<token>.
-// Shows only: photo (setting), printed name, role, ID number, status, course area, year issued, checked on.
+// Shows: photo, full name, specialties (from the Team section, matched by email or name; else the tutor's profile), ID number, status.
 // A wrong token, a stopped token and an inactive tutor all get the same "cannot verify" page.
 // No login, noindex, rate limited by IP (only a salted hash of the IP is kept, for one hour), no IP stored in the database.
 require_once __DIR__ . '/../../app/v1/init.php';
@@ -31,10 +31,9 @@ $token = (string) ($_GET['t'] ?? '');
 $t = null;
 if (!$limited && preg_match('/^[A-Za-z0-9]{32,64}$/', $token)) {
     try {
+        // t.* so the page also works before migration 093 (specialties) has run.
         $st = $db->prepare(
-            "SELECT t.id, t.user_id, t.display_name, t.display_role, t.staff_no, t.id_issued_at,
-                    COALESCE(NULLIF(TRIM(CONCAT(COALESCE(up.first_name,''), ' ', COALESCE(up.last_name,''))), ''), u.username) AS full_name,
-                    (SELECT GROUP_CONCAT(DISTINCT c.title ORDER BY c.title SEPARATOR ', ') FROM course_tutors ct JOIN courses c ON c.id = ct.course_id WHERE ct.tutor_id = t.id) AS teaches
+            "SELECT t.*, COALESCE(NULLIF(TRIM(CONCAT(COALESCE(up.first_name,''), ' ', COALESCE(up.last_name,''))), ''), u.username) AS full_name
              FROM tutors t JOIN users u ON u.id = t.user_id LEFT JOIN user_profiles up ON up.user_id = u.id
              WHERE t.verify_token = ? AND t.is_active = 1 AND u.is_active = 1 LIMIT 1"
         );
@@ -45,13 +44,28 @@ if (!$limited && preg_match('/^[A-Za-z0-9]{32,64}$/', $token)) {
     }
 }
 if ($limited) http_response_code(429);
-$photo = null;
+// Name, photo and position come from the website's Team section (Admin → Team): matched by email, then by name.
+$team = null;
+if ($t) {
+    try {
+        $st = $db->prepare("SELECT tm.name, tm.position, tm.photo FROM team_members tm JOIN users u ON u.id = ?
+                            WHERE (tm.email <> '' AND LOWER(tm.email) = LOWER(u.email)) OR LOWER(TRIM(tm.name)) = LOWER(TRIM(?))
+                            ORDER BY (tm.email <> '' AND LOWER(tm.email) = LOWER(u.email)) DESC LIMIT 1");
+        $st->execute([(int) $t['user_id'], (string) $t['full_name']]);
+        $team = $st->fetch(PDO::FETCH_ASSOC) ?: null;
+    } catch (Throwable $ex) {
+        $team = null;
+    }
+}
+$vName = trim((string) ($team['name'] ?? '')) ?: $t['full_name'] ?? '';
+$vSpec = trim((string) ($team['position'] ?? '')) ?: trim((string) ($t['specialties'] ?? ''));
+$vPhoto = null;
+if (!empty($team['photo'])) {
+    $rel = ltrim((string) $team['photo'], '/');
+    if (is_file(__DIR__ . '/../' . $rel)) $vPhoto = url($rel);
+}
 if ($t) {
     $db->prepare('UPDATE tutors SET verify_scans = verify_scans + 1, last_scanned_at = NOW() WHERE id = ?')->execute([(int) $t['id']]);
-    if ($s['show_photo_on_verify'] === '1' && ($abs = idc_student_photo_file($db, (int) $t['user_id']))) {
-        $crop = json_decode((string) ($db->query('SELECT photo_crop FROM tutors WHERE id = ' . (int) $t['id'])->fetchColumn()), true);
-        $photo = idc_photo_uri($abs, 32, 40, 2, is_array($crop) ? $crop : null, 0.15);   // small copy, never a link to the file
-    }
 }
 // Similar response time whether or not the token is valid.
 $wait = 0.25 - (microtime(true) - $started);
@@ -78,21 +92,15 @@ h1{font-size:20px;margin:6px 0 2px;text-transform:uppercase}.role{color:#44A024;
 </style></head><body>
 <div class="top"><?php echo $logoUri ? '<img src="' . $logoUri . '" alt="Dazu Training Institute">' : '<b>DAZU</b>'; ?><span>dazu.ac.ke/verify</span></div>
 <main>
-<?php if ($t): $name = trim((string) $t['display_name']) ?: $t['full_name']; $role = trim((string) $t['display_role']) ?: 'Tutor'; ?>
+<?php if ($t): ?>
   <span class="badge">&#10003; Verified Dazu tutor</span>
-  <?php if ($photo): ?><div class="photo"><img src="<?php echo $photo; ?>" alt="Photo of <?php echo $e($name); ?>"></div><?php else: ?><div style="height:18px"></div><?php endif; ?>
-  <h1><?php echo $e($name); ?></h1>
-  <div class="role"><?php echo $e($role); ?></div>
-  <?php if ($t['staff_no']): ?><div class="pill"><?php echo $e($t['staff_no']); ?></div><?php endif; ?>
+  <?php if ($vPhoto): ?><div class="photo"><img src="<?php echo $e($vPhoto); ?>" alt="Photo of <?php echo $e($vName); ?>"></div><?php endif; ?>
   <div class="box">
-    <div class="row"><span>Name</span><b><?php echo $e($name); ?></b></div>
+    <div class="row"><span>Full name</span><b><?php echo $e($vName); ?></b></div>
+    <div class="row"><span>Specialties</span><b><?php echo $e($vSpec ?: '—'); ?></b></div>
     <div class="row"><span>ID number</span><b><?php echo $e($t['staff_no'] ?: 'Being issued by the office'); ?></b></div>
     <div class="row"><span>Status</span><b>Active</b></div>
-    <?php if ($t['teaches']): ?><div class="row"><span>Teaches</span><b><?php echo $e($t['teaches']); ?></b></div><?php endif; ?>
-    <div class="row"><span>Issued</span><b><?php echo $e($t['id_issued_at'] ? date('Y', strtotime($t['id_issued_at'])) : $eat->format('Y')); ?></b></div>
-    <div class="row"><span>Checked on</span><b><?php echo $e($eat->format('j M Y, H:i')); ?> EAT</b></div>
   </div>
-  <p class="note">This page confirms that this person is a tutor at Dazu Training Institute. Compare the photo with the person in front of you.</p>
 <?php else: ?>
   <div class="warn"><svg width="30" height="30" viewBox="0 0 24 24" fill="#b91c1c"><path d="M12 2L1 21h22L12 2zm1 15h-2v2h2v-2zm0-7h-2v5h2v-5z"/></svg></div>
   <h1 style="text-transform:none">We cannot verify this ID</h1>

@@ -53,7 +53,7 @@ $tlItems = [
     ['announcements', 'Announcements', 'fa-bullhorn', url('tutor/announcements/index.php'), $tlDir === 'announcements', false],
     ['helpers', 'Intern Helpers', 'fa-hands-helping', url('tutor/helpers/index.php'), $tlDir === 'helpers', false],
     ['notifications', 'Notifications', 'fa-bell', url('tutor/notifications/index.php'), $tlDir === 'notifications', false, 'Account'],
-    ['profile', 'My ID & signature', 'fa-id-badge', url('tutor/profile/index.php'), $tlDir === 'profile', false],
+    ['profile', 'My profile & ID', 'fa-id-badge', url('tutor/profile/index.php'), $tlDir === 'profile', false],
 ];
 if ($tlAdmin) {
     $tlItems[] = ['admin', 'Admin portal', 'fa-user-shield', url('admin/dashboard.php'), false, false];
@@ -97,7 +97,7 @@ $shell['tabs'] = [
     ], $tlOn(['calendar', 'courses', 'modules', 'resources', 'quizzes', 'assignments', 'capstone', 'certificates', 'submissions'])],
     ['link', 'Assignments', 'fa-file-pen', url('tutor/assignments/index.php'), $tlOn(['assignments']), $tlAwaiting],
     ['sheet', 'more', 'More', 'fa-grip', array_merge(
-        [['My ID & signature', 'fa-id-badge', url('tutor/profile/index.php'), $tlOn(['profile'])],
+        [['My profile & ID', 'fa-id-badge', url('tutor/profile/index.php'), $tlOn(['profile'])],
          ['Intern Helpers', 'fa-hands-helping', url('tutor/helpers/index.php'), $tlOn(['helpers'])]],
         $tlAdmin ? [['Admin portal', 'fa-user-shield', url('admin/dashboard.php'), false]] : [],
         [['Sign out', 'fa-arrow-right-from-bracket', '#logout', false]]

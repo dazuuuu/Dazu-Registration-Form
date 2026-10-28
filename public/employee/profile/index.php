@@ -24,6 +24,16 @@ $error = null;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         $error = 'Security check failed. Please try again.';
+    } elseif (($_POST['action'] ?? '') === 'delete_photo') {
+        $old = (string) ($emp['photo_path'] ?? '');
+        $pdo->prepare('UPDATE employees SET photo_path = NULL WHERE user_id = ?')->execute([$userId]);
+        $rel = ltrim(preg_replace('#^.*?/uploads/employees/#', 'uploads/employees/', $old), '/');
+        if (str_starts_with($rel, 'uploads/employees/') && is_file(__DIR__ . '/../../' . $rel)) @unlink(__DIR__ . '/../../' . $rel);
+        require_once __DIR__ . '/../../../app/v1/helpers/profile_photo.php';
+        pp_delete($pdo, $userId);
+        SessionModel::setFlash('success', 'Your photo was deleted.');
+        header('Location: ' . url('employee/profile/index.php'));
+        exit;
     } else {
         $photoPath = null;
         if (!empty($_FILES['photo']['name'])) {
@@ -63,6 +73,7 @@ ob_start();
 </div></div></div>
 <div class="col-lg-4"><div class="card-staff"><div class="head">Photo</div><div class="p-3 text-center">
     <?php if (!empty($emp['photo_path'])): ?><img src="<?php echo htmlspecialchars($emp['photo_path']); ?>" class="rounded img-fluid" style="max-height:240px" alt="">
+    <form method="POST" class="mt-2" onsubmit="return confirm('Delete your photo?');"><?php echo csrf_field(); ?><input type="hidden" name="action" value="delete_photo"><button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash me-1"></i>Delete photo</button></form>
     <?php else: ?><div class="text-muted">No picture yet.</div><?php endif; ?>
 </div></div></div>
 </div>

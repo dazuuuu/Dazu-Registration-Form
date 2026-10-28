@@ -24,6 +24,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Security check failed.';
     } else {
         $action    = $_POST['action'] ?? '';
+        if ($action === 'record_payment') {
+            require_once __DIR__ . '/../../../app/v1/helpers/record_payment.php';
+            $rid = (int) ($_POST['payment_reg_id'] ?? 0);
+            $ok = $pdo->prepare("SELECT 1 FROM registrations WHERE id = ? AND status = 'approved'");
+            $ok->execute([$rid]);
+            [$type, $msg] = $ok->fetchColumn()
+                ? sa_record_payment($pdo, $rid, (float) ($_POST['amount'] ?? 0), (string) ($_POST['reference'] ?? ''), $_POST['notes'] ?? null, (int) SessionModel::get('user_id'))
+                : ['error', 'Choose a student.'];
+            SessionModel::setFlash($type, $msg);
+            header('Location: ' . url('superadmin/payments/index.php'));
+            exit;
+        }
         $paymentId = (int) ($_POST['payment_id'] ?? 0);
         $adminId   = (int) SessionModel::get('user_id');
         $controller = new StudentController();
@@ -77,6 +89,9 @@ $col = fn(int $i): string => chr(64 + $i);
 $page_title  = 'Payments';
 $sa_subtitle = 'Verify submitted payments and see every payment on record.';
 $breadcrumbs = [['label' => 'Payments', 'active' => true]];
+$sa_actions = '<button type="button" class="btn sa-btn-primary" data-bs-toggle="modal" data-bs-target="#saRecordPay"><i class="fas fa-plus me-1"></i>Record payment</button>';
+$recStudents = $pdo->query("SELECT r.id, r.full_name, r.registration_no, c.title AS course_title, r.portal_locked FROM registrations r LEFT JOIN courses c ON c.id = r.course_id
+                            WHERE r.status = 'approved' ORDER BY r.full_name")->fetchAll(PDO::FETCH_ASSOC);
 $extra_css = '<link rel="stylesheet" href="' . sa_asset('css/sheet.css') . '">';
 $extra_js = '<script src="' . sa_asset('js/sheet.js') . '"></script>';
 
@@ -187,6 +202,26 @@ ob_start();
     </div></div>
 </div>
 <?php endforeach; ?>
+
+<div class="modal fade" id="saRecordPay" tabindex="-1"><div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down"><form method="POST" class="modal-content"><?php echo csrf_field(); ?><input type="hidden" name="action" value="record_payment">
+    <div class="modal-header"><h5 class="modal-title">Record a payment</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+        <label class="form-label">Student and course</label>
+        <input type="search" class="form-control mb-2" placeholder="Type a name or registration no." oninput="(function(q,s){q=q.toLowerCase();[...s.options].forEach(o=>{o.hidden=o.value&&!o.text.toLowerCase().includes(q)});})(this.value,document.getElementById('saRecReg'))">
+        <select name="payment_reg_id" id="saRecReg" class="form-select mb-2" required>
+            <option value="">Choose…</option>
+            <?php foreach ($recStudents as $r): ?><option value="<?php echo (int) $r['id']; ?>"><?php echo htmlspecialchars($r['full_name'] . ' · ' . $r['registration_no'] . ' · ' . ($r['course_title'] ?? '') . (!empty($r['portal_locked']) ? ' (locked)' : '')); ?></option><?php endforeach; ?>
+        </select>
+        <label class="form-label">Amount (KES)</label>
+        <input type="number" name="amount" class="form-control mb-2" min="1" step="1" inputmode="numeric" required>
+        <label class="form-label">Reference (M-Pesa code, receipt no.)</label>
+        <input type="text" name="reference" class="form-control mb-2" maxlength="100">
+        <label class="form-label">Notes <span class="text-muted">(optional)</span></label>
+        <input type="text" name="notes" class="form-control" maxlength="255">
+        <div class="form-text">Approved straight away: the receipt is emailed and the student's portal is unlocked. To lock or unlock a portal by hand, open the student (Students → name).</div>
+    </div>
+    <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-success">Record payment</button></div>
+</form></div></div>
 
 <?php
 $content = ob_get_clean();

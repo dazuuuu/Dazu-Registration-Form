@@ -20,6 +20,9 @@ if (!$t) {
     exit('Your tutor account is not active.');
 }
 
+require_once __DIR__ . '/../../../app/v1/helpers/profile_photo.php';
+pp_handle($db, $uid, $self);   // profile photo: change or delete
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         $_SESSION['tid_flash'] = ['error', 'Security check failed. Please refresh and try again.'];
@@ -35,6 +38,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } catch (Throwable $e) {
                 $_SESSION['tid_flash'] = ['error', 'Ask the office to run System Updates first.'];
             }
+        }
+    } elseif (($_POST['action'] ?? '') === 'specialties') {
+        // Shown on the public QR verification page of their ID card.
+        $sp = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($_POST['specialties'] ?? ''))));
+        try {
+            $db->prepare('UPDATE tutors SET specialties = ? WHERE user_id = ?')->execute([$sp !== '' ? mb_substr($sp, 0, 255) : null, $uid]);
+            $_SESSION['tid_flash'] = ['success', $sp !== '' ? 'Specialties saved.' : 'Specialties removed.'];
+        } catch (Throwable $e) {
+            $_SESSION['tid_flash'] = ['error', 'Ask the office to run System Updates first.'];
         }
     } elseif (($_POST['action'] ?? '') === 'email_id') {
         if (!empty($t['staff_no'])) {
@@ -55,8 +67,17 @@ if (empty($t['staff_no']) && idc_student_photo_file($db, $uid)) {
     staff_issue($db, $uid);
     $t = staff_tutor($db, $uid);
 }
-$page_title = 'My ID & signature';
+$page_title = 'My profile & ID';
 ob_start();
+require __DIR__ . '/../../components/profile/photo_card.php';
+$spVal = (string) ($t['specialties'] ?? '');
+?>
+<form method="POST" class="card border-0 shadow-sm mb-3"><div class="card-body"><?php echo csrf_field(); ?><input type="hidden" name="action" value="specialties">
+    <label class="form-label fw-semibold mb-1" for="tSpec"><i class="fas fa-star me-2 text-success"></i>My specialties</label>
+    <div class="small text-muted mb-2">For example: Web development, Cybersecurity. Shown on the page people see when they scan the QR on your ID card.</div>
+    <div class="input-group input-group-sm"><input id="tSpec" name="specialties" class="form-control" maxlength="255" value="<?php echo htmlspecialchars($spVal, ENT_QUOTES, 'UTF-8'); ?>"><button class="btn btn-success">Save</button></div>
+</div></form>
+<?php
 if (!tid_installed($db)) {
     echo '<div class="alert alert-warning">This page is being updated. Ask the office to run System Updates (migration 080).</div>';
 } else {

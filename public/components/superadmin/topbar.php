@@ -38,7 +38,7 @@ $sa_more = [
         ['Classes', 'superadmin/courses/classes.php', 'fa-graduation-cap'],
         ['Certificates', 'superadmin/certificates/index.php', 'fa-certificate'],
         ['Student ID cards', 'superadmin/id_cards/index.php', 'fa-id-card'],
-        ['Assignments', 'superadmin/assignments/index.php', 'fa-file-pen'],
+        ['Assignments', 'superadmin/assignments/index.php', 'fa-file-lines'],
     ],
     'Money' => [
         ['Payments', 'superadmin/payments/index.php', 'fa-money-bill-wave'],
@@ -56,6 +56,7 @@ $sa_more = [
         ['Projects', 'superadmin/sms/projects/index.php', 'fa-briefcase'],
     ],
     'System' => [
+        ['My profile', 'superadmin/profile/index.php', 'fa-user-circle'],
         ['Settings (PIN)', 'superadmin/settings.php', 'fa-gear'],
         ['Backup & migrate', 'superadmin/backup.php', 'fa-box-archive'],
         ['Pull from live', 'superadmin/migrate.php', 'fa-cloud-arrow-down'],
@@ -85,7 +86,7 @@ $sa_side = [
         ['Announcements', 'superadmin/announcements/index.php', '/superadmin/announcements/', 'fa-bullhorn'],
         ['Certificates', 'superadmin/certificates/index.php', '/certificates/', 'fa-certificate'],
         ['ID Cards', 'superadmin/id_cards/index.php', '/id_cards/', 'fa-id-card'],
-        ['Assignments', 'superadmin/assignments/index.php', '/superadmin/assignments/', 'fa-file-pen'],
+        ['Assignments', 'superadmin/assignments/index.php', '/superadmin/assignments/', 'fa-file-lines'],
     ],
     'Money' => [
         ['Payments', 'superadmin/payments/index.php', '/superadmin/payments/', 'fa-money-bill-wave'],
@@ -100,6 +101,7 @@ $sa_side = [
         ['Projects', 'superadmin/sms/projects/index.php', '/sms/projects/', 'fa-briefcase'],
     ],
     'Help & system' => [
+        ['My profile', 'superadmin/profile/index.php', '/superadmin/profile/', 'fa-user-circle'],
         ['Settings', 'superadmin/settings.php', '/superadmin/settings.php', 'fa-gear'],
         ['Backup & migrate', 'superadmin/backup.php', '/superadmin/backup.php', 'fa-box-archive'],
         ['Pull from live', 'superadmin/migrate.php', '/superadmin/migrate.php', 'fa-cloud-arrow-down'],
