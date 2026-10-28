@@ -36,7 +36,7 @@ if (!$limited && preg_match('/^[A-Za-z0-9]{32,64}$/', $token)) {
                     COALESCE(NULLIF(TRIM(CONCAT(COALESCE(up.first_name,''), ' ', COALESCE(up.last_name,''))), ''), u.username) AS full_name,
                     (SELECT GROUP_CONCAT(DISTINCT c.title ORDER BY c.title SEPARATOR ', ') FROM course_tutors ct JOIN courses c ON c.id = ct.course_id WHERE ct.tutor_id = t.id) AS teaches
              FROM tutors t JOIN users u ON u.id = t.user_id LEFT JOIN user_profiles up ON up.user_id = u.id
-             WHERE t.verify_token = ? AND t.is_active = 1 AND u.is_active = 1 AND t.staff_no IS NOT NULL LIMIT 1"
+             WHERE t.verify_token = ? AND t.is_active = 1 AND u.is_active = 1 LIMIT 1"
         );
         $st->execute([$token]);
         $t = $st->fetch(PDO::FETCH_ASSOC) ?: null;
@@ -83,8 +83,10 @@ h1{font-size:20px;margin:6px 0 2px;text-transform:uppercase}.role{color:#44A024;
   <?php if ($photo): ?><div class="photo"><img src="<?php echo $photo; ?>" alt="Photo of <?php echo $e($name); ?>"></div><?php else: ?><div style="height:18px"></div><?php endif; ?>
   <h1><?php echo $e($name); ?></h1>
   <div class="role"><?php echo $e($role); ?></div>
-  <div class="pill"><?php echo $e($t['staff_no']); ?></div>
+  <?php if ($t['staff_no']): ?><div class="pill"><?php echo $e($t['staff_no']); ?></div><?php endif; ?>
   <div class="box">
+    <div class="row"><span>Name</span><b><?php echo $e($name); ?></b></div>
+    <div class="row"><span>ID number</span><b><?php echo $e($t['staff_no'] ?: 'Being issued by the office'); ?></b></div>
     <div class="row"><span>Status</span><b>Active</b></div>
     <?php if ($t['teaches']): ?><div class="row"><span>Teaches</span><b><?php echo $e($t['teaches']); ?></b></div><?php endif; ?>
     <div class="row"><span>Issued</span><b><?php echo $e($t['id_issued_at'] ? date('Y', strtotime($t['id_issued_at'])) : $eat->format('Y')); ?></b></div>

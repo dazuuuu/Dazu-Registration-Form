@@ -437,11 +437,10 @@ if (!function_exists('tid_installed')) {
         return ['ok' => true];
     }
 
-    /** The preview PDF: the real card (same renderer, same template), not the print file, with a PREVIEW watermark. */
+    /** The preview PDF: the real card (same renderer, same template, no watermark), not the print file. */
     function tid_card_preview_pdf(PDO $db, array $t): string
     {
         $card = staff_card($db, $t);
-        $card['_watermark'] = 'PREVIEW';
         if (empty($card['snapshot_reg_no'])) $card['snapshot_reg_no'] = 'Assigned by the office';
         if (empty($card['qr_hash'])) $card['qr_hash'] = 'preview';
         return idc_pdf_bytes($card, false);
@@ -457,7 +456,7 @@ if (!function_exists('tid_installed')) {
             'course_name' => 'Sample Course in Your Subject', 'snapshot_duration_months' => 3,
             'taught_skills' => 'and has met all the requirements of the programme.', 'user_id' => 0,
             'tutor_name' => tid_name($t), 'tutor_title' => tid_role($t), 'tutor_id' => (int) $t['user_id'],
-            'tutor_signature_path' => $t['signature_path'] ?: null, '_watermark' => 'SAMPLE',
+            'tutor_signature_path' => $t['signature_path'] ?: null,
         ]);
     }
 }

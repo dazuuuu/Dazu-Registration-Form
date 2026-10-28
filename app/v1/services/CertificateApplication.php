@@ -397,7 +397,7 @@ if (!function_exists('certificateReadiness')) {
         return ['ok' => true, 'certificate_id' => (int) $made['id'], 'version' => $newVersion, 'email' => $mail['message']];
     }
 
-    /** A certificate array for the PREVIEW (watermark "PREVIEW"), built like the real one but never saved. */
+    /** A certificate array for the preview (no watermark), built like the real one but never saved. */
     function certapp_preview_cert(PDO $db, array $a): array
     {
         $tutor = cert_assigned_tutor($db, (int) $a['student_user_id']);
@@ -408,7 +408,6 @@ if (!function_exists('certificateReadiness')) {
             'snapshot_name' => $a['print_name'], 'snapshot_course' => $r['title'], 'snapshot_duration_months' => max(1, (int) $r['duration_months']),
             'taught_skills' => $a['lines_text'], 'certificate_no' => 'DDS-PREVIEW', 'qr_code_hash' => 'preview', 'issued_at' => certapp_now(),
             'tutor_id' => $tutor['user_id'] ?? null, 'tutor_name' => $tutor['full_name'] ?? null, 'user_id' => (int) $a['student_user_id'],
-            '_watermark' => 'PREVIEW',
         ];
     }
 

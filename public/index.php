@@ -24,6 +24,10 @@ $__routed = (function (): ?string {
     } elseif (preg_match('#^blog/([^/]+)$#', $rel, $m)) {
         $file = 'blogs/readmore.php';
         $_GET['slug'] = $_REQUEST['slug'] = $m[1];
+    } elseif (preg_match('#^verify/tutor/([A-Za-z0-9]{32,64})/?$#', $rel, $m)) {
+        // Tutor ID QR (when the .htaccess rule is not active)
+        $file = 'verify/tutor.php';
+        $_GET['t'] = $_REQUEST['t'] = $m[1];
     } elseif (preg_match('#^(' . $sections . ')$#', $rel)) {
         $file = $rel . '/index.php';
     } elseif (preg_match('#^(' . $sections . ')/([A-Za-z0-9_-]+)$#', $rel, $m)) {
