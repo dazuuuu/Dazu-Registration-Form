@@ -22,13 +22,14 @@ $sa_more = [
     'People' => [
         ['Pending approvals', 'superadmin/registrations/index.php?status=pending', 'fa-user-clock'],
         ['Announcements', 'superadmin/announcements/index.php', 'fa-bullhorn'],
-                ['All tutors', 'superadmin/tutors/index.php', 'fa-chalkboard-user'],
+        ['All students', 'superadmin/students/index.php', 'fa-user-graduate'],
+        ['All tutors', 'superadmin/tutors/index.php', 'fa-chalkboard-user'],
         ['Enrol a student', 'superadmin/students/enroll.php', 'fa-user-plus'],
         ['Add a tutor', 'superadmin/tutors/create.php', 'fa-chalkboard-user'],
         ['Tutor permissions', 'superadmin/tutors/permissions.php', 'fa-user-lock'],
         ['Employees', 'superadmin/payroll/index.php#employees', 'fa-id-badge'],
         ['Add an employee', 'superadmin/payroll/employee_create.php', 'fa-user-tie'],
-        ['Add an admin', 'superadmin/admins/index.php', 'fa-user-shield'],
+        ['Admins', 'superadmin/admins/index.php', 'fa-user-shield'],
     ],
     'Courses' => [
         ['All courses', 'superadmin/courses/index.php', 'fa-book-open'],
@@ -71,7 +72,59 @@ $sa_bottom = [
 $sa_initial = strtoupper(substr((string)($_SESSION['username'] ?? 'S'), 0, 1));
 $sa_isActive = fn(string $frag): bool => strpos(strtok($sa_uri, '?'), $frag) !== false;
 ?>
+<?php
+// Desktop sidebar (1025px and up): the same sections as the pill row, grouped like the "More" sheet.
+$sa_side = [
+    'Main menu' => [
+        ['Overview', 'superadmin/dashboard.php', '/superadmin/dashboard.php', 'fa-house'],
+        ['Approvals', 'superadmin/registrations/index.php', '/superadmin/registrations/', 'fa-user-clock'],
+        ['Students', 'superadmin/students/index.php', '/superadmin/students/', 'fa-user-graduate'],
+        ['Courses', 'superadmin/courses/index.php', '/superadmin/courses/', 'fa-book-open'],
+        ['Tutors', 'superadmin/tutors/index.php', '/superadmin/tutors/', 'fa-chalkboard-user'],
+        ['Admins', 'superadmin/admins/index.php', '/superadmin/admins/', 'fa-user-shield'],
+        ['Announcements', 'superadmin/announcements/index.php', '/superadmin/announcements/', 'fa-bullhorn'],
+        ['Certificates', 'superadmin/certificates/index.php', '/certificates/', 'fa-certificate'],
+        ['ID Cards', 'superadmin/id_cards/index.php', '/id_cards/', 'fa-id-card'],
+        ['Assignments', 'superadmin/assignments/index.php', '/superadmin/assignments/', 'fa-file-pen'],
+    ],
+    'Money' => [
+        ['Payments', 'superadmin/payments/index.php', '/superadmin/payments/', 'fa-money-bill-wave'],
+        ['Salaries', 'superadmin/payroll/index.php', '/superadmin/payroll/', 'fa-wallet'],
+        ['Accounting', 'superadmin/accounting/index.php', '/superadmin/accounting/', 'fa-scale-balanced'],
+        ['Finance', 'superadmin/sms/finance/index.php', '/sms/finance/', 'fa-chart-line'],
+        ['Sales', 'superadmin/sms/sales/index.php', '/sms/sales/', 'fa-cash-register'],
+    ],
+    'SmS' => [
+        ['SmS students', 'superadmin/sms/students/index.php', '/sms/students/', 'fa-users'],
+        ['Prospects', 'superadmin/sms/prospects/index.php', '/sms/prospects/', 'fa-user-clock'],
+        ['Projects', 'superadmin/sms/projects/index.php', '/sms/projects/', 'fa-briefcase'],
+    ],
+    'Help & system' => [
+        ['Settings', 'superadmin/settings.php', '/superadmin/settings.php', 'fa-gear'],
+        ['Backup & migrate', 'superadmin/backup.php', '/superadmin/backup.php', 'fa-box-archive'],
+        ['Pull from live', 'superadmin/migrate.php', '/superadmin/migrate.php', 'fa-cloud-arrow-down'],
+    ],
+];
+$sa_name = (string) ($_SESSION['username'] ?? 'Superadmin');
+?>
+<aside class="sa-side" aria-label="Superadmin menu">
+    <a class="sa-side-brand" href="<?php echo url('superadmin/dashboard.php'); ?>">
+        <img src="<?php echo asset('superadmin/icon.svg'); ?>" alt="" width="30" height="30">
+        <span>DAZU<span class="sa-accent">HUB</span><small>Superadmin dashboard</small></span>
+    </a>
+    <nav class="sa-side-nav">
+        <?php foreach ($sa_side as $group => $links): ?>
+            <div class="sa-side-sep"><?php echo $group; ?></div>
+            <?php foreach ($links as [$label, $path, $frag, $icon]): ?>
+                <a href="<?php echo url($path); ?>" class="<?php echo $sa_isActive($frag) ? 'active' : ''; ?>"<?php echo $sa_isActive($frag) ? ' aria-current="page"' : ''; ?>><i class="fas <?php echo $icon; ?>"></i><span><?php echo $label; ?></span></a>
+            <?php endforeach; ?>
+        <?php endforeach; ?>
+    </nav>
+    <a class="sa-side-out" href="<?php echo url('superadmin/logout.php'); ?>"><i class="fas fa-arrow-right-from-bracket"></i><span>Log out</span></a>
+</aside>
+
 <header class="sa-top">
+    <div class="sa-welcome">Welcome back, <?php echo htmlspecialchars(strtok($sa_name, ' @') ?: $sa_name); ?> <span aria-hidden="true">👋</span></div>
     <a class="sa-brand" href="<?php echo url('superadmin/dashboard.php'); ?>">
         <img class="sa-brand-mark" src="<?php echo asset('superadmin/icon.svg'); ?>" alt="" width="38" height="38">
         <span>Dazu<span class="sa-accent">Hub</span><small>Superadmin</small></span>

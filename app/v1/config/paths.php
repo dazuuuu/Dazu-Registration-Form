@@ -191,20 +191,26 @@ if (!function_exists('dazu_pretty_path')) {
         } elseif (preg_match('#^(about|apply|blogs|contact|courses|gallery|projects|services|store|testimonials|verify)/(?:(.+?)\.php|index\.php)?$#', $path, $m)) {
             $page = $m[2] ?? '';
             $path = $m[1] . ($page !== '' && $page !== 'index' ? '/' . $page : '');
-        } elseif (preg_match('#^(admin|superadmin|tutor|students|intern|employee|profile|auth)(/.*)?/([A-Za-z0-9_-]+)\.php$#', $path, $m)
-                  && !in_array($m[3], ['api', 'manifest', 'file', 'search', 'clock', 'keepalive'], true)) {
-            // Dashboards and portals: admin/students/view.php → admin/students/view, admin/students/index.php → admin/students/
-            // (JSON / file endpoints keep .php). public/.htaccess serves the .php file behind the clean address.
+        } elseif (preg_match('#^(' . DAZU_APP_DIRS . ')(/.*)?/([A-Za-z0-9_-]+)\.php$#', $path, $m)) {
+            // Every other page of the app: admin/students/view.php → admin/students/view, intake/book.php → intake/book,
+            // admin/students/index.php → admin/students/. public/.htaccess serves the .php file behind the clean address.
             $path = $m[1] . ($m[2] ?? '') . '/' . ($m[3] === 'index' ? '' : $m[3]);
         }
         return $path . ($query !== '' ? '?' . $query : '') . $frag;
     }
 }
 
+if (!defined('DAZU_APP_DIRS')) {
+    // Top-level folders of public/ that hold pages (regex alternation). Keep in step with public/.htaccess.
+    define('DAZU_APP_DIRS', 'about|admin|announcements|api|apply|assignments|auth|calendar|capstone|classes|contact|courses|documents|employee|feedback|gallery|id_cards|intake|intern|letters|profile|projects|services|store|students|superadmin|testimonials|tutor|verify');
+    // Folders that are private (portals, sign-in, files): never indexed by search engines.
+    define('DAZU_PRIVATE_DIRS', 'admin|superadmin|tutor|students|intern|employee|profile|auth|api|assignments|capstone|documents|id_cards|letters|classes|calendar|intake');
+}
+
 if (!function_exists('dazu_clean_links')) {
     /**
-     * Output filter for dashboard pages: relative links written by hand (href="edit.php?id=4", action="print.php")
-     * lose ".php" too, so the address bar and link previews stay clean. JSON/file endpoints keep .php.
+     * Output filter for every page: links written by hand (href="edit.php?id=4", action="print.php", href="/intake/book.php")
+     * lose ".php" too, so the address bar, link previews and search results stay clean.
      * Only active where clean URLs are served (Apache .htaccess, or the dev router).
      */
     function dazu_clean_links(string $html): string
@@ -212,12 +218,9 @@ if (!function_exists('dazu_clean_links')) {
         if ((PHP_SAPI === 'cli-server' && !defined('DAZU_PRETTY_ROUTER')) || stripos($html, '<html') === false) {
             return $html;
         }
-        $self = (string) ($_SERVER['PHP_SELF'] ?? '');
-        if (!preg_match('#/(admin|superadmin|tutor|students|intern|employee|profile)/#', $self)) {
-            return $html;
-        }
-        return preg_replace_callback('#\b(href|action)="((?:\.\./)*(?:[A-Za-z0-9_-]+/)*)([A-Za-z0-9_-]+)\.php((?:[?\#][^"]*)?)"#', function ($m) {
-            if (in_array($m[3], ['api', 'manifest', 'file', 'search', 'clock', 'keepalive'], true)) return $m[0];
+        // Relative links (edit.php, ../x/y.php) and root links (/admin/x.php); never other sites (http…, //…).
+        return preg_replace_callback('#\b(href|action)="((?:/(?!/))?(?:\.\./)*(?:[A-Za-z0-9_-]+/)*)([A-Za-z0-9_-]+)\.php((?:[?\#][^"]*)?)"#', function ($m) {
+            if ($m[2] === '/' || $m[2] === '' && in_array($m[3], ['robots', 'sitemap', '404'], true)) return $m[0];
             $target = $m[3] === 'index' ? ($m[2] !== '' ? $m[2] : './') : $m[2] . $m[3];
             return $m[1] . '="' . $target . $m[4] . '"';
         }, $html) ?? $html;
@@ -350,6 +353,33 @@ if (!function_exists('dazu_head_meta')) {
                 . '<meta property="og:image:height" content="630">' . "\n"
                 . '<meta name="twitter:card" content="summary_large_image">' . "\n"
                 . '<meta name="twitter:image" content="' . $e($img) . '">' . "\n";
+        }
+        // Search engines: private areas get noindex; public pages get a canonical link (clean https address) and a description.
+        $reqPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+        $rel = trim(substr($reqPath, strlen(defined('WEB_ROOT') ? WEB_ROOT : '')), '/');
+        $private = preg_match('#^(' . DAZU_PRIVATE_DIRS . ')(/|$)#', $rel) || in_array($rel, ['login', 'forgot-password', 'reset-password'], true)
+            || http_response_code() >= 400;
+        $esc = static fn(string $v): string => htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
+        if (!preg_match('#<meta[^>]+name=["\']robots["\']#i', $head)) {
+            $add .= '<meta name="robots" content="' . ($private ? 'noindex, nofollow' : 'index, follow') . '">' . "\n";
+        }
+        if (!$private) {
+            if (stripos($head, 'rel="canonical"') === false && stripos($head, "rel='canonical'") === false) {
+                // Keep only the query parts that pick a different page (a course, a post, a category); drop tracking and filters.
+                parse_str((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_QUERY), $q);
+                $keep = array_intersect_key($q, array_flip(['id', 'slug', 'abbr', 'category', 'page']));
+                $host = (string) ($_SERVER['HTTP_HOST'] ?? 'localhost');
+                $isLocal = preg_match('#^(localhost|127\.|\[::1\])#', $host);
+                $canonPath = preg_replace('#\.php$#', '', $reqPath);
+                // A course's share page shows the same course as its main page: point search engines at the main page.
+                $canonPath = preg_replace('#/courses/share$#', '/courses/view', $canonPath);
+                $canon = ($isLocal ? 'http' : 'https') . '://' . preg_replace('#^www\.#i', '', $host) . $canonPath . ($keep ? '?' . http_build_query($keep) : '');
+                $add .= '<link rel="canonical" href="' . $esc($canon) . '">' . "\n";
+            }
+            if (!preg_match('#<meta[^>]+name=["\']description["\']#i', $head)) {
+                $t = preg_match('#<title[^>]*>(.*?)</title>#is', $head, $tm) ? trim(html_entity_decode(strip_tags($tm[1]), ENT_QUOTES, 'UTF-8')) : '';
+                $add .= '<meta name="description" content="' . $esc(($t !== '' ? $t . '. ' : '') . 'Practical tech training at Dazu Training Institute in Nairobi, Thika and online.') . '">' . "\n";
+            }
         }
         $html = $add === '' ? $html : substr($html, 0, $pos) . $add . substr($html, $pos);
         // Images further down the page load only when scrolled to (the first two, usually the logo/hero, load at once).

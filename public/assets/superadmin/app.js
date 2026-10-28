@@ -56,6 +56,7 @@
   if (bg) bg.addEventListener('click', function () { setSheet(false); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') setSheet(false); });
   if (sheet) sheet.addEventListener('click', function (e) { if (e.target.closest('a')) setSheet(false); });
+  window.addEventListener('pageshow', function () { setSheet(false); });   // coming Back: never restore an open sheet
 
   // --- tables scroll sideways on phones instead of breaking the layout ---
   document.querySelectorAll('.sa-content table').forEach(function (t) {

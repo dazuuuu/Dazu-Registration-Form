@@ -86,13 +86,18 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 require_once APP_V1_ROOT . '/helpers/session_guard.php';
-session_guard_check();
-define('DAZU_GUARD_ACTIVE', true);
-if (PHP_SAPI !== 'cli') {
-    ob_start('session_guard_inject');
-    ob_start('dazu_head_meta');      // favicon + share preview on every page
-    ob_start('dazu_clean_links');   // runs first: relative dashboard links without .php
+// Middleware::requireAuth() starts the guard itself on pages that load it before this file: do it only once.
+$dazuGuardFirst = !defined('DAZU_GUARD_ACTIVE');
+if ($dazuGuardFirst) {
+    session_guard_check();
+    define('DAZU_GUARD_ACTIVE', true);
 }
+if (PHP_SAPI !== 'cli') {
+    if ($dazuGuardFirst) ob_start('session_guard_inject');
+    ob_start('dazu_head_meta');      // favicon, share preview, canonical link and robots tag on every page
+    ob_start('dazu_clean_links');   // runs first: links without .php everywhere
+}
+unset($dazuGuardFirst);
 
 require_once APP_V1_ROOT . '/helpers/functions.php';
 require_once APP_V1_ROOT . '/helpers/contact.php';

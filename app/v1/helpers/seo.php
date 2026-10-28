@@ -59,9 +59,10 @@ if (!function_exists('seo_head_tags')) {
             return htmlspecialchars($v, ENT_QUOTES, 'UTF-8');
         };
 
+        // The canonical link is added for public pages only by dazu_head_meta() (the page's own clean https address);
+        // $url here is the address to share, which can differ (e.g. a course's share link).
         return
-            '<link rel="canonical" href="' . $e($url) . '">' . "\n"
-            . '<meta property="og:site_name" content="Dazu Training Institute">' . "\n"
+            '<meta property="og:site_name" content="Dazu Training Institute">' . "\n"
             . '<meta property="og:type" content="website">' . "\n"
             . '<meta property="og:title" content="' . $e($title) . '">' . "\n"
             . '<meta property="og:description" content="' . $e($description) . '">' . "\n"

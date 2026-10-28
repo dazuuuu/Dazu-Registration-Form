@@ -68,7 +68,7 @@ $shell = [
     'items'    => $tlItems,
     'menu'     => ($tlAdmin ? '<li><a class="dropdown-item" href="' . url('admin/dashboard.php') . '"><i class="fas fa-user-shield me-2"></i>Admin portal</a></li>' : ''),
     'logout'   => url(!empty($_SESSION['preview']) ? 'tutor/preview-exit.php' : 'auth/logout.php'),
-    // Phone header and tab bar: Home · System · Students · Courses · Announce · More
+    // Phone header and tab bar: Home · System · Students · Courses · Assignments · More
     'app_title' => 'Dazu Tutor',
     'app_hello' => 'Hi, ' . (strtok($tlName, ' ') ?: 'Tutor'),
 ];
@@ -77,11 +77,12 @@ $tlFile = basename($_SERVER['PHP_SELF']);
 $shell['tabs'] = [
     ['link', 'Home', 'fa-house', url('tutor/dashboard/index.php'), $tlOn(['dashboard'])],
     ['sheet', 'system', 'System', 'fa-sliders', [
-        ['Announcements', 'fa-bullhorn', url('tutor/announcements/index.php#received'), false],
+        ['New announcement', 'fa-pen', url('tutor/announcements/index.php?new=1'), false],
+        ['Announcements', 'fa-bullhorn', url('tutor/announcements/index.php#received'), $tlOn(['announcements'])],
         ['Notifications', 'fa-bell', url('tutor/notifications/index.php'), $tlOn(['notifications'])],
         ['Alerts on phone', 'fa-mobile-screen', '#alerts', false],
         ['Install app', 'fa-download', '#install', false],
-    ], $tlOn(['notifications'])],
+    ], $tlOn(['notifications', 'announcements'])],
     ['link', 'Students', 'fa-user-graduate', url('tutor/students/index.php'), $tlOn(['students'])],
     ['sheet', 'courses', 'Courses', 'fa-book-open', [
         ['Class Calendar', 'fa-calendar-days', url('tutor/calendar/index.php'), $tlOn(['calendar'])],
@@ -94,7 +95,7 @@ $shell['tabs'] = [
         ['Certificate requests' . ($tlCertPending ? ' (' . $tlCertPending . ')' : ''), 'fa-award', url('tutor/certificates/index.php'), $tlOn(['certificates'])],
         ['Grade work' . ($tlAwaiting ? ' (' . $tlAwaiting . ')' : ''), 'fa-clipboard-check', url('tutor/submissions/index.php'), $tlOn(['submissions'])],
     ], $tlOn(['calendar', 'courses', 'modules', 'resources', 'quizzes', 'assignments', 'capstone', 'certificates', 'submissions'])],
-    ['link', 'Announce', 'fa-bullhorn', url('tutor/announcements/index.php?new=1'), $tlOn(['announcements'])],
+    ['link', 'Assignments', 'fa-file-pen', url('tutor/assignments/index.php'), $tlOn(['assignments']), $tlAwaiting],
     ['sheet', 'more', 'More', 'fa-grip', array_merge(
         [['My ID & signature', 'fa-id-badge', url('tutor/profile/index.php'), $tlOn(['profile'])],
          ['Intern Helpers', 'fa-hands-helping', url('tutor/helpers/index.php'), $tlOn(['helpers'])]],

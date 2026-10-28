@@ -83,6 +83,10 @@ h1,h2,h3,h4,h5,h6{font-weight:600;letter-spacing:-.01em;color:var(--ink)}
 
 /* "More" bottom sheet */
 .as-sheet.offcanvas-bottom{height:auto;max-height:82vh;border-radius:24px 24px 0 0;border:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+.as-sheet.offcanvas-bottom{display:flex;flex-direction:column}
+/* The sheet body scrolls: without min-height:0 a long list grows past the screen and the last items cannot be reached. */
+.as-sheet .offcanvas-body{flex:1 1 auto;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}
+@media(max-width:359.98px){.as-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.as-tabs a,.as-tabs button{font-size:.58rem}}
 .as-sheet .grab{width:42px;height:5px;border-radius:3px;background:#d8dbd4;margin:10px auto 2px}
 .as-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .as-grid a{display:flex;flex-direction:column;align-items:center;gap:8px;padding:14px 6px;border-radius:16px;background:#f6f7f4;color:var(--ink);text-decoration:none;font-size:.78rem;font-weight:500;text-align:center}
