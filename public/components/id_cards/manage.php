@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../../app/v1/helpers/user_photo.php';
 // Student ID cards — management page shared by admin/id_cards/index.php and superadmin/id_cards/index.php.
 // Expects $idcArea = 'admin' | 'superadmin' (already authorised). Handles its own POSTs, then renders into $content.
 require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
@@ -168,7 +169,7 @@ ob_start();
             <div class="text-center py-5 text-muted"><i class="fas fa-pen-to-square fa-3x mb-3 opacity-25"></i><p class="mb-0">No manual ID cards yet. Use <strong>Generate ID card → Manual entry</strong>.</p></div>
         <?php else: foreach ($manualCards as $m): $mPhoto = midc_photo_file($m); ?>
             <div class="idc-row">
-                <?php if ($mPhoto): ?><img class="idc-ava" src="<?php echo $e(url($m['photo_path'])); ?>" alt="">
+                <?php if ($mPhoto && is_file($mPhoto)): ?><img class="idc-ava" src="<?php echo $e(url($m['photo_path'])); ?>" alt="">
                 <?php else: ?><div class="idc-ava"><i class="fas fa-user"></i></div><?php endif; ?>
                 <div class="min-w-0">
                     <div class="fw-semibold"><?php echo $e($m['full_name']); ?> <span class="text-muted small ms-1"><?php echo $e($m['id_no']); ?></span></div>
@@ -195,11 +196,12 @@ ob_start();
         <?php if (!$cards): ?>
             <div class="text-center py-5 text-muted"><i class="fas fa-id-card fa-3x mb-3 opacity-25"></i><p class="mb-0">No ID cards here yet.</p></div>
         <?php else: foreach ($cards as $c):
-            $photo = cert_student_photo($db, (int) $c['user_id'] ?: null);
+            // Only a photo whose file is really on the server (a saved path whose file is gone shows "No passport photo", not a broken image).
+            $photo = (int) $c['user_id'] && idc_student_photo_file($db, (int) $c['user_id']) ? user_photo_url($db, (int) $c['user_id']) : null;
             $online = $c['study_mode'] !== 'physical';
         ?>
             <div class="idc-row">
-                <?php if ($photo): ?><img class="idc-ava" src="<?php echo $e(settings_asset_url($photo)); ?>" alt="">
+                <?php if ($photo): ?><img class="idc-ava" src="<?php echo $e($photo); ?>" alt="">
                 <?php else: ?><div class="idc-ava"><i class="fas fa-user"></i></div><?php endif; ?>
                 <div class="min-w-0">
                     <div class="fw-semibold"><?php echo $e($c['full_name']); ?>
