@@ -123,7 +123,9 @@ if (!function_exists('dazu_course_apply_url')) {
     {
         $id = (int) ($course['id'] ?? 0);
         if ($id > 0) {
-            return url('courses/view.php?id=' . $id);
+            require_once __DIR__ . '/course_share.php';
+            $slug = course_slug_map()[$id] ?? null;   // /courses/web-development
+            return url($slug !== null ? 'courses/' . $slug : 'courses/view.php?id=' . $id);
         }
         $abbr = strtoupper(trim($course['abbreviation'] ?? ''));
         if ($abbr !== '') {

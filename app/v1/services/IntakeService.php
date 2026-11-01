@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../helpers/course_share.php';
 /**
  * Intake Booking (migration 079_intake_booking.sql).
  *
@@ -744,7 +745,7 @@ if (!function_exists('ik_installed')) {
     {
         $s = ik_course_state($db, (int) $b['course_id']);
         $buttons = [];
-        if ($s && $s['enrol']) $buttons[] = ['Enrol now instead', ik_abs('courses/view.php?id=' . (int) $b['course_id'])];
+        if ($s && $s['enrol']) $buttons[] = ['Enrol now instead', course_clean_url((int) $b['course_id'])];
         $buttons[] = ['Manage or cancel booking', ik_manage_url($b)];
         ik_queue($db, $b['email'], $b['full_name'], 'Your slot is booked: ' . $intake['name'] . ' intake (' . $b['number'] . ')',
             ik_email_html('Hello ' . ik_e(ik_first($b['full_name'])) . ', your slot is booked ✅',

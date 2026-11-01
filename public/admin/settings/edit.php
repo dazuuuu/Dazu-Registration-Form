@@ -231,6 +231,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         redirect_back('receipt', 'success', 'Receipt settings saved.');
     }
 
+    // ---- PAYMENT RECEIPT DESIGN (students' fee receipts) -------------
+    if (in_array($action, ['receipt_design', 'receipt_preview', 'receipt_apply_all'], true)) {
+        require_once __DIR__ . '/../../../app/v1/services/ReceiptGenerator.php';
+        $vals = [];
+        foreach (ReceiptGenerator::DEFAULTS as $k => $def) {
+            $vals[$k] = str_starts_with($k, 'show_') ? (empty($_POST['rcpt_' . $k]) ? '0' : '1') : mb_substr(trim((string) ($_POST['rcpt_' . $k] ?? '')), 0, 600);
+        }
+        if (!preg_match('/^#[0-9a-f]{6}$/i', $vals['accent'])) $vals['accent'] = ReceiptGenerator::DEFAULTS['accent'];
+        if ($action === 'receipt_preview') {
+            header('Content-Type: text/html; charset=UTF-8');
+            echo '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:16px;background:#f5f6f8">' . ReceiptGenerator::sample($vals) . '</body></html>';
+            exit;
+        }
+        foreach ($vals as $k => $v) $settings->set('rcpt_' . $k, $v);
+        if ($action === 'receipt_apply_all') {
+            $n = 0;
+            foreach ($pdo->query("SELECT id FROM payments WHERE status = 'approved' AND receipt_no IS NOT NULL AND receipt_no <> ''")->fetchAll(PDO::FETCH_COLUMN) as $pid) {
+                if (ReceiptGenerator::rebuild($pdo, (int) $pid)) $n++;
+            }
+            redirect_back('receipt', 'success', "Receipt design saved and applied to {$n} past receipts.");
+        }
+        redirect_back('receipt', 'success', 'Receipt design saved. New receipts use it.');
+    }
+
     // ---- POPULAR COURSES TOGGLE ------------------------------------
     if ($action === 'toggle_popular') {
         $courseModel = new \Models\CourseModel($pdo);
@@ -730,7 +754,52 @@ ob_start();
     </form>
   <?php endif; ?>
 
-  <?php if ($section === 'receipt'): ?>
+  <?php if ($section === 'receipt'):
+    require_once __DIR__ . '/../../../app/v1/services/ReceiptGenerator.php';
+    $rc = ReceiptGenerator::settings(); ?>
+    <form class="panel" method="POST" id="rcpt-form" style="margin-bottom:18px">
+      <?php echo csrf_field(); ?>
+      <input type="hidden" name="action" value="receipt_design">
+      <h2>Student payment receipt</h2>
+      <p class="hint">The receipt students get when a fee payment is recorded or approved. The preview updates as you type. To add an NB to one receipt only, open that receipt from Payments.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px;align-items:start">
+        <div>
+          <div class="field"><label>Receipt title</label><input type="text" name="rcpt_title" maxlength="80" value="<?php echo htmlspecialchars($rc['title']); ?>"></div>
+          <div class="row">
+            <div class="field" style="margin:0;"><label>Institute name</label><input type="text" name="rcpt_company" maxlength="120" value="<?php echo htmlspecialchars($rc['company']); ?>"></div>
+            <div class="field" style="margin:0;"><label>Colour</label><input type="color" name="rcpt_accent" value="<?php echo htmlspecialchars($rc['accent']); ?>" style="height:42px;padding:2px"></div>
+          </div>
+          <div class="field"><label>Lines under the name (one per line: phone, address, P.O. Box…)</label><textarea name="rcpt_header" rows="3" maxlength="400"><?php echo htmlspecialchars($rc['header']); ?></textarea></div>
+          <div class="field"><label>Show on the receipt</label>
+            <?php foreach (['show_logo' => 'Logo', 'show_email' => 'Student email', 'show_phone' => 'Student phone', 'show_plan' => 'Payment plan'] as $k => $lbl): ?>
+              <label style="display:inline-flex;align-items:center;gap:6px;margin:0 14px 6px 0;font-weight:400"><input type="checkbox" name="rcpt_<?php echo $k; ?>" value="1" <?php echo $rc[$k] === '1' ? 'checked' : ''; ?>> <?php echo $lbl; ?></label>
+            <?php endforeach; ?>
+          </div>
+          <div class="field"><label>NB on every receipt (optional)</label><textarea name="rcpt_nb" rows="3" maxlength="600" placeholder="e.g. Fees once paid are not refundable. Keep this receipt for your records."><?php echo htmlspecialchars($rc['nb']); ?></textarea></div>
+          <div class="field"><label>Footer</label><textarea name="rcpt_footer" rows="2" maxlength="300"><?php echo htmlspecialchars($rc['footer']); ?></textarea></div>
+          <div class="divider"></div>
+          <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save design</button>
+          <button class="btn" type="submit" name="action" value="receipt_apply_all" onclick="return confirm('Save, and also update every past receipt with this design (the amounts do not change)?')" style="margin-left:6px"><i class="fa-solid fa-rotate"></i> Save and update past receipts</button>
+        </div>
+        <div>
+          <label style="font-weight:600;display:block;margin-bottom:6px">Preview</label>
+          <iframe id="rcpt-preview" title="Receipt preview" style="width:100%;height:760px;border:1px solid #e3e3e3;border-radius:10px;background:#f5f6f8" srcdoc="<?php echo htmlspecialchars('<!DOCTYPE html><html><body style="margin:0;padding:16px;background:#f5f6f8">' . ReceiptGenerator::sample($rc) . '</body></html>'); ?>"></iframe>
+        </div>
+      </div>
+    </form>
+    <script>
+    (function () {
+      var f = document.getElementById('rcpt-form'), fr = document.getElementById('rcpt-preview'), t;
+      function refresh() {
+        var d = new FormData(f); d.set('action', 'receipt_preview');
+        fetch('edit.php?section=receipt', { method: 'POST', body: d, credentials: 'same-origin' })
+          .then(function (r) { return r.text(); }).then(function (h) { fr.srcdoc = h; }).catch(function () {});
+      }
+      f.addEventListener('input', function () { clearTimeout(t); t = setTimeout(refresh, 400); });
+      f.addEventListener('change', function () { clearTimeout(t); t = setTimeout(refresh, 100); });
+    })();
+    </script>
+
     <form class="panel" method="POST" enctype="multipart/form-data">
       <?php echo csrf_field(); ?>
       <input type="hidden" name="action" value="save_receipt">

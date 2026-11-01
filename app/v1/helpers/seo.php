@@ -100,8 +100,9 @@ if (!function_exists('seo_share_image')) {
 }
 
 if (!function_exists('seo_head_tags')) {
-    function seo_head_tags(?string $title, ?string $description, ?string $image = null, ?string $url = null): string
+    function seo_head_tags(?string $title, ?string $description, ?string $image = null, ?string $url = null, array $tags = []): string
     {
+        $tags = array_values(array_unique(array_filter(array_map(static fn($t) => trim((string) $t), $tags))));
         $title = $title !== null && $title !== '' ? $title : 'Dazu Training Institute';
         $description = $description !== null && $description !== ''
             ? $description
@@ -132,7 +133,19 @@ if (!function_exists('seo_head_tags')) {
             . '<meta name="twitter:description" content="' . $e($description) . '">' . "\n"
             . '<meta name="twitter:image" content="' . $e($image) . '">' . "\n"
             . '<link rel="image_src" href="' . $e($image) . '">' . "\n"
-            . '<meta itemprop="image" content="' . $e($image) . '">' . "\n";
+            . '<meta itemprop="image" content="' . $e($image) . '">' . "\n"
+            . ($tags ? '<meta name="keywords" content="' . $e(implode(', ', $tags)) . '">' . "\n"
+                . implode('', array_map(static fn($t) => '<meta property="article:tag" content="' . $e($t) . '">' . "\n", $tags)) : '');
+    }
+}
+
+if (!function_exists('seo_course_tags')) {
+    /** Tags of a course for previews and search: its category, short name and qualification. */
+    function seo_course_tags(array $course): array
+    {
+        return array_values(array_filter([
+            $course['category_name'] ?? '', $course['abbreviation'] ?? '', $course['qualification'] ?? '', $course['title'] ?? '', 'Dazu Training Institute',
+        ], static fn($t) => trim((string) $t) !== ''));
     }
 }
 
@@ -250,7 +263,7 @@ if (!function_exists('seo_emit_course_share_preview')) {
         echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
             . '<title>' . $e($title) . '</title>'
             . '<meta name="description" content="' . $e($description) . '">'
-            . seo_head_tags($title, $description, $image, $url)
+            . seo_head_tags($title, $description, $image, $url, seo_course_tags($course))
             . '</head><body>'
             . '<h1>' . $e((string) ($course['title'] ?? 'Course')) . '</h1>'
             . '<p>' . $e($description) . '</p>'

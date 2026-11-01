@@ -50,5 +50,6 @@ $name = $_SESSION['username'] ?? 'there';
   <p class="text-center small text-muted mt-4">You can switch between them at any time from the top of either portal.
     · <a href="<?php echo url('auth/logout.php'); ?>">Sign out</a></p>
 </main>
+<script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
 </body>
 </html>

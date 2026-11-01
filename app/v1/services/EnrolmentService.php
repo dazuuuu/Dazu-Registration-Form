@@ -265,7 +265,7 @@ if (!function_exists('en_installed')) {
             . '<p style="margin:0 0 10px;font-weight:600">Hello ' . en_e($first) . ',</p><p>' . en_e($intro) . '</p><table style="width:100%;border-collapse:collapse;margin:14px 0">';
         foreach ($rows as [$k, $v]) $html .= '<tr><td style="padding:8px;border-bottom:1px solid #eee;color:#6b7067">' . en_e($k) . '</td><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600;text-align:right">' . en_e($v) . '</td></tr>';
         $html .= '</table><p>Keep your booking number. To finish enrolling, apply on the course page or call or WhatsApp us on 0722 922 454.</p>'
-            . '<p style="margin:20px 0 8px"><a href="' . en_e(course_share_absolute_url(url('courses/view?id=' . (int) $b['course_id']))) . '" style="display:inline-block;background:#44A024;color:#fff;padding:11px 26px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">VIEW THE COURSE</a></p>'
+            . '<p style="margin:20px 0 8px"><a href="' . en_e(course_clean_url((int) $b['course_id'])) . '" style="display:inline-block;background:#44A024;color:#fff;padding:11px 26px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">VIEW THE COURSE</a></p>'
             . '</div><div style="padding:14px 26px;border-top:1px solid #e9ebe6;color:#6b7067;font-size:12px;text-align:center">Dazu Training Institute | 0722 922 454 | dazu.ac.ke</div></div></div>';
         $msgs = [['to_email' => $b['email'], 'to_name' => $b['full_name'], 'subject' => $subject, 'html' => $html]];
         // A copy to the admissions inbox, so new bookings are seen without opening the admin.

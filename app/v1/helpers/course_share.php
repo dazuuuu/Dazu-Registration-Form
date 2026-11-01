@@ -119,6 +119,15 @@ if (!function_exists('course_resolve_for_page')) {
             return \Models\CourseModel::isShareable($course) ? $course : null;
         }
 
+        $slug = isset($_GET['slug']) ? strtolower(trim((string) $_GET['slug'])) : '';
+        if ($slug !== '') {
+            $id = (int) (array_search($slug, course_slug_map(), true) ?: 0);
+            if ($id > 0) {
+                $course = $model->getById($id);
+                return \Models\CourseModel::isShareable($course) ? $course : null;
+            }
+        }
+
         $abbr = isset($_GET['abbr']) ? strtoupper(trim((string) $_GET['abbr'])) : '';
         if ($abbr !== '') {
             $course = $model->getByAbbreviation($abbr);
@@ -129,13 +138,60 @@ if (!function_exists('course_resolve_for_page')) {
     }
 }
 
+if (!function_exists('course_slug')) {
+    /** The course's name in its address: "Web Development" → web-development (dazu.ac.ke/courses/web-development). */
+    function course_slug(array $course): string
+    {
+        $s = strtolower(trim((string) ($course['title'] ?? '')));
+        $s = (string) preg_replace('/[^a-z0-9]+/', '-', iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s) ?: $s);
+        $s = trim($s, '-');
+        return $s !== '' ? $s : 'course-' . (int) ($course['id'] ?? 0);
+    }
+}
+
+if (!function_exists('course_slug_map')) {
+    /** id => slug of every course (one query per request). Two courses with the same name: the later one gets -<id>. */
+    function course_slug_map(): array
+    {
+        static $map = null;
+        if ($map !== null) return $map;
+        $map = [];
+        try {
+            if (!class_exists('Models\\Connection')) require_once __DIR__ . '/../models/Connection.php';
+            $rows = \Models\Connection::getInstance()->getConnection()->query('SELECT id, title FROM courses ORDER BY id')->fetchAll(PDO::FETCH_ASSOC);
+            $used = [];
+            foreach ($rows as $r) {
+                $slug = course_slug($r);
+                if (isset($used[$slug])) $slug .= '-' . (int) $r['id'];
+                $used[$slug] = true;
+                $map[(int) $r['id']] = $slug;
+            }
+        } catch (Throwable $e) {
+            error_log('[course_slug_map] ' . $e->getMessage());
+        }
+        return $map;
+    }
+}
+
+if (!function_exists('course_clean_url')) {
+    /** https://<domain>/courses/<course-name>[?ref=…] */
+    function course_clean_url(int $courseId, ?string $ref = null): string
+    {
+        $slug = course_slug_map()[$courseId] ?? null;
+        if ($slug === null) {
+            return course_share_absolute_url(url('courses/view?id=' . $courseId));
+        }
+        return course_share_absolute_url(url('courses/' . $slug)) . ($ref !== null && $ref !== '' ? '?ref=' . rawurlencode($ref) : '');
+    }
+}
+
 if (!function_exists('course_view_url')) {
     /** Canonical course detail + apply page (details left, form right). */
     function course_view_url(array $course): string
     {
         $id = (int) ($course['id'] ?? 0);
         if ($id > 0) {
-            return course_share_absolute_url(url('courses/view.php?id=' . $id));
+            return course_clean_url($id);
         }
         $abbr = strtoupper(trim((string) ($course['abbreviation'] ?? '')));
         if ($abbr !== '') {
@@ -147,7 +203,7 @@ if (!function_exists('course_view_url')) {
 
 if (!function_exists('course_share_url')) {
     /**
-     * Public URL for sharing a course registration page.
+     * Public URL for sharing a course registration page: https://<domain>/courses/<course-name>.
      *
      * @param int         $courseId Active course ID
      * @param string|null $ref      Optional student registration_no for referral tracking
@@ -158,11 +214,7 @@ if (!function_exists('course_share_url')) {
         if ($courseId <= 0) {
             return course_share_absolute_url(url('courses/index.php'));
         }
-        $path = url('courses/share.php?id=' . $courseId);
-        if ($ref !== null && $ref !== '') {
-            $path .= '&ref=' . rawurlencode($ref);
-        }
-        return course_share_absolute_url($path);
+        return course_clean_url($courseId, $ref);
     }
 }
 

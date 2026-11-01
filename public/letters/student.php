@@ -79,7 +79,8 @@ if ($view === 'admin') {
 <div class="k">Student No</div><div class="v"><?php echo $e($reg['registration_no']); ?></div>
 <div class="k">Status</div><div class="v"><?php echo $e($status['word']); ?></div>
 <?php if ($l): ?><div class="k">Issued on</div><div class="v"><?php echo $e(date('j F Y', strtotime($l['generated_at']))); ?></div><?php endif; ?>
-</div></main></body></html><?php
+</div></main><script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
+</body></html><?php
     exit;
 }
 
@@ -137,4 +138,5 @@ textarea{font:inherit;border:1px solid #cfd4cb;border-radius:8px;padding:8px 10p
   <?php endif; ?>
 </div>
 <div class="paper"><?php echo sl_html($d, false); ?></div>
+<script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
 </body></html>

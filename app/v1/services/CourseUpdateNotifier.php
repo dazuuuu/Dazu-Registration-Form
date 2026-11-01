@@ -61,7 +61,7 @@ class CourseUpdateNotifier {
             'course_overview'  => $course['overview'] ?? '',
             'cover_image_url'  => \dazu_course_image_url($course),
             'course_url'       => $courseId > 0
-                ? \course_share_absolute_url(url('courses/view.php?id=' . $courseId))
+                ? \course_clean_url((int) $courseId)
                 : '',
         ];
 

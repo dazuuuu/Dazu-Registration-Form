@@ -13,7 +13,7 @@ foreach (['/', 'about', 'courses', 'contact', 'blog', 'gallery', 'projects', 'se
 }
 try {
     foreach ($pdo->query("SELECT id, abbreviation, updated_at FROM courses WHERE is_active = 1 AND (approval_status IS NULL OR approval_status = 'approved')") as $c) {
-        $urls[] = [$abs('courses/view?id=' . (int) $c['id']), $c['updated_at']];
+        $urls[] = [course_clean_url((int) $c['id']), $c['updated_at']];
     }
 } catch (Throwable $e) {
     error_log('[sitemap] courses: ' . $e->getMessage());

@@ -39,4 +39,5 @@ if (preg_match('/^[a-f0-9]{40}$/', $t)) {
   <div class="w">!</div><h1 style="font-size:20px;margin:0 0 6px">We cannot verify this transcript</h1>
   <p style="color:#6b7067;font-size:14px">The code is not one Dazu Training Institute issued. Contact the office if you think this is a mistake.</p>
 <?php endif; ?>
-</main></body></html>
+</main><script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
+</body></html>

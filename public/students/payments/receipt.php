@@ -37,7 +37,7 @@ if (!empty($payment['receipt_html'])) {
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Receipt ' . htmlspecialchars($receiptNo) . '</title></head><body>'
             . $payment['receipt_html']
-            . '</body></html>';
+            . '<script src="' . url('assets/js/dazu-loader.js') . '?v=1" defer data-logo="' . url('assets/images/logo/logo.png') . '"></script></body></html>';
         exit();
     }
 
@@ -49,7 +49,7 @@ if (!empty($payment['receipt_html'])) {
         . '<button type="button" class="btn-print" onclick="window.print()">Print Receipt</button>'
         . '<a href="' . htmlspecialchars(url('students/payments/index.php')) . '" class="btn-print">Back to Payments</a>'
         . '</div>'
-        . '</body></html>';
+        . '<script src="' . url('assets/js/dazu-loader.js') . '?v=1" defer data-logo="' . url('assets/images/logo/logo.png') . '"></script></body></html>';
     exit();
 }
 

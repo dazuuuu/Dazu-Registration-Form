@@ -48,6 +48,7 @@ if ($course) {
 }
 
 if (!course_is_shareable($course)) {
+    http_response_code(404);
     $page_title = 'Course not found';
     ob_start();
     echo '<div class="max-w-[1280px] mx-auto px-4 py-20 text-center"><p class="text-slate-600 mb-4">Course not found or inactive.</p><a href="' . htmlspecialchars(url('courses/index.php')) . '" class="text-green-600 font-bold">Browse courses</a></div>';
@@ -60,6 +61,7 @@ $page_title = ($course['title'] ?? 'Course') . ' — Apply | Dazu Training Insti
 $page_description = mb_strimwidth(strip_tags($course['overview'] ?? $course['description'] ?? ''), 0, 160, '…');
 $og_image = course_og_image_url($course);
 $og_url = course_share_url((int) $course['id']);
+$GLOBALS['dazu_canonical'] = course_view_url($course);   // old ?id= links and share links all point search engines at /courses/<course-name>
 $share_url = $og_url;
 $share_title = 'Apply for ' . $course['title'] . ' at Dazu Training Institute';
 

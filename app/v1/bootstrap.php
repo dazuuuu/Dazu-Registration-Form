@@ -123,6 +123,22 @@ if (!empty($appConfig['timezone']) && isset($pdo)) {
 
 // A page that crashes (fatal error) used to show half a page and nothing else, because the server hides PHP errors.
 // Now the error is written to storage/logs/fatal.log (Superadmin → File check shows it) and the visitor sees a short message.
+if (!function_exists('dazu_fatal_details')) {
+    /** The technical details of a crash, shown on the error page to staff only (tutor, admin, superadmin); empty for everyone else. */
+    function dazu_fatal_details(array $err, string $root): string
+    {
+        $role = (string) ($_SESSION['role'] ?? '');
+        $rid = (int) ($_SESSION['role_id'] ?? 99);
+        if (empty($_SESSION['logged_in']) || !(in_array($role, ['tutor', 'admin', 'superadmin'], true) || $rid <= 2)) return '';
+        $h = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+        $msg = str_replace($root . '/', '', (string) $err['message']);
+        $msg = preg_replace('/\s*Stack trace:.*$/s', '', $msg);
+        return '<div style="text-align:left;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 14px;margin-top:18px;font-size:13px;color:#7f1d1d">'
+             . '<b>Details for staff</b><br><span style="font-family:ui-monospace,monospace;word-break:break-word">' . $h($msg) . '<br>in ' . $h(str_replace($root . '/', '', (string) $err['file'])) . ' line ' . (int) $err['line'] . '</span>'
+             . '<br><span style="color:#991b1b">Send this to the developer. All errors: Superadmin → File check, or /superadmin/errors.</span></div>';
+    }
+}
+
 if (!defined('DAZU_FATAL_LOG')) {
     define('DAZU_FATAL_LOG', true);
     register_shutdown_function(static function (): void {
@@ -142,8 +158,9 @@ if (!defined('DAZU_FATAL_LOG')) {
             while (ob_get_level() > 0) @ob_end_clean();   // drop the half-printed page
             if (!headers_sent()) { http_response_code(500); header('Content-Type: text/html; charset=UTF-8'); }
             echo '<!DOCTYPE html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Something went wrong</title>'
-               . '<div style="font-family:system-ui,sans-serif;max-width:480px;margin:15vh auto;padding:0 16px;text-align:center;color:#334155">'
+               . '<div style="font-family:system-ui,sans-serif;max-width:640px;margin:15vh auto;padding:0 16px;text-align:center;color:#334155">'
                . '<h1 style="font-size:20px">Something went wrong on this page</h1><p>The problem was recorded for the office. Please try again in a few minutes.</p>'
+               . dazu_fatal_details($err, $root)
                . '<p><a href="javascript:history.back()" style="color:#15A24A">Go back</a></p></div>';
         }
     });

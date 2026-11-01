@@ -36,5 +36,6 @@ echo $content;
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <?php $pwaPortal = 'employee'; require __DIR__ . '/../../components/pwa/script.php'; ?>
+<script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
 </body>
 </html>

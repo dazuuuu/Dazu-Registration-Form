@@ -40,4 +40,5 @@ if (preg_match('/^[a-f0-9]{32}$/', $k)) {
   <div class="w">!</div><h1 style="font-size:20px;margin:0 0 6px">We cannot verify this letter</h1>
   <p style="font-size:13px;color:#777">This letter is not active, or it is not in our records. Please do not trust it until the office confirms it.</p>
 <?php endif; ?>
-</main></body></html>
+</main><script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
+</body></html>

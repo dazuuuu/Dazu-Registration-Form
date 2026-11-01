@@ -88,6 +88,7 @@ $share_url = course_share_url((int) $course['id'], $referralNo);
 $share_title = 'Join me at Dazu Training Institute — ' . $course['title'];
 $og_image = course_og_image_url($course);
 $og_url = $share_url;
+$GLOBALS['dazu_canonical'] = course_view_url($course);   // old ?id= links and share links all point search engines at /courses/<course-name>
 $page_description = mb_strimwidth(strip_tags($course['overview'] ?? $course['description'] ?? ''), 0, 160, '…');
 
 require_once __DIR__ . '/../../app/v1/helpers/seo.php';

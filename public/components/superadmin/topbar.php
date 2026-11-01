@@ -61,6 +61,7 @@ $sa_more = [
         ['Backup & migrate', 'superadmin/backup.php', 'fa-box-archive'],
         ['Pull from live', 'superadmin/migrate.php', 'fa-cloud-arrow-down'],
         ['File check', 'superadmin/file_check.php', 'fa-list-check'],
+        ['Error log', 'superadmin/errors.php', 'fa-triangle-exclamation'],
         ['Install app', '#install', 'fa-download'],
         ['Sign out', 'superadmin/logout.php', 'fa-arrow-right-from-bracket'],
     ],
@@ -107,6 +108,7 @@ $sa_side = [
         ['Backup & migrate', 'superadmin/backup.php', '/superadmin/backup.php', 'fa-box-archive'],
         ['Pull from live', 'superadmin/migrate.php', '/superadmin/migrate.php', 'fa-cloud-arrow-down'],
         ['File check', 'superadmin/file_check.php', '/superadmin/file_check.php', 'fa-list-check'],
+        ['Error log', 'superadmin/errors.php', '/superadmin/errors.php', 'fa-triangle-exclamation'],
         ['Log out', 'superadmin/logout.php', '/superadmin/logout.php', 'fa-arrow-right-from-bracket'],
     ],
 ];

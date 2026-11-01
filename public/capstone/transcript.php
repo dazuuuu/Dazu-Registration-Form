@@ -84,7 +84,8 @@ if ($view === 'admin') {
 <div class="k">Status</div><div class="v"><?php echo $e($status['word']); ?></div>
 <?php if ($rel): ?><div class="k">Transcript number</div><div class="v"><?php echo $e($rel['transcript_no']); ?></div>
 <div class="k">Released on</div><div class="v"><?php echo $e(date('j F Y', strtotime($rel['released_at']))); ?></div><?php endif; ?>
-<p style="color:#6b7067;font-size:.8rem;margin:16px 0 0">Marks are shown to the student and their tutor only.</p></div></main></body></html><?php
+<p style="color:#6b7067;font-size:.8rem;margin:16px 0 0">Marks are shown to the student and their tutor only.</p></div></main><script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
+</body></html><?php
     exit;
 }
 
@@ -157,4 +158,5 @@ input,textarea{font:inherit;border:1px solid #cfd4cb;border-radius:8px;padding:7
   <?php endif; ?>
 </div>
 <div class="paper"><?php echo tr_html($d, false); ?></div>
+<script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
 </body></html>

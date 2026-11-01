@@ -51,7 +51,8 @@ if (!function_exists('dazu_asset_v')) {
         html_entity_decode((string) ($page_title ?? 'Dazu Training Institute'), ENT_QUOTES, 'UTF-8'),
         (string) ($page_description ?? ''),
         $og_image ?? null,
-        $og_url ?? null
+        $og_url ?? null,
+        $page_tags ?? (!empty($course) && is_array($course) ? seo_course_tags($course) : [])
     );
   ?>
   <?php echo dazu_favicon_tags(); ?>
@@ -68,5 +69,6 @@ if (!function_exists('dazu_asset_v')) {
 <?php include __DIR__ . '/../../components/public/dazu_footer.php'; ?>
 <script src="<?php echo dazu_asset_v('js/dazu-course-category-filter.js'); ?>"></script>
 <?php if (!empty($extra_js)) echo $extra_js; ?>
+<script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
 </body>
 </html>

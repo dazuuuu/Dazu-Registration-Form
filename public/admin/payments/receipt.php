@@ -23,6 +23,9 @@ if (!$payment || $payment['status'] !== 'approved' || empty($payment['receipt_ht
     exit();
 }
 
+require_once __DIR__ . '/../../../app/v1/helpers/receipt_note.php';
+receipt_note_post($pdo, $id, url('admin/payments/receipt.php?id=' . $id));
+
 $receiptNo = $payment['receipt_no'] ?? ('receipt-' . $id);
 $filename = preg_replace('/[^a-zA-Z0-9_-]/', '-', $receiptNo) . '.html';
 
@@ -31,14 +34,15 @@ if ($download) {
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Receipt ' . htmlspecialchars($receiptNo) . '</title></head><body>'
         . $payment['receipt_html']
-        . '</body></html>';
+        . '<script src="' . url('assets/js/dazu-loader.js') . '?v=1" defer data-logo="' . url('assets/images/logo/logo.png') . '"></script></body></html>';
     exit();
 }
 
 echo '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Receipt ' . htmlspecialchars($receiptNo) . '</title>'
     . '<style>body{background:#f5f6f8;padding:24px;}@media print{body{background:#fff;padding:0;}}</style></head><body>'
+    . receipt_note_panel($payment)
     . $payment['receipt_html']
     . '<p style="text-align:center;margin-top:20px;">'
     . '<a href="' . htmlspecialchars(url('admin/payments/receipt.php?id=' . $id . '&download=1')) . '" style="margin-right:12px;">Download</a>'
     . '<button onclick="window.print()">Print</button></p>'
-    . '</body></html>';
+    . '<script src="' . url('assets/js/dazu-loader.js') . '?v=1" defer data-logo="' . url('assets/images/logo/logo.png') . '"></script></body></html>';

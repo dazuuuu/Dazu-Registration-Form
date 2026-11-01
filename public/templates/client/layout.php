@@ -484,5 +484,6 @@ $isCart = strpos($_SERVER['REQUEST_URI'], '/store/cart') !== false;
 <?php if (isset($extra_js)): ?>
     <?php echo $extra_js; ?>
 <?php endif; ?>
+<script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
 </body>
 </html>

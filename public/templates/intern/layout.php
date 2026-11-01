@@ -97,5 +97,6 @@ echo $content;
 <script src="<?php echo url('assets/js/intern-app.js'); ?>?v=1" defer data-clock="<?php echo in_e(url('intern/attendance/clock.php')); ?>" data-csrf="<?php echo in_e(csrf_token()); ?>"></script>
 <?php require __DIR__ . '/../../components/announcements/overlay.php'; ?>
 <?php if (isset($extra_js)) echo $extra_js; ?>
+<script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
 </body>
 </html>

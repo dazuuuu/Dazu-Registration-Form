@@ -379,6 +379,7 @@ if (!function_exists('dazu_head_meta')) {
                 // A course's share page shows the same course as its main page: point search engines at the main page.
                 $canonPath = preg_replace('#/courses/share$#', '/courses/view', $canonPath);
                 $canon = ($isLocal ? 'http' : 'https') . '://' . preg_replace('#^www\.#i', '', $host) . $canonPath . ($keep ? '?' . http_build_query($keep) : '');
+                if (!empty($GLOBALS['dazu_canonical'])) $canon = (string) $GLOBALS['dazu_canonical'];   // e.g. a course: /courses/<course-name>
                 $add .= '<link rel="canonical" href="' . $esc($canon) . '">' . "\n";
             }
             if (!preg_match('#<meta[^>]+name=["\']description["\']#i', $head)) {

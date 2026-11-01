@@ -32,6 +32,11 @@ $__routed = (function (): ?string {
         $file = $rel . '/index.php';
     } elseif (preg_match('#^(' . $sections . ')/([A-Za-z0-9_-]+)$#', $rel, $m)) {
         $file = $m[1] . '/' . $m[2] . '.php';
+        // A course by its name: /courses/web-development (the page with the form; with ?ref= the share page that credits the referrer)
+        if ($m[1] === 'courses' && !is_file(__DIR__ . '/' . $file)) {
+            $file = !empty($_GET['ref']) ? 'courses/share.php' : 'courses/view.php';
+            $_GET['slug'] = $_REQUEST['slug'] = strtolower($m[2]);
+        }
     }
     if ($file === null || !is_file(__DIR__ . '/' . $file)) {
         return null;

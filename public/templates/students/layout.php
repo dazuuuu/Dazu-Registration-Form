@@ -143,5 +143,6 @@ $shell = [
 <?php require __DIR__ . '/../../components/announcements/overlay.php'; ?>
 <?php require __DIR__ . '/../../components/classes/tz_prompt.php'; ?>
 <?php if (isset($extra_js)): echo $extra_js; endif; ?>
+<script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
 </body>
 </html>

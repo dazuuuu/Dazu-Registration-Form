@@ -71,5 +71,6 @@ $flashes = ['success' => 'check-circle', 'error' => 'exclamation-circle', 'warni
 <?php require_once __DIR__ . '/../../../app/v1/models/Connection.php'; require __DIR__ . '/../../components/announcements/overlay.php'; ?>
 <?php if (isset($extra_js)) echo $extra_js; ?>
 <?php require __DIR__ . '/../../components/cache_guard.php'; ?>
+<script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
 </body>
 </html>

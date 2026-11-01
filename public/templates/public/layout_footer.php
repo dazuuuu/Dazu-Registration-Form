@@ -20,5 +20,6 @@
   els.forEach(el => io.observe(el));
 })();
 </script>
+<script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
 </body>
 </html>

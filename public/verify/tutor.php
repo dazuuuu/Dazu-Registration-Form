@@ -107,4 +107,5 @@ h1{font-size:20px;margin:6px 0 2px;text-transform:uppercase}.role{color:#44A024;
   <p class="note" style="margin-top:6px">This ID is not active, or it is not in our records. Please do not trust it until the office confirms it.</p>
   <div class="box" style="padding:14px 16px"><b style="font-size:14px">Ask the office</b><div style="font-size:14px;margin-top:6px"><?php echo $e($s['phone']); ?><br><?php echo $e($s['email']); ?></div></div>
 <?php endif; ?>
-</main></body></html>
+</main><script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
+</body></html>

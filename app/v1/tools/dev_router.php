@@ -36,4 +36,4 @@ if ($rel !== '' && is_file($root . '/' . $rel . '/index.php')) {
 if ($rel !== '' && is_file($root . '/' . $rel . '.php')) {
     return $serve($rel . '.php');
 }
-return $rel === '' ? $serve('index.php') : false;
+return $serve('index.php');   // like the live .htaccess: every other address goes to index.php (course names, 404)

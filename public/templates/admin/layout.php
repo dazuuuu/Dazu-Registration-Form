@@ -733,5 +733,6 @@ if (isset($pdo)) {
         <?php echo $extra_js; ?>
     <?php endif; ?>
 <?php require __DIR__ . '/../../components/cache_guard.php'; ?>
+<script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
 </body>
 </html>
