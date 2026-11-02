@@ -1,6 +1,6 @@
 <?php
-$page_title = 'About Us — Dazu Hub Institute';
-$page_description = 'Dazu Hub Tech Skills Institute in Thika Town — hands-on labs, KICD-aligned curricula, and industry-led training for the next generation of innovators.';
+$page_title = 'About Us — Dazu Training Institute';
+$page_description = 'Dazu Training Institute in Nairobi, Thika and online — hands-on labs, flexible classes, KICD-aligned curricula, and industry-led training for the next generation of innovators.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
@@ -37,16 +37,16 @@ $trainers = [
 
 $faqs = [
     [
-        'q' => 'Where is Dazu Hub Institute located physically?',
-        'a' => 'We are based in Thika Town. Our primary campus labs are in Room 529 and surrounding training rooms — visit our Contact page for directions and a live map.',
+        'q' => 'Where is Dazu Training Institute located?',
+        'a' => 'We serve learners through Thika Town, Nairobi, and online classes. Our Thika campus labs are in Room 529 and surrounding training rooms, and our Nairobi intake supports learners who prefer the city location.',
     ],
     [
         'q' => 'Are the training sessions conducted physically or online?',
-        'a' => 'Both. Most tracks offer physical lab sessions in Thika plus flexible online study modes. Choose your preferred mode when you apply for a course.',
+        'a' => 'Both. Most tracks offer physical lab sessions in Thika and Nairobi plus flexible online study modes. Choose your preferred mode when you apply for a course.',
     ],
     [
         'q' => 'Will I receive an industry-recognized certificate?',
-        'a' => 'Yes. Students who complete all modules, projects, and assessments receive a Dazu Hub Institute certificate aligned with practical industry competencies.',
+        'a' => 'Yes. Students who complete all modules, projects, and assessments receive a Dazu Training Institute certificate aligned with practical industry competencies.',
     ],
     [
         'q' => 'Do you offer flexible installment options for tuition fees?',
@@ -66,12 +66,12 @@ ob_start();
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
       <div class="space-y-6">
-        <span class="inline-block text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">About Dazu Hub</span>
+        <span class="inline-block text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">About Dazu Training Institute</span>
         <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-950 tracking-tight leading-tight uppercase">
           Empowering Next-Gen Innovators Across Kenya.
         </h1>
         <div class="space-y-4 text-slate-600 font-medium leading-relaxed">
-          <p>Dazu Hub Institute is a leading African technology and digital skills institute with campuses in Thika Town and Nairobi. We equip students, graduates, professionals, entrepreneurs, and businesses with practical, job-ready skills for Africa's growing digital economy.</p>
+          <p>Dazu Training Institute is a leading African technology and digital skills institute serving learners in Nairobi, Thika Town, and online. We equip students, graduates, professionals, entrepreneurs, and businesses with practical, job-ready skills for Africa's growing digital economy.</p>
           <p>We bridge the gap between traditional education and real industry demands through hands-on training, project-based learning, and mentorship. Our programs focus on software development, artificial intelligence, cybersecurity, data science, digital marketing, graphics design, automation, and other high-demand digital skills.</p>
           <p>Every learner builds real-world projects, gains practical experience, and develops the confidence to work, freelance, launch a business, or secure employment across Africa and beyond. Our mission is to develop skilled innovators, problem solvers, and technology leaders who drive Africa's digital transformation.</p>
         </div>
@@ -96,8 +96,8 @@ ob_start();
             <span class="block mt-2 text-[10px] uppercase tracking-widest font-bold text-slate-500">KICD-Aligned Curriculums</span>
           </div>
           <div class="bg-white border border-slate-200 rounded-xl p-6 text-center">
-            <span class="block text-3xl md:text-4xl font-extrabold text-[#15A24A]">Room 529</span>
-            <span class="block mt-2 text-[10px] uppercase tracking-widest font-bold text-slate-500">Thika Campus Rooms</span>
+            <span class="block text-3xl md:text-4xl font-extrabold text-[#15A24A]">3 Modes</span>
+            <span class="block mt-2 text-[10px] uppercase tracking-widest font-bold text-slate-500">Nairobi, Thika & Online</span>
           </div>
         </div>
       </div>
@@ -144,9 +144,9 @@ ob_start();
 <section class="bg-white py-20">
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="max-w-2xl mb-12">
-      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Life at Dazu Hub</span>
+      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Life at Dazu Training Institute</span>
       <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Our Gallery</h2>
-      <p class="text-slate-600 font-medium mt-4">A look inside our labs, classes, and student milestones across our Thika Town and Nairobi campuses.</p>
+      <p class="text-slate-600 font-medium mt-4">A look inside our labs, classes, and student milestones across our Nairobi, Thika, and online learning community.</p>
     </div>
 
     <?php if (empty($galleryItems)): ?>
@@ -233,7 +233,7 @@ ob_start();
 <section class="bg-white border-t border-slate-100 py-20">
   <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="max-w-2xl mb-12">
-      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">The people behind Dazu Hub</span>
+      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">The people behind Dazu Training Institute</span>
       <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Meet Our Team</h2>
       <p class="text-slate-600 font-medium mt-4">Our founder, senior developer and tutors work together to make every learning experience practical and career-focused.</p>
     </div>
@@ -261,7 +261,7 @@ ob_start();
               <p class="mt-2 text-sm leading-relaxed text-slate-600"><?php echo htmlspecialchars($t['bio'] ?? ''); ?></p>
               <div class="mt-5 flex items-center gap-2 border-t border-slate-100 pt-3 text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">
                 <span class="h-2 w-2 rounded-full bg-[#15A24A]"></span>
-                Dazu Hub team
+                Dazu Training Institute team
               </div>
             </div>
           </article>
@@ -277,7 +277,7 @@ ob_start();
     <div class="text-center mb-12">
       <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Got Questions?</span>
       <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Frequently Asked Questions</h2>
-      <p class="text-slate-600 font-medium mt-4">Here are direct, helpful answers to the common questions about Dazu Hub courses, campus, and fees.</p>
+      <p class="text-slate-600 font-medium mt-4">Here are direct, helpful answers to the common questions about Dazu Training Institute courses, campus, and fees.</p>
     </div>
 
     <div class="space-y-3" id="dazu-faq">

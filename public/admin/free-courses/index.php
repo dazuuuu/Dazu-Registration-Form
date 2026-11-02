@@ -24,7 +24,8 @@ $categoryModel = new CourseCategoryModel($pdo);
 $settingModel = new SettingModel($pdo);
 
 // Site-wide switch — off removes the "FREE COURSES" nav link on the public site
-// entirely (see dazu_free_courses_enabled() / public/components/public/dazu_navbar.php).
+// entirely (see dazu_free_courses_nav_visible() / public/components/public/dazu_navbar.php).
+// The nav item also stays hidden when no public free course has been added.
 // Individual course active/inactive toggles (below) are unaffected by this.
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_free_courses_section'])) {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
@@ -157,9 +158,9 @@ ob_start();
       <div class="fw-semibold"><i class="fas fa-eye<?php echo $freeCoursesEnabled ? '' : '-slash'; ?> me-1"></i> Free courses section (public site)</div>
       <div class="small text-muted">
         <?php if ($freeCoursesEnabled): ?>
-          Visible — "FREE COURSES" appears in the public nav and <?php echo url('courses/free.php'); ?> is browsable.
+          Section is open — "FREE COURSES" appears in the public nav only after at least one free course is added.
         <?php else: ?>
-          Hidden — the nav link is gone and the section is closed to visitors.
+          Hidden — the nav link stays gone and the section is closed to visitors.
         <?php endif; ?>
       </div>
     </div>

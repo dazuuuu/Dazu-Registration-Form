@@ -20,23 +20,25 @@ $gradients = [
     'linear-gradient(to bottom right, #f59e0b, #9a3412)',
 ];
 ?>
-<section class="py-24 bg-white" id="testimonials">
-  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
+<section class="bg-white" id="testimonials">
 
     <!-- Video Testimonials -->
-    <div class="text-center mb-16">
-      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-green-50 border border-green-100 rounded-full inline-block">Alumni Experience</span>
-      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 tracking-tight flex items-center justify-center gap-2.5 mt-4">
-        <span class="inline-block p-1.5 bg-green-50 text-[#15A24A] rounded-lg border border-green-100">
-          <svg class="h-5 w-5 fill-[#15A24A]" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-        </span>
-        Video Testimonials
-      </h2>
-      <p class="text-slate-500 text-sm font-medium leading-relaxed max-w-lg mx-auto mt-3">Watch Dazu Hub Alumni Share Their Learning Experience</p>
-    </div>
+    <div class="bg-white py-20 md:py-28">
+      <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
+        <div class="text-center mb-14">
+          <span class="inline-block px-3 py-1 bg-green-50 text-[#15A24A] text-[11px] font-extrabold uppercase tracking-widest rounded-full border border-green-100 mb-4">
+            Student Stories
+          </span>
+          <h2 class="text-3xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
+            Hear From Our Students
+          </h2>
+          <p class="text-slate-500 text-base font-medium leading-relaxed max-w-2xl mx-auto mt-5">
+            Real stories from our graduates who have transformed their careers through our hands-on training programs.
+          </p>
+        </div>
 
     <?php if ($playable): ?>
-      <div id="dazu-video-row">
+      <div id="dazu-video-row" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <?php foreach ($playable as $i => $t):
             $embed = testimonial_video_embed_url($t);
             $thumb = testimonial_video_thumb($t);
@@ -47,85 +49,86 @@ $gradients = [
             $duration = $t['duration'] ?? '0:18';
             $embedQs = (str_contains($embed, '?') ? '&' : '?') . 'autoplay=1&modestbranding=1&rel=0';
         ?>
-          <article class="dazu-vcard group rounded-xl overflow-hidden border-2 border-slate-950 bg-slate-950 shadow-sm hover:-translate-y-0.5 transition-transform"
+          <article class="dazu-vcard group rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 relative"
+                   style="aspect-ratio: 3/4;"
                    data-dazu-vcard
                    data-embed="<?php echo htmlspecialchars($embed); ?>"
                    data-name="<?php echo htmlspecialchars($name); ?>"
                    data-track="<?php echo htmlspecialchars($track); ?>">
+
             <!-- Inline player -->
-            <div class="dazu-vplayer hidden">
+            <div class="dazu-vplayer hidden absolute inset-0 z-20">
               <iframe class="dazu-viframe w-full h-full border-0"
                       data-src="<?php echo htmlspecialchars($embed . $embedQs); ?>"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowfullscreen
                       title="<?php echo htmlspecialchars($name); ?> testimonial"></iframe>
-              <div class="absolute top-1.5 right-1.5 z-30 flex items-center gap-1">
-                <button type="button" class="dazu-vpause w-7 h-7 rounded-full bg-black/70 text-white text-[10px] hover:bg-black/90 flex items-center justify-center" aria-label="Pause" title="Pause">
+              <div class="absolute top-2 right-2 z-30 flex items-center gap-1">
+                <button type="button" class="dazu-vpause w-7 h-7 rounded-full bg-black/60 text-white text-[10px] hover:bg-black/80 flex items-center justify-center" aria-label="Pause" title="Pause">
                   <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/></svg>
                 </button>
-                <button type="button" class="dazu-vexpand w-7 h-7 rounded-full bg-black/70 text-white hover:bg-black/90 flex items-center justify-center" aria-label="Expand" title="Expand">
+                <button type="button" class="dazu-vexpand w-7 h-7 rounded-full bg-black/60 text-white hover:bg-black/80 flex items-center justify-center" aria-label="Expand" title="Expand">
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
                 </button>
               </div>
             </div>
 
-            <!-- Poster -->
-            <div class="dazu-vposter">
+            <!-- Poster / thumbnail background -->
+            <div class="dazu-vposter absolute inset-0">
               <?php if ($thumb): ?>
                 <img src="<?php echo htmlspecialchars($thumb); ?>" alt="<?php echo htmlspecialchars($name); ?>"
-                     class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+                     class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
               <?php else: ?>
                 <div class="absolute inset-0" style="background:<?php echo htmlspecialchars($gradient); ?>"></div>
               <?php endif; ?>
-              <div class="absolute inset-0" style="background:linear-gradient(to bottom right, rgba(15,23,42,0.8), rgba(2,6,23,0.9))"></div>
 
-              <button type="button" class="dazu-vplay absolute inset-0 flex items-center justify-center z-10"
-                      aria-label="Play <?php echo htmlspecialchars($name); ?>">
-                <span class="w-9 h-9 bg-[#15A24A] text-white rounded-full flex items-center justify-center group-hover:scale-110 transition-transform border border-white/20 shadow-lg">
-                  <svg class="w-3.5 h-3.5 fill-white ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+              <!-- Centered play button -->
+              <button type="button" class="dazu-vplay absolute inset-0 flex items-center justify-center z-10 cursor-pointer" aria-label="Play <?php echo htmlspecialchars($name); ?>">
+                <span class="w-14 h-14 bg-white/90 text-slate-900 rounded-full flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-300 backdrop-blur-sm">
+                  <svg class="w-5 h-5 fill-slate-900 ml-0.5" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
                 </span>
               </button>
 
-              <div class="absolute bottom-0 left-0 right-0 z-10 p-2 bg-black/55 backdrop-blur-sm border-t border-white/5">
-                <span class="text-[7px] font-extrabold uppercase tracking-widest text-green-300 block truncate"><?php echo htmlspecialchars($track); ?></span>
-                <h4 class="text-[10px] font-extrabold text-white leading-tight truncate"><?php echo htmlspecialchars($name); ?></h4>
-                <div class="flex items-center justify-between mt-0.5">
-                  <p class="text-[8px] text-slate-300 truncate mr-1 hidden sm:block"><?php echo htmlspecialchars($title); ?></p>
-                  <span class="flex items-center gap-0.5 text-[8px] text-slate-300 shrink-0 bg-white/10 px-1 py-0.5 rounded">
-                    <svg class="w-2 h-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                    <?php echo htmlspecialchars($duration); ?>
-                  </span>
-                </div>
+              <!-- Bottom caption gradient overlay -->
+              <div class="absolute bottom-0 left-0 right-0 z-10 p-4 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-12">
+                <span class="text-[10px] font-extrabold uppercase tracking-widest text-green-400 block mb-0.5"><?php echo htmlspecialchars($track); ?></span>
+                <h4 class="text-sm font-extrabold text-white leading-snug"><?php echo htmlspecialchars($name); ?></h4>
+                <?php if ($title): ?>
+                  <p class="text-[11px] text-slate-300 mt-0.5 line-clamp-2"><?php echo htmlspecialchars($title); ?></p>
+                <?php endif; ?>
               </div>
             </div>
           </article>
         <?php endforeach; ?>
       </div>
     <?php else: ?>
-      <div class="max-w-xl mx-auto text-center p-8 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-slate-500 text-sm">
-        Video testimonials will appear once you add YouTube links in
-        <a href="<?php echo url('admin/testimonials/create_video.php'); ?>" class="text-[#15A24A] font-bold hover:underline">Admin → Testimonials</a>.
+      <div class="max-w-[1120px] mx-auto text-center px-6 py-16 md:py-20 border border-dashed border-slate-200 rounded-3xl text-slate-400 text-sm md:text-base font-semibold">
+        Video testimonials will appear here when approved video records are published from the administration portal.
       </div>
     <?php endif; ?>
+      </div>
+    </div>
 
     <!-- Text Testimonials -->
     <?php if ($textTestimonials): ?>
-      <div class="max-w-2xl mx-auto space-y-4 text-center mt-24 mb-16">
+      <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12 py-24 md:py-32">
+      <div class="max-w-2xl mx-auto space-y-4 text-center mb-16">
         <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Proven Outcomes</span>
         <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-950">Student Success Stories</h2>
-        <p class="text-slate-500 text-sm font-medium leading-relaxed max-w-lg mx-auto">Read how Dazu Hub alumni launched their high-growth technology careers right here in Thika.</p>
+        <p class="text-slate-500 text-sm font-medium leading-relaxed max-w-lg mx-auto">Read how Dazu Training Institute alumni launched high-growth technology careers through our Nairobi, Thika, and online learning paths.</p>
       </div>
 
-      <div class="max-w-3xl mx-auto" id="dazu-text-testimonials">
+      <div class="max-w-[1120px] mx-auto" id="dazu-text-testimonials">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <?php foreach ($textTestimonials as $i => $t):
             $initials = $t['customer_initial'] ?? testimonial_initials($t['customer_name'] ?? '');
             $role = $t['role'] ?? '';
             $quote = $t['testimonial_text'] ?? '';
         ?>
-          <article class="dazu-text-slide bg-slate-50 border border-slate-200 rounded-3xl p-8 md:p-12 text-left relative overflow-hidden <?php echo $i === 0 ? '' : 'hidden'; ?>" data-index="<?php echo $i; ?>">
-            <span class="absolute top-8 right-8 text-8xl font-serif text-slate-200/50 select-none">"</span>
-            <div class="space-y-6 relative z-10">
-              <p class="text-base sm:text-lg text-slate-700 italic font-medium leading-relaxed">"<?php echo htmlspecialchars($quote); ?>"</p>
+          <article class="dazu-text-slide bg-slate-50 border border-slate-200 rounded-3xl p-8 md:p-12 text-left relative overflow-hidden <?php echo $i < 2 ? '' : 'hidden'; ?>" data-index="<?php echo $i; ?>">
+            <span class="absolute top-8 left-10 text-5xl font-serif text-slate-200/70 select-none">"</span>
+            <div class="space-y-8 relative z-10">
+              <p class="text-lg md:text-xl text-slate-700 italic font-semibold leading-relaxed pt-8">"<?php echo htmlspecialchars($quote); ?>"</p>
               <div class="flex items-center gap-4 pt-4">
                 <div class="h-12 w-12 bg-[#15A24A] rounded-full flex items-center justify-center text-white font-extrabold text-sm tracking-wide"><?php echo htmlspecialchars($initials); ?></div>
                 <div>
@@ -138,13 +141,14 @@ $gradients = [
             </div>
           </article>
         <?php endforeach; ?>
+        </div>
 
         <?php if (count($textTestimonials) > 1): ?>
           <div class="flex items-center justify-between mt-8">
             <div class="flex items-center gap-2" id="dazu-text-dots">
-              <?php foreach ($textTestimonials as $i => $t): ?>
+              <?php for ($i = 0, $pages = (int) ceil(count($textTestimonials) / 2); $i < $pages; $i++): ?>
                 <button type="button" class="dazu-text-dot h-2.5 rounded-full transition-all duration-300 <?php echo $i === 0 ? 'w-8 bg-[#15A24A]' : 'w-2.5 bg-slate-200'; ?>" data-index="<?php echo $i; ?>" aria-label="Go to testimonial <?php echo $i + 1; ?>"></button>
-              <?php endforeach; ?>
+              <?php endfor; ?>
             </div>
             <div class="flex gap-2">
               <button type="button" id="dazu-text-prev" class="p-2.5 border border-slate-200 bg-white hover:bg-slate-50 rounded-lg text-slate-700 transition-colors" aria-label="Previous">
@@ -157,8 +161,8 @@ $gradients = [
           </div>
         <?php endif; ?>
       </div>
+      </div>
     <?php endif; ?>
-  </div>
 </section>
 
 <!-- Expanded video overlay -->
@@ -278,9 +282,14 @@ $gradients = [
   var dots = document.querySelectorAll('.dazu-text-dot');
   if(slides.length > 1){
     var cur = 0;
+    var perPage = 2;
+    var pages = Math.ceil(slides.length / perPage);
     function show(n){
-      cur = (n + slides.length) % slides.length;
-      slides.forEach(function(s,i){ s.classList.toggle('hidden', i !== cur); });
+      cur = (n + pages) % pages;
+      slides.forEach(function(s,i){
+        var page = Math.floor(i / perPage);
+        s.classList.toggle('hidden', page !== cur);
+      });
       dots.forEach(function(d,i){
         d.classList.toggle('w-8', i === cur); d.classList.toggle('bg-[#15A24A]', i === cur);
         d.classList.toggle('w-2.5', i !== cur); d.classList.toggle('bg-slate-200', i !== cur);

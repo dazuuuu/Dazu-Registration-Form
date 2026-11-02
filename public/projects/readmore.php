@@ -23,7 +23,7 @@ if (!$project) {
     exit();
 }
 
-$page_title = htmlspecialchars($project['small_title']) . ' — Dazu Hub Institute';
+$page_title = htmlspecialchars($project['small_title']) . ' — Dazu Training Institute';
 $page_description = mb_strimwidth(strip_tags($project['description'] ?? ''), 0, 160, '…');
 
 $pdo->prepare("UPDATE projects SET view_count = view_count + 1 WHERE id = :id")->execute([':id' => $project['id']]);
@@ -174,7 +174,7 @@ ob_start();
 <section class="bg-[#15A24A] py-16 text-center">
   <div class="max-w-[700px] mx-auto px-4">
     <h2 class="text-2xl md:text-3xl font-extrabold text-white uppercase tracking-tight mb-3">Interested in Building Something Similar?</h2>
-    <p class="text-green-50 font-medium mb-6">Join Dazu Hub Institute and build real, portfolio-ready projects like this one.</p>
+    <p class="text-green-50 font-medium mb-6">Join Dazu Training Institute and build real, portfolio-ready projects like this one.</p>
     <div class="flex flex-wrap gap-3 justify-center">
       <a href="<?php echo url('courses/index.php'); ?>" class="px-6 py-3.5 text-xs font-extrabold tracking-widest uppercase text-[#15A24A] bg-white hover:bg-green-50 rounded-xl transition-colors">View Our Courses</a>
       <a href="<?php echo url('projects/index.php'); ?>" class="px-6 py-3.5 text-xs font-extrabold tracking-widest uppercase text-white border border-white/60 hover:bg-white/10 rounded-xl transition-colors">All Projects</a>

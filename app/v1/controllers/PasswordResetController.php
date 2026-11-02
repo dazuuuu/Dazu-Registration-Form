@@ -108,6 +108,11 @@ class PasswordResetController {
             return ['success' => false, 'message' => 'Failed to update password. Please try again.'];
         }
 
+        $updatedUser = $this->userModel->getUserById((int) $user['id']);
+        if (!$updatedUser || !password_verify($password, $updatedUser['password_hash'] ?? '')) {
+            return ['success' => false, 'message' => 'Password update could not be verified. Please request a new code and try again.'];
+        }
+
         return [
             'success' => true,
             'message' => 'Password updated successfully. You can now sign in.',

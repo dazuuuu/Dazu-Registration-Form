@@ -1,6 +1,6 @@
 <?php
-$page_title = 'Student Capstone Projects — Dazu hub Institute';
-$page_description = 'Browse graduate projects built at Dazu hub Institute — web apps, AI, mobile UX and automation.';
+$page_title = 'Student Capstone Projects — Dazu Training Institute';
+$page_description = 'Browse graduate projects built at Dazu Training Institute — web apps, AI, mobile UX and automation.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
@@ -40,7 +40,7 @@ if (!empty($dbProjects)) {
             'cohort' => strtoupper($p['small_title'] ?? 'Capstone'),
             'description' => $p['description'] ?? '',
             'tech' => $tags ?: ['Capstone Project'],
-            'developer' => $p['author'] ?? 'Dazu Hub Graduate',
+            'developer' => $p['author'] ?? 'Dazu Training Institute Graduate',
             'details' => $p['description'] ?? '',
             'cover_image' => $cover,
             'readmore' => url('projects/readmore.php?id=' . (int) $p['id']),
@@ -90,7 +90,7 @@ ob_start();
     <div class="max-w-2xl">
       <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1 bg-green-50 border border-green-100 rounded-full">Student Achievements</span>
       <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 mt-4">Student Capstone Projects</h1>
-      <p class="text-slate-600 font-medium leading-relaxed mt-3">See products designed, coded, and deployed by Dazu Hub graduates. Categories are managed in Admin → Projects.</p>
+      <p class="text-slate-600 font-medium leading-relaxed mt-3">See products designed, coded, and deployed by Dazu Training Institute graduates. Categories are managed in Admin → Projects.</p>
     </div>
 
     <?php if (!empty($dbCategories)): ?>

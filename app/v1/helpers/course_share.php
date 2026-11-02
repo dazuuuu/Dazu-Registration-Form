@@ -2,20 +2,79 @@
 // app/v1/helpers/course_share.php
 // Shareable course registration URLs.
 
+if (!function_exists('course_share_request_is_https')) {
+    function course_share_request_is_https(): bool
+    {
+        if (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') {
+            return true;
+        }
+        $fwd = strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ''));
+        if ($fwd === 'https' || str_starts_with($fwd, 'https,')) {
+            return true;
+        }
+        if (strtolower((string) ($_SERVER['HTTP_X_FORWARDED_SSL'] ?? '')) === 'on') {
+            return true;
+        }
+        return (int) ($_SERVER['SERVER_PORT'] ?? 0) === 443;
+    }
+}
+
 if (!function_exists('course_share_absolute_url')) {
     function course_share_absolute_url(string $path): string
     {
         if (preg_match('#^https?://#i', $path)) {
+            if (course_share_request_is_https()) {
+                return (string) preg_replace('#^http://#i', 'https://', $path);
+            }
             return $path;
         }
-        $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-            || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
-        $scheme = $https ? 'https' : 'http';
+        $scheme = course_share_request_is_https() ? 'https' : 'http';
         $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
         if ($path === '' || $path[0] !== '/') {
             $path = '/' . ltrim($path, '/');
         }
         return $scheme . '://' . $host . $path;
+    }
+}
+
+if (!function_exists('course_og_image_url')) {
+    /**
+     * Absolute cover-image URL for Open Graph / WhatsApp / Facebook previews.
+     * Points at courses/cover.php so crawlers always hit the same host as the share link.
+     */
+    function course_og_image_url(array $course): string
+    {
+        $id = (int) ($course['id'] ?? 0);
+        if ($id > 0) {
+            return course_share_absolute_url(url('courses/cover.php?id=' . $id));
+        }
+        require_once __DIR__ . '/dazu_theme.php';
+        require_once __DIR__ . '/seo.php';
+        return seo_image_url(dazu_course_image_url($course)) ?: seo_default_image();
+    }
+}
+
+if (!function_exists('course_share_invite_text')) {
+    /**
+     * WhatsApp / native-share body. URL first on its own line so apps generate a preview card.
+     */
+    function course_share_invite_text(array $course, string $shareUrl, ?string $headline = null): string
+    {
+        $title = trim((string) ($course['title'] ?? 'this course'));
+        $headline = $headline !== null && $headline !== ''
+            ? $headline
+            : ('Apply for ' . $title . ' at Dazu Training Institute');
+        $desc = trim(preg_replace('/\s+/', ' ', strip_tags((string) ($course['overview'] ?? $course['description'] ?? ''))));
+        if (function_exists('mb_strimwidth')) {
+            $desc = mb_strimwidth($desc, 0, 180, '…');
+        } else {
+            $desc = strlen($desc) > 180 ? substr($desc, 0, 177) . '…' : $desc;
+        }
+        $text = $shareUrl . "\n\n" . $headline;
+        if ($desc !== '') {
+            $text .= "\n" . $desc;
+        }
+        return $text;
     }
 }
 

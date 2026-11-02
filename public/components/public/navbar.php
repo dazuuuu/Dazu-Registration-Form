@@ -1,5 +1,5 @@
 <?php
-// public/components/public/navbar.php — Dazu Hub Institute
+// public/components/public/navbar.php — Dazu Training Institute
 if (session_status() === PHP_SESSION_NONE) session_start();
 if (!function_exists('url')) {
     require_once __DIR__ . '/../../../app/v1/config/paths.php';
@@ -32,7 +32,7 @@ if (!function_exists('dhNavActive')) {
     }
 }
 
-$logoPath = url('assets/images/logo/logo.png');
+$logoPath = url('assets/images/logo/logo.webp');
 $isLoggedIn  = !empty($_SESSION['logged_in']);
 $isAdmin     = $isLoggedIn && isset($_SESSION['role']) && in_array($_SESSION['role'], ['admin','superadmin'], true);
 $isTutor     = $isLoggedIn && isset($_SESSION['role']) && $_SESSION['role'] === 'tutor';
@@ -53,9 +53,9 @@ $navLinks = [
 
 <header class="dh-nav" id="dhNav" role="banner">
     <div class="dh-nav-inner dh-container">
-        <a class="dh-brand" href="<?php echo url('/'); ?>" aria-label="Dazu Hub Institute — Home">
+        <a class="dh-brand" href="<?php echo url('/'); ?>" aria-label="Dazu Training Institute — Home">
             <span class="dh-brand-logo-wrap">
-                <img src="<?php echo $logoPath; ?>" alt="Dazu Hub Institute" class="dh-brand-logo" width="120" height="48"
+                <img src="<?php echo $logoPath; ?>" alt="Dazu Training Institute" class="dh-brand-logo" width="120" height="48"
                      onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
                 <span class="dh-brand-fallback" style="display:none;">
                     <svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -120,7 +120,7 @@ $navLinks = [
 
 <aside class="dh-drawer" id="dhDrawer" aria-hidden="true" aria-label="Mobile navigation">
     <div class="dh-drawer-head">
-        <img src="<?php echo $logoPath; ?>" alt="Dazu Hub" height="36" onerror="this.style.display='none'">
+        <img src="<?php echo $logoPath; ?>" alt="Dazu Training Institute" height="36" onerror="this.style.display='none'">
         <button class="dh-drawer-close" id="dhDrawerClose" aria-label="Close menu"><i class="fas fa-times"></i></button>
     </div>
     <nav class="dh-drawer-body" aria-label="Mobile navigation">

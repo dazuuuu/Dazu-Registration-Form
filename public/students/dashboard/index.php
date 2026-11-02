@@ -218,13 +218,13 @@ ob_start();
         <p class="text-muted small mb-3">Invite friends to join <strong><?php echo htmlspecialchars($reg['course_title']); ?></strong>. They'll see the course details and can register directly.</p>
         <?php
         $share_url = course_share_url((int) $reg['course_id'], $reg['registration_no'] ?? null);
-        $share_title = 'Join me at Dazu Hub — ' . ($reg['course_title'] ?? 'tech course');
+        $share_title = 'Join me at Dazu Training Institute — ' . ($reg['course_title'] ?? 'tech course');
         $input_id = 'studentCourseShare';
         ?>
         <div class="input-group mb-2">
             <input type="text" class="form-control form-control-sm" id="<?php echo $input_id; ?>" readonly value="<?php echo htmlspecialchars($share_url); ?>">
             <button type="button" class="btn btn-brand btn-sm dh-share-copy" data-target="<?php echo $input_id; ?>"><i class="fas fa-copy"></i> Copy</button>
-            <a href="https://wa.me/?text=<?php echo rawurlencode($share_title . ' ' . $share_url); ?>" class="btn btn-success btn-sm" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i></a>
+            <a href="https://wa.me/?text=<?php echo rawurlencode(course_share_invite_text(['title' => $reg['course_title'] ?? 'tech course', 'overview' => ''], $share_url, $share_title)); ?>" class="btn btn-success btn-sm" target="_blank" rel="noopener"><i class="fab fa-whatsapp"></i></a>
         </div>
         <a href="<?php echo htmlspecialchars($share_url); ?>" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
             <i class="fas fa-external-link-alt me-1"></i> Preview share page

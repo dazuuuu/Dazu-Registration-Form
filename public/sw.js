@@ -1,4 +1,4 @@
-/* Dazu Hub Institute — service worker (PWA) */
+/* Dazu Training Institute — service worker (PWA) */
 /*
  * v3: code assets (css/js) are network-first, media is cache-first.
  *
@@ -8,7 +8,7 @@
  * before it ever reached the network. Deploying new JS or CSS had no effect on
  * anyone who had already visited the site.
  */
-const CACHE = 'dazu-hub-v3';
+const CACHE = 'dazu-hub-v4';
 const ASSETS = [
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png'
@@ -71,6 +71,11 @@ self.addEventListener('fetch', (e) => {
 
   // Never intercept PHP pages or HTML navigation — avoids breaking dynamic routes.
   if (url.pathname.includes('.php') || e.request.mode === 'navigate') {
+    return;
+  }
+
+  if (url.pathname.includes('/uploads/')) {
+    e.respondWith(networkFirst(e.request));
     return;
   }
 

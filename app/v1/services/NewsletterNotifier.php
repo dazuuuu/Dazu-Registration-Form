@@ -14,7 +14,7 @@ class NewsletterNotifier
         $cfg['enabled'] = true;
 
         $this->mailer = $mailer ?? new Mailer($cfg);
-        $this->companyName = $cfg['from_name'] ?? 'Dazu Hub Institute';
+        $this->companyName = $cfg['from_name'] ?? 'Dazu Training Institute';
     }
 
     public function sendWelcome(string $email): array

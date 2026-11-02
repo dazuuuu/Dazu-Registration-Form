@@ -4,8 +4,11 @@
 // Requires: $share_url, optional $share_title
 
 if (empty($share_url)) return;
-$share_title = $share_title ?? 'Register for this course at Dazu Hub Institute';
+$share_title = $share_title ?? 'Register for this course at Dazu Training Institute';
 $input_id = $input_id ?? 'courseShareUrl';
+if (!function_exists('course_share_invite_text')) {
+    require_once __DIR__ . '/../../../app/v1/helpers/course_share.php';
+}
 ?>
 <div class="dh-share-bar dh-reveal">
     <div class="dh-share-bar-inner">
@@ -16,8 +19,8 @@ $input_id = $input_id ?? 'courseShareUrl';
             <button type="button" class="dh-btn dh-btn-primary dh-share-copy" data-target="<?php echo htmlspecialchars($input_id); ?>">
                 <i class="fas fa-copy"></i> Copy
             </button>
-            <a href="<?php echo htmlspecialchars(whatsapp_chat_url($share_title . ' ' . $share_url)); ?>"
-               class="dh-btn dh-btn-outline dh-share-wa" target="_blank" rel="noopener" title="WhatsApp <?php echo htmlspecialchars(site_whatsapp_display()); ?>">
+            <a href="<?php echo htmlspecialchars('https://wa.me/?text=' . rawurlencode(course_share_invite_text(['title' => $share_title], $share_url, $share_title))); ?>"
+               class="dh-btn dh-btn-outline dh-share-wa" target="_blank" rel="noopener" title="Share on WhatsApp">
                 <i class="fab fa-whatsapp"></i>
             </a>
         </div>

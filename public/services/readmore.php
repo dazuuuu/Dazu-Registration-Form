@@ -61,7 +61,7 @@ function getYoutubeId($url) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?php echo htmlspecialchars($service['title']); ?> — Dazu Hub Institute</title>
+  <title><?php echo htmlspecialchars($service['title']); ?> — Dazu Training Institute</title>
   <meta name="description" content="<?php echo htmlspecialchars(substr($service['short_description'], 0, 160)); ?>">
   <?php
     require_once __DIR__ . '/../../app/v1/helpers/seo.php';
@@ -70,7 +70,7 @@ function getYoutubeId($url) {
         $serviceOg = $gallery[0]['image_path'];
     }
     echo seo_head_tags(
-        $service['title'] . ' — Dazu Hub Institute',
+        $service['title'] . ' — Dazu Training Institute',
         substr(strip_tags((string) $service['short_description']), 0, 160),
         $serviceOg !== '' ? $serviceOg : null
     );

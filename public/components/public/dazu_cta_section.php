@@ -7,11 +7,11 @@
       <div class="space-y-8 relative z-10">
         <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">Start Your Technology Career Today</h2>
         <p class="text-slate-400 text-sm sm:text-base max-w-xl mx-auto font-medium leading-relaxed">
-          Unlock practical high-income skills, build world-class portfolios, and graduate with industry-recognized certificates. Visit our physical lab in Thika Town.
+          Unlock practical high-income skills, build world-class portfolios, and graduate with industry-recognized certificates through Nairobi, Thika, and online classes.
         </p>
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-          <a href="<?php echo url('apply/index.php'); ?>" class="w-full sm:w-auto px-8 py-3.5 text-xs font-bold tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-md transition-all duration-200 text-center shadow-md uppercase">Apply Now</a>
-          <a href="<?php echo url('contact'); ?>" class="w-full sm:w-auto px-8 py-3.5 text-xs font-bold tracking-widest text-white bg-transparent hover:bg-slate-900 border border-slate-800 rounded-md transition-all duration-200 text-center uppercase">Contact Us</a>
+        <div class="flex flex-row items-center justify-center gap-2 sm:gap-4 pt-4">
+          <a href="<?php echo url('apply/index.php'); ?>" class="flex-1 sm:flex-none sm:w-auto px-4 sm:px-8 py-3.5 text-[10px] sm:text-xs font-bold tracking-wider sm:tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-md transition-all duration-200 text-center shadow-md uppercase">Apply Now</a>
+          <a href="<?php echo url('contact'); ?>" class="flex-1 sm:flex-none sm:w-auto px-4 sm:px-8 py-3.5 text-[10px] sm:text-xs font-bold tracking-wider sm:tracking-widest text-white bg-transparent hover:bg-slate-900 border border-slate-800 rounded-md transition-all duration-200 text-center uppercase">Contact Us</a>
         </div>
       </div>
     </div>

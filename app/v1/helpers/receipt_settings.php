@@ -13,7 +13,7 @@ if (!function_exists('sms_receipt_settings')) {
         $contact = site_contact_settings();
 
         $defaults = [
-            'company_name' => $contact['site_name'] ?? 'Dazu Hub Institute',
+            'company_name' => $contact['site_name'] ?? 'Dazu Training Institute',
             'phone' => $contact['contact_phone'] ?? '',
             'location' => $contact['contact_address'] ?? '',
             'pobox' => '',

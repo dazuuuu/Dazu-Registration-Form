@@ -62,7 +62,7 @@ class EmailTemplate {
                         '<p>Hi ' . self::e($order['customer_name']) . ',</p>'
                         . '<p>Your parcel <strong>' . self::e($item['parcel_id'] ?? '') . '</strong> '
                         . '(' . self::e($item['product_name'] ?? '') . ') from order <strong>' . self::e($order['order_number']) . '</strong> '
-                        . 'has arrived. We hope you love it — thank you for choosing Dazu Hub Institute!</p>'
+                        . 'has arrived. We hope you love it — thank you for choosing Dazu Training Institute!</p>'
                     ),
                 ];
         }
@@ -105,16 +105,16 @@ class EmailTemplate {
     }
 
     private static function layout(string $heading, string $bodyHtml): string {
-        return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;color:#1a1a1a;">'
-            . '<div style="text-align:center;padding:24px 0;border-bottom:1px solid #eee;">'
-            . '<img src="cid:ismanlogo" alt="Dazu Hub" style="max-height:56px;">'
+        return '<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;color:#1e293b;background:#ffffff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">'
+            . '<div style="background:#0f766e;padding:22px;text-align:center;">'
+            . '<h1 style="color:#ffffff;margin:0;font-size:20px;letter-spacing:.02em;font-weight:bold;">DAZU TRAINING INSTITUTE</h1>'
             . '</div>'
-            . '<div style="padding:24px;">'
-            . '<h2 style="color:#0D9488;margin:0 0 8px;">' . self::e($heading) . '</h2>'
+            . '<div style="padding:26px 24px;">'
+            . '<h2 style="color:#0f766e;margin:0 0 16px;">' . self::e($heading) . '</h2>'
             . $bodyHtml
             . '</div>'
-            . '<div style="padding:16px 24px;border-top:1px solid #eee;color:#888;font-size:12px;text-align:center;">'
-            . 'Dazu Hub Institute &middot; Need help? Reply to this email.'
+            . '<div style="padding:16px 24px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#64748b;font-size:12px;text-align:center;">'
+            . 'Dazu Training Institute &middot; Need help? Reply to this email.'
             . '</div>'
             . '</div>';
     }

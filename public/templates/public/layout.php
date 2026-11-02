@@ -1,5 +1,5 @@
 <?php
-// public/templates/public/layout.php — Dazu hub Institute shell (replaces legacy theme layout)
+// public/templates/public/layout.php — Dazu Training Institute shell (replaces legacy theme layout)
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }

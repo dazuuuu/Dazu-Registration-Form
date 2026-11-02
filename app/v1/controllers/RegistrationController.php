@@ -10,7 +10,7 @@ use Models\SessionModel;
 
 require_once __DIR__ . '/../models/StudentModel.php';
 require_once __DIR__ . '/../models/ProgressModel.php';
-require_once __DIR__ . '/StudentController.php';
+require_once __DIR__ . '/../helpers/registration_number.php';
 require_once __DIR__ . '/../services/StudentNotifier.php';
 
 class RegistrationController {
@@ -29,7 +29,7 @@ class RegistrationController {
      * Approve a registration:
      * 1. Open a transaction
      * 2. Claim next sequence (SELECT FOR UPDATE) — prevents duplicate IDs under concurrency
-     * 3. Generate registration_no: DH-{ABBR}{SEQ}/{YEAR}
+     * 3. Keep the public enrolment number (DH050/26 …) or issue the next one
      * 4. Create the user account (role: student, status: active, is_active: 1)
      * 5. Create user_profile row
      * 6. Link user_id back on registrations row, set status=approved, store reg no
@@ -58,13 +58,17 @@ class RegistrationController {
             return ['ok' => false, 'error' => 'An account with this email already exists. Check if this is truly a new student.'];
         }
 
+        $lockedNo = false;
         try {
             $pdo->beginTransaction();
 
-            // Step 1: claim sequence atomically
-            $seq = $this->courseModel->claimNextSequence((int) $reg['course_id']);
-            $year = date('Y');
-            $regNo = sprintf('DH-%s%02d/%s', $reg['abbreviation'], $seq, $year);
+            $existingNo = trim((string) ($reg['registration_no'] ?? ''));
+            if ($existingNo !== '') {
+                $regNo = $existingNo;
+            } else {
+                $lockedNo = registration_number_lock($pdo);
+                $regNo = registration_number_next($pdo);
+            }
 
             // Step 2: create the user account — temporary password, student will be prompted to reset
             $tempPassword = bin2hex(random_bytes(8)); // 16-char hex; admin shares manually
@@ -145,6 +149,10 @@ class RegistrationController {
             if ($pdo->inTransaction()) $pdo->rollBack();
             error_log('[RegistrationController::approve] ' . $e->getMessage());
             return ['ok' => false, 'error' => 'Approval failed: ' . $e->getMessage()];
+        } finally {
+            if ($lockedNo) {
+                registration_number_unlock($pdo);
+            }
         }
     }
 

@@ -10,7 +10,7 @@ $playable = array_values(array_filter($videoTestimonials, static fn($t) => (bool
       <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight flex items-center justify-center gap-2">
         <span class="text-[#15A24A]">▶</span> Video Testimonials
       </h2>
-      <p class="text-slate-600 font-medium mt-4">Watch Dazu Hub alumni share their learning experience.</p>
+      <p class="text-slate-600 font-medium mt-4">Watch Dazu Training Institute alumni share their learning experience.</p>
     </div>
 
     <?php if (!$playable): ?>

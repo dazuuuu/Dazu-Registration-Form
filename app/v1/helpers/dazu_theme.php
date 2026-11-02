@@ -1,5 +1,5 @@
 <?php
-// app/v1/helpers/dazu_theme.php — shared helpers for the Dazu hub Institute PHP UI
+// app/v1/helpers/dazu_theme.php — shared helpers for the Dazu Training Institute PHP UI
 
 if (!function_exists('dazu_tailwind_css')) {
     function dazu_tailwind_css(): string
@@ -76,13 +76,34 @@ if (!function_exists('dazu_course_image_url')) {
     function dazu_course_image_url(array $course): string
     {
         $img = trim((string) ($course['card_image'] ?? $course['cover_image'] ?? ''));
-        if ($img === '' || $img === 'null') {
-            return 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=600&q=80';
+        if ($img !== '' && $img !== 'null') {
+            if (preg_match('#^https?://#i', $img)) {
+                return $img;
+            }
+            $clean = preg_replace('/\?.*$/', '', $img);
+            $clean = ltrim($clean, '/');
+            if (file_exists(public_path($clean))) {
+                return settings_asset_url($clean);
+            }
         }
-        if (preg_match('#^https?://#i', $img)) {
-            return $img;
+
+        // Categorized fallback based on title / abbreviation
+        $cat = strtolower(($course['title'] ?? '') . ' ' . ($course['abbreviation'] ?? ''));
+        if (str_contains($cat, 'ai') || str_contains($cat, 'intelligence') || str_contains($cat, 'machine')) {
+            $fallback = 'assets/app/default_course_ai.webp';
+        } elseif (str_contains($cat, 'cyber') || str_contains($cat, 'security') || str_contains($cat, 'network')) {
+            $fallback = 'assets/app/default_course_cybersecurity.webp';
+        } elseif (str_contains($cat, 'data') || str_contains($cat, 'analytic') || str_contains($cat, 'excel') || str_contains($cat, 'power bi')) {
+            $fallback = 'assets/app/default_course_data_analytics.webp';
+        } else {
+            $fallback = 'assets/app/default_course_software_dev.webp';
         }
-        return settings_asset_url($img);
+
+        if (file_exists(public_path($fallback))) {
+            return settings_asset_url($fallback);
+        }
+
+        return 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=600&q=80';
     }
 }
 
@@ -302,6 +323,43 @@ if (!function_exists('dazu_resolve_course_category_id')) {
     }
 }
 
+if (!function_exists('dazu_format_school_name')) {
+    function dazu_format_school_name(string $name): string
+    {
+        $trimmed = trim($name);
+        if ($trimmed === '') {
+            return 'School';
+        }
+        if (preg_match('/^school\s+of\s+/i', $trimmed)) {
+            return $trimmed;
+        }
+        return 'School of ' . $trimmed;
+    }
+}
+
+if (!function_exists('dazu_navbar_categories')) {
+    function dazu_navbar_categories(): array
+    {
+        static $cached = null;
+        if ($cached !== null) {
+            return $cached;
+        }
+        try {
+            require_once app_path('models/Connection.php');
+            require_once app_path('models/CourseCategoryModel.php');
+            $pdo = \Models\Connection::getInstance()->getConnection();
+            $catModel = new \Models\CourseCategoryModel($pdo);
+            $cached = $catModel->getAll(true);
+        } catch (\Throwable $e) {
+            $cached = [];
+        }
+        if (empty($cached) && function_exists('dazu_fallback_course_categories')) {
+            $cached = dazu_fallback_course_categories();
+        }
+        return $cached ?: [];
+    }
+}
+
 if (!function_exists('dazu_load_popular_courses_section')) {
     /**
      * @return array{categories: array, courses: array}
@@ -319,6 +377,12 @@ if (!function_exists('dazu_load_popular_courses_section')) {
 
         [$courses] = dazu_load_courses($courseModel);
         $courses = array_values(array_filter($courses, static fn($c) => !empty($c['is_active']) || (int)($c['id'] ?? 0) === 0));
+
+        // Front-page course selection: if admin has marked courses for front-page, only show those
+        $homepageCourses = array_values(array_filter($courses, static fn($c) => !empty($c['show_on_homepage'])));
+        if (!empty($homepageCourses)) {
+            $courses = $homepageCourses;
+        }
 
         if (empty($categories)) {
             $categories = dazu_fallback_course_categories();
@@ -381,9 +445,11 @@ if (!function_exists('dazu_course_enrollment_window')) {
 if (!function_exists('dazu_fee_quote')) {
     function dazu_fee_quote(array $course, string $studyMode = 'online', string $paymentPlan = 'monthly'): array
     {
-        $fee = (float) ($course['course_fee'] ?? 0);
+        require_once __DIR__ . '/course_fee_structure.php';
+        $fee = course_fee_for_mode($course, $studyMode);
         $mo = max(1, (int) ($course['duration_months'] ?? 1));
-        $regFee = $studyMode === 'physical' ? 1500 : 1000;
+        require_once __DIR__ . '/../models/RegistrationModel.php';
+        $regFee = \Models\RegistrationModel::registrationFeeFor($studyMode);
         $count = match ($paymentPlan) {
             '3months' => 3,
             'full' => 1,
@@ -394,6 +460,7 @@ if (!function_exists('dazu_fee_quote')) {
             'registration_fee' => $regFee,
             'installment_amount' => $inst,
             'total_due_now' => $regFee + $inst,
+            'course_fee' => $fee,
         ];
     }
 }

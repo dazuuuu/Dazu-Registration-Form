@@ -13,6 +13,8 @@
  * Optional: $heroStats (from dazu_hero_stats($pdo)) for the floating cards.
  */
 require_once __DIR__ . '/dazu_hero_helpers.php';
+require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
+require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
 
 $heroFallback = is_file(public_path('assets/app/hero.png'))
     ? asset('app/hero.png')
@@ -21,7 +23,7 @@ $heroFallback = is_file(public_path('assets/app/hero.png'))
 $heroStats = $heroStats ?? ['courses' => 0, 'students' => 0];
 
 /* Shown on every slide. */
-$heroChecks = ['Get Certified', 'Gain Job-ready Skills', 'Great Life'];
+$heroChecks = ['Nairobi Classes', 'Thika Campus', 'Online Learning'];
 
 /* Floating cards. A zero count is dropped rather than shown as "0+". */
 $heroCards = array_values(array_filter([
@@ -41,29 +43,61 @@ $heroCards = array_values(array_filter([
     ],
 ], static fn($c) => $c['value'] > 0));
 
-$heroSlides = [
+$defaultHeroSlides = [
     [
         'eyebrow'  => 'Future-Proof Your Career',
         'accent'   => 'Master Tech Skills',                     // green
         'title'    => 'with Real-World Projects.', // navy
-        'text'     => 'Master Web & Software Development, Python, Data Analytics, and Cybersecurity with industry-focused training and hands-on experience.',
+        'text'     => 'Master Web & Software Development, Python, Data Analytics, and Cybersecurity with industry-focused training in Nairobi, Thika, and online.',
         'image'    => 'hero-1',
-        'imageAlt' => 'Student working on data analytics and design at Dazu hub Institute',
+        'imageAlt' => 'Student working on data analytics and design at Dazu Training Institute',
         'cta1'     => ['label' => 'Get Started', 'url' => url('apply/index.php')],
         'cta2'     => ['label' => 'Our Courses', 'url' => url('courses/index.php')],
     ],
     [
-        'eyebrow'  => 'Online E-Learning Course',
+        'eyebrow'  => 'Campus & Online Learning',
         'accent'   => 'Learn & Build.',
         'title'    => 'AI & Digital Skills for Everyone',
-        'text'     => 'Build practical skills in AI, technology, and professional short courses designed for today\'s job market.',
+        'text'     => 'Build practical AI, technology, and professional skills through flexible physical and online classes designed for today\'s job market.',
         'image'    => 'hero-2',
-        'imageAlt' => 'Dazu hub Institute student with a laptop',
+        'imageAlt' => 'Dazu Training Institute student with a laptop',
         'video'    => 'hero-2', // public/assets/videos/hero/hero-2.mp4|webm — falls back to the image above until added
         'cta1'     => ['label' => 'Get Started', 'url' => url('apply/index.php')],
         'cta2'     => ['label' => 'Our Courses', 'url' => url('courses/index.php')],
     ],
 ];
+
+if (isset($pdo) && $pdo instanceof PDO) {
+    try {
+        $storedSlides = (new SettingModel($pdo))->getHeroSlides(true);
+        if ($storedSlides) {
+            $heroSlides = [];
+            foreach ($storedSlides as $i => $row) {
+                $mediaPath = (string) ($row['image_path'] ?? '');
+                $mediaExt = strtolower(pathinfo(parse_url($mediaPath, PHP_URL_PATH) ?: $mediaPath, PATHINFO_EXTENSION));
+                $isVideo = ($row['media_type'] ?? '') === 'video' || in_array($mediaExt, ['mp4', 'webm', 'mov'], true);
+                $copy = $defaultHeroSlides[$i] ?? $defaultHeroSlides[$i % count($defaultHeroSlides)];
+                $heroSlides[] = [
+                    'eyebrow' => $copy['eyebrow'],
+                    'accent' => $copy['accent'],
+                    'title' => $copy['title'],
+                    'text' => $copy['text'],
+                    'image' => $isVideo ? '' : $mediaPath,
+                    'video_path' => $isVideo ? $mediaPath : '',
+                    'imageAlt' => trim((string) ($row['caption'] ?? '')) ?: 'Dazu Training Institute hero media',
+                    'cta1' => $copy['cta1'],
+                    'cta2' => $copy['cta2'],
+                ];
+            }
+        } else {
+            $heroSlides = $defaultHeroSlides;
+        }
+    } catch (Throwable $e) {
+        $heroSlides = $defaultHeroSlides;
+    }
+} else {
+    $heroSlides = $defaultHeroSlides;
+}
 ?>
 <style>
 /* Inline rather than assets/css: sw.js caches every .css file, and PHP output is
@@ -133,7 +167,7 @@ $heroSlides = [
 }
 
 /* ---- buttons ---- */
-.dazu-hero__ctas { display: flex; flex-wrap: wrap; gap: 1rem; margin-top: 2.25rem; }
+.dazu-hero__ctas { display: flex; flex-wrap: nowrap; gap: .7rem; margin-top: 2.25rem; }
 .dazu-hero__btn {
   display: inline-flex; align-items: center; gap: .6rem;
   padding: 1.05rem 1.9rem;
@@ -148,6 +182,18 @@ $heroSlides = [
 .dazu-hero__btn--dark { background: #0b1120; color: #fff; box-shadow: 0 10px 24px -12px rgba(11,17,32,.8); }
 .dazu-hero__btn--dark:hover { background: #1e293b; transform: translateY(-2px); }
 .dazu-hero__btn:focus-visible { outline: 3px solid rgba(21,162,74,.45); outline-offset: 3px; }
+@media (max-width: 480px) {
+  .dazu-hero__ctas { gap: .5rem; }
+  .dazu-hero__btn {
+    flex: 1 1 0;
+    justify-content: center;
+    min-width: 0;
+    padding: .9rem .7rem;
+    font-size: .68rem;
+    letter-spacing: .06em;
+  }
+  .dazu-hero__btn svg { display: none; }
+}
 
 /* ---- footnote ---- */
 .dazu-hero__foot {
@@ -247,12 +293,21 @@ $heroSlides = [
 }
 </style>
 
-<section class="dazu-hero" id="dazu-hero" aria-roledescription="carousel" aria-label="Dazu hub Institute highlights">
+<section class="dazu-hero" id="dazu-hero" aria-roledescription="carousel" aria-label="Dazu Training Institute highlights">
   <div class="dazu-hero__inner">
     <div id="dazu-hero-slides">
       <?php foreach ($heroSlides as $i => $slide):
-          $img = dazu_hero_image_url($slide['image'], $heroFallback);
-          $videoSources = !empty($slide['video']) ? dazu_hero_video_url($slide['video']) : [];
+          $storedImage = trim((string) ($slide['image'] ?? ''));
+          $img = str_contains($storedImage, '/') ? (settings_asset_url($storedImage) ?: $heroFallback) : dazu_hero_image_url($storedImage, $heroFallback);
+          $videoPath = trim((string) ($slide['video_path'] ?? ''));
+          $videoSources = [];
+          if ($videoPath !== '') {
+              $videoUrl = settings_asset_url($videoPath);
+              $ext = strtolower(pathinfo(parse_url($videoPath, PHP_URL_PATH) ?: $videoPath, PATHINFO_EXTENSION));
+              $videoSources[] = ['url' => $videoUrl, 'type' => $ext === 'webm' ? 'video/webm' : ($ext === 'mov' ? 'video/quicktime' : 'video/mp4')];
+          } elseif (!empty($slide['video'])) {
+              $videoSources = dazu_hero_video_url($slide['video']);
+          }
       ?>
         <div class="dazu-hero__panel" data-slide="<?php echo $i; ?>"
              role="group" aria-roledescription="slide"

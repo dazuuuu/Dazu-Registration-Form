@@ -20,7 +20,7 @@ $isCart = strpos($_SERVER['REQUEST_URI'], '/store/cart') !== false;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title><?php echo $page_title ?? 'Dashboard'; ?> — Dazu Hub Institute</title>
+    <title><?php echo $page_title ?? 'Dashboard'; ?> — Dazu Training Institute</title>
     
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -330,7 +330,7 @@ $isCart = strpos($_SERVER['REQUEST_URI'], '/store/cart') !== false;
 <!-- Desktop Sidebar -->
 <div class="desktop-sidebar">
     <div class="sidebar-brand">
-        <h4><i class="fas fa-graduation-cap me-2"></i>Dazu Hub</h4>
+        <h4><i class="fas fa-graduation-cap me-2"></i>Dazu Training Institute</h4>
         <small class="text-muted">Student & Client Portal</small>
     </div>
     <ul class="sidebar-menu">
@@ -367,7 +367,7 @@ $isCart = strpos($_SERVER['REQUEST_URI'], '/store/cart') !== false;
 <nav class="top-navbar">
     <div class="d-flex justify-content-between align-items-center">
         <a href="<?php echo url('client/dashboard/index.php'); ?>" class="navbar-brand">
-            <i class="fas fa-graduation-cap"></i> Dazu Hub
+            <i class="fas fa-graduation-cap"></i> Dazu Training Institute
         </a>
         
         <div class="d-flex align-items-center gap-3">

@@ -46,7 +46,7 @@ class CourseRegistrationHandler
             'study_mode'        => $post['study_mode'] ?? 'online',
             'payment_plan'      => $post['payment_plan'] ?? 'monthly',
             'id_document_path'  => $idDocPath,
-            'payment_reference' => $post['payment_reference'] ?? '',
+            'payment_reference' => $post['payment_reference'] ?? 'Public enrolment — payment to follow',
             'free_course_reason' => $post['free_course_reason'] ?? '',
             'referral_registration_no' => $referralNo,
         ];
@@ -56,38 +56,20 @@ class CourseRegistrationHandler
             return $result;
         }
 
-        // Free courses skip payment but still go through the normal admin-review queue —
-        // same "received, awaiting approval" flow as paid courses, just without a payment step.
-        $reg = $this->regModel->getById($result['id']);
-        $this->sendReceivedEmail($reg, (int) $result['id']);
+        $reg = $this->regModel->getById($result['id']) ?: array_merge($data, $result);
+        require_once __DIR__ . '/../helpers/enrolment_offer.php';
+        enrolment_offer_store($reg, $course, $result);
 
         return $result;
     }
 
-    private function sendReceivedEmail(?array $reg, int $registrationId): void
-    {
-        if (!$reg) {
-            return;
-        }
-        try {
-            require_once __DIR__ . '/StudentNotifier.php';
-            $notifier = new \StudentNotifier($this->pdo, null, true);
-            $result = $notifier->sendRegistrationReceived($reg);
-            if (empty($result['ok'])) {
-                error_log("[registration] Confirmation email failed for #{$registrationId}: " . ($result['message'] ?? 'Unknown error'));
-            }
-        } catch (\Throwable $e) {
-            error_log("[registration] Confirmation email error for #{$registrationId}: " . $e->getMessage());
-        }
-    }
-
     /**
-     * @return string|null Path on success, or 'ERROR:...' message string on failure
+     * @return string|null Path on success, null when no file, or 'ERROR:...' on failure
      */
     private function uploadIdDocument($file): ?string
     {
         if (!$file || empty($file['name'])) {
-            return 'ERROR:Please upload your ID or result slip as a PDF.';
+            return null;
         }
         if (($file['error'] ?? 1) !== UPLOAD_ERR_OK) {
             return 'ERROR:Document upload failed. Try again.';

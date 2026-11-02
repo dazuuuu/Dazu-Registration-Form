@@ -1,32 +1,84 @@
 <?php
-// app/v1/helpers/contact.php — Dazu Hub public contact + WhatsApp sharing
+// app/v1/helpers/contact.php — Dazu Training Institute public contact + WhatsApp sharing
+
+if (!function_exists('site_contact_setting_value')) {
+    function site_contact_setting_value(string $key, string $default = ''): string
+    {
+        static $cache = [];
+        if (array_key_exists($key, $cache)) {
+            return $cache[$key];
+        }
+
+        try {
+            if (!class_exists('SettingModel')) {
+                require_once __DIR__ . '/../models/SettingModel.php';
+            }
+            global $pdo;
+            if (!isset($pdo) || !$pdo instanceof PDO) {
+                require_once __DIR__ . '/../config/db_connect.php';
+            }
+            if (isset($pdo) && $pdo instanceof PDO) {
+                $value = (new SettingModel($pdo))->get($key);
+                if ($value !== null && trim((string) $value) !== '') {
+                    return $cache[$key] = trim((string) $value);
+                }
+            }
+        } catch (Throwable $e) {
+            // Use fallback below.
+        }
+
+        return $cache[$key] = $default;
+    }
+}
+
+if (!function_exists('site_contact_phone_digits')) {
+    function site_contact_phone_digits(string $fallback = '+254 750 116 600'): string
+    {
+        $phone = site_contact_setting_value('contact_phone', $fallback);
+        return preg_replace('/\D+/', '', $phone) ?: preg_replace('/\D+/', '', $fallback);
+    }
+}
 
 if (!function_exists('site_whatsapp_e164')) {
     /** Digits only for wa.me links (no + or spaces). */
     function site_whatsapp_e164(): string
     {
-        return '254750116600';
+        $digits = site_contact_phone_digits();
+        if (strlen($digits) === 10 && $digits[0] === '0') {
+            return '254' . substr($digits, 1);
+        }
+        if (strlen($digits) === 9 && ($digits[0] === '7' || $digits[0] === '1')) {
+            return '254' . $digits;
+        }
+        return $digits;
     }
 }
 
 if (!function_exists('site_whatsapp_display')) {
     function site_whatsapp_display(): string
     {
-        return '0750 116 600';
+        return site_contact_setting_value('contact_phone', '0750 116 600');
     }
 }
 
 if (!function_exists('site_phone_display')) {
     function site_phone_display(): string
     {
-        return '+254 750 116 600';
+        return site_contact_setting_value('contact_phone', '+254 750 116 600');
     }
 }
 
 if (!function_exists('site_phone_tel')) {
     function site_phone_tel(): string
     {
-        return '+254750116600';
+        $digits = site_contact_phone_digits();
+        if (str_starts_with($digits, '254')) {
+            return '+' . $digits;
+        }
+        if (strlen($digits) === 10 && $digits[0] === '0') {
+            return '+254' . substr($digits, 1);
+        }
+        return '+' . $digits;
     }
 }
 
@@ -71,7 +123,7 @@ if (!function_exists('student_login_whatsapp_url')) {
 
         $loginUrl = $credentials['login_url'] ?? '';
         $text = "Hi {$studentName},\n\n"
-            . "Your Dazu Hub student portal account is ready.\n\n"
+            . "Your Dazu Training Institute student portal account is ready.\n\n"
             . "Student ID: " . ($credentials['reg_no'] ?? $credentials['username'] ?? '') . "\n"
             . "Login email: " . ($credentials['login_email'] ?? '') . "\n"
             . "Password: " . ($credentials['temp_password'] ?? '') . "\n"
@@ -97,7 +149,7 @@ if (!function_exists('course_whatsapp_share_url')) {
             $pageUrl = course_view_url($course);
         }
 
-        $text = "Hi Dazu Hub Institute, I'm interested in the course: {$title}\n{$pageUrl}";
+        $text = "Hi Dazu Training Institute, I'm interested in the course: {$title}\n\n{$pageUrl}";
         return whatsapp_chat_url($text);
     }
 }

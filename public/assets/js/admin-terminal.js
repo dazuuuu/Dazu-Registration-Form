@@ -1,5 +1,5 @@
 /**
- * Dazu Hub Admin — Dev Terminal mode
+ * Dazu Training Institute Admin — Dev Terminal mode
  */
 (function () {
   'use strict';
@@ -64,7 +64,7 @@
     if (!outputEl || outputEl.dataset.booted) return;
     outputEl.dataset.booted = '1';
     print([
-      'Dazu Hub Institute Admin Terminal v1.0',
+      'Dazu Training Institute Admin Terminal v1.0',
       'Type `help` or `menu` to get started.',
       'Switch back anytime: `mode simple` or click Simple UI.',
       ''

@@ -10,17 +10,17 @@ if (!function_exists('site_contact_settings')) {
         }
 
         $defaults = [
-            'contact_phone' => site_phone_display(),
-            'contact_phone_tel' => site_phone_tel(),
+            'contact_phone' => '+254 750 116 600',
+            'contact_phone_tel' => '+254750116600',
             'contact_email' => 'admin@dazuhub.com',
             'contact_address' => 'Witeithie House, Room 529, Thika Town',
             'contact_hours' => 'Monday - Saturday: 8:00 AM - 5:00 PM',
             'contact_map_embed' => '',
-            'contact_map_link' => 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode('Witeithie House, Room 529, Thika Town'),
+            'contact_map_link' => '',
             'contact_map_title' => 'Witeithie House, Thika',
             'contact_map_subtitle' => 'Room 529 (5th Floor)',
-            'contact_map_blurb' => 'Located directly within Thika Town, near principal transport stages, making daily commutes seamless for local students.',
-            'site_name' => 'Dazu Hub Institute',
+            'contact_map_blurb' => 'Visit our Thika campus for physical labs, or contact admissions for Nairobi classes and online learning options.',
+            'site_name' => 'Dazu Training Institute',
         ];
 
         try {
@@ -44,6 +44,18 @@ if (!function_exists('site_contact_settings')) {
 
         if ($defaults['contact_map_embed'] === '') {
             $defaults['contact_map_embed'] = 'https://www.google.com/maps?q=' . rawurlencode($defaults['contact_address']) . '&output=embed';
+        }
+        if ($defaults['contact_map_link'] === '') {
+            $defaults['contact_map_link'] = 'https://www.google.com/maps/search/?api=1&query=' . rawurlencode($defaults['contact_address']);
+        }
+
+        $digits = preg_replace('/\D+/', '', $defaults['contact_phone']) ?: '';
+        if (strlen($digits) === 10 && $digits[0] === '0') {
+            $defaults['contact_phone_tel'] = '+254' . substr($digits, 1);
+        } elseif (str_starts_with($digits, '254')) {
+            $defaults['contact_phone_tel'] = '+' . $digits;
+        } elseif ($digits !== '') {
+            $defaults['contact_phone_tel'] = '+' . $digits;
         }
 
         $cache = $defaults;

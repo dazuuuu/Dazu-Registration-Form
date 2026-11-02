@@ -11,7 +11,7 @@ class AuthNotifier {
 
     public function __construct(?Mailer $mailer = null) {
         $cfg = require __DIR__ . '/../config/mail.php';
-        $this->companyName = $cfg['from_name'] ?? 'Dazu Hub Institute';
+        $this->companyName = $cfg['from_name'] ?? 'Dazu Training Institute';
         $this->passwordResetEnabled = !empty($cfg['password_reset_enabled']);
 
         if ($mailer !== null) {

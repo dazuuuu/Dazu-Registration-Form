@@ -8,8 +8,8 @@ $start = WEB_ROOT === '' ? '/' : WEB_ROOT . '/';
 $iconBase = WEB_ROOT === '' ? '' : WEB_ROOT;
 
 echo json_encode([
-    'name' => 'Dazu Hub Institute',
-    'short_name' => 'Dazu Hub',
+    'name' => 'Dazu Training Institute',
+    'short_name' => 'Dazu Training Institute',
     'description' => 'Tech training institute — courses, student portal, and learning management.',
     'start_url' => $start,
     'scope' => $start,

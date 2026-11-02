@@ -14,7 +14,7 @@ return [
     'password'   => '',
 
     'from_email' => 'no-reply@dazuhub.co.ke',
-    'from_name'  => 'Dazu Hub Institute',
+    'from_name'  => 'Dazu Training Institute',
     // Absolute filesystem path to the logo embedded in emails.
     'logo_path'  => $_SERVER['DOCUMENT_ROOT'] . url('assets/images/logo/logo.png'),
     // Used in email footers / links.

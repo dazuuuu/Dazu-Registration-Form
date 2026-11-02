@@ -16,6 +16,7 @@ if (!empty($result['ok'])) {
         'success' => true,
         'message' => $result['message'] ?? 'Application received.',
         'registration_id' => $result['id'] ?? $result['registration_id'] ?? null,
+        'registration_no' => $result['registration_no'] ?? null,
     ]);
 }
 

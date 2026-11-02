@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$page_title = 'Reset Password — Dazu hub Institute';
+$page_title = 'Reset Password — Dazu Training Institute';
 ob_start();
 ?>
 <div class="bg-slate-50 min-h-screen py-16 flex items-center justify-center">

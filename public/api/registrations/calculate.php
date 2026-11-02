@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/uploads.php';
 require_once __DIR__ . '/../../../app/v1/helpers/registration_submit.php';
 
 use Models\CourseModel;
+use Models\RegistrationModel;
 
 require_method('POST');
 
@@ -20,9 +21,10 @@ if (!$course) {
     json_response(['success' => false, 'message' => 'Invalid course'], 422);
 }
 
-$fee = (float) $course['course_fee'];
+require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
+$fee = course_fee_for_mode($course, $mode);
 $months = max(1, (int) $course['duration_months']);
-$regFee = $mode === 'physical' ? 1500 : 1000;
+$regFee = RegistrationModel::registrationFeeFor($mode);
 $info = RegistrationModel::calculateInstallments($fee, $plan, $months);
 $first = $info['amount'] ?? $fee;
 $installmentList = [];

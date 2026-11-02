@@ -1,0 +1,230 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+
+h1, h2, h3, h4, .font-display, .font-heroic {
+  font-family: "Nunito", ui-sans-serif, system-ui, sans-serif !important;
+  letter-spacing: 0.01em;
+}
+
+body, p, span, a, button, label, input, textarea, select, li {
+  font-family: "Nunito", ui-sans-serif, system-ui, sans-serif;
+}
+
+code, pre, .font-mono {
+  font-family: "Space Mono", "JetBrains Mono", monospace !important;
+}
+
+@keyframes dazu-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes dazu-scale-up {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes dazu-slide-up-in {
+  from { opacity: 0; transform: translateY(50px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in { animation: dazu-fade-in 0.3s ease-out; }
+.animate-scale-up { animation: dazu-scale-up 0.3s ease-out; }
+.dazu-hero-slide { animation: dazu-slide-up-in 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+
+.dazu-course-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 25px -5px rgba(21, 162, 74, 0.1), 0 10px 10px -5px rgba(21, 162, 74, 0.04);
+}
+
+.selection\:bg-green-100::selection,
+::selection {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+/* Video testimonial cards — fixed sizes (Tailwind arbitrary classes not in build) */
+#testimonials .dazu-vcard {
+  width: 160px;
+  flex-shrink: 0;
+  position: relative;
+}
+@media (min-width: 640px) {
+  #testimonials .dazu-vcard { width: 180px; }
+}
+#testimonials .dazu-vposter {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  position: relative;
+  overflow: hidden;
+}
+#testimonials .dazu-vplayer {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  width: 100%;
+  height: 100%;
+  background: #000;
+}
+#testimonials #dazu-video-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+#testimonials .dazu-viframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* ==========================================================================
+   Dazu Navigation Bar & Courses Dropdown
+   ========================================================================== */
+.dazu-nav-dropdown {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 100%;
+}
+
+.dazu-nav-dropdown .dazu-dropdown-caret {
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.dazu-nav-dropdown:hover .dazu-dropdown-caret,
+.dazu-nav-dropdown:focus-within .dazu-dropdown-caret {
+  transform: rotate(180deg);
+  color: #22C55E;
+}
+
+.dazu-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 290px;
+  padding-top: 10px;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.18s cubic-bezier(0.16, 1, 0.3, 1), transform 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dazu-dropdown-menu::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 14px;
+}
+
+.dazu-nav-dropdown:hover .dazu-dropdown-menu,
+.dazu-nav-dropdown:focus-within .dazu-dropdown-menu,
+.dazu-nav-dropdown.is-open .dazu-dropdown-menu {
+  display: block;
+  pointer-events: auto;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dazu-dropdown-card {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+  padding: 6px 0;
+}
+
+.dazu-dropdown-item-all {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  text-decoration: none;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+  transition: background-color 0.15s ease;
+}
+.dazu-dropdown-item-all:hover {
+  background-color: #f0fdf4;
+}
+
+.dazu-dropdown-all-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: #dcfce7;
+  color: #15a24a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dazu-dropdown-header-label {
+  padding: 8px 16px 4px 16px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+
+.dazu-dropdown-scroll {
+  max-height: 280px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 2px 0;
+}
+.dazu-dropdown-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.dazu-dropdown-scroll::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+.dazu-dropdown-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.dazu-dropdown-school-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  text-decoration: none;
+  transition: background-color 0.15s ease, color 0.15s ease, padding-left 0.15s ease;
+}
+.dazu-dropdown-school-item:hover {
+  background-color: #f0fdf4;
+  color: #15a24a;
+  padding-left: 20px;
+}
+
+.dazu-dropdown-school-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #cbd5e1;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.dazu-dropdown-school-item:hover .dazu-dropdown-school-dot {
+  background-color: #15a24a;
+  transform: scale(1.3);
+}
+
+.dazu-dropdown-school-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+

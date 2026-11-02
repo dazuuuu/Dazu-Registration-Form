@@ -36,8 +36,10 @@ unset($_SESSION['migration_run_results']);
 
 try {
     $pending = $migrationService->pending();
+    $migrationRows = $migrationService->statusRows();
 } catch (Throwable $e) {
     $pending = [];
+    $migrationRows = [];
     $errors[] = $e->getMessage();
 }
 
@@ -53,6 +55,10 @@ ob_start();
 .update-status-icon{width:48px;height:48px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:20px}
 .migration-list .list-group-item{display:flex;align-items:center;justify-content:space-between;gap:12px}
 .migration-code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;font-size:.86rem}
+.update-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.update-meta-card{background:#fff;border:1px solid #e4e7ec;border-radius:8px;padding:14px}
+.update-meta-card small{display:block;color:#667085;font-weight:600;text-transform:uppercase;font-size:.68rem;letter-spacing:.06em;margin-bottom:4px}
+.update-meta-card strong{font-size:1.1rem}
 </style>
 
 <div class="update-hero">
@@ -80,6 +86,24 @@ ob_start();
         </button>
       </form>
     <?php endif; ?>
+  </div>
+</div>
+
+<div class="update-meta">
+  <div class="update-meta-card">
+    <small>Migration model</small>
+    <strong>MigrationService</strong>
+    <div class="text-muted small">Reads required SQL files and tracks them in <code>schema_migrations</code>.</div>
+  </div>
+  <div class="update-meta-card">
+    <small>Total files</small>
+    <strong><?php echo number_format(count($migrationRows)); ?></strong>
+    <div class="text-muted small"><code>databases/required_migrations</code></div>
+  </div>
+  <div class="update-meta-card">
+    <small>Pending</small>
+    <strong class="<?php echo $pending ? 'text-warning' : 'text-success'; ?>"><?php echo number_format(count($pending)); ?></strong>
+    <div class="text-muted small">Files not yet recorded as applied.</div>
   </div>
 </div>
 
@@ -136,6 +160,48 @@ ob_start();
     </div>
   </div>
 <?php endif; ?>
+
+<div class="card">
+  <div class="card-header"><i class="fas fa-database me-2"></i>Migration files</div>
+  <div class="card-body p-0">
+    <?php if (!$migrationRows): ?>
+      <div class="p-4 text-muted">No migration files were found.</div>
+    <?php else: ?>
+      <div class="table-responsive">
+        <table class="table mb-0 align-middle">
+          <thead>
+            <tr>
+              <th>Migration</th>
+              <th>Status</th>
+              <th>Applied at</th>
+              <th>File updated</th>
+            </tr>
+          </thead>
+          <tbody>
+            <?php foreach ($migrationRows as $row): ?>
+              <tr>
+                <td class="migration-code"><?php echo htmlspecialchars($row['filename']); ?></td>
+                <td>
+                  <?php if ($row['status'] === 'applied'): ?>
+                    <span class="badge text-bg-success">Applied</span>
+                  <?php else: ?>
+                    <span class="badge text-bg-warning">Pending</span>
+                  <?php endif; ?>
+                </td>
+                <td class="small text-muted">
+                  <?php echo $row['applied_at'] ? htmlspecialchars(date('d M Y H:i', strtotime($row['applied_at']))) : '—'; ?>
+                </td>
+                <td class="small text-muted">
+                  <?php echo $row['modified_at'] ? htmlspecialchars(date('d M Y H:i', strtotime($row['modified_at']))) : '—'; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
+      </div>
+    <?php endif; ?>
+  </div>
+</div>
 <?php
 $content = ob_get_clean();
 include __DIR__ . '/../../templates/admin/layout.php';

@@ -31,6 +31,23 @@ if ($categoryParam === 'uncategorized') {
 } elseif ($categoryParam !== 'all' && $categoryParam !== '') {
     $categoryId = (int) $categoryParam;
 }
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_homepage_id'])) {
+    if (!csrf_verify($_POST['csrf_token'] ?? null)) {
+        SessionModel::setFlash('error', 'Security check failed, please try again.');
+    } else {
+        $id = (int) $_POST['toggle_homepage_id'];
+        $show = $_POST['set_homepage'] === '1';
+        $courseModel->setShowOnHomepage($id, $show);
+        SessionModel::setFlash('success', $show ? 'Course added to front-page.' : 'Course removed from front-page.');
+    }
+    $redirect = url('admin/courses/index.php');
+    if (!empty($_POST['redirect_query'])) {
+        $redirect .= '?' . $_POST['redirect_query'];
+    }
+    header('Location: ' . $redirect);
+    exit();
+}
+
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_id'])) {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {

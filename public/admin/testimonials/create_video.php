@@ -15,6 +15,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         $_SESSION['flash']['error'] = 'Security check failed.';
     } else {
+        $thumbnail_url = trim($_POST['thumbnail_url'] ?? '');
+        if (!empty($_FILES['thumbnail_file']['name'])) {
+            $absDir = public_path('uploads/testimonials');
+            if (!is_dir($absDir)) {
+                @mkdir($absDir, 0775, true);
+            }
+            $up = upload_image($_FILES['thumbnail_file'], $absDir, 'uploads/testimonials');
+            if ($up['ok']) {
+                $thumbnail_url = asset($up['path']);
+            }
+        }
+
         $pdo->prepare(
             'INSERT INTO testimonials (customer_name, customer_initial, rating, testimonial_text, testimonial_type, video_url, video_provider, avatar_url, thumbnail_url, service_tag, role, status, is_featured, sort_order, approved_at)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())'
@@ -27,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             trim($_POST['video_url'] ?? ''),
             $_POST['video_provider'] ?? 'youtube',
             trim($_POST['avatar_url'] ?? '') ?: null,
-            trim($_POST['thumbnail_url'] ?? '') ?: null,
+            $thumbnail_url ?: null,
             trim($_POST['service_tag'] ?? '') ?: null,
             trim($_POST['role'] ?? '') ?: null,
             'approved',
@@ -48,7 +60,7 @@ ob_start();
     <a href="index.php" class="btn btn-sm btn-outline-secondary">Back</a>
   </div>
   <div class="card-body">
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
       <?php echo csrf_field(); ?>
       <div class="row g-3">
         <div class="col-md-6">
@@ -91,6 +103,11 @@ ob_start();
         <div class="col-md-6">
           <label class="form-label">Thumbnail URL</label>
           <input class="form-control" name="thumbnail_url" placeholder="https://...">
+          <small class="text-muted">Leave blank for automatic YouTube thumbnail</small>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Or Upload Thumbnail Image</label>
+          <input type="file" name="thumbnail_file" class="form-control" accept="image/*">
         </div>
         <div class="col-12">
           <label class="form-label">Caption / quote</label>
