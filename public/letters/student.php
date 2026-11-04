@@ -52,10 +52,11 @@ if ($view === 'student' && $status['state'] !== 'final') {
 
 $course = sl_course($db, (int) $reg['course_id']);
 $shortCourse = !sl_long_course($course);
+$canTopics = $view === 'tutor' && $shortCourse && sl_tutor_teaches($db, $me, (int) $reg['course_id']);
 if ($view === 'tutor' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         $flash = ['danger', 'Security check failed. Please refresh and try again.'];
-    } elseif (($_POST['action'] ?? '') === 'topics' && $shortCourse) {
+    } elseif (($_POST['action'] ?? '') === 'topics' && $canTopics) {
         $r = sl_course_topics_save($db, (int) $reg['course_id'], (string) ($_POST['topics'] ?? ''), $me);
         $flash = $r['ok'] ? ['success', 'Topics saved. They are used on the letters of this course that are made from now on.'] : ['danger', $r['error']];
     } else {
@@ -126,12 +127,12 @@ textarea{font:inherit;border:1px solid #cfd4cb;border-radius:8px;padding:8px 10p
     <?php endif; ?>
     <div style="margin-top:12px"><a class="btn" href="<?php echo $e($pdfUrl); ?>">Download PDF</a> <button class="btn o" type="button" onclick="window.print()">Print</button></div>
   </div>
-  <?php if ($view === 'tutor' && $shortCourse): ?>
+  <?php if ($canTopics): ?>
   <div class="box">
     <b>Topics of <?php echo $e($course['title'] ?? 'this course'); ?></b>
-    <p style="margin:4px 0 8px;color:#6b7067">Type them once, one per line. Every letter of this course uses the first four in the sentence "hands-on training in …". With no topics, the sentence uses the course name.</p>
+    <p style="margin:4px 0 8px;color:#6b7067">Type up to 6 short topics once, one per line. Every letter of this course joins them into the sentence "hands-on training in …". With no topics, the sentence uses the course name. A change only affects letters made after it.</p>
     <form method="post"><?php echo csrf_field(); ?><input type="hidden" name="action" value="topics">
-      <textarea name="topics" rows="4" maxlength="1200"><?php echo $e(implode("\n", sl_course_topics($db, (int) $reg['course_id']))); ?></textarea>
+      <textarea name="topics" rows="6" maxlength="600"><?php echo $e(implode("\n", sl_course_topics($db, (int) $reg['course_id']))); ?></textarea>
       <div style="margin-top:8px"><button class="btn">Save topics</button></div>
     </form>
   </div>

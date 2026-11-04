@@ -109,6 +109,14 @@ function asg_store_document(array $file, string $subdir, array $allowed, int $ma
     $ok = false;
     if ($ext === 'pdf') {
         $ok = $mime === 'application/pdf';
+    } elseif ($ext === 'doc') {
+        // Old Word files (Word 97–2003): an OLE compound file.
+        $ok = in_array($mime, ['application/msword', 'application/x-ole-storage', 'application/CDFV2', 'application/vnd.ms-office'], true)
+            || (string) @file_get_contents($file['tmp_name'], false, null, 0, 8) === "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1";
+    } elseif ($ext === 'txt') {
+        // Plain text only (no binary bytes); always downloaded, never shown in the browser.
+        $head = (string) @file_get_contents($file['tmp_name'], false, null, 0, 65536);
+        $ok = (str_starts_with($mime, 'text/') || $mime === 'application/x-empty' || $mime === 'inode/x-empty') && !str_contains($head, "\0");
     } elseif ($ext === 'zip') {
         $ok = in_array($mime, ['application/zip', 'application/x-zip-compressed'], true);
     } elseif (isset($office[$ext]) && class_exists('ZipArchive')) {
@@ -130,7 +138,7 @@ function asg_store_document(array $file, string $subdir, array $allowed, int $ma
     $name = bin2hex(random_bytes(16)) . '.' . $ext;
     $moved = defined('UPLOAD_TEST_MODE') ? @copy($file['tmp_name'], "$dir/$name") : @move_uploaded_file($file['tmp_name'], "$dir/$name");
     if (!$moved) return ['ok' => false, 'error' => $label . 'could not be saved.'];
-    $mimes = ['pdf' => 'application/pdf', 'zip' => 'application/zip',
+    $mimes = ['pdf' => 'application/pdf', 'zip' => 'application/zip', 'doc' => 'application/msword', 'txt' => 'text/plain',
         'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'xlsx' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation'];

@@ -1,9 +1,8 @@
 <?php
-// The academic transcript (courses of 12 months and longer only). ?course=<id>[&student=<user id>][&pdf=1]
-//   student: opens it ONLY after it was released (finished, fees paid, capstone passed, average 50+). Released = locked.
-//   tutor:   opens it for their own student at any time (a DRAFT built live from the marks until it is released), and before release
-//            may change only the names and the recommendation wording.
-//   admin:   status words only, never a mark.
+// The academic transcript (courses of 3 months and longer only). ?course=<id>[&student=<user id>][&pdf=1]
+//   student: opens it ONLY after it was released. Released = locked.
+//   tutor (their own student) and admin: open it at any time (a DRAFT built live until it is released), and before release may change
+//            the names, the recommendation wording and the rows (subject, code, detail, mark). Every change is logged (transcript_events).
 //   anyone else, or another student changing the URL: not allowed.
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/middleware.php';
@@ -48,13 +47,14 @@ if (!tr_installed($db)) tr_deny('The transcript is not installed yet. An adminis
 
 tr_sync($db, $uid, $courseId, $me);
 $status = tr_status($db, $uid, $courseId);
-if ($status['state'] === 'none') tr_deny('There is no transcript for this course. Transcripts are given for courses of 12 months and longer.');
+if ($status['state'] === 'none') tr_deny('There is no transcript for this course. Transcripts are given for courses of 3 months and longer.');
 if ($view === 'student' && $status['state'] !== 'released') {
     tr_deny('Not allowed yet. Your transcript is released when your course is complete: finished, fees paid, capstone passed and course average 50 or more.');
 }
 
-// The tutor's edits: names and recommendation wording, before release only.
-if ($view === 'tutor' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+// The tutor's or admin's edits, before release only.
+$canEdit = in_array($view, ['tutor', 'admin'], true);
+if ($canEdit && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         $flash = ['danger', 'Security check failed. Please refresh and try again.'];
     } else {
@@ -62,7 +62,18 @@ if ($view === 'tutor' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         if (($_POST['action'] ?? '') === 'names') $in = ['surname' => $_POST['surname'] ?? '', 'other_names' => $_POST['other_names'] ?? ''];
         if (($_POST['action'] ?? '') === 'recommendation') $in = ['recommendation' => $_POST['recommendation'] ?? ''];
         if (($_POST['action'] ?? '') === 'recommendation_auto') $in = ['recommendation' => ''];
-        $r = $in ? tr_save_draft($db, $uid, $courseId, $me, $in) : ['ok' => false, 'error' => 'Nothing to save.'];
+        $act = $_POST['action'] ?? '';
+        if ($act === 'rows') {
+            $rows = [];
+            foreach ((array) ($_POST['subject'] ?? []) as $i => $sub) {
+                $rows[] = ['code' => $_POST['code'][$i] ?? '', 'subject' => $sub, 'detail' => $_POST['detail'][$i] ?? '', 'mark' => $_POST['mark'][$i] ?? ''];
+            }
+            $r = tr_save_rows($db, $uid, $courseId, $me, $rows);
+        } elseif ($act === 'rows_auto') {
+            $r = tr_save_rows($db, $uid, $courseId, $me, null);
+        } else {
+            $r = $in ? tr_save_draft($db, $uid, $courseId, $me, $in) : ['ok' => false, 'error' => 'Nothing to save.'];
+        }
         $flash = $r['ok'] ? ['success', 'Saved.'] : ['danger', $r['error']];
     }
     $_SESSION['tr_flash'] = $flash;
@@ -75,20 +86,6 @@ unset($_SESSION['tr_flash']);
 header('X-Robots-Tag: noindex');
 header('Cache-Control: private, no-store');
 
-// Admin: words only.
-if ($view === 'admin') {
-    $rel = $status['released'];
-    ?><!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Transcript status</title>
-<style>body{margin:0;background:#f4f5f1;font-family:Poppins,system-ui,sans-serif;color:#373435}main{max-width:560px;margin:0 auto;padding:32px 16px}.card{background:#fff;border-radius:14px;padding:22px;box-shadow:0 2px 10px rgba(0,0,0,.05)}.k{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:#6b7067;margin-top:12px}.v{font-weight:600}</style></head>
-<body><main><div class="card"><h1 style="font-size:1.2rem;margin:0">Transcript status</h1>
-<div class="k">Status</div><div class="v"><?php echo $e($status['word']); ?></div>
-<?php if ($rel): ?><div class="k">Transcript number</div><div class="v"><?php echo $e($rel['transcript_no']); ?></div>
-<div class="k">Released on</div><div class="v"><?php echo $e(date('j F Y', strtotime($rel['released_at']))); ?></div><?php endif; ?>
-<p style="color:#6b7067;font-size:.8rem;margin:16px 0 0">Marks are shown to the student and their tutor only.</p></div></main><script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
-</body></html><?php
-    exit;
-}
-
 require_once __DIR__ . '/../../app/v1/helpers/transcript_pdf.php';
 $live = $status['state'] === 'released' ? null : tr_build($db, $uid, $courseId);
 $d = tr_print_data($db, $status['released'], $live);
@@ -100,7 +97,7 @@ if (isset($_GET['pdf'])) {
     echo tr_pdf($d);
     exit;
 }
-$pdfUrl = url('capstone/transcript.php?course=' . $courseId . ($view === 'tutor' ? '&student=' . $uid : '') . '&pdf=1&dl=1');
+$pdfUrl = url('capstone/transcript.php?course=' . $courseId . ($view !== 'student' ? '&student=' . $uid : '') . '&pdf=1&dl=1');
 $cond = $status['readiness']['conditions'] ?? [];
 ?><!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
 <title>Transcript · Dazu Training Institute</title>
@@ -127,8 +124,9 @@ input,textarea{font:inherit;border:1px solid #cfd4cb;border-radius:8px;padding:7
       <span class="pill">Released <?php echo $e(date('j M Y', strtotime($status['released']['released_at']))); ?> · locked</span>
     <?php else: ?>
       <span class="pill d">DRAFT: not released to the student yet</span>
-      <p style="margin:10px 0 4px">The marks below are worked out from the released assignment, monthly project and capstone marks. Nobody can type a mark here. It is released by itself when all of these are true:</p>
-      <?php foreach (['finished' => 'Course finished', 'fees' => 'Fees paid', 'capstone' => 'Capstone passed', 'average' => 'Course average 50 or more'] as $k => $label): $c = $cond[$k] ?? null; ?>
+      <p style="margin:10px 0 4px">The rows are worked out from the released marks<?php echo !empty($d['rows_edited']) ? ', <b>changed by hand on this transcript</b>' : ''; ?>. It is released by itself when all of these are true:</p>
+      <?php $labels = !empty($status['readiness']['plain']) ? ['finished' => 'Course finished', 'fees' => 'Fees paid'] : ['finished' => 'Course finished', 'fees' => 'Fees paid', 'capstone' => 'Capstone passed', 'average' => 'Course average 50 or more'];
+      foreach ($labels as $k => $label): $c = $cond[$k] ?? null; ?>
         <div class="<?php echo $c && $c['ok'] ? 'ok' : 'no'; ?>"><?php echo $c && $c['ok'] ? '✓' : '•'; ?> <?php echo $e($label); ?><?php echo $c && !$c['ok'] ? ': ' . $e($c['reason']) : ''; ?></div>
       <?php endforeach; ?>
       <?php if ($status['missing']): ?><div class="no">• The office must add <?php echo $e(implode(' and ', $status['missing'])); ?> in Settings → Transcript.</div><?php endif; ?>
@@ -136,7 +134,28 @@ input,textarea{font:inherit;border:1px solid #cfd4cb;border-radius:8px;padding:7
     <div style="margin-top:12px" class="row" ><div style="flex:0 0 auto"><a class="btn" href="<?php echo $e($pdfUrl); ?>">Download PDF</a> <button class="btn o" type="button" onclick="window.print()">Print</button></div></div>
   </div>
 
-  <?php if ($view === 'tutor' && $status['state'] !== 'released'): ?>
+  <?php if ($canEdit && $status['state'] !== 'released'): ?>
+  <div class="box">
+    <b>Subjects and marks</b> <span style="color:#6b7067">(<?php echo $d['rows_edited'] ? 'changed by hand' : 'automatic, from the marks'; ?>)</span>
+    <p style="color:#6b7067;margin:4px 0 8px">Change, add or remove rows for this student's transcript only. Leave a mark empty for "—". The grade and course average are worked out from these marks. The real assignment marks are not changed.</p>
+    <form method="post" id="rows"><?php echo csrf_field(); ?><input type="hidden" name="action" value="rows">
+      <table style="width:100%;border-collapse:collapse" id="rt"><thead><tr style="text-align:left;font-size:.75rem;color:#6b7067"><th style="width:22%">Code</th><th>Subject</th><th style="width:26%">Detail (optional)</th><th style="width:12%">Mark %</th><th style="width:36px"></th></tr></thead><tbody>
+      <?php foreach (array_merge($d['rows'], [['code' => $d['code_prefix'] . ' / ', 'subject' => '', 'detail' => '', 'mark' => null]]) as $r): ?>
+        <tr><td><input name="code[]" maxlength="30" value="<?php echo $e($r['code']); ?>"></td><td><input name="subject[]" maxlength="120" value="<?php echo $e($r['subject']); ?>"></td>
+          <td><input name="detail[]" maxlength="150" value="<?php echo $e($r['detail']); ?>"></td>
+          <td><input name="mark[]" type="number" min="0" max="100" step="0.01" value="<?php echo $r['mark'] === null ? '' : $e(round((float) $r['mark'], 2)); ?>"></td>
+          <td><button type="button" class="btn o" title="Remove row" onclick="this.closest('tr').remove()">✕</button></td></tr>
+      <?php endforeach; ?>
+      </tbody></table>
+      <template id="rtpl"><tr><td><input name="code[]" maxlength="30" value="<?php echo $e($d['code_prefix'] . ' / '); ?>"></td><td><input name="subject[]" maxlength="120"></td><td><input name="detail[]" maxlength="150"></td>
+        <td><input name="mark[]" type="number" min="0" max="100" step="0.01"></td><td><button type="button" class="btn o" title="Remove row" onclick="this.closest('tr').remove()">✕</button></td></tr></template>
+      <div style="margin-top:8px"><button type="button" class="btn o" onclick="document.querySelector('#rt tbody').appendChild(document.getElementById('rtpl').content.cloneNode(true))">+ Add row</button>
+        <button class="btn">Save rows</button></div>
+    </form>
+    <?php if ($d['rows_edited']): ?>
+      <form method="post" style="margin-top:6px" onsubmit="return confirm('Go back to the automatic rows from the marks?')"><?php echo csrf_field(); ?><input type="hidden" name="action" value="rows_auto"><button class="btn o">Use the automatic rows again</button></form>
+    <?php endif; ?>
+  </div>
   <div class="box">
     <b>Names on the transcript</b>
     <form method="post" class="row" style="margin-top:8px"><?php echo csrf_field(); ?><input type="hidden" name="action" value="names">

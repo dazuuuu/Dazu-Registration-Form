@@ -2,7 +2,8 @@
 /**
  * Certificate PDF Generator — Dazu Training Institute
  *
- * The design is fixed in code (no uploaded template). Only these values change per certificate:
+ * The artwork is fixed in code. The text lines (wording, font, size, colour, bold/italic, spacing, height, shown or hidden) come from
+ * Admin Settings → Certificate (helpers/certificate_template.php). These values change per certificate:
  *  - student name, course, programme duration           (from the student's enrolment)
  *  - extra programme text                                (typed by admin, stored in certificates.taught_skills)
  *  - tutor name                                          (the student's assigned tutor)
@@ -16,6 +17,7 @@ require_once __DIR__ . '/../lib/dompdf/autoload.inc.php';
 require_once __DIR__ . '/../lib/qrcode/barcode.php';
 require_once __DIR__ . '/../services/CertificateService.php';
 require_once __DIR__ . '/signatures.php';
+require_once __DIR__ . '/certificate_template.php';
 
 use Dompdf\Dompdf;
 use Dompdf\Options;
@@ -197,17 +199,22 @@ if (!function_exists('cert_render_html')) {
         $issued   = date('j F Y', strtotime($cert['issued_at'] ?? 'now') ?: time());
         $extra    = trim((string) ($cert['taught_skills'] ?? ''));
 
-        $body = 'Has successfully completed a ' . cert_duration_label($months) . ' programme of study in the <b>'
-              . $e($course) . '</b> at Dazu Training Institute'
-              // Admin text that starts lowercase ("and has met all…") continues the sentence; otherwise it follows it.
-              . ($extra === '' ? '.' : (preg_match('/^\p{Ll}/u', $extra) ? ', ' : '. ') . nl2br($e($extra)));
-        if ($extra !== '' && !preg_match('/[.!?]$/', $extra)) {
-            $body .= '.';
-        }
+        // The text lines come from the template (Admin Settings → Certificate); $cert['_tpl'] = an unsaved template for the preview.
+        $tpl = cert_tpl($cert['_tpl'] ?? null);
+        $verifyHost = preg_replace('#^https?://#', '', rtrim(cert_verify_url(), '/'));
+        // Extra text that starts lowercase ("and has met all…") continues the sentence; otherwise it follows it.
+        $extraHtml = $extra === '' ? '.' : (preg_match('/^\p{Ll}/u', $extra) ? ', ' : '. ') . nl2br($e($extra)) . (preg_match('/[.!?]$/', $extra) ? '' : '.');
+        $vars = ['{name}' => $e($name), '{course}' => $e($course), '{duration}' => $e(cert_duration_label($months)), '{cert_no}' => $e($certNo),
+                 '{date}' => $e($issued), '{tutor}' => $e($tutor), '{director}' => $e($director), '{verify_host}' => $e($verifyHost), '{extra}' => $extraHtml,
+                 '{tutor_title}' => $e(mb_strtoupper(trim((string) ($cert['tutor_title'] ?? '')) ?: 'Course tutor')),
+                 '{director_title}' => $e(mb_strtoupper(trim((string) ($cert['director_title'] ?? '')) ?: 'Director'))];
+        $line = fn(string $k) => cert_tpl_div($tpl[$k], cert_tpl_text($tpl[$k]['text'], $vars));
 
-        // Shrink long names so they stay on one line
-        $len = mb_strlen($name);
-        $nameSize = $len > 24 ? max(26, (int) floor(44 * 24 / $len)) : 44;
+        // Shrink long names so they stay on one line (kept centred on the same spot)
+        $nameText = cert_tpl_text($tpl['name']['text'], $vars);
+        $len = mb_strlen(html_entity_decode(strip_tags($nameText)));
+        $max = (float) $tpl['name']['size'];
+        $nameSize = $len > 24 ? max(round($max * 0.6, 1), floor($max * 24 / $len)) : $max;
 
         $bg = _cert_data_uri(cert_background_png());
         $logoAbs = cert_logo_file();
@@ -215,7 +222,6 @@ if (!function_exists('cert_render_html')) {
             ? '<img src="' . _cert_data_uri($logoAbs) . '" style="height:19mm;" />'
             : '<span style="font-size:30pt;font-weight:bold;color:' . CERT_DARK . ';">DAZU</span>';
         $qr = cert_qr_data_uri(cert_verify_url((string) ($cert['qr_code_hash'] ?? '')));
-        $verifyHost = preg_replace('#^https?://#', '', rtrim(cert_verify_url(), '/'));
 
         $G = CERT_GREEN; $D = CERT_DARK;
         $abs = 'position:absolute;';
@@ -231,41 +237,23 @@ body { width: 297mm; height: 210mm; font-family: "Times New Roman", Times, serif
         // Logo
         . '<div style="' . $abs . 'left:0;width:297mm;top:8mm;' . $center . '">' . $logo . '</div>'
 
-        // Titles
-        . '<div style="' . $abs . 'left:0;width:297mm;top:35mm;' . $center . 'font-size:56pt;font-weight:bold;letter-spacing:2pt;line-height:1;">CERTIFICATE</div>'
-        . '<div style="' . $abs . 'left:0;width:297mm;top:55mm;' . $center . 'font-size:22pt;font-weight:bold;letter-spacing:8pt;color:' . $G . ';line-height:1;">OF COMPLETION</div>'
-        . '<div style="' . $abs . 'left:0;width:297mm;top:70.5mm;' . $center . 'font-size:11pt;font-weight:bold;letter-spacing:4pt;line-height:1;">THIS CERTIFICATE IS PROUDLY PRESENTED TO</div>'
-
-        // Student name
-        . '<div style="' . $abs . 'left:55mm;width:187mm;top:' . (94 - $nameSize * 0.36) . 'mm;' . $center . 'font-size:' . $nameSize . 'pt;font-weight:bold;font-style:italic;color:' . $G . ';line-height:1;white-space:nowrap;">' . $e($name) . '</div>'
-
-        // Programme text
-        . '<div style="' . $abs . 'left:66mm;width:165mm;top:104mm;' . $center . 'font-size:13.5pt;line-height:1.4;">' . $body . '</div>'
-
-        // Badge text
-        . '<div style="' . $abs . 'left:240.4mm;width:40mm;top:37.4mm;' . $center . 'color:#fff;font-size:6.5pt;font-weight:bold;letter-spacing:1.2pt;line-height:1;">CERTIFIED</div>'
-        . '<div style="' . $abs . 'left:240.4mm;width:40mm;top:43mm;' . $center . 'color:#fff;font-size:11.5pt;font-weight:bold;line-height:1;">ORIGINAL</div>'
-        . '<div style="' . $abs . 'left:240.4mm;width:40mm;top:50.6mm;' . $center . 'color:#fff;font-size:7pt;font-weight:bold;letter-spacing:2.5pt;line-height:1;">DAZU</div>'
+        . $line('title') . $line('subtitle') . $line('presented')
+        . cert_tpl_div($tpl['name'], $nameText, $nameSize, $tpl['name']['top'] + ($max - $nameSize) * 0.36)
+        . $line('body')
+        . $line('badge1') . $line('badge2') . $line('badge3')
 
         // QR panel
-        . '<div style="' . $abs . 'left:17.8mm;top:102mm;width:42mm;font-size:10pt;font-style:italic;">Valid Certificate ID</div>'
+        . $line('qr_label')
         . '<img src="' . $qr . '" style="' . $abs . 'left:17mm;top:106mm;width:34mm;height:34mm;" />'
-        . '<div style="' . $abs . 'left:17.8mm;top:142.5mm;width:60mm;font-size:11pt;font-weight:bold;">' . $e($certNo) . '</div>'
-        . '<div style="' . $abs . 'left:17.8mm;top:147.6mm;width:60mm;font-size:9pt;font-style:italic;line-height:1.3;">Scan to verify, or visit<br>' . $e($verifyHost) . '</div>'
+        . $line('qr_no') . $line('qr_verify')
 
         // Signatures
         . '<div style="' . $abs . 'left:88.3mm;width:56.3mm;top:151mm;height:17mm;' . $center . '">' . _cert_sig_img($cert['tutor_signature_path'] ?? null) . '</div>'
         . '<div style="' . $abs . 'left:158.7mm;width:56.5mm;top:151mm;height:17mm;' . $center . '">' . _cert_sig_img($cert['director_signature_path'] ?? null) . '</div>'
         . '<div style="' . $abs . 'left:88.3mm;width:56.3mm;top:168.6mm;border-top:0.45mm solid ' . $D . ';"></div>'
         . '<div style="' . $abs . 'left:158.7mm;width:56.5mm;top:168.6mm;border-top:0.45mm solid ' . $D . ';"></div>'
-        . '<div style="' . $abs . 'left:78mm;width:77mm;top:171mm;' . $center . 'font-size:14pt;font-weight:bold;line-height:1;">' . $e($tutor) . '</div>'
-        . '<div style="' . $abs . 'left:78mm;width:77mm;top:176.6mm;' . $center . 'font-size:9pt;letter-spacing:1.5pt;line-height:1;">' . $e(mb_strtoupper(trim((string) ($cert['tutor_title'] ?? '')) ?: 'Course tutor')) . '</div>'
-        . '<div style="' . $abs . 'left:148.5mm;width:77mm;top:171mm;' . $center . 'font-size:14pt;font-weight:bold;line-height:1;">' . $e($director) . '</div>'
-        . '<div style="' . $abs . 'left:148.5mm;width:77mm;top:176.6mm;' . $center . 'font-size:9pt;letter-spacing:1.5pt;line-height:1;">' . $e(mb_strtoupper(trim((string) ($cert['director_title'] ?? '')) ?: 'Director')) . '</div>'
-
-        // Footer line
-        . '<div style="' . $abs . 'left:66mm;width:165mm;top:186.4mm;' . $center . 'font-size:12pt;line-height:1;">Certificate No: ' . $e($certNo)
-        . ' &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp; Date of issue: ' . $e($issued) . '</div>'
+        . $line('tutor_name') . $line('tutor_title') . $line('director_name') . $line('director_title')
+        . $line('footer')
         // Optional diagonal watermark ('SAMPLE' on the tutor's sample certificate).
         . (!empty($cert['_watermark']) ? '<div style="' . $abs . 'left:0;width:297mm;top:88mm;' . $center . 'font-size:96pt;font-weight:bold;letter-spacing:12pt;color:rgba(55,52,53,0.13);transform:rotate(-18deg);">'
             . $e($cert['_watermark']) . '</div>' : '')

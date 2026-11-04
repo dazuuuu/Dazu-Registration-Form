@@ -93,13 +93,13 @@ ob_start();
             <div class="asg-box">
                 <div class="d-flex justify-content-between align-items-start gap-2">
                     <div style="min-width:0">
-                        <div class="fw-semibold"><i class="<?php echo $sub['kind'] === 'github' ? 'fab fa-github' : 'fab fa-google-drive'; ?> me-1"></i><?php echo asg_e($meta['name'] ?? ''); ?></div>
+                        <div class="fw-semibold"><i class="<?php echo $sub['kind'] === 'github' ? 'fab fa-github' : ($sub['kind'] === 'drive' ? 'fab fa-google-drive' : 'fas fa-link'); ?> me-1"></i><?php echo asg_e($meta['name'] ?? ''); ?></div>
                         <?php if (!empty($meta['description'])): ?><div class="small text-muted"><?php echo asg_e($meta['description']); ?></div><?php endif; ?>
                         <div class="small text-muted text-break"><?php echo asg_e($sub['url']); ?></div>
                         <?php $bits = array_filter([$meta['language'] ?? '', ($meta['type'] ?? '') === 'repo' ? '★ ' . (int) ($meta['stars'] ?? 0) : '',
                             !empty($meta['pushed_at']) ? 'last push ' . date('j M Y', strtotime($meta['pushed_at'])) : '']); if ($bits): ?>
                             <div class="small text-muted"><?php echo asg_e(implode(' · ', $bits)); ?></div><?php endif; ?>
-                        <div class="small <?php echo !empty($meta['verified']) ? 'text-success' : 'text-warning'; ?>"><i class="fas <?php echo !empty($meta['verified']) ? 'fa-circle-check' : 'fa-triangle-exclamation'; ?> me-1"></i><?php echo !empty($meta['verified']) ? 'Checked: the link worked and was open when submitted.' : 'Could not be confirmed when submitted.'; ?></div>
+                        <div class="small <?php echo !empty($meta['verified']) ? 'text-success' : 'text-warning'; ?>"><i class="fas <?php echo !empty($meta['verified']) ? 'fa-circle-check' : 'fa-triangle-exclamation'; ?> me-1"></i><?php echo !empty($meta['verified']) ? 'Checked: the link worked and was open when submitted.' : ($sub['kind'] === 'link' ? 'Other link: open it to check.' : 'Could not be confirmed when submitted.'); ?></div>
                     </div>
                     <?php echo asg_link($sub['url'], 'Open', 'btn btn-sm btn-outline-dark'); ?>
                 </div>

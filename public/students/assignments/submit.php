@@ -6,7 +6,7 @@ require_once __DIR__ . '/../../../app/v1/helpers/open_submissions.php';
 require_once __DIR__ . '/../../../app/v1/services/PortalNotifications.php';
 
 $self = 'submit.php';
-$tutors = os_student_tutors($pdo, $uid);
+$tutors = os_send_to($pdo, $uid, (int) ($reg['course_id'] ?? 0));
 $mine = os_for_student($pdo, $uid);
 $editId = (int) ($_GET['edit'] ?? $_POST['edit'] ?? 0);
 $editing = null;
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $title = trim(preg_replace('/\s+/', ' ', (string) ($_POST['title'] ?? '')));
     $note = mb_substr(trim(str_replace("\r\n", "\n", (string) ($_POST['note'] ?? ''))), 0, 2000);
-    $kind = in_array($_POST['kind'] ?? '', ['github', 'drive', 'file'], true) ? $_POST['kind'] : '';
+    $kind = in_array($_POST['kind'] ?? '', ['file', 'github', 'drive', 'link'], true) ? $_POST['kind'] : '';
     $tutorId = (int) ($_POST['tutor_id'] ?? 0) ?: (int) array_key_first($tutors);
     $error = null;
     $work = ['kind' => null, 'url' => null, 'meta' => null, 'file' => null];
@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     elseif (!$tutors) $error = 'You have no tutor assigned yet, so there is nobody to send work to. Please contact the office.';
     elseif (!isset($tutors[$tutorId])) $error = 'Choose your tutor.';
     elseif ($title === '' || mb_strlen($title) > 150) $error = 'Give the assignment a title (up to 150 characters).';
-    elseif (!$kind) $error = 'Choose what you are submitting: a GitHub link, a Google Drive link or a document.';
+    elseif (!$kind) $error = 'Choose what you are submitting: a document, a GitHub link, a Google Drive link or another link.';
     elseif (!$hasNew && !$editing) $error = $kind === 'file' ? 'Choose the document to upload.' : 'Paste your link.';
     elseif ($recent = (function () use ($pdo, $uid) {
         $st = $pdo->prepare('SELECT COUNT(*) FROM open_submissions WHERE student_user_id = ? AND submitted_at > ?');
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($hasNew) {
         $r = os_check_link((string) $_POST['link']);
         if (!$r['ok']) $error = $r['error'];
-        elseif ($r['kind'] !== $kind) $error = $kind === 'github' ? 'That is not a GitHub link.' : 'That is not a Google Drive link.';
+        elseif ($kind !== 'link' && $r['kind'] !== $kind) $error = $kind === 'github' ? 'That is not a GitHub link.' : 'That is not a Google Drive link.';
         else $work = ['kind' => $r['kind'], 'url' => $r['url'], 'meta' => $r['meta'], 'file' => null];
     }
 
@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $v = fn(string $k, $fallback = '') => $_SERVER['REQUEST_METHOD'] === 'POST' ? (string) ($_POST[$k] ?? '') : (string) $fallback;
-$curKind = $v('kind', $editing['kind'] ?? 'github');
+$curKind = $v('kind', $editing['kind'] ?? 'file');
 $page_title = 'Submit work';
 ob_start();
 ?>
@@ -76,7 +76,7 @@ ob_start();
 
 <div class="card-student p-3 p-md-4 mb-3">
     <h5 class="mb-1"><?php echo $editing ? 'Resubmit: ' . asg_e($editing['title']) : 'Submit work'; ?></h5>
-    <p class="small text-muted">Hand in any assignment your tutor gave you in class: a GitHub repository, a Google Drive file or a document.</p>
+    <p class="small text-muted">Hand in any work your tutor gave you, even in class: a document (PDF, Word, text…), a GitHub repository, a Google Drive file or any other link.</p>
     <?php if ($editing && $editing['feedback']): ?>
         <div class="alert alert-warning small"><strong>Your tutor asked for changes:</strong><div style="white-space:pre-wrap"><?php echo asg_e($editing['feedback']); ?></div></div>
     <?php endif; ?>
@@ -87,7 +87,7 @@ ob_start();
         <input type="hidden" name="action" value="submit">
         <?php if ($editing): ?><input type="hidden" name="edit" value="<?php echo (int) $editing['id']; ?>"><?php endif; ?>
 
-        <label class="form-label fw-semibold" for="osTitle">Assignment title</label>
+        <label class="form-label fw-semibold" for="osTitle">Work title</label>
         <input id="osTitle" name="title" class="form-control mb-3" maxlength="150" required placeholder="e.g. Week 3: Portfolio website"
                value="<?php echo asg_e($v('title', $editing['title'] ?? '')); ?>">
 
@@ -101,9 +101,9 @@ ob_start();
             <p class="small text-muted mb-3">Goes to your tutor, <strong><?php echo asg_e(reset($tutors)); ?></strong>.</p>
         <?php endif; ?>
 
-        <div class="form-label fw-semibold">What are you submitting?</div>
+        <div class="form-label fw-semibold">Work to submit</div>
         <div class="d-flex flex-wrap gap-2 mb-2" role="radiogroup">
-            <?php foreach (['github' => ['fab fa-github', 'GitHub link'], 'drive' => ['fab fa-google-drive', 'Google Drive link'], 'file' => ['fas fa-file-arrow-up', 'Document']] as $k => [$ic, $lbl]): ?>
+            <?php foreach (['file' => ['fas fa-file-arrow-up', 'Document'], 'github' => ['fab fa-github', 'GitHub link'], 'drive' => ['fab fa-google-drive', 'Google Drive link'], 'link' => ['fas fa-link', 'Other link']] as $k => [$ic, $lbl]): ?>
                 <input type="radio" class="btn-check" name="kind" id="k<?php echo $k; ?>" value="<?php echo $k; ?>" <?php echo $curKind === $k ? 'checked' : ''; ?>>
                 <label class="btn btn-outline-dark btn-sm" for="k<?php echo $k; ?>"><i class="<?php echo $ic; ?> me-1"></i><?php echo $lbl; ?></label>
             <?php endforeach; ?>
@@ -119,13 +119,13 @@ ob_start();
             <div id="linkResult" class="small mt-2" aria-live="polite"></div>
         </div>
         <div id="fileBox" class="mb-3">
-            <input type="file" name="document" class="form-control" accept=".pdf,.docx,.xlsx,.pptx,.zip">
-            <div class="form-text">PDF, Word, Excel, PowerPoint or ZIP, up to <?php echo (int) (ASG_FILE_MAX / 1048576); ?> MB.</div>
+            <input type="file" name="document" class="form-control" accept=".pdf,.doc,.docx,.txt,.xlsx,.pptx,.zip">
+            <div class="form-text">PDF, Word (.doc, .docx), text (.txt), Excel, PowerPoint or ZIP, up to <?php echo (int) (ASG_FILE_MAX / 1048576); ?> MB.</div>
         </div>
         <?php if ($editing): ?><p class="small text-muted">Leave the link or document empty to keep what you sent before
             (<?php echo asg_e($editing['kind'] === 'file' ? $editing['original_name'] : $editing['url']); ?>).</p><?php endif; ?>
 
-        <label class="form-label fw-semibold" for="osNote">Note to your tutor <span class="text-muted fw-normal">(optional)</span></label>
+        <label class="form-label fw-semibold" for="osNote">Description of the work <span class="text-muted fw-normal">(optional)</span></label>
         <textarea id="osNote" name="note" class="form-control mb-3" rows="3" maxlength="2000" placeholder="Anything your tutor should know: how to run it, what is unfinished…"><?php echo asg_e($v('note', $editing['note'] ?? '')); ?></textarea>
 
         <button class="btn btn-brand" id="osSubmit"><i class="fas fa-paper-plane me-1"></i><?php echo $editing ? 'Resubmit' : 'Submit'; ?></button>
@@ -167,7 +167,8 @@ $extra_js = ($extra_js ?? '') . <<<'JS'
     var link = document.getElementById('osLink'), out = document.getElementById('linkResult'), hint = document.getElementById('linkHint'),
         linkBox = document.getElementById('linkBox'), fileBox = document.getElementById('fileBox'), btn = document.getElementById('osCheck'), timer, last = '';
     var hints = { github: ['https://github.com/your-name/your-repo', 'The repository must be public.'],
-                  drive: ['https://drive.google.com/file/d/…', 'In Drive: Share → General access → "Anyone with the link".'] };
+                  drive: ['https://drive.google.com/file/d/…', 'In Drive: Share → General access → "Anyone with the link".'],
+                  link: ['https://…', 'Any link your tutor can open: a live website, OneDrive, Figma, Canva…'] };
     function kind() { var k = form.querySelector('input[name=kind]:checked'); return k ? k.value : 'github'; }
     function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
     function sync() {
@@ -182,6 +183,7 @@ $extra_js = ($extra_js ?? '') . <<<'JS'
         fetch('submit.php', { method: 'POST', body: fd, credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (r) {
             if (v !== link.value.trim()) return;
             if (!r.ok) { out.innerHTML = '<span class="text-danger"><i class="fas fa-circle-xmark me-1"></i>' + esc(r.error) + '</span>'; return; }
+            if (kind() === 'link') { out.innerHTML = '<span class="text-success"><i class="fas fa-circle-check me-1"></i>Link accepted.</span>'; return; }
             if (r.kind !== kind()) { out.innerHTML = '<span class="text-danger"><i class="fas fa-circle-xmark me-1"></i>That is a ' + (r.kind === 'github' ? 'GitHub' : 'Google Drive') + ' link. Pick that option above.</span>'; return; }
             var m = r.meta || {}, html = '<div class="border rounded p-2 bg-light"><i class="' + (r.kind === 'github' ? 'fab fa-github' : 'fab fa-google-drive') + ' me-1"></i><strong>' + esc(m.name) + '</strong>';
             if (m.description) html += '<div class="text-muted">' + esc(m.description) + '</div>';

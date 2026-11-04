@@ -1,14 +1,16 @@
 <?php
 // app/v1/services/TranscriptService.php
-// Academic transcript (migration 094). Only for courses of 12 months and longer; a shorter course has no transcript at all.
+// Academic transcript (migration 094). Only for courses of 3 months and longer (TR_MIN_MONTHS); a shorter course has no transcript at all.
 //
 // THE RULES, in one place:
 //  1 Rows: one per subject of the course (code = student number prefix / subject number, e.g. DDDS194 / 101), the mark is the automatic
 //    subject mark (SubjectService::subjectMarks), plus the capstone as its own row (DDDS194 / CAP). Nobody types a mark.
 //  2 Course average = the existing course average (AssignmentAverage, capstone at its weight). Nothing here changes a mark or an average.
-//  3 Release: when the student is Ready (cap_certificate_readiness: finished, fees paid, capstone passed, average 50+) AND the stamp and
-//    the director signature are set. Release copies everything printed into `transcripts`, so it is locked from then on.
-//  4 Editable before release only, by the student's tutor: surname, other names, recommendation wording (blank = automatic wording).
+//  3 Release: when the student is Ready AND the stamp and the director signature are set. Ready = cap_certificate_readiness (finished,
+//    fees paid, capstone passed, average 50+); a course with no capstone: finished and fees paid (tr_plain_readiness). Release copies everything printed into `transcripts`, so it is locked from then on.
+//  4 Editable before release only, by the student's tutor or an admin: surname, other names, recommendation wording (blank = automatic
+//    wording) and the rows (subject, code, detail, mark; migration 097, transcript_drafts.rows_json; NULL = automatic rows). With edited
+//    rows the course average is the average of the rows' marks. The real marks, assignments and averages are never changed.
 //  5 Number: DT-<release year>-<5 digits>, counted per year in transcript_counters, never reused.
 //  6 Every change (names, wording, release, settings) is written to transcript_events.
 
@@ -20,7 +22,8 @@ require_once __DIR__ . '/../helpers/course_duration.php';
 require_once __DIR__ . '/../helpers/signatures.php';
 
 if (!defined('TR_MIN_MONTHS')) {
-    define('TR_MIN_MONTHS', 12);
+    define('TR_MIN_MONTHS', 3);
+    define('TR_MAX_ROWS', 40);
     define('TR_WATERMARK', ['light' => 'Light', 'medium' => 'Medium', 'strong' => 'Strong']);
 }
 
@@ -41,7 +44,7 @@ if (!function_exists('tr_installed')) {
            ->execute([$transcriptId, $uid, $courseId, $actor, $event, $details ? json_encode($details, JSON_UNESCAPED_UNICODE) : null]);
     }
 
-    /** True when the course is 12 months or longer (the only courses that get a transcript). */
+    /** True when the course is 3 months or longer (the only courses that get a transcript). */
     function tr_course_eligible(PDO $db, int $courseId): bool
     {
         $st = $db->prepare('SELECT * FROM courses WHERE id = ?');
@@ -285,6 +288,17 @@ if (!function_exists('tr_installed')) {
         $avg = $avg === null ? null : round((float) $avg, 2);
         [$sur, $other] = tr_split_name((string) $reg['full_name']);
         $draft = tr_draft($db, $uid, $courseId);
+        $autoRows = $rows;
+        $edited = is_array($custom = json_decode((string) ($draft['rows_json'] ?? ''), true));
+        if ($edited) {
+            $rows = [];
+            foreach ($custom as $r) {
+                $m = $r['mark'] === null ? null : (float) $r['mark'];
+                $rows[] = ['code' => (string) $r['code'], 'subject' => (string) $r['subject'], 'detail' => (string) $r['detail'], 'mark' => $m, 'grade' => tr_grade($m)];
+            }
+            $marks = array_filter(array_column($rows, 'mark'), fn($m) => $m !== null);
+            $avg = $marks ? round(array_sum($marks) / count($marks), 2) : null;
+        }
         $auto = tr_auto_recommendation($rows, $avg);
 
         $start = null;
@@ -303,13 +317,14 @@ if (!function_exists('tr_installed')) {
             'rows' => $rows, 'average' => $avg, 'average_word' => tr_grade($avg),
             'recommendation' => trim((string) ($draft['recommendation'] ?? '')) ?: $auto, 'recommendation_auto' => $auto,
             'recommendation_custom' => trim((string) ($draft['recommendation'] ?? '')) !== '',
+            'rows_edited' => $edited, 'rows_auto' => $autoRows, 'code_prefix' => $prefix,
         ];
     }
 
     /* ---------------- status and release ---------------- */
 
     /**
-     * Where the transcript stands. 'state': none (course under 12 months or not enrolled) | progress | waiting_settings | ready | released.
+     * Where the transcript stands. 'state': none (course under 3 months or not enrolled) | progress | waiting_settings | ready | released.
      * 'word' is the status word the admin sees (never a mark).
      */
     function tr_status(PDO $db, int $uid, int $courseId): array
@@ -321,11 +336,29 @@ if (!function_exists('tr_installed')) {
             return ['state' => 'released', 'word' => 'Released', 'ready' => true, 'missing' => [], 'released' => $t, 'readiness' => null];
         }
         $r = cap_certificate_readiness($db, $uid, $courseId);
+        if (!$r['applies']) $r = tr_plain_readiness($db, $uid, $courseId);
         $miss = tr_settings_missing($db);
         if ($r['ready'] && $miss) return ['state' => 'waiting_settings', 'word' => 'Waiting for ' . implode(' and ', $miss), 'ready' => true, 'missing' => $miss, 'released' => null, 'readiness' => $r];
         if ($r['ready']) return ['state' => 'ready', 'word' => 'Ready', 'ready' => true, 'missing' => [], 'released' => null, 'readiness' => $r];
         $word = !$r['applies'] ? 'In progress' : ($r['word'] === 'Ready' ? 'Ready' : $r['word']);
         return ['state' => 'progress', 'word' => $word === 'Not ready' ? 'In progress' : $word, 'ready' => false, 'missing' => $miss, 'released' => null, 'readiness' => $r];
+    }
+
+    /** A course with no capstone: ready when the course is finished (tutor marked it, or the time is over) and the fees are paid. */
+    function tr_plain_readiness(PDO $db, int $uid, int $courseId): array
+    {
+        require_once __DIR__ . '/CertificateApplication.php';
+        $reg = tr_registration($db, $uid, $courseId);
+        $fin = cap_finish_row($db, $uid, $courseId);
+        $time = cert_course_time($db, $uid, $courseId);
+        $done = (bool) $fin || ($time && $time['finished']);
+        $bal = $reg ? cert_student_balance($db, (int) $reg['id']) : 0.0;
+        $c = [
+            'finished' => ['ok' => $done, 'reason' => $done ? 'The course is finished.' : 'The course is not finished yet' . ($time ? ' (it ends on ' . date('j M Y', strtotime($time['end'])) . ')' : '') . '.'],
+            'fees'     => ['ok' => $bal <= 0, 'reason' => $bal <= 0 ? 'The course fees are paid in full.' : 'Fee balance of KES ' . number_format($bal) . ' must be cleared first.'],
+        ];
+        $ready = $done && $bal <= 0;
+        return ['applies' => true, 'plain' => true, 'ready' => $ready, 'word' => $ready ? 'Ready' : 'In progress', 'conditions' => $c];
     }
 
     /** Copy a picture into the released folder so later uploads in Settings never change this transcript. */
@@ -437,6 +470,40 @@ if (!function_exists('tr_installed')) {
                       ON DUPLICATE KEY UPDATE surname = VALUES(surname), other_names = VALUES(other_names), recommendation = VALUES(recommendation), updated_by = VALUES(updated_by)')
            ->execute([$uid, $courseId, $new['surname'] ?? null, $new['other_names'] ?? null, $new['recommendation'] ?? null, $actor]);
         tr_log($db, null, $uid, $courseId, $actor, isset($changes['recommendation']) && count($changes) === 1 ? 'recommendation_saved' : 'draft_saved', $changes);
+        return ['ok' => true];
+    }
+
+    /**
+     * The tutor's or admin's rows for one student (before release only). $rows null = back to the automatic rows.
+     * Each row: code, subject, detail, mark ('' = no mark, else 0-100). Logged with the old and new rows.
+     * @return array{ok:bool, error?:string}
+     */
+    function tr_save_rows(PDO $db, int $uid, int $courseId, int $actor, ?array $rows): array
+    {
+        if (tr_released($db, $uid, $courseId)) return ['ok' => false, 'error' => 'This transcript is released and locked. It cannot change.'];
+        $clean = fn($v, $max) => mb_substr(trim(preg_replace('/\s+/', ' ', (string) $v)), 0, $max);
+        $new = null;
+        if ($rows !== null) {
+            $new = [];
+            foreach ($rows as $r) {
+                $subject = $clean($r['subject'] ?? '', 120);
+                $mark = trim((string) ($r['mark'] ?? ''));
+                if ($subject === '' && $mark === '') continue;   // empty line
+                if ($subject === '') return ['ok' => false, 'error' => 'Every row with a mark needs a subject.'];
+                if ($mark !== '' && (!is_numeric($mark) || $mark < 0 || $mark > 100)) return ['ok' => false, 'error' => 'Marks must be between 0 and 100 (or empty) for "' . $subject . '".'];
+                $new[] = ['code' => $clean($r['code'] ?? '', 30), 'subject' => $subject, 'detail' => $clean($r['detail'] ?? '', 150), 'mark' => $mark === '' ? null : round((float) $mark, 2)];
+            }
+            if (!$new) return ['ok' => false, 'error' => 'Add at least one subject, or use the automatic rows.'];
+            if (count($new) > TR_MAX_ROWS) return ['ok' => false, 'error' => 'At most ' . TR_MAX_ROWS . ' rows fit on the transcript.'];
+        }
+        $old = tr_draft($db, $uid, $courseId);
+        $oldJson = $old['rows_json'] ?? null;
+        $newJson = $new === null ? null : json_encode($new, JSON_UNESCAPED_UNICODE);
+        if ($oldJson === $newJson) return ['ok' => true];
+        $db->prepare('INSERT INTO transcript_drafts (student_user_id, course_id, rows_json, updated_by) VALUES (?, ?, ?, ?)
+                      ON DUPLICATE KEY UPDATE rows_json = VALUES(rows_json), updated_by = VALUES(updated_by)')
+           ->execute([$uid, $courseId, $newJson, $actor]);
+        tr_log($db, null, $uid, $courseId, $actor, $new === null ? 'rows_reset' : 'rows_saved', ['from' => json_decode((string) $oldJson, true), 'to' => $new]);
         return ['ok' => true];
     }
 

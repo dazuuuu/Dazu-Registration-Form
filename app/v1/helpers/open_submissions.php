@@ -6,7 +6,7 @@
 
 require_once __DIR__ . '/assignment_files.php';
 
-const OS_DOC_TYPES = ['pdf', 'docx', 'xlsx', 'pptx', 'zip'];
+const OS_DOC_TYPES = ['pdf', 'doc', 'docx', 'txt', 'xlsx', 'pptx', 'zip'];
 
 /** GET a URL without following redirects. Returns [status, body, location] or null when the site cannot be reached. */
 function os_http_get(string $url, array $headers = [], bool $follow = false): ?array
@@ -68,7 +68,8 @@ function os_check_link(string $raw): array
         return ['ok' => true, 'kind' => 'drive', 'url' => $url, 'meta' => ['verified' => true, 'name' => mb_substr($name, 0, 200)]];
     }
 
-    return ['ok' => false, 'error' => 'Only GitHub and Google Drive / Google Docs links are accepted. For anything else, upload the document.'];
+    // Any other https link (a live website, OneDrive, Figma, Canva…): accepted as it is; the tutor opens it.
+    return ['ok' => true, 'kind' => 'link', 'url' => $url, 'meta' => ['verified' => false, 'name' => $host]];
 }
 
 /** GitHub API headers; a token (GITHUB_TOKEN in the environment or app config 'github_token') raises the limit from 60 to 5000 checks an hour. */
@@ -140,6 +141,28 @@ function os_check_github(string $url, string $owner, ?string $repo): array
         return ['ok' => false, 'error' => 'That repository is empty. Push your code to it first.'];
     }
     return ['ok' => true, 'kind' => 'github', 'url' => $url, 'meta' => $meta];
+}
+
+/**
+ * Who the student can send work to: [tutors.id => name]. Their assigned tutors; if none, the tutors of their course;
+ * if none, every active tutor. So a student can always hand in work from class.
+ */
+function os_send_to(PDO $db, int $uid, int $courseId): array
+{
+    $t = os_student_tutors($db, $uid);
+    if ($t) return $t;
+    $st = $db->prepare(
+        "SELECT t.id, COALESCE(NULLIF(TRIM(CONCAT(COALESCE(up.first_name,''), ' ', COALESCE(up.last_name,''))), ''), u.username) AS name
+         FROM course_tutors ct JOIN tutors t ON t.id = ct.tutor_id AND t.is_active = 1 JOIN users u ON u.id = t.user_id
+         LEFT JOIN user_profiles up ON up.user_id = u.id WHERE ct.course_id = ? ORDER BY ct.assigned_at"
+    );
+    $st->execute([$courseId]);
+    if ($t = $st->fetchAll(PDO::FETCH_KEY_PAIR)) return $t;
+    // Nobody set for the course either: any active tutor (the student picks), so the door is never closed.
+    return $db->query(
+        "SELECT t.id, COALESCE(NULLIF(TRIM(CONCAT(COALESCE(up.first_name,''), ' ', COALESCE(up.last_name,''))), ''), u.username) AS name
+         FROM tutors t JOIN users u ON u.id = t.user_id LEFT JOIN user_profiles up ON up.user_id = u.id WHERE t.is_active = 1 ORDER BY name"
+    )->fetchAll(PDO::FETCH_KEY_PAIR);
 }
 
 /** Tutors this student is assigned to: [tutors.id => name]. */
@@ -245,5 +268,5 @@ function os_score_text(array $s): string
 
 function os_kind_label(string $kind): string
 {
-    return ['github' => 'GitHub', 'drive' => 'Google Drive', 'file' => 'Document'][$kind] ?? $kind;
+    return ['github' => 'GitHub', 'drive' => 'Google Drive', 'file' => 'Document', 'link' => 'Link'][$kind] ?? $kind;
 }
