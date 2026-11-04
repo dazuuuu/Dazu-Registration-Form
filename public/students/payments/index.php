@@ -93,6 +93,14 @@ ob_start();
     </div>
 </div>
 
+<div class="card-student mb-3 p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div><div class="fw-semibold">Fee documents</div><div class="small text-muted">Your fee structure with due dates, and your statement of payments and balance, as PDF.</div></div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="<?php echo url('students/payments/document.php?type=structure'); ?>" class="btn btn-sm btn-brand"><i class="fas fa-list-ol me-1"></i>Fee structure</a>
+        <a href="<?php echo url('students/payments/document.php?type=statement'); ?>" class="btn btn-sm btn-outline-success"><i class="fas fa-file-invoice-dollar me-1"></i>Fee statement</a>
+    </div>
+</div>
+
 <?php if ($nextAmount > 0 && !$hasPending): ?>
 <div class="card-student">
     <div class="card-head"><i class="fas fa-mobile-alt me-2"></i>Submit Payment</div>
@@ -149,7 +157,7 @@ ob_start();
                 <tbody>
                     <?php foreach ($payments as $p): ?>
                     <tr>
-                        <td><?php echo date('d M Y', strtotime($p['paid_at'])); ?></td>
+                        <td><?php echo date('d M Y, H:i', strtotime($p['paid_at'])); ?></td>
                         <td>KSh <?php echo number_format($p['amount']); ?></td>
                         <td><?php echo htmlspecialchars($p['payer_reference']); ?></td>
                         <td>

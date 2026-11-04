@@ -74,7 +74,7 @@ require __DIR__ . '/../../components/classes/styles.php';
                 <a class="cl-row" href="class.php?id=<?php echo (int) $c['id']; ?>">
                     <div class="cl-date"><b><?php echo $s->format('j'); ?></b><small><?php echo $s->format('D'); ?></small></div>
                     <div class="flex-grow-1" style="min-width:0"><div class="fw-semibold"><?php echo cal_e($c['title']); ?></div>
-                        <div class="cl-muted"><?php echo cal_e($s->format('H:i') . '–' . cal_fmt($c['end_utc'], $tz) . ' ' . $tz . ' · ' . $c['tutor'] . ($c['topic'] ? ' · ' . $c['topic'] : '')); ?></div>
+                        <div class="cl-muted"><?php echo cal_e($s->format('H:i') . '–' . cal_fmt($c['end_utc'], $tz) . ' ' . $tz . ($c['topic'] ? ' · ' . $c['topic'] : '')); ?></div>
                         <?php if ($c['status'] === 'moved' && $c['moved_from_utc']): ?><div class="small" style="color:#b45309">Moved from <?php echo cal_e(cal_fmt($c['moved_from_utc'], $tz, 'D j M H:i')); ?></div><?php endif; ?></div>
                     <span class="cl-pill <?php echo cal_e($c['status'] === 'scheduled' ? $c['mode'] : $c['status']); ?>"><?php echo cal_e($c['status'] === 'scheduled' ? CAL_MODES[$c['mode']] : ucfirst($c['status'])); ?></span>
                 </a>

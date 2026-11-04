@@ -50,7 +50,6 @@ require __DIR__ . '/../../components/classes/styles.php';
     <?php if ($v['status'] === 'cancelled'): ?><div class="cl-cancel mb-3"><strong>Cancelled</strong><?php echo $v['cancel_reason'] ? ' — ' . cal_e($v['cancel_reason']) : ''; ?></div><?php endif; ?>
     <?php if ($v['status'] === 'moved' && $v['moved_from_utc']): ?><div class="cl-moved mb-3"><strong>Moved</strong> from <?php echo cal_e(cal_fmt($v['moved_from_utc'], $tz, 'D j M, H:i')); ?> to <?php echo cal_e(cal_fmt($v['start_utc'], $tz, 'D j M, H:i')); ?><?php echo $v['moved_reason'] ? ' — ' . cal_e($v['moved_reason']) : ''; ?></div><?php endif; ?>
     <dl class="row small mb-3">
-        <dt class="col-4">Tutor</dt><dd class="col-8"><?php echo cal_e($v['tutor']); ?></dd>
         <?php if ($v['course']): ?><dt class="col-4">Course</dt><dd class="col-8"><?php echo cal_e($v['course']); ?></dd><?php endif; ?>
         <?php if ($v['topic']): ?><dt class="col-4">Topic</dt><dd class="col-8"><?php echo cal_e($v['topic']); ?><?php echo $v['subtopics'] ? ' · ' . cal_e($v['subtopics']) : ''; ?></dd><?php endif; ?>
         <?php if ($v['campus']): ?><dt class="col-4">Campus</dt><dd class="col-8"><?php echo cal_e($v['campus']); ?></dd><?php endif; ?>

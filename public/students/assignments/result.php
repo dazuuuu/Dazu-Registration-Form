@@ -27,7 +27,7 @@ ob_start();
     <h4 class="mb-2">Assignment <?php echo (int) $item['index']; ?>: <?php echo asg_e($a['title']); ?></h4>
     <div class="d-flex flex-wrap gap-2 align-items-center mb-4">
         <?php echo asg_chip('graded'); ?>
-        <span class="small text-muted">by <?php echo asg_e($grader['full_name'] ?? 'your tutor'); ?> on <?php echo asg_e(AssignmentModel::local($sub['published_at'], 'D j M Y')); ?>
+        <span class="small text-muted">by your tutor on <?php echo asg_e(AssignmentModel::local($sub['published_at'], 'D j M Y')); ?>
             <?php echo count($history) > 1 ? ' · updated (version ' . count($history) . ')' : ''; ?></span>
     </div>
     <div class="row g-4">

@@ -130,6 +130,9 @@ $docsLink = url('students/documents/index.php'); require __DIR__ . '/../../compo
     <h4 class="mb-2">Portal Access Suspended</h4>
     <p class="mb-0 opacity-90">Your next installment of <strong>KSh <?php echo number_format($nextAmount); ?></strong> is due.
     Submit your M-Pesa payment code below to restore access.</p>
+    <a href="<?php echo url('students/payments/document.php?type=statement'); ?>" class="btn btn-light btn-sm mt-3 me-1"><i class="fas fa-file-invoice-dollar me-1"></i>Fee statement</a>
+    <a href="<?php echo url('students/payments/document.php?type=structure'); ?>" class="btn btn-light btn-sm mt-3 me-1"><i class="fas fa-list-ol me-1"></i>Fee structure</a>
+    <a href="<?php echo url('students/assignments/submit.php'); ?>" class="btn btn-light btn-sm mt-3 me-1"><i class="fas fa-paper-plane me-1"></i>Submit work</a>
     <a href="<?php echo url('students/documents/index.php'); ?>" class="btn btn-light btn-sm mt-3"><i class="fas fa-id-card me-1"></i>My documents, signature &amp; ID card</a>
     <div class="small opacity-75 mt-1">Assignments and documents stay open while your fees are being paid.</div>
 </div>

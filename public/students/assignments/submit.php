@@ -1,12 +1,13 @@
 <?php
-// Student: hand in work without an assignment being set (open submissions). Title + GitHub link, Google Drive link or a
+// Student: hand in work without an assignment being set (open submissions). Always open (also while the portal is locked for fees);
+// the work goes to the tutor assigned at enrolment only. Title + GitHub link, Google Drive link or a
 // document, and an optional note. Links are checked live (action=check) and again on submit. Returned work can be resubmitted.
 require __DIR__ . '/../../components/assignments/student_boot.php';
 require_once __DIR__ . '/../../../app/v1/helpers/open_submissions.php';
 require_once __DIR__ . '/../../../app/v1/services/PortalNotifications.php';
 
 $self = 'submit.php';
-$tutors = os_send_to($pdo, $uid, (int) ($reg['course_id'] ?? 0));
+$tutorId = os_assigned_tutor($pdo, $uid);   // always the tutor assigned at enrolment
 $mine = os_for_student($pdo, $uid);
 $editId = (int) ($_GET['edit'] ?? $_POST['edit'] ?? 0);
 $editing = null;
@@ -25,15 +26,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = trim(preg_replace('/\s+/', ' ', (string) ($_POST['title'] ?? '')));
     $note = mb_substr(trim(str_replace("\r\n", "\n", (string) ($_POST['note'] ?? ''))), 0, 2000);
     $kind = in_array($_POST['kind'] ?? '', ['file', 'github', 'drive', 'link'], true) ? $_POST['kind'] : '';
-    $tutorId = (int) ($_POST['tutor_id'] ?? 0) ?: (int) array_key_first($tutors);
     $error = null;
     $work = ['kind' => null, 'url' => null, 'meta' => null, 'file' => null];
     $upload = asg_files_list($_FILES['document'] ?? null)[0] ?? null;
     $hasNew = $kind === 'file' ? (bool) $upload : trim((string) ($_POST['link'] ?? '')) !== '';
 
     if ($editId && !$editing) $error = 'Only work your tutor returned can be resubmitted.';
-    elseif (!$tutors) $error = 'You have no tutor assigned yet, so there is nobody to send work to. Please contact the office.';
-    elseif (!isset($tutors[$tutorId])) $error = 'Choose your tutor.';
+    elseif (!$tutorId) $error = 'You have no tutor assigned yet, so there is nobody to send work to. Please contact the office.';
     elseif ($title === '' || mb_strlen($title) > 150) $error = 'Give the assignment a title (up to 150 characters).';
     elseif (!$kind) $error = 'Choose what you are submitting: a document, a GitHub link, a Google Drive link or another link.';
     elseif (!$hasNew && !$editing) $error = $kind === 'file' ? 'Choose the document to upload.' : 'Paste your link.';
@@ -80,7 +79,7 @@ ob_start();
     <?php if ($editing && $editing['feedback']): ?>
         <div class="alert alert-warning small"><strong>Your tutor asked for changes:</strong><div style="white-space:pre-wrap"><?php echo asg_e($editing['feedback']); ?></div></div>
     <?php endif; ?>
-    <?php if (!$tutors): ?>
+    <?php if (!$tutorId): ?>
         <div class="as-empty"><i class="fas fa-user-clock"></i>You have no tutor assigned yet. Once you do, you can submit work here.</div>
     <?php else: ?>
     <form method="POST" enctype="multipart/form-data" id="osForm" novalidate><?php echo csrf_field(); ?>
@@ -91,15 +90,6 @@ ob_start();
         <input id="osTitle" name="title" class="form-control mb-3" maxlength="150" required placeholder="e.g. Week 3: Portfolio website"
                value="<?php echo asg_e($v('title', $editing['title'] ?? '')); ?>">
 
-        <?php if (count($tutors) > 1): ?>
-            <label class="form-label fw-semibold" for="osTutor">Tutor</label>
-            <select id="osTutor" name="tutor_id" class="form-select mb-3">
-                <?php foreach ($tutors as $tid => $tn): ?><option value="<?php echo (int) $tid; ?>" <?php echo (int) $v('tutor_id', $editing['tutor_id'] ?? 0) === (int) $tid ? 'selected' : ''; ?>><?php echo asg_e($tn); ?></option><?php endforeach; ?>
-            </select>
-        <?php else: ?>
-            <input type="hidden" name="tutor_id" value="<?php echo (int) array_key_first($tutors); ?>">
-            <p class="small text-muted mb-3">Goes to your tutor, <strong><?php echo asg_e(reset($tutors)); ?></strong>.</p>
-        <?php endif; ?>
 
         <div class="form-label fw-semibold">Work to submit</div>
         <div class="d-flex flex-wrap gap-2 mb-2" role="radiogroup">

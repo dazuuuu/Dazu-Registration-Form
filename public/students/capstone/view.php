@@ -131,7 +131,7 @@ $awaitingFee = $att['status'] === 'awaiting_payment';
 $retakeNo = (int) $att['attempt_no'] - 1;
 $problems = $canEdit && $draft ? cap_submit_problems($pdo, $cap, $owner) : [];
 $requirements = array_filter(array_map('trim', preg_split('/\r?\n/', (string) $cap['requirements'])));
-$fromTutor = $tutor['full_name'] ?? 'your tutor';
+$fromTutor = 'your tutor';   // the tutor's name is shown on the dashboard only
 $page_title = 'Capstone';
 ob_start();
 ?>

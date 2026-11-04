@@ -54,7 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_verify($_POST['csrf_token'] ??
     }
     $result = $submissionModel->submit((int)$reg['id'], $type, $targetId, trim($_POST['answer_text']??''), $filePath);
     if ($result['ok']) {
-        $tutors = $tutorModel->getForCourse((int)$reg['course_id']);
+        // Only the student's own assigned tutor is told.
+        $mine = $pdo->prepare('SELECT tutor_id FROM tutor_students WHERE user_id = ? ORDER BY assigned_at DESC LIMIT 1');
+        $mine->execute([(int) $reg['user_id']]);
+        $mineId = (int) $mine->fetchColumn();
+        $tutors = array_filter($tutorModel->getForCourse((int)$reg['course_id']), fn($t) => (int) $t['id'] === $mineId);
         $notifier = new TutorNotifier();
         $sub = $submissionModel->getById($result['id']);
         foreach ($tutors as $t) {

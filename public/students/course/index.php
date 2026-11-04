@@ -54,27 +54,6 @@ $page_title = 'My Course';
 ob_start();
 ?>
 
-<?php if (!empty($tutors)): ?>
-<div class="card-student mb-4"><div class="card-head"><i class="fas fa-chalkboard-teacher me-2"></i>Your Tutor(s)</div><div class="card-body">
-<div class="row g-3">
-<?php foreach ($tutors as $t): ?>
-<div class="col-md-6 d-flex gap-3 align-items-start">
-    <?php if (!empty($t['photo_path'])): ?>
-        <img src="<?php echo htmlspecialchars($t['photo_path']); ?>" class="rounded-circle" width="72" height="72" style="object-fit:cover;">
-    <?php else: ?>
-        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style="width:72px;height:72px;"><i class="fas fa-user fa-2x"></i></div>
-    <?php endif; ?>
-    <div>
-        <strong class="fs-5"><?php echo htmlspecialchars(trim(($t['first_name']??'').' '.($t['last_name']??'')) ?: 'Tutor'); ?></strong>
-        <?php if ($t['bio']): ?><p class="text-muted small mb-1"><?php echo nl2br(htmlspecialchars($t['bio'])); ?></p><?php endif; ?>
-        <?php if ($t['phone']): ?><small><i class="fas fa-phone me-1"></i><?php echo htmlspecialchars($t['phone']); ?></small><?php endif; ?>
-    </div>
-</div>
-<?php endforeach; ?>
-</div></div></div>
-<?php else: ?>
-<div class="alert alert-info">A tutor will be assigned to your course soon.</div>
-<?php endif; ?>
 
 <?php if ($mp['total'] || $overview && (trim((string) $overview['overview']) !== '' || $overview['video_path'] || $overview['video_url'])): ?>
 <div class="card-student mb-4"><div class="card-head"><i class="fas fa-chalkboard me-2"></i><?php echo htmlspecialchars($reg['course_title']); ?> — Course Overview</div><div class="card-body">

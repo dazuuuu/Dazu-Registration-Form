@@ -80,7 +80,7 @@ ob_start();
     $avg = $avgR['average'] === null ? null : (int) round($avgR['average']); ?>
 <div class="card-student p-3 p-md-4 mb-3">
     <h5 class="mb-0">My assignments</h5>
-    <div class="small text-muted mb-2"><?php echo asg_e($g['course']); ?> &nbsp;|&nbsp; Tutor: <?php echo asg_e($g['tutor']); ?></div>
+    <div class="small text-muted mb-2"><?php echo asg_e($g['course']); ?></div>
     <div class="asg-bigbar mb-3" role="progressbar" aria-valuenow="<?php echo $done; ?>" aria-valuemin="0" aria-valuemax="<?php echo $total; ?>">
         <div style="width:<?php echo $total ? max(14, round($done / $total * 100)) : 0; ?>%"><?php echo $done; ?> of <?php echo $total; ?> done</div></div>
 

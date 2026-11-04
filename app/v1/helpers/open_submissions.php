@@ -144,25 +144,14 @@ function os_check_github(string $url, string $owner, ?string $repo): array
 }
 
 /**
- * Who the student can send work to: [tutors.id => name]. Their assigned tutors; if none, the tutors of their course;
- * if none, every active tutor. So a student can always hand in work from class.
+ * The tutor the student's work goes to: the tutor they were assigned at enrolment (the newest assignment), or null.
+ * Never chosen by the student and never another tutor.
  */
-function os_send_to(PDO $db, int $uid, int $courseId): array
+function os_assigned_tutor(PDO $db, int $uid): ?int
 {
-    $t = os_student_tutors($db, $uid);
-    if ($t) return $t;
-    $st = $db->prepare(
-        "SELECT t.id, COALESCE(NULLIF(TRIM(CONCAT(COALESCE(up.first_name,''), ' ', COALESCE(up.last_name,''))), ''), u.username) AS name
-         FROM course_tutors ct JOIN tutors t ON t.id = ct.tutor_id AND t.is_active = 1 JOIN users u ON u.id = t.user_id
-         LEFT JOIN user_profiles up ON up.user_id = u.id WHERE ct.course_id = ? ORDER BY ct.assigned_at"
-    );
-    $st->execute([$courseId]);
-    if ($t = $st->fetchAll(PDO::FETCH_KEY_PAIR)) return $t;
-    // Nobody set for the course either: any active tutor (the student picks), so the door is never closed.
-    return $db->query(
-        "SELECT t.id, COALESCE(NULLIF(TRIM(CONCAT(COALESCE(up.first_name,''), ' ', COALESCE(up.last_name,''))), ''), u.username) AS name
-         FROM tutors t JOIN users u ON u.id = t.user_id LEFT JOIN user_profiles up ON up.user_id = u.id WHERE t.is_active = 1 ORDER BY name"
-    )->fetchAll(PDO::FETCH_KEY_PAIR);
+    $st = $db->prepare('SELECT ts.tutor_id FROM tutor_students ts JOIN tutors t ON t.id = ts.tutor_id AND t.is_active = 1 WHERE ts.user_id = ? ORDER BY ts.assigned_at DESC LIMIT 1');
+    $st->execute([$uid]);
+    return ($id = (int) $st->fetchColumn()) ? $id : null;
 }
 
 /** Tutors this student is assigned to: [tutors.id => name]. */
