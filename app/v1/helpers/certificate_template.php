@@ -105,17 +105,27 @@ if (!function_exists('cert_tpl_defaults')) {
         return $out;
     }
 
-    /** Save (null = back to the original design) and log it. */
-    function cert_tpl_save(PDO $db, ?array $tpl, int $actor): void
+    /**
+     * Save (null = back to the original design / back to the template) and log it.
+     * $certId 0 = the template for every certificate; otherwise that one certificate's own edits (certificates.template_json).
+     */
+    function cert_tpl_save(PDO $db, ?array $tpl, int $actor, int $certId = 0): void
     {
-        if (!class_exists('SettingModel')) require_once __DIR__ . '/../models/SettingModel.php';
-        $m = new SettingModel($db);
-        $old = $m->get('cert_template');
         $new = $tpl === null ? null : json_encode($tpl, JSON_UNESCAPED_UNICODE);
-        $m->set('cert_template', $new);
+        if ($certId) {
+            $st = $db->prepare('SELECT template_json FROM certificates WHERE id = ?');
+            $st->execute([$certId]);
+            $old = $st->fetchColumn() ?: null;
+            $db->prepare('UPDATE certificates SET template_json = ? WHERE id = ?')->execute([$new, $certId]);
+        } else {
+            if (!class_exists('SettingModel')) require_once __DIR__ . '/../models/SettingModel.php';
+            $m = new SettingModel($db);
+            $old = $m->get('cert_template');
+            $m->set('cert_template', $new);
+        }
         try {
-            $db->prepare('INSERT INTO certificate_template_events (actor_user_id, event, old_json, new_json) VALUES (?, ?, ?, ?)')
-               ->execute([$actor, $tpl === null ? 'reset' : 'saved', $old, $new]);
+            $db->prepare('INSERT INTO certificate_template_events (actor_user_id, certificate_id, event, old_json, new_json) VALUES (?, ?, ?, ?, ?)')
+               ->execute([$actor, $certId ?: null, $tpl === null ? 'reset' : 'saved', $old, $new]);
         } catch (Throwable $e) {
             error_log('certificate_template_events: ' . $e->getMessage());
         }
@@ -126,7 +136,9 @@ if (!function_exists('cert_tpl_defaults')) {
     {
         $h = htmlspecialchars($text, ENT_QUOTES, 'UTF-8');
         $rep = [];
-        foreach ($vars as $k => $v) $rep[htmlspecialchars($k, ENT_QUOTES, 'UTF-8')] = $v;   // values are already HTML
+        // values are already HTML; in the editor each one is a chip that stays a placeholder when saved
+        $live = !empty($GLOBALS['cert_tpl_live']);
+        foreach ($vars as $k => $v) $rep[htmlspecialchars($k, ENT_QUOTES, 'UTF-8')] = $live ? '<span class="ph" contenteditable="false" data-ph="' . $k . '">' . $v . '</span>' : $v;
         $h = strtr($h, $rep);
         $h = preg_replace('/\*\*(.+?)\*\*/s', '<b>$1</b>', $h);
         $h = preg_replace_callback('/ {2,}/', fn($m) => str_repeat('&nbsp;', strlen($m[0])), $h);   // keep extra spaces
@@ -134,11 +146,13 @@ if (!function_exists('cert_tpl_defaults')) {
     }
 
     /** One positioned line. $sizeOverride: the shrunk name size. */
-    function cert_tpl_div(array $el, string $html, ?float $sizeOverride = null, ?float $topOverride = null): string
+    function cert_tpl_div(array $el, string $html, ?float $sizeOverride = null, ?float $topOverride = null, string $key = ''): string
     {
-        if (!$el['show'] || trim(strip_tags($html)) === '') return '';
+        // The editor's live preview ($GLOBALS['cert_tpl_live']) gets every line, hidden ones too, tagged so the page can change them as you type.
+        $live = !empty($GLOBALS['cert_tpl_live']);
+        if (!$live && (!$el['show'] || trim(strip_tags($html)) === '')) return '';
         $size = $sizeOverride ?? $el['size'];
-        return '<div style="position:absolute;left:' . $el['left'] . 'mm;width:' . $el['width'] . 'mm;top:' . ($topOverride ?? $el['top']) . 'mm;'
+        return '<div' . ($live ? ' data-k="' . $key . '"' : '') . ' style="' . ($live && !$el['show'] ? 'display:none;' : '') . 'position:absolute;left:' . $el['left'] . 'mm;width:' . $el['width'] . 'mm;top:' . ($topOverride ?? $el['top']) . 'mm;'
             . 'text-align:' . $el['align'] . ';font-family:' . cert_tpl_fonts()[$el['font']][1] . ';font-size:' . $size . 'pt;color:' . $el['color'] . ';'
             . 'font-weight:' . ($el['bold'] ? 'bold' : 'normal') . ';font-style:' . ($el['italic'] ? 'italic' : 'normal') . ';'
             . 'letter-spacing:' . $el['sp'] . 'pt;line-height:' . ($el['size'] >= 16 ? 1 : 1.35) . ';' . ($sizeOverride !== null ? 'white-space:nowrap;' : '') . '">' . $html . '</div>';

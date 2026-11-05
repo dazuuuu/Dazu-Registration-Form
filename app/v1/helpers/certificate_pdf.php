@@ -200,7 +200,7 @@ if (!function_exists('cert_render_html')) {
         $extra    = trim((string) ($cert['taught_skills'] ?? ''));
 
         // The text lines come from the template (Admin Settings → Certificate); $cert['_tpl'] = an unsaved template for the preview.
-        $tpl = cert_tpl($cert['_tpl'] ?? null);
+        $tpl = cert_tpl($cert['_tpl'] ?? (json_decode((string) ($cert['template_json'] ?? ''), true) ?: null));   // this certificate's own edits, else the template
         $verifyHost = preg_replace('#^https?://#', '', rtrim(cert_verify_url(), '/'));
         // Extra text that starts lowercase ("and has met all…") continues the sentence; otherwise it follows it.
         $extraHtml = $extra === '' ? '.' : (preg_match('/^\p{Ll}/u', $extra) ? ', ' : '. ') . nl2br($e($extra)) . (preg_match('/[.!?]$/', $extra) ? '' : '.');
@@ -208,7 +208,8 @@ if (!function_exists('cert_render_html')) {
                  '{date}' => $e($issued), '{tutor}' => $e($tutor), '{director}' => $e($director), '{verify_host}' => $e($verifyHost), '{extra}' => $extraHtml,
                  '{tutor_title}' => $e(mb_strtoupper(trim((string) ($cert['tutor_title'] ?? '')) ?: 'Course tutor')),
                  '{director_title}' => $e(mb_strtoupper(trim((string) ($cert['director_title'] ?? '')) ?: 'Director'))];
-        $line = fn(string $k) => cert_tpl_div($tpl[$k], cert_tpl_text($tpl[$k]['text'], $vars));
+        $line = fn(string $k) => cert_tpl_div($tpl[$k], cert_tpl_text($tpl[$k]['text'], $vars), null, null, $k);
+        if (!empty($cert['_live'])) $GLOBALS['cert_tpl_vars'] = $vars;   // the editor fills placeholders in the browser with these
 
         // Shrink long names so they stay on one line (kept centred on the same spot)
         $nameText = cert_tpl_text($tpl['name']['text'], $vars);
@@ -238,7 +239,7 @@ body { width: 297mm; height: 210mm; font-family: "Times New Roman", Times, serif
         . '<div style="' . $abs . 'left:0;width:297mm;top:8mm;' . $center . '">' . $logo . '</div>'
 
         . $line('title') . $line('subtitle') . $line('presented')
-        . cert_tpl_div($tpl['name'], $nameText, $nameSize, $tpl['name']['top'] + ($max - $nameSize) * 0.36)
+        . cert_tpl_div($tpl['name'], $nameText, $nameSize, $tpl['name']['top'] + ($max - $nameSize) * 0.36, 'name')
         . $line('body')
         . $line('badge1') . $line('badge2') . $line('badge3')
 
@@ -261,8 +262,9 @@ body { width: 297mm; height: 210mm; font-family: "Times New Roman", Times, serif
     }
 }
 
-if (!function_exists('cert_pdf_bytes')) {
-    function cert_pdf_bytes(array $cert): string
+if (!function_exists('cert_enrich')) {
+    /** Fill in the tutor and director (name, title, signature) a stored certificate row prints with. */
+    function cert_enrich(array $cert): array
     {
         // Older certificates may predate the saved tutor name — fall back to the currently assigned tutor.
         if (trim((string) ($cert['tutor_name'] ?? '')) === '' && !empty($cert['user_id']) && class_exists('\\Models\\Connection')) {
@@ -309,6 +311,14 @@ if (!function_exists('cert_pdf_bytes')) {
                 }
             }
         }
+        return $cert;
+    }
+}
+
+if (!function_exists('cert_pdf_bytes')) {
+    function cert_pdf_bytes(array $cert): string
+    {
+        $cert = cert_enrich($cert);
         $opts = new Options();
         $opts->setIsRemoteEnabled(false);
         $opts->setIsHtml5ParserEnabled(true);

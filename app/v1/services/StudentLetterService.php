@@ -6,7 +6,8 @@
 // THE RULES, in one place:
 //  1 Final letter: made by the system when the course is finished (the course time is over or the tutor marked it finished) AND the
 //    fees are paid in full AND the director signature and the official stamp exist. It does not wait for the capstone or the average.
-//  2 Final = locked: the wording, name, dates, subjects sentence, footer, signature and stamp are copied in when it is made.
+//  2 Final: made once, with its date. It is printed with the CURRENT template, footer, logo, director signature and stamp
+//    (sl_print_data), so letters already made follow later changes and a stamp uploaded later appears on them too.
 //  3 The sentences are set; the system fills in name, student number, course, campus, months, the course's field (security, data, AI,
 //    design, software, digital: picks the skills/strength/roles words, see sl_field) and the skills learnt (sl_subjects):
 //      12 months and longer: the first four subjects; shorter: the tutor's topics (up to six);
@@ -286,25 +287,32 @@ if (!function_exists('sl_installed')) {
     /**
      * The fixed wording, filled in. Paragraphs are plain text with **bold** marks for the parts the system fills in.
      */
+    /**
+     * The wording of the approved template (the design the office signed off). Only the student's details are filled in:
+     * name, student number, course, campus, months, the topics, "monthly projects" (12 months and longer), the capstone
+     * sentence (only when it was completed), the verify website and the contact email.
+     */
     function sl_paragraphs(array $f): array
     {
         $n = '**' . $f['name'] . '**';
-        $where = $f['campus'] ? 'Dazu Training Institute, **' . $f['campus'] . ' campus**' : 'Dazu Training Institute (**online**)';
+        $where = $f['campus'] ? 'Dazu Training Institute, **' . $f['campus'] . ' campus**,' : 'Dazu Training Institute (**online**),';
         $training = $f['subjects'] ? sl_join($f['subjects']) : $f['course'];
-        $fd = $f['field'] ?? ['skills' => 'practical, job-ready technology skills', 'strength' => 'learning new tools quickly and applying them well',
-                              'roles' => 'roles in technology and related fields'];
+        $email = $f['email'] ?? SL_FOOTER_DEFAULTS['email'];
         return [
             'To Whom It May Concern,',
-            'I am pleased to recommend ' . $n . ', Student No. **' . $f['student_no'] . '**, who studied **' . $f['course'] . '** at ' . $where . ' ' . $f['when'] . '. '
-                . $n . ' has successfully completed the course, and we are glad to speak for the effort and discipline they showed.',
-            'Dazu Training Institute teaches ' . $fd['skills'] . ' through hands-on classes led by experienced tutors. '
-                . 'During the course, ' . $n . ' received hands-on training in ' . $training . ', learning by doing so that they can use these skills at work from the first day.',
-            $n . ' completed the assignments and ' . ($f['long'] ? 'monthly projects' : 'projects') . ' set during the course, each of which was marked by our tutors.'
-                . ($f['capstone'] ? ' ' . $n . ' also completed the final capstone project, bringing together what they learned to solve a real problem from start to finish.' : ''),
-            'Throughout the course, ' . $n . ' was committed, dependable and respectful, and showed real strength in ' . $fd['strength'] . '. '
-                . 'They took feedback well, worked well with others and kept improving as the course went on.',
-            'We firmly recommend ' . $n . ' for ' . $fd['roles'] . ', and for any internship, attachment or further study they may seek. We are confident they will be an asset wherever they go. '
-                . 'You can confirm this letter by entering the student number above at ' . $f['verify_host'] . '/verify.',
+            'I am pleased to write this letter to recommend ' . $n . ', Student No. **' . $f['student_no'] . '**, who studied **' . $f['course'] . '** at ' . $where . ' ' . $f['when'] . '. '
+                . 'We are happy to confirm that ' . $n . ' has completed the course in full, and we are glad to speak for the effort, discipline and skill that they showed during their time with us.',
+            'Dazu Training Institute teaches digital skills that lead to real jobs, and our courses are practical from the first week. '
+                . 'During the course, ' . $n . ' worked through hands-on training in ' . $training . '. Each topic was taught with practical exercises, so that the student learns by doing '
+                . 'and not only by listening, and they gained skills they can use at work from the first day.',
+            'Throughout the course, ' . $n . ' handed in assignments and ' . ($f['long'] ? 'monthly projects' : 'projects') . ', and each one was marked by our tutors, who gave feedback on how to improve. '
+                . $n . ' took that feedback well, corrected mistakes quickly and kept getting better as the course went on.'
+                . ($f['capstone'] ? ' They also completed a capstone project, where the student had to bring together everything they had learned and show that they can solve a real problem from start to finish.' : ''),
+            'Beyond the technical work, we found ' . $n . ' to be committed, dependable and eager to learn. They met deadlines, asked good questions, worked well with their tutors and classmates, '
+                . 'and showed the patience that this kind of work needs. These are qualities that employers value, and they are the reason we are comfortable giving this recommendation.',
+            'We therefore recommend ' . $n . ' without hesitation for any job, internship, attachment or further study that they may seek, and we are confident that they will make a valuable '
+                . 'contribution wherever they go. You can confirm that this letter is real by entering the student number above at ' . $f['verify_host'] . '/verify, and you are welcome to write to us at '
+                . $email . ' if you need anything more.',
         ];
     }
 
@@ -334,7 +342,7 @@ if (!function_exists('sl_installed')) {
         $site = sl_settings($db)['website'];
         $fields = ['name' => $name, 'student_no' => (string) $reg['registration_no'], 'course' => trim((string) $reg['course_title']), 'campus' => $campus,
                    'start' => $start, 'end' => $end, 'when' => sl_when($start, $end, $course), 'subjects' => sl_subjects($db, $course, (int) $reg['id']), 'field' => sl_field($db, $course),
-                   'long' => sl_long_course($course), 'capstone' => sl_capstone_done($db, $reg), 'verify_host' => preg_replace('#/.*$#', '', $site)];
+                   'long' => sl_long_course($course), 'capstone' => sl_capstone_done($db, $reg), 'verify_host' => preg_replace('#/.*$#', '', $site), 'email' => sl_settings($db)['email']];
         return $fields + ['paragraphs' => sl_paragraphs($fields), 'conditions' => $cond];
     }
 
@@ -417,18 +425,26 @@ if (!function_exists('sl_installed')) {
     }
 
     /** What the printed page needs, from a final letter (locked) or from a live build (the tutor's draft). */
+    /**
+     * What the printed page needs. A final letter keeps its number and the date it was made, but everything else follows the
+     * current template and Settings (wording, footer, logo, director signature, stamp), so letters already made pick up changes
+     * and a stamp uploaded later. The signature and stamp saved when it was made are used only if none is set now.
+     */
     function sl_print_data(PDO $db, ?array $letter, ?array $live): array
     {
+        $set = sl_settings($db);
+        $sig = dsig_active($db);
+        $stampNow = tr_abs(tr_settings($db)['stamp_path']);
         if ($letter) {
+            $reg = sl_registration($db, (int) $letter['registration_id']);
+            $paras = $reg ? sl_build($db, $reg)['paragraphs'] : (json_decode((string) $letter['paragraphs_json'], true) ?: []);
             return [
-                'draft' => false, 'student_no' => $letter['student_no'], 'date' => $letter['generated_at'],
-                'paragraphs' => json_decode((string) $letter['paragraphs_json'], true) ?: [],
-                'email' => $letter['footer_email'], 'website' => $letter['footer_website'], 'linkedin' => $letter['footer_linkedin'],
-                'logo' => sl_logo_file($db), 'signature' => tr_abs($letter['signature_path']), 'stamp' => tr_abs($letter['stamp_path']),
+                'draft' => false, 'student_no' => $letter['student_no'], 'date' => $letter['generated_at'], 'paragraphs' => $paras,
+                'email' => $set['email'], 'website' => $set['website'], 'linkedin' => $set['linkedin'],
+                'logo' => sl_logo_file($db), 'signature' => ($sig['file'] ?? null) ?: tr_abs($letter['signature_path']), 'stamp' => $stampNow ?: tr_abs($letter['stamp_path']),
                 'badges' => array_values(array_filter(array_map('tr_abs', json_decode((string) $letter['badges_json'], true) ?: []))),
             ];
         }
-        $set = sl_settings($db);
         return [
             'draft' => true, 'student_no' => $live['student_no'], 'date' => null, 'paragraphs' => $live['paragraphs'],
             'email' => $set['email'], 'website' => $set['website'], 'linkedin' => $set['linkedin'],
