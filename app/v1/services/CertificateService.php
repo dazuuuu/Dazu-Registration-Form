@@ -281,6 +281,9 @@ if (!function_exists('cert_issue')) {
                       WHERE id = ? AND status NOT IN ('issued', 'collected')");
         $st->execute([$certId]);
         if ($st->rowCount()) {
+            require_once __DIR__ . '/../helpers/certificate_pdf.php';
+            require_once __DIR__ . '/../helpers/certificate_v2.php';
+            try { cert_freeze($db, $certId); } catch (Throwable $e) { error_log('cert_freeze: ' . $e->getMessage()); }   // issued = frozen as it is now
             require_once __DIR__ . '/PortalNotifications.php';
             $q = $db->prepare("SELECT r.user_id, c.snapshot_course FROM certificates c JOIN registrations r ON r.id = c.registration_id WHERE c.id = ?");
             $q->execute([$certId]);

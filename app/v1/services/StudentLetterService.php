@@ -6,8 +6,8 @@
 // THE RULES, in one place:
 //  1 Final letter: made by the system when the course is finished (the course time is over or the tutor marked it finished) AND the
 //    fees are paid in full AND the director signature and the official stamp exist. It does not wait for the capstone or the average.
-//  2 Final: made once, with its date. It is printed with the CURRENT template, footer, logo, director signature and stamp
-//    (sl_print_data), so letters already made follow later changes and a stamp uploaded later appears on them too.
+//  2 Final: made once, with its date. Its stamp (with that date written in it and the director's signature on its Sign: line) and
+//    signature are saved then and never change; wording, footer and logo follow the current template (sl_print_data).
 //  3 The sentences are set; the system fills in name, student number, course, campus, months, the course's field (security, data, AI,
 //    design, software, digital: picks the skills/strength/roles words, see sl_field) and the skills learnt (sl_subjects):
 //      12 months and longer: the first four subjects; shorter: the tutor's topics (up to six);
@@ -383,10 +383,11 @@ if (!function_exists('sl_installed')) {
         $logoAbs = sl_logo_file($db);
         $key = crc32('letter-' . $regId);
         $sigPath = $sig ? tr_snapshot_file($sig['file'], $key, 'lsig') : null;
-        $stamp = $stampAbs ? tr_snapshot_file($stampAbs, $key, 'lstamp') : null;
+        $issued = new DateTimeImmutable('now', new DateTimeZone('Africa/Nairobi'));
+        $stamp = $stampAbs ? tr_issue_stamp($db, $issued, $key, 'lstamp') : null;   // the stamp dated with this letter's date
         $logo = $logoAbs ? tr_snapshot_file($logoAbs, $key, 'llogo') : null;
         if (!$sigPath || !$stamp) return 'not_ready';
-        $now = (new DateTimeImmutable('now', new DateTimeZone('Africa/Nairobi')))->format('Y-m-d H:i:s');
+        $now = $issued->format('Y-m-d H:i:s');
         $ins = $db->prepare('INSERT IGNORE INTO student_letters (registration_id, student_user_id, course_id, student_no, full_name, course_title, paragraphs_json,
                              footer_email, footer_website, footer_linkedin, logo_path, signature_path, stamp_path, badges_json, generated_at)
                              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
@@ -427,21 +428,20 @@ if (!function_exists('sl_installed')) {
     /** What the printed page needs, from a final letter (locked) or from a live build (the tutor's draft). */
     /**
      * What the printed page needs. A final letter keeps its number and the date it was made, but everything else follows the
-     * current template and Settings (wording, footer, logo, director signature, stamp), so letters already made pick up changes
-     * and a stamp uploaded later. The signature and stamp saved when it was made are used only if none is set now.
+     * current wording, footer and logo. Its director signature and its dated stamp are the ones saved when it was made, so a stamp
+     * or signature uploaded later only shows on letters made after it.
      */
     function sl_print_data(PDO $db, ?array $letter, ?array $live): array
     {
         $set = sl_settings($db);
-        $sig = dsig_active($db);
-        $stampNow = tr_abs(tr_settings($db)['stamp_path']);
         if ($letter) {
             $reg = sl_registration($db, (int) $letter['registration_id']);
             $paras = $reg ? sl_build($db, $reg)['paragraphs'] : (json_decode((string) $letter['paragraphs_json'], true) ?: []);
             return [
                 'draft' => false, 'student_no' => $letter['student_no'], 'date' => $letter['generated_at'], 'paragraphs' => $paras,
                 'email' => $set['email'], 'website' => $set['website'], 'linkedin' => $set['linkedin'],
-                'logo' => sl_logo_file($db), 'signature' => ($sig['file'] ?? null) ?: tr_abs($letter['signature_path']), 'stamp' => $stampNow ?: tr_abs($letter['stamp_path']),
+                // The signature and the dated stamp it was issued with: a later upload never changes an issued letter.
+                'logo' => sl_logo_file($db), 'signature' => tr_abs($letter['signature_path']), 'stamp' => tr_abs($letter['stamp_path']),
                 'badges' => array_values(array_filter(array_map('tr_abs', json_decode((string) $letter['badges_json'], true) ?: []))),
             ];
         }

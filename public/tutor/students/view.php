@@ -174,6 +174,7 @@ ob_start();
                 <div class="d-flex flex-wrap gap-2 align-items-center">
                     <button class="btn btn-success btn-sm"><i class="fas fa-save me-1"></i>Save text</button>
                     <a class="btn btn-outline-secondary btn-sm" target="_blank" href="<?php echo $docUrl('cert'); ?>"><i class="fas fa-eye me-1"></i>Preview certificate</a>
+                    <a class="btn btn-outline-success btn-sm" href="<?php echo htmlspecialchars(url('certificates/text.php?id=' . (int) $cert['id'])); ?>"><i class="fas fa-pen me-1"></i>Certificate text</a>
                     <label class="form-check small mb-0 ms-1"><input type="checkbox" class="form-check-input" name="email_copy" value="1"> Email the updated certificate to the student</label>
                 </div>
             </form>

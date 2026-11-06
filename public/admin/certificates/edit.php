@@ -80,6 +80,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $certModel->updateCertificate($id, $updateData);
+    if (in_array($status, ['issued', 'collected'], true) && !in_array($cert['status'], ['issued', 'collected'], true)) {
+        require_once __DIR__ . '/../../../app/v1/helpers/certificate_pdf.php';
+        require_once __DIR__ . '/../../../app/v1/helpers/certificate_v2.php';
+        cert_freeze($db, (int) $id);   // issued now: what it prints is frozen
+    }
     $_SESSION['success_msg'] = "Certificate details updated successfully.";
     if (!empty($_FILES['student_photo']['name'])) {
         $photo = cert_save_student_photo($db, (int) $cert['user_id'], $_FILES['student_photo']);

@@ -20,6 +20,7 @@ require_once __DIR__ . '/AssignmentAverage.php';
 require_once __DIR__ . '/StaffIdService.php';
 require_once __DIR__ . '/../helpers/course_duration.php';
 require_once __DIR__ . '/../helpers/signatures.php';
+require_once __DIR__ . '/../helpers/official_stamp.php';
 
 if (!defined('TR_MIN_MONTHS')) {
     define('TR_MIN_MONTHS', 3);
@@ -57,7 +58,7 @@ if (!function_exists('tr_installed')) {
 
     function tr_settings(PDO $db): array
     {
-        $s = ['stamp_path' => '', 'logo_path' => '', 'watermark_on' => '0', 'watermark_level' => 'light'];
+        $s = ['stamp_path' => '', 'stamp_date_box' => '', 'stamp_sign_box' => '', 'logo_path' => '', 'watermark_on' => '0', 'watermark_level' => 'light'];
         try {
             foreach ($db->query('SELECT k, v FROM transcript_settings')->fetchAll(PDO::FETCH_KEY_PAIR) as $k => $v) {
                 if (array_key_exists($k, $s) && $v !== null) $s[$k] = (string) $v;
@@ -117,6 +118,7 @@ if (!function_exists('tr_installed')) {
         imagesavealpha($out, true);
         imagefill($out, 0, 0, imagecolorallocatealpha($out, 0, 0, 0, 127));
         imagecopyresampled($out, $src, 0, 0, 0, 0, imagesx($out), imagesy($out), $w, $h);
+        if ($kind === 'stamp') $out = stamp_clean_background($out);   // white/paper → transparent; the ink keeps its exact colours
         $dir = tr_dir('assets');
         if (!$dir) return ['ok' => false, 'error' => 'Could not create the transcripts folder.'];
         $name = $kind . '-' . bin2hex(random_bytes(12)) . '.png';
@@ -135,7 +137,9 @@ if (!function_exists('tr_installed')) {
     function tr_settings_missing(PDO $db): array
     {
         $miss = [];
-        if (!tr_abs(tr_settings($db)['stamp_path'])) $miss[] = 'the official stamp';
+        $set = tr_settings($db);
+        if (!tr_abs($set['stamp_path'])) $miss[] = 'the official stamp';
+        elseif (!stamp_box($set['stamp_date_box']) || !stamp_box($set['stamp_sign_box'])) $miss[] = 'the date and Sign: areas marked on the stamp';
         if (!dsig_active($db)) $miss[] = 'the director signature';
         return $miss;
     }
@@ -361,6 +365,24 @@ if (!function_exists('tr_installed')) {
         return ['applies' => true, 'plain' => true, 'ready' => $ready, 'word' => $ready ? 'Ready' : 'In progress', 'conditions' => $c];
     }
 
+    /**
+     * The stamp for one document issued on $date: today's stamp with that date written in it and the director's signature on its
+     * Sign: line (official_stamp.php), saved in the released folder. Null when the stamp, its marked areas or the file cannot be used.
+     */
+    function tr_issue_stamp(PDO $db, DateTimeInterface $date, int $key, string $kind): ?string
+    {
+        $set = tr_settings($db);
+        $abs = tr_abs($set['stamp_path']);
+        $dateBox = stamp_box($set['stamp_date_box']);
+        $signBox = stamp_box($set['stamp_sign_box']);
+        $dir = tr_dir('released');
+        if (!$abs || !$dateBox || !$signBox || !$dir) return null;
+        $png = stamp_compose($abs, $dateBox, $signBox, $date, dsig_active($db)['file'] ?? null);
+        if (!$png) return null;
+        $name = $key . '-' . $kind . '-' . bin2hex(random_bytes(6)) . '.png';
+        return @file_put_contents($dir . '/' . $name, $png) ? 'storage:transcripts/released/' . $name : null;
+    }
+
     /** Copy a picture into the released folder so later uploads in Settings never change this transcript. */
     function tr_snapshot_file(string $abs, int $transcriptKey, string $kind): ?string
     {
@@ -389,12 +411,12 @@ if (!function_exists('tr_installed')) {
         $stampAbs = tr_abs($set['stamp_path']);
         $logoAbs = tr_current_logo_file($db);
         $key = $uid . '-' . $courseId;
-        $stamp = $stampAbs ? tr_snapshot_file($stampAbs, crc32($key), 'stamp') : null;
+        $now = new DateTimeImmutable('now', new DateTimeZone('Africa/Nairobi'));
+        $stamp = $stampAbs ? tr_issue_stamp($db, $now, crc32($key), 'stamp') : null;   // dated with the release day
         $sigPath = $sig ? tr_snapshot_file($sig['file'], crc32($key), 'signature') : null;
         $logo = $logoAbs ? tr_snapshot_file($logoAbs, crc32($key), 'logo') : null;
         if (!$stamp || !$sigPath) return 'not_ready';
 
-        $now = new DateTimeImmutable('now', new DateTimeZone('Africa/Nairobi'));
         $year = (int) $now->format('Y');
         try {
             $db->beginTransaction();

@@ -122,13 +122,13 @@ if (!function_exists('sl_html')) {
         foreach (array_map('tr_img_uri', $d['badges']) as $img) {
             if ($img) $cells .= '<td style="vertical-align:middle;padding-left:4mm"><img src="' . $img . '" style="width:24mm" alt=""></td>';
         }
-        $cells .= '<td style="vertical-align:middle;padding-left:4mm">' . ($stamp ? '<img src="' . $stamp . '" style="width:35mm" alt="Official stamp">'
+        $cells .= '<td style="vertical-align:middle;padding-left:4mm">' . ($stamp ? '<img src="' . $stamp . '" style="width:38mm" alt="Official stamp">'
             : '<div style="width:35mm;font-size:7.5pt;color:#999;text-align:center;line-height:1.4">The director\'s signature and the official stamp are added when the letter is final.</div>') . '</td>';
 
         $foot = '';
         foreach ([['email', 'EMAIL', $d['email'], 14], ['website', 'WEBSITE', $d['website'], 76], ['linkedin', 'LinkedIn', $d['linkedin'], 127]] as [$ic, $label, $val, $x]) {
             $foot .= '<div style="position:absolute;left:' . $x . 'mm;top:260mm"><table><tr><td style="vertical-align:middle;padding-right:2.6mm"><img src="' . sl_icon_uri($ic) . '" style="width:8.4mm;height:8.4mm" alt=""></td>'
-                   . '<td class="sl-ft" style="vertical-align:middle;line-height:7.5pt"><div style="font-weight:bold;font-size:8.3pt;color:' . $D . '">' . $e($label) . '</div><div style="font-size:8.3pt;color:#444">' . $e($val) . '</div></td></tr></table></div>';
+                   . '<td class="sl-ft" style="vertical-align:middle;line-height:7.5pt"><div style="font-weight:bold;font-size:7.4pt;color:' . $D . '">' . $e($label) . '</div><div style="font-size:7.4pt;color:#444">' . $e($val) . '</div></td></tr></table></div>';
         }
 
         $css = '
@@ -137,9 +137,9 @@ if (!function_exists('sl_html')) {
 .sl-sheet b{font-weight:bold}
 .sl-wm{position:absolute;left:47mm;top:133mm;width:116mm}
 .sl-in{position:absolute;left:18mm;top:14mm;width:174mm}
-.sl-title{text-align:center;font-weight:bold;font-size:23pt;line-height:20pt;margin-top:8mm;color:#333}
-.sl-meta{font-size:10pt;font-weight:bold;line-height:10.5pt;white-space:nowrap;text-align:left;padding:0}
-.sl-p{font-size:9.3pt;line-height:7.9pt;margin:0 0 2.6mm 0;text-align:justify}
+.sl-title{text-align:center;font-weight:bold;font-size:20.5pt;line-height:16.5pt;margin-top:8mm;color:#333}
+.sl-meta{font-size:9pt;font-weight:bold;line-height:10.5pt;white-space:nowrap;text-align:left;padding:0}
+.sl-p{font-size:8.7pt;line-height:8pt;margin:0 0 2.6mm 0;text-align:justify}
 .sl-wave{position:absolute;left:0;top:275mm;width:210mm;height:22mm}
 .sl-draft{position:absolute;left:0;top:115mm;width:210mm;text-align:center;font-size:90pt;font-weight:bold;color:rgba(190,190,190,.4)}';
 
@@ -151,7 +151,7 @@ if (!function_exists('sl_html')) {
             . '<table style="margin:4mm 0 5mm auto"><tr><td class="sl-meta">Student No: <span style="color:' . $G . '">' . $e($d['student_no']) . '</span><br>' . $e($date) . '</td></tr></table>'
             . $body
             . '<table style="width:174mm;margin-top:3mm"><tr>'
-            . '<td class="sl-close" style="vertical-align:top;font-size:9.3pt;line-height:8.5pt">Best Regards,<br><b>Dazu Training Institute</b>'
+            . '<td class="sl-close" style="vertical-align:top;font-size:8.7pt;line-height:8.5pt">Best Regards,<br><b>Dazu Training Institute</b>'
             . '<div style="height:19mm;margin-top:1mm">' . ($sig ? '<img src="' . $sig . '" style="max-height:19mm;max-width:52mm" alt="">' : '') . '</div>'
             . '<div style="border-top:0.3mm dotted #444;width:52mm;padding-top:0.8mm;font-weight:bold">Director</div></td>'
             . '<td style="vertical-align:middle;text-align:right"><table style="margin:0 0 0 auto"><tr>' . $cells . '</tr></table></td>'
@@ -164,7 +164,7 @@ if (!function_exists('sl_html')) {
 
         // dompdf draws Poppins lines about 1.65× taller than the line-height asks, so the values above are set for the PDF;
         // the browser view gets the same spacing with these.
-        $screen = '.sl-p{line-height:13.2pt}.sl-title{line-height:33pt}.sl-meta{line-height:17pt}.sl-close{line-height:14pt!important}.sl-ft{line-height:12pt!important}';
+        $screen = '.sl-p{line-height:13.2pt}.sl-title{line-height:27pt}.sl-meta{line-height:17pt}.sl-close{line-height:14pt!important}.sl-ft{line-height:12pt!important}';
         if (!$forPdf) return '<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet"><style>' . $css . $screen . '</style>' . $html;
         return '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>' . idc_font_css() . '@page{size:A4 portrait;margin:0}body{margin:0}' . $css . '</style></head><body>' . $html . '</body></html>';
     }

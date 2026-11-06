@@ -185,6 +185,13 @@ if (!function_exists('_cert_sig_img')) {
 if (!function_exists('cert_render_html')) {
     function cert_render_html(array $cert): string
     {
+        // The current layout (certificate_v2.php): issued ones from what was frozen at issue, everything not issued yet live.
+        // Certificates issued before it keep the look below until the admin reissues them.
+        require_once __DIR__ . '/certificate_v2.php';
+        if (cv2_applies($cert)) {
+            $d = cv2_from_snapshot($cert) ?: cv2_live(\Models\Connection::getInstance()->getConnection(), $cert, $cert['_v2'] ?? []);
+            return cv2_html($d);
+        }
         $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 
         $name     = trim((string) ($cert['snapshot_name'] ?? ''));
