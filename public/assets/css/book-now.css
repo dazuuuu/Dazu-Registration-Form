@@ -1,0 +1,31 @@
+/* Book now screens: the Next intake card, the closed message, the booking form, Check my booking and the bar at the bottom of a phone.
+   The site's Tailwind file is pre-built and only has the classes it was built with, so these screens carry their own small set. */
+.bn-card{background:#fff;border:2px solid #44A024;border-radius:16px;padding:20px 24px;margin-bottom:24px}
+.bn-card.plain{border:1px solid #e2e8f0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.bn-pill{display:inline-block;background:#44A024;color:#fff;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:4px 10px}
+.bn-pill.dark{background:#373435}
+.bn-btn{display:inline-block;background:#44A024;color:#fff;border:0;border-radius:12px;font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:14px 24px;text-align:center;cursor:pointer;text-decoration:none;line-height:1.2}
+.bn-btn:hover{background:#36851b;color:#fff}
+.bn-btn.block{display:block;width:100%}
+.bn-btn.dark{background:#373435}.bn-btn.dark:hover{background:#262425}
+.bn-btn.red{background:#dc2626}.bn-btn.red:hover{background:#b91c1c}
+.bn-btn.wa{background:#25D366}.bn-btn.wa:hover{background:#1ebe5b}
+.bn-btn.line{background:#fff;color:#2f7a14;border:1px solid #44A024}.bn-btn.line:hover{background:#f3faef;color:#2f7a14}
+.bn-btn.ghost{background:#fff;color:#475569;border:1px solid #cbd5e1}.bn-btn.ghost:hover{background:#f8fafc;color:#475569}
+.bn-btn[disabled]{opacity:.4;cursor:not-allowed}
+.bn-bar{height:8px;border-radius:999px;background:#e5e7eb;overflow:hidden}
+.bn-bar>i{display:block;height:8px;background:#44A024}
+.bn-link{color:#2f7a14;text-decoration:underline;font-weight:700}
+.bn-fee{background:#f3faef;border:1px solid #cfe9c2;border-radius:12px;padding:16px}
+.bn-box{border:1px solid #e2e8f0;border-radius:12px;padding:16px}
+.bn-note{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px}
+.bn-step{display:inline-block;border-radius:999px;padding:4px 10px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;background:#f1f5f9;color:#64748b}
+.bn-step.on{background:#44A024;color:#fff}.bn-step.done{background:#e7f4e1;color:#245c12}
+.bn-ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;border-radius:12px;padding:12px;font-size:12px;font-weight:600}
+.bn-err{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:12px;padding:12px;font-size:12px;font-weight:600}
+.bn-mbar{position:fixed;bottom:0;left:0;right:0;z-index:40;background:#fff;border-top:1px solid #e2e8f0;padding:12px;display:flex;gap:12px;box-shadow:0 -4px 16px rgba(0,0,0,.08)}
+.bn-mbar .bn-btn{flex:1}
+.bn-mspace{height:76px}
+@media (min-width:768px){.bn-mbar,.bn-mspace{display:none}}
+.bn-details>summary{cursor:pointer;font-weight:800;font-size:14px}
+.bn-radios{display:flex;gap:20px;flex-wrap:wrap}.bn-radios label{display:inline-flex;gap:6px;align-items:center}

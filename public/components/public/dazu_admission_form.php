@@ -73,7 +73,7 @@ $studyMode = $_POST['study_mode'] ?? 'online';
 
 <div class="bg-white border border-slate-200 rounded-2xl p-6 md:p-10">
   <div class="border-b border-slate-100 pb-6 mb-8">
-    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-950 tracking-tight">Enrol</h1>
+    <h1 class="text-2xl md:text-3xl font-extrabold text-slate-950 tracking-tight">Enroll</h1>
     <p class="text-slate-500 text-xs font-medium mt-1">Name, email, course, and online or physical classes. We email your registration number straight away.</p>
   </div>
 
@@ -169,7 +169,7 @@ $studyMode = $_POST['study_mode'] ?? 'online';
 
     <button type="submit" id="<?php echo $pfx; ?>SubmitBtn"
             class="w-full py-4 text-xs font-extrabold uppercase tracking-widest text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-xl transition-colors">
-      Enrol now
+      Enroll now
     </button>
   </form>
 </div>

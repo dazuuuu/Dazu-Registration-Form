@@ -169,6 +169,9 @@ class StudentController {
         );
         $regFee = $reg['registration_fee_waived'] ? 0 : (float) $reg['registration_fee'];
         $initialAmount = $customAmount !== null && $customAmount >= 0 ? $customAmount : $regFee + $installments['amount'];
+        // A student who paid the booking fee: it is recorded below, so the default first deposit is lower by that amount (not asked for twice).
+        require_once __DIR__ . '/../services/EnrolmentService.php';
+        if ($customAmount === null || $customAmount < 0) $initialAmount = max(0, $initialAmount - en_pending_fee_credit($this->db, (int) $reg['id']));
 
         $stmt = $this->db->prepare(
             "INSERT INTO payments (registration_id, amount, payer_reference, status, recorded_by, reviewed_by, reviewed_at, notes)
@@ -185,6 +188,7 @@ class StudentController {
         $receiptNo = $this->paymentModel->generateReceiptNo($paymentId);
         $payment = $this->paymentModel->getById($paymentId);
         $receiptHtml = \ReceiptGenerator::generate($reg, array_merge($payment, ['receipt_no' => $receiptNo]), $initialAmount);
+        en_apply_fee_on_approval($this->db, (int) $reg['id'], $resolvedAdmin);   // the booking fee goes on the student's record
 
         $stmt = $this->db->prepare(
             "UPDATE payments SET receipt_no = :receipt, receipt_html = :html WHERE id = :id"

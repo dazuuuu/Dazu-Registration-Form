@@ -33,6 +33,13 @@ class CourseRegistrationHandler
             return ['ok' => false, 'error' => 'Security check failed. Refresh and try again.'];
         }
 
+        // While enrolment is closed (and "Hide the Enroll form when enrolment is closed" is on), nobody can enroll through this form or a direct
+        // link: they see the closed message. Staff can always register a student by hand elsewhere.
+        require_once __DIR__ . '/EnrolmentService.php';
+        if (($closed = en_enrol_blocked($this->pdo, $course)) !== null) {
+            return ['ok' => false, 'error' => $closed];
+        }
+
         $idDocPath = $this->uploadIdDocument($files['id_document'] ?? null);
         if (is_string($idDocPath) && str_starts_with($idDocPath, 'ERROR:')) {
             return ['ok' => false, 'error' => substr($idDocPath, 6)];
@@ -60,6 +67,9 @@ class CourseRegistrationHandler
         $reg = $this->regModel->getById($result['id']) ?: array_merge($data, $result);
         require_once __DIR__ . '/../helpers/enrolment_offer.php';
         enrolment_offer_store($reg, $course, $result);
+        // A person who paid the booking fee (also through their early-access link): the booking becomes Converted and linked to the new student, and the fee is counted
+        // on their record (registration fee for Physical, towards course fees for Online). The registration number email below is the existing one.
+        en_link_booking_on_enrol($this->pdo, (int) $result['id'], (string) ($post['email'] ?? ''), (int) $course['id'], (int) ($_SESSION['en_ea'][(int) $course['id']] ?? 0));
 
         return $result;
     }

@@ -176,3 +176,6 @@ c
 /app/v1/storage/tutor_photos/
 /app/v1/storage/id_print/
 /stderr
+
+# Book now: the secret key that signs "Check my booking" and early-access links (generated on first use)
+app/v1/storage/enrolment_link.key

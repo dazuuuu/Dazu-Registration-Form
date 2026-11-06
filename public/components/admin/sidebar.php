@@ -205,7 +205,8 @@ function isSmsSection($section) {
                            class="nav-link <?php echo $current_dir == 'intakes' && $current_page === 'bookings.php' ? 'active' : ''; ?>">
                             <i class="fas fa-bookmark"></i>
                             <span>Bookings</span>
-                            <?php if ($ikOpen): ?><span class="registrations-badge"><?php echo $ikOpen; ?></span><?php endif; ?>
+                            <?php $ikPay = 0; try { $ikPay = (int) $ikDb->query("SELECT COUNT(*) FROM enrolment_bookings WHERE status = 'payment_received'")->fetchColumn(); } catch (Throwable $e) {} ?>
+                            <?php if ($ikPay): ?><span class="registrations-badge" title="Payments to confirm"><?php echo $ikPay; ?></span><?php elseif ($ikOpen): ?><span class="registrations-badge"><?php echo $ikOpen; ?></span><?php endif; ?>
                         </a>
                         <!-- COURSES SUB-SECTION: paid and free are separate listings/forms -->
                         <div class="nav-item">
