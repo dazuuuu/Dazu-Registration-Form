@@ -306,6 +306,10 @@ ob_start();
             </table></div>
         </div>
         <?php $certArea = 'admin'; require __DIR__ . '/../../components/certificates/student_card.php'; ?>
+        <div class="card mb-3"><div class="card-header fw-semibold">Letter of recommendation</div><div class="card-body">
+            <a class="btn btn-outline-success btn-sm" href="<?php echo url('letters/student.php?reg=' . (int) $reg['id'] . '&preview=1'); ?>">Preview the letter</a>
+            <a class="btn btn-link btn-sm" href="<?php echo url('letters/student.php?reg=' . (int) $reg['id']); ?>">Status</a>
+        </div></div>
         <?php $docUserId = (int) ($reg['user_id'] ?? 0); require __DIR__ . '/../../components/documents/admin_card.php'; ?>
         <div class="card mb-3"><div class="card-header fw-semibold">Where they learn</div><div class="card-body">
             <?php if (!study_location_supported($pdo)): ?><p class="small text-muted mb-0">Apply the pending system update to record learning locations.</p><?php else: foreach ($enrols as $e): ?>

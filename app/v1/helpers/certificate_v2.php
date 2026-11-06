@@ -25,7 +25,8 @@ if (!defined('CV2_GREEN')) {
     define('CV2_TINT', '#E3F3EA');
     define('CV2_WORDING_MAX', 200);
     define('CV2_EXTRA_MAX', 160);
-    define('CV2_DEFAULT_WORDING', 'Has successfully completed a {duration} programme of study in the {course} at Dazu Training Institute.');
+    define('CV2_DEFAULT_WORDING', 'Has successfully completed {a_duration} programme in {course} at Dazu Training Institute.');
+    define('CV2_OLD_WORDING', 'Has successfully completed a {duration} programme of study in the {course} at Dazu Training Institute.');
     define('CV2_NITA_DEFAULTS', ['logo' => '', 'number' => 'TRN/2947', 'position' => 'top_right', 'style' => 'block', 'size' => 'medium', 'color' => '#048C44']);
 }
 
@@ -43,7 +44,7 @@ if (!function_exists('cv2_settings')) {
         $m = cv2_setting_model($db);
         $w = trim((string) $m->get('cert_wording'));
         $n = json_decode((string) $m->get('cert_nita'), true);
-        return ['wording' => $w !== '' ? $w : CV2_DEFAULT_WORDING, 'nita' => cv2_nita_clean(is_array($n) ? $n : [])];
+        return ['wording' => ($w !== '' && $w !== CV2_OLD_WORDING) ? $w : CV2_DEFAULT_WORDING, 'nita' => cv2_nita_clean(is_array($n) ? $n : [])];
     }
 
     function cv2_nita_clean(array $in): array
@@ -135,7 +136,7 @@ if (!function_exists('cv2_settings')) {
             'extra' => array_key_exists('extra', $over) ? cv2_clean_extra((string) $over['extra']) : cv2_clean_extra((string) ($cert['taught_skills'] ?? '')),
             'tutor_name' => trim((string) ($cert['tutor_name'] ?? '')) ?: '—', 'tutor_title' => trim((string) ($cert['tutor_title'] ?? '')) ?: 'Course tutor',
             'director_name' => trim((string) ($cert['ceo_name'] ?? '')) ?: CERT_DIRECTOR_NAME, 'director_title' => trim((string) ($cert['director_title'] ?? '')) ?: 'Founder & Director',
-            'tutor_sig' => $tutorSig, 'director_sig' => $dirSig, 'logo' => cert_logo_file(), 'nita' => $nita, 'nita_logo' => tr_abs($nita['logo'] ?: null),
+            'tutor_sig' => $tutorSig, 'director_sig' => $dirSig, 'logo' => cert_logo_file(), 'nita' => $nita, 'nita_logo' => tr_abs($nita['logo'] ?: null) ?: cv2_nita_default_logo(),
             'watermark' => $cert['_watermark'] ?? null,
         ];
     }
@@ -164,7 +165,7 @@ if (!function_exists('cv2_settings')) {
         $d['logo'] = $copy($d['logo'], 'clogo');
         $d['nita_logo'] = $copy($d['nita_logo'], 'cnita');
         unset($d['watermark']);
-        $d['layout'] = 'v2';
+        $d['layout'] = 'v3';
         $d['frozen_at'] = date('Y-m-d H:i:s');
         $db->prepare('UPDATE certificates SET issued_snapshot = ? WHERE id = ?')->execute([json_encode($d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $certId]);
         return true;
@@ -182,7 +183,7 @@ if (!function_exists('cv2_settings')) {
         if (!$c) return ['ok' => false, 'error' => 'Certificate not found.'];
         if (!in_array($c['status'], ['issued', 'collected'], true)) return ['ok' => false, 'error' => $c['certificate_no'] . ' is not issued yet; it already uses the current wording and settings.'];
         $db->prepare('INSERT INTO certificate_history (certificate_id, layout, snapshot_json, record_json, reissued_by, reissued_at) VALUES (?, ?, ?, ?, ?, ?)')
-           ->execute([$certId, $c['issued_snapshot'] ? 'v2' : 'v1', $c['issued_snapshot'], json_encode($c, JSON_UNESCAPED_UNICODE), $actor ?: null, date('Y-m-d H:i:s')]);
+           ->execute([$certId, $c['issued_snapshot'] ? (json_decode((string) $c['issued_snapshot'], true)['layout'] ?? 'v2') : 'v1', $c['issued_snapshot'], json_encode($c, JSON_UNESCAPED_UNICODE), $actor ?: null, date('Y-m-d H:i:s')]);
         cert_freeze($db, $certId);
         cv2_log($db, $certId, $actor, 'reissued', ['certificate_no' => $c['certificate_no']]);
         return ['ok' => true];
@@ -317,12 +318,28 @@ if (!function_exists('cv2_settings')) {
 
     /* ---------------- the page ---------------- */
 
-    /** The wording as HTML: {course} bold green, {duration}, {student_name}. */
+    /** "a 1-month" / "an 18-month": the right article for the length. */
+    function cv2_a_duration(int $months): string
+    {
+        return (in_array($months, [8, 11, 18], true) ? 'an ' : 'a ') . cert_duration_label($months);
+    }
+
+    /** The course as it reads inside a sentence: without a leading "A", "An" or "The" ("A Diploma in X" → "Diploma in X"). */
+    function cv2_course_in_text(string $course): string
+    {
+        $c = trim(preg_replace('/^(?:a|an|the)\s+/iu', '', trim($course)));
+        return $c !== '' ? $c : trim($course);
+    }
+
+    /** The wording as HTML: {course} bold green, {duration}, {a_duration} (with its "a"/"an"), {student_name}. */
     function cv2_wording_html(string $wording, array $d): string
     {
         $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+        // wording saved before the grammar fix ("a {duration} programme of study in the {course}") reads correctly too
+        $wording = $wording === CV2_OLD_WORDING ? CV2_DEFAULT_WORDING : preg_replace('/\ba \{duration\}/i', '{a_duration}', $wording);
         return strtr($e($wording), [
-            '{course}' => '<b style="color:' . CV2_GREEN . '">' . $e($d['course']) . '</b>',
+            '{course}' => '<b style="color:' . CV2_GREEN . '">' . $e(cv2_course_in_text((string) $d['course'])) . '</b>',
+            '{a_duration}' => $e(cv2_a_duration((int) $d['months'])),
             '{duration}' => $e(cert_duration_label((int) $d['months'])),
             '{student_name}' => $e($d['name']),
         ]);
@@ -344,6 +361,12 @@ if (!function_exists('cv2_settings')) {
             return ($d['nita_logo'] ? '<img src="' . cv2_uri_any($d['nita_logo']) . '" style="height:' . round(6 * $k, 1) . 'mm;vertical-align:middle"> ' : '')
                 . '<span style="font-size:' . round(11 * $k, 1) . 'pt">Accreditation No. </span><span style="background:' . $col . ';color:#fff;font-weight:bold;border-radius:3mm;padding:0.4mm 2.5mm;font-size:' . round(11 * $k, 1) . 'pt">' . $e($n['number']) . '</span>';
         }
+        if ($where === 'under_qr') {   // the outlined NITA ACCREDITED badge under the QR code
+            return '<div style="width:30.2mm;border:0.5mm solid ' . $col . ';border-radius:4.8mm;padding:0.45mm"><div style="border:0.2mm solid ' . $col . ';border-radius:4.3mm;text-align:center;padding:1.1mm 0 0.9mm">'
+                . ($d['nita_logo'] ? '<img src="' . cv2_uri_any($d['nita_logo']) . '" alt="NITA" style="height:' . round(4.5 * $k, 1) . 'mm;margin-bottom:0.6mm"><br>' : '')
+                . '<div style="font-family:Helvetica,Arial,sans-serif;font-weight:bold;font-size:' . round(5.4 * $k, 1) . 'pt;letter-spacing:1.1pt;color:' . $col . ';line-height:1">NITA ACCREDITED</div>'
+                . '<div style="font-family:Times,serif;font-weight:bold;font-size:' . round(8.2 * $k, 1) . 'pt;color:#111;margin-top:0.7mm;line-height:1">NITA/' . $e($n['number']) . '</div></div></div>';
+        }
         $s = $where === 'top_right' ? 1 : 0.72;
         return '<div style="text-align:center">' . $logo
             . '<div style="font-family:\'Times New Roman\',serif;font-weight:bold;font-size:' . round(16 * $k * $s, 1) . 'pt;color:#111;margin-top:' . round(2 * $s, 1) . 'mm">Accreditation No.</div>'
@@ -356,7 +379,13 @@ if (!function_exists('cv2_settings')) {
         return 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($abs));
     }
 
+    /** Layouts: 'v3' is the current one (new and reissued certificates); frozen 'v2' snapshots keep drawing the older layout. */
     function cv2_html(array $d): string
+    {
+        return ($d['layout'] ?? 'v3') === 'v2' ? cv2_html_v2($d) : cv2_html_v3($d);
+    }
+
+    function cv2_html_v2(array $d, ?string $bgFile = null, float $wordW = 165): string
     {
         $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
         $G = CV2_GREEN; $abs = 'position:absolute;';
@@ -375,7 +404,7 @@ if (!function_exists('cv2_settings')) {
         $extra = trim($d['extra']);
 
         $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>@page{size:A4 landscape;margin:0}*{margin:0;padding:0}body{width:297mm;height:210mm;color:#111}</style></head><body>'
-            . '<img src="' . cv2_uri(cv2_background()) . '" style="' . $abs . 'left:0;top:0;width:297mm;height:210mm">'
+            . '<img src="' . cv2_uri($bgFile ?: cv2_background()) . '" style="' . $abs . 'left:0;top:0;width:297mm;height:210mm">'
             . ($wm ? '<img src="' . cv2_uri($wm) . '" style="' . $abs . 'left:96mm;top:108mm;width:105mm">' : '')
             // logo and titles
             . ($d['logo'] ? '<div style="' . $abs . 'left:0;width:297mm;top:14mm;text-align:center"><img src="' . cv2_uri_any($d['logo']) . '" style="height:31mm"></div>' : '')
@@ -388,7 +417,7 @@ if (!function_exists('cv2_settings')) {
             . $line(92, 115.8, 52) . $line(153, 115.8, 52)
             . '<div style="' . $abs . 'left:146.8mm;top:114.4mm;width:2.4mm;height:2.4mm;background:' . $G . ';transform:rotate(45deg)"></div>'
             // the two boxes under the name
-            . '<div style="' . $abs . 'left:66mm;width:165mm;top:120.5mm;text-align:center;' . $serif . 'font-size:14pt;line-height:1.35">' . cv2_wording_html($d['wording'], $d)
+            . '<div style="' . $abs . 'left:' . (148.5 - $wordW / 2) . 'mm;width:' . $wordW . 'mm;top:120.5mm;text-align:center;' . $serif . 'font-size:14pt;line-height:1.35">' . cv2_wording_html($d['wording'], $d)
             . ($extra !== '' ? '<div style="margin-top:1mm;font-size:12.5pt">' . nl2br($e($extra)) . '</div>' : '') . '</div>'
             // verification column
             . '<div style="' . $abs . 'left:7mm;width:41mm;top:98mm;text-align:center;' . $sans . 'font-size:9.5pt">' . $e($d['cert_no']) . '</div>'
@@ -422,5 +451,64 @@ if (!function_exists('cv2_settings')) {
             . (!empty($d['watermark']) ? '<div style="' . $abs . 'left:0;width:297mm;top:88mm;text-align:center;font-size:96pt;font-weight:bold;letter-spacing:12pt;color:rgba(55,52,53,0.13);transform:rotate(-18deg)">' . $e($d['watermark']) . '</div>' : '')
             . '</body></html>';
         return $html;
+    }
+
+    /* ---------------- layout v3: fine guilloche, big curved corners, NITA block at the top right ---------------- */
+
+    /** The default NITA logo shipped with the system (Admin → Settings → NITA Accreditation replaces it). */
+    function cv2_nita_default_logo(): ?string
+    {
+        $f = dirname(__DIR__) . '/assets/brand/nita-logo.png';
+        return is_file($f) ? $f : null;
+    }
+
+    /** v3 page background: a fine all-over guilloche (thin Dazu-green waves, low strength) and the curved black and green corners. 297 × 210 mm. */
+    function cv2_background_v3(): string
+    {
+        $file = cv2_cache('cert_v3_bg_3.png');
+        if (is_file($file)) return $file;
+        $k = 8; $W = 297 * $k; $H = 210 * $k;   // 8 px per mm
+        $im = imagecreatetruecolor($W, $H);
+        imageantialias($im, true);
+        imagefill($im, 0, 0, imagecolorallocate($im, 255, 255, 255));
+        $line = imagecolorallocate($im, 0xE0, 0xED, 0xE5);   // #048C44 at about 12 % on white
+        // Fine wavy lines, all alike and evenly spaced: no second set crossing them, so no shaded bands appear.
+        $step = 1.3 * $k;
+        for ($y0 = -6 * $k; $y0 < $H + 6 * $k; $y0 += $step) {
+            $prev = null;
+            for ($x = 0; $x <= $W; $x += 4) {
+                $t = $x / $W;
+                $y = $y0 + (2.4 * sin($t * M_PI * 10) + 0.7 * sin($t * M_PI * 46)) * $k;
+                if ($prev) imageline($im, $prev[0], (int) $prev[1], $x, (int) $y, $line);
+                $prev = [$x, $y];
+            }
+        }
+        $ink = imagecolorallocate($im, 0x11, 0x11, 0x11);
+        $green = imagecolorallocate($im, 0x04, 0x8C, 0x44);
+        $bez = function (array $a, array $c, array $b, int $n = 60): array {
+            $o = [];
+            for ($i = 0; $i <= $n; $i++) {
+                $t = $i / $n; $u = 1 - $t;
+                $o[] = [$u * $u * $a[0] + 2 * $u * $t * $c[0] + $t * $t * $b[0], $u * $u * $a[1] + 2 * $u * $t * $c[1] + $t * $t * $b[1]];
+            }
+            return $o;
+        };
+        $fill = function (array $pts, int $col, bool $flip) use ($im, $k) {
+            $flat = [];
+            foreach ($pts as [$x, $y]) { if ($flip) { $x = 297 - $x; $y = 210 - $y; } $flat[] = (int) round($x * $k); $flat[] = (int) round($y * $k); }
+            imagefilledpolygon($im, $flat, $col);
+        };
+        // top left, turned 180° for the bottom right: the green band, then the black corner on top of it
+        foreach ([false, true] as $flip) {
+            $fill(array_merge([[0, 0]], $bez([95, 0], [40, 6], [0, 37.5])), $green, $flip);
+            $fill(array_merge([[0, 0]], $bez([77, 0], [28, 5], [0, 27])), $ink, $flip);
+        }
+        imagepng($im, $file, 6);
+        return $file;
+    }
+
+    function cv2_html_v3(array $d): string
+    {
+        return cv2_html_v2($d, cv2_background_v3(), 140);
     }
 }

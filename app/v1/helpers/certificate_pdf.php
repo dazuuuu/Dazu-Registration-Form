@@ -332,6 +332,8 @@ if (!function_exists('cert_pdf_bytes')) {
         $opts->setIsPhpEnabled(false);
         $opts->setDpi(150);
         $opts->setDefaultFont('Times-Roman');
+        $tmp = storage_path('cache/dompdf_tmp');   // dompdf writes each picture here first; the system temp folder is not always writable
+        if (is_dir($tmp) || @mkdir($tmp, 0775, true)) $opts->setTempDir($tmp);
 
         $dompdf = new Dompdf($opts);
         $dompdf->loadHtml(cert_render_html($cert), 'UTF-8');

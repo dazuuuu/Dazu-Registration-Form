@@ -82,7 +82,7 @@ ob_start();
   <div class="col-xl-4">
     <div class="card p-3 mb-3">
       <h6 class="fw-bold mb-1">Default wording</h6>
-      <p class="small text-muted mb-2">Printed under the student's name on every new certificate. Fields: <code>{course}</code> <code>{duration}</code> <code>{student_name}</code>.
+      <p class="small text-muted mb-2">Printed under the student's name on every new certificate. Fields: <code>{course}</code> <code>{a_duration}</code> <code>{duration}</code> <code>{student_name}</code>.
         The student's name, registration number and certificate number are locked. The tutor's extra lines are written per certificate.</p>
       <textarea class="form-control form-control-sm" name="wording" id="wording" rows="3" maxlength="<?php echo CV2_WORDING_MAX; ?>" data-max="<?php echo CV2_WORDING_MAX; ?>"><?php echo $e($set['wording']); ?></textarea>
       <div class="d-flex justify-content-between small mt-1"><span class="text-muted">Up to <?php echo CV2_WORDING_MAX; ?> characters.</span><span class="count" data-for="wording"></span></div>

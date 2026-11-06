@@ -153,6 +153,14 @@ ob_start();
     </div>
 </div></div>
 
+<?php if (sl_installed($pdo)): ?>
+<div class="card-tutor mb-3">
+    <div class="head d-flex justify-content-between align-items-center"><span><i class="fas fa-envelope-open-text me-1"></i>Letter of recommendation (preview)</span>
+        <a class="btn btn-outline-secondary btn-sm" target="_blank" href="<?php echo htmlspecialchars(url('letters/student.php?reg=' . $regId)); ?>">Open full page</a></div>
+    <div class="p-0"><iframe title="Letter of recommendation preview" src="<?php echo htmlspecialchars(url('letters/student.php?reg=' . $regId)); ?>" style="width:100%;height:1500px;border:0;background:#eef0ec"></iframe></div>
+</div>
+<?php endif; ?>
+
 <div class="card-tutor mb-3">
     <div class="head"><i class="fas fa-flag-checkered me-1"></i>Course completion &amp; certificate</div>
     <div class="p-3">

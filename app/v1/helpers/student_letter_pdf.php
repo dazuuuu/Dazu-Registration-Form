@@ -139,7 +139,7 @@ if (!function_exists('sl_html')) {
 .sl-in{position:absolute;left:18mm;top:14mm;width:174mm}
 .sl-title{text-align:center;font-weight:bold;font-size:20.5pt;line-height:16.5pt;margin-top:8mm;color:#333}
 .sl-meta{font-size:9pt;font-weight:bold;line-height:10.5pt;white-space:nowrap;text-align:left;padding:0}
-.sl-p{font-size:8.7pt;line-height:8pt;margin:0 0 2.6mm 0;text-align:justify}
+.sl-p{font-size:8.7pt;line-height:8.5pt;margin:0 0 2.6mm 0;text-align:justify}
 .sl-wave{position:absolute;left:0;top:275mm;width:210mm;height:22mm}
 .sl-draft{position:absolute;left:0;top:115mm;width:210mm;text-align:center;font-size:90pt;font-weight:bold;color:rgba(190,190,190,.4)}';
 

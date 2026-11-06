@@ -6,6 +6,7 @@ require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/middleware.php';
 require_once __DIR__ . '/../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../app/v1/services/TutorIdService.php';
+require_once __DIR__ . '/../../app/v1/helpers/tutor_card_pdf.php';   // tcard_pdf_bytes(), used by the admin sample card
 
 Middleware::requireAuth();
 $db = \Models\Connection::getInstance()->getConnection();

@@ -86,7 +86,7 @@ header('X-Robots-Tag: noindex');
         <textarea id="<?php echo $name; ?>" name="<?php echo $name; ?>" rows="<?php echo $rows; ?>" maxlength="<?php echo $max; ?>" data-max="<?php echo $max; ?>"><?php echo $e($val); ?></textarea>
         <div class="meta"><span class="hint"><?php echo $hint; ?></span><span class="count" data-for="<?php echo $name; ?>"></span></div>
       <?php }; ?>
-      <?php $box('wording', '1 · Default wording', 'Fields: <code>{course}</code> <code>{duration}</code> <code>{student_name}</code>', $wording, CV2_WORDING_MAX, 3); ?>
+      <?php $box('wording', '1 · Default wording', 'Fields: <code>{course}</code> <code>{a_duration}</code> <code>{duration}</code> <code>{student_name}</code>. {a_duration} writes "an 18-month" or "a 1-month" for you.', $wording, CV2_WORDING_MAX, 3); ?>
       <?php $box('extra', '2 · Tutor\'s extra lines', 'Optional, about two lines.', $extra, CV2_EXTRA_MAX, 2); ?>
       <div class="bar"><span id="dirty" class="dirty" hidden>Unsaved changes</span><button class="btn" name="action" value="save">Save</button>
         <?php if ($isAdmin && $issued): ?><button class="btn o" name="action" value="reissue" formnovalidate onclick="return confirm('Reissue this certificate with the saved text and the current settings? The old version is kept in the history.')">Reissue</button><?php endif; ?></div>

@@ -72,6 +72,24 @@ unset($_SESSION['sl_flash']);
 header('X-Robots-Tag: noindex');
 header('Cache-Control: private, no-store');
 
+// Admin: the letter as it will look once issued (today's date, director signature, dated stamp). Nothing is saved.
+if ($view === 'admin' && isset($_GET['preview'])) {
+    require_once __DIR__ . '/../../app/v1/helpers/student_letter_pdf.php';
+    $d = sl_preview_data($db, $reg);
+    if (isset($_GET['pdf'])) {
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="Letter-of-Recommendation-preview.pdf"');
+        echo sl_pdf($d);
+        exit;
+    }
+    ?><!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Letter preview</title>
+<style>body{margin:0;background:#eef0ec;font-family:Poppins,system-ui,sans-serif;color:#373435}.bar{max-width:210mm;margin:0 auto;padding:16px;font-size:.88rem}.paper{overflow-x:auto;padding:0 16px 32px}.paper .sl-sheet{margin:0 auto;box-shadow:0 6px 24px rgba(0,0,0,.12)}a{color:#048C44;font-weight:600}</style></head>
+<body><div class="bar"><b>Preview</b>: how this letter will look when it is issued (today's date). Nothing is saved or issued.
+ &nbsp; <a href="<?php echo $e(url('letters/student.php?reg=' . $regId . '&preview=1&pdf=1')); ?>">Open as PDF</a> &nbsp; <a href="<?php echo $e(url('letters/student.php?reg=' . $regId)); ?>">Back</a></div>
+<div class="paper"><?php echo sl_html($d, false); ?></div></body></html><?php
+    exit;
+}
+
 if ($view === 'admin') {
     $l = $status['letter'];
     ?><!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>Letter status</title>
@@ -80,6 +98,7 @@ if ($view === 'admin') {
 <div class="k">Student No</div><div class="v"><?php echo $e($reg['registration_no']); ?></div>
 <div class="k">Status</div><div class="v"><?php echo $e($status['word']); ?></div>
 <?php if ($l): ?><div class="k">Issued on</div><div class="v"><?php echo $e(date('j F Y', strtotime($l['generated_at']))); ?></div><?php endif; ?>
+<?php if (!$l): ?><div class="k">Preview</div><div class="v"><a href="<?php echo $e(url('letters/student.php?reg=' . $regId . '&preview=1')); ?>" style="color:#048C44">See the letter as it will look when issued</a></div><?php endif; ?>
 </div></main><script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
 </body></html><?php
     exit;
@@ -95,6 +114,8 @@ if (isset($_GET['pdf'])) {
     exit;
 }
 $pdfUrl = url('letters/student.php?reg=' . $regId . '&pdf=1&dl=1');
+// A draft is shown on screen as it will look once issued (signature, dated stamp, no DRAFT mark); the PDF of a draft stays marked DRAFT.
+$shown = $d['draft'] ? sl_preview_data($db, $reg) : $d;
 $cond = $status['conditions'];
 ?><!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
 <title>Letter of recommendation · Dazu Training Institute</title>
@@ -119,6 +140,7 @@ textarea{font:inherit;border:1px solid #cfd4cb;border-radius:8px;padding:8px 10p
       <span class="pill">Issued <?php echo $e(date('j M Y', strtotime($status['letter']['generated_at']))); ?> · final</span>
     <?php else: ?>
       <span class="pill d">DRAFT: the student cannot see this yet</span>
+      <div style="margin-top:6px;color:#6b7067">The page below shows how the letter will look when it is issued. The PDF stays marked DRAFT until then.</div>
       <p style="margin:10px 0 4px">The final letter is made by itself when both are true:</p>
       <?php foreach (['finished', 'fees'] as $k): $c = $cond[$k]; ?>
         <div class="<?php echo $c['ok'] ? 'ok' : 'no'; ?>"><?php echo $c['ok'] ? '✓' : '•'; ?> <?php echo $e($c['label']); ?><?php echo $c['ok'] ? '' : ': ' . $e($c['reason']); ?></div>
@@ -138,6 +160,6 @@ textarea{font:inherit;border:1px solid #cfd4cb;border-radius:8px;padding:8px 10p
   </div>
   <?php endif; ?>
 </div>
-<div class="paper"><?php echo sl_html($d, false); ?></div>
+<div class="paper"><?php echo sl_html($shown, false); ?></div>
 <script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
 </body></html>

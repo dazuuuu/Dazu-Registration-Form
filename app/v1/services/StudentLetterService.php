@@ -451,4 +451,31 @@ if (!function_exists('sl_installed')) {
             'logo' => sl_logo_file($db), 'signature' => null, 'stamp' => null, 'badges' => [],
         ];
     }
+
+    /**
+     * How the letter will look once issued, for the office to check: today's date, the director's signature and the stamp dated today with the
+     * signature on its Sign: line. Nothing is saved or issued (the stamp is drawn into the cache folder only).
+     */
+    function sl_preview_data(PDO $db, array $reg): array
+    {
+        $set = sl_settings($db);
+        $b = sl_build($db, $reg);
+        $sig = dsig_active($db);
+        $ts = tr_settings($db);
+        $now = new DateTimeImmutable('now', new DateTimeZone('Africa/Nairobi'));
+        $stamp = null;
+        $stampAbs = tr_abs($ts['stamp_path']);
+        $dateBox = stamp_box($ts['stamp_date_box']);
+        $signBox = stamp_box($ts['stamp_sign_box']);
+        if ($stampAbs && $dateBox && $signBox && ($png = stamp_compose($stampAbs, $dateBox, $signBox, $now, $sig['file'] ?? null))) {
+            $stamp = storage_path('cache/letter_preview_stamp_' . (int) $reg['id'] . '.png');
+            @mkdir(dirname($stamp), 0775, true);
+            file_put_contents($stamp, $png);
+        }
+        return [
+            'draft' => false, 'student_no' => $b['student_no'], 'date' => $now->format('Y-m-d H:i:s'), 'paragraphs' => $b['paragraphs'],
+            'email' => $set['email'], 'website' => $set['website'], 'linkedin' => $set['linkedin'],
+            'logo' => sl_logo_file($db), 'signature' => $sig['file'] ?? null, 'stamp' => $stamp, 'badges' => [],
+        ];
+    }
 }
