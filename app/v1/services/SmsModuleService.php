@@ -1142,18 +1142,8 @@ class SmsModuleService
         if (!function_exists('vendor_autoload_files')) {
             require_once __DIR__ . '/../config/paths.php';
         }
-        $autoload = null;
-        foreach (vendor_autoload_files() as $candidate) {
-            if (is_file($candidate)) {
-                $autoload = $candidate;
-                break;
-            }
-        }
-        if ($autoload === null) {
-            return false;
-        }
-        require_once $autoload;
-        if (!class_exists('Dompdf\\Dompdf')) {
+        require_once __DIR__ . '/../helpers/dompdf.php';
+        if (!dazu_load_dompdf()) {   // the bundled copy first, then Composer's
             return false;
         }
         try {

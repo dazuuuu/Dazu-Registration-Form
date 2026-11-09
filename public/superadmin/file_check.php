@@ -51,6 +51,7 @@ $page_title = 'File check';
 $sa_subtitle = 'Which files on this server are missing or not the latest version.';
 ob_start();
 ?>
+<?php $vendorGaps = count(array_filter(array_merge($missing, $different), fn($f) => str_starts_with($f, 'app/v1/vendor/'))); if ($vendorGaps): ?><div class="alert alert-warning"><?php echo (int) $vendorGaps; ?> of these files are in <code>app/v1/vendor</code>. Don't upload them: <a href="<?php echo url('superadmin/vendor.php'); ?>">Vendor packages</a> downloads them onto the server for you.</div><?php endif; ?>
 <?php if ($fatal): ?><div class="alert alert-danger">A page crashed recently. See "Pages that crashed" below for the exact error.</div><?php endif; ?>
 <?php if (!$manifest): ?>
   <div class="alert alert-warning">Upload <code>app/v1/file_manifest.json</code> (it comes with every update) and open this page again.</div>

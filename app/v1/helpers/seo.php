@@ -230,6 +230,7 @@ if (!function_exists('seo_public_preview_image')) {
 }
 
 if (!function_exists('seo_is_social_crawler')) {
+    /** Link-preview bots only. Search engines (Google, Bing) get the full page, so they see every link and all the text. */
     function seo_is_social_crawler(): bool
     {
         $ua = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
@@ -237,7 +238,7 @@ if (!function_exists('seo_is_social_crawler')) {
             return false;
         }
         return (bool) preg_match(
-            '/facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Slackbot|LinkedInBot|Pinterest|Discordbot|Iframely|Googlebot|bingbot|Applebot/i',
+            '/facebookexternalhit|Facebot|Twitterbot|WhatsApp|TelegramBot|Slackbot|LinkedInBot|Pinterest|Discordbot|Iframely/i',
             $ua
         );
     }

@@ -1,5 +1,6 @@
 <?php
-// Served as /sitemap.xml: the public pages, every live course and every published blog post.
+// Served as /sitemap.xml: the public pages, every live course, every course category, every live course page (dazu.ac.ke/<slug>,
+// not in the menu, so this is how search engines find them) and every published blog post. Linked from /robots.txt.
 require_once __DIR__ . '/../app/v1/config/paths.php';
 require_once __DIR__ . '/../app/v1/config/db_connect.php';
 require_once __DIR__ . '/../app/v1/helpers/course_share.php';
@@ -17,6 +18,23 @@ try {
     }
 } catch (Throwable $e) {
     error_log('[sitemap] courses: ' . $e->getMessage());
+}
+foreach (['courses/free'] as $p) {
+    if (is_file(__DIR__ . '/' . $p . '.php')) $urls[] = [$abs($p), null];
+}
+try {   // course landing pages (Admin → Courses → Course pages)
+    foreach ($pdo->query("SELECT p.slug, p.updated_at FROM course_pages p JOIN courses c ON c.id = p.course_id WHERE p.is_published = 1 AND c.is_active = 1") as $cp) {
+        $urls[] = [$abs($cp['slug']), $cp['updated_at']];
+    }
+} catch (Throwable $e) {
+    // migration 101 not run yet
+}
+try {
+    foreach ($pdo->query("SELECT slug, updated_at FROM course_categories WHERE is_active = 1 AND slug <> ''") as $cat) {
+        $urls[] = [$abs('courses/category') . '?slug=' . rawurlencode($cat['slug']), $cat['updated_at']];
+    }
+} catch (Throwable $e) {
+    error_log('[sitemap] categories: ' . $e->getMessage());
 }
 try {
     foreach ($pdo->query("SELECT slug, COALESCE(updated_at, published_at) AS changed FROM blogs WHERE status = 'published' AND slug <> ''") as $b) {

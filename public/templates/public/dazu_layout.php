@@ -59,6 +59,16 @@ if (!function_exists('dazu_asset_v')) {
   <link rel="stylesheet" href="<?php echo htmlspecialchars(dazu_tailwind_css()); ?>">
   <link rel="stylesheet" href="<?php echo dazu_asset_v('css/dazu-frontend-theme.css'); ?>">
   <style>svg.dazu-icon{width:1.25rem;height:1.25rem;flex-shrink:0;max-width:100%}</style>
+  <?php
+    // Who we are, for Google (logo, address, the site search box).
+    $__home = course_share_absolute_url(url('/'));
+    echo '<script type="application/ld+json">' . json_encode([
+        ['@context' => 'https://schema.org', '@type' => 'EducationalOrganization', 'name' => 'Dazu Training Institute', 'url' => $__home,
+         'logo' => course_share_absolute_url(url('assets/images/logo/logo.png')), 'address' => ['@type' => 'PostalAddress', 'addressLocality' => 'Thika', 'addressCountry' => 'KE'],
+         'sameAs' => ['https://www.linkedin.com/company/dazu-training-institute']],
+        ['@context' => 'https://schema.org', '@type' => 'WebSite', 'name' => 'Dazu Training Institute', 'url' => $__home],
+    ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) . '</script>' . "\n";
+  ?>
   <?php if (!empty($extra_head)) echo $extra_head; ?>
 </head>
 <body class="bg-white text-slate-900 font-sans antialiased selection:bg-green-100 selection:text-green-800">

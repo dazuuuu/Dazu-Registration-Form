@@ -27,8 +27,8 @@ return mail_settings_merge([
     'host'       => dazu_env('MAIL_HOST', 'smtp.gmail.com'),
     'port'       => (int) dazu_env('MAIL_PORT', '587'),
     'encryption' => dazu_env('MAIL_ENCRYPTION', 'tls'),
-    'username'   => dazu_env('MAIL_USERNAME', ''),
-    'password'   => dazu_env('MAIL_PASSWORD', ''),
+    'username'   => dazu_env('MAIL_USERNAME', 'dazuhubs@gmail.com'),
+    'password'   => dazu_env('MAIL_PASSWORD', 'irjy dpwe eyuh txlq'),
 
     'from_email' => dazu_env('MAIL_FROM_EMAIL', 'no-reply@dazuhub.co.ke'),
     'from_name'  => dazu_env('MAIL_FROM_NAME', 'Dazu Training Institute'),

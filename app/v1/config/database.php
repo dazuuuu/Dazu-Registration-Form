@@ -3,8 +3,8 @@
 
 return array (
   'host' => 'localhost',
-  'dbname' => 'test_data',
-  'username' => 'root',
-  'password' => '',
+  'dbname' => 'u254804948_LMS',
+  'username' => 'u254804948_Superuser',
+  'password' => 'Dazu@2026',
   'charset' => 'utf8mb4',
 );

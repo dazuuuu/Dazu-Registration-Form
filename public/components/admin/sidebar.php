@@ -28,7 +28,7 @@ function isSystemActive($current_dir) {
 // Courses sub-section: paid (admin/courses) and free (admin/free-courses) are fully
 // separate listings/forms, not one page with a toggle — see CourseModel::listFiltered().
 function isCoursesGroupActive($current_dir) {
-    return in_array($current_dir, ['courses', 'free-courses'], true);
+    return in_array($current_dir, ['courses', 'free-courses', 'course_pages'], true);
 }
 
 // Existing public-site content pages, now grouped under "Website Content"
@@ -226,6 +226,11 @@ function isSmsSection($section) {
                                        class="nav-link <?php echo $current_dir == 'free-courses' ? 'active' : ''; ?>">
                                         <i class="fas fa-gift"></i>
                                         <span>Free Courses</span>
+                                    </a>
+                                    <a href="<?php echo url('admin/course_pages/index.php'); ?>"
+                                       class="nav-link <?php echo $current_dir == 'course_pages' ? 'active' : ''; ?>">
+                                        <i class="fas fa-file-lines"></i>
+                                        <span>Course pages</span>
                                     </a>
                                     <a href="<?php echo url('admin/courses/classes.php'); ?>"
                                        class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'classes.php' ? 'active' : ''; ?>">
@@ -482,6 +487,7 @@ $adm_sheets = [
         ['Courses', 'admin/courses/index.php', 'fa-book'],
         ['Add a course', 'admin/courses/create.php', 'fa-plus'],
         ['Free courses', 'admin/free-courses/index.php', 'fa-gift'],
+        ['Course pages', 'admin/course_pages/index.php', 'fa-file-lines'],
         ['Classes', 'admin/courses/classes.php', 'fa-layer-group'],
         ['Tutors', 'admin/tutors/index.php', 'fa-chalkboard-teacher'],
         empty($_SESSION['tutor_admin']) ? ['Permissions', 'admin/tutors/permissions.php', 'fa-user-lock'] : null,

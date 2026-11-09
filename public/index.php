@@ -38,6 +38,11 @@ $__routed = (function (): ?string {
             $_GET['slug'] = $_REQUEST['slug'] = strtolower($m[2]);
         }
     }
+    // A course landing page at the root: /software-engineering (Admin → Courses → Course pages). It answers 404 itself if there is none.
+    if ($file === null && preg_match('#^[A-Za-z0-9][A-Za-z0-9-]{0,119}$#', $rel)) {
+        $file = 'course-page.php';
+        $_GET['slug'] = $_REQUEST['slug'] = strtolower($rel);
+    }
     if ($file === null || !is_file(__DIR__ . '/' . $file)) {
         return null;
     }
