@@ -30,7 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $installed) {
 }
 
 $pages = $installed ? $db->query('SELECT p.*, c.title AS course_title, c.cover_image FROM course_pages p JOIN courses c ON c.id = p.course_id ORDER BY p.updated_at DESC')->fetchAll(PDO::FETCH_ASSOC) : [];
-$free = $installed ? $db->query("SELECT id, title FROM courses WHERE is_active = 1 AND (approval_status IS NULL OR approval_status = 'approved') AND id NOT IN (SELECT course_id FROM course_pages) ORDER BY title")->fetchAll(PDO::FETCH_ASSOC) : [];
+$hasAppr = (bool) $db->query("SHOW COLUMNS FROM courses LIKE 'approval_status'")->fetch();
+$free = $installed ? $db->query("SELECT id, title FROM courses WHERE is_active = 1" . ($hasAppr ? " AND (approval_status IS NULL OR approval_status = 'approved')" : '') . " AND id NOT IN (SELECT course_id FROM course_pages) ORDER BY title")->fetchAll(PDO::FETCH_ASSOC) : [];
 $page_title = 'Course pages';
 ob_start();
 ?>

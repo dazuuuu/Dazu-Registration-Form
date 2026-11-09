@@ -13,7 +13,8 @@ foreach (['/', 'about', 'courses', 'contact', 'blog', 'gallery', 'projects', 'se
     if ($p === '/' || is_file(__DIR__ . '/' . ($p === 'blog' ? 'blogs' : $p) . '/index.php')) $urls[] = [$abs($p), null];
 }
 try {
-    foreach ($pdo->query("SELECT id, abbreviation, updated_at FROM courses WHERE is_active = 1 AND (approval_status IS NULL OR approval_status = 'approved')") as $c) {
+    $hasAppr = (bool) $pdo->query("SHOW COLUMNS FROM courses LIKE 'approval_status'")->fetch();
+    foreach ($pdo->query("SELECT id, abbreviation, updated_at FROM courses WHERE is_active = 1" . ($hasAppr ? " AND (approval_status IS NULL OR approval_status = 'approved')" : '')) as $c) {
         $urls[] = [course_clean_url((int) $c['id']), $c['updated_at']];
     }
 } catch (Throwable $e) {
