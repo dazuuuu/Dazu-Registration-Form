@@ -68,7 +68,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
             'customer_name' => trim($_POST['customer_name'] ?? ''),
             'customer_email' => trim($_POST['customer_email'] ?? '') ?: null,
             'customer_phone' => trim($_POST['customer_phone'] ?? '') ?: null,
-            'customer_initial' => strtoupper(substr(trim($_POST['customer_name'] ?? 'DH'), 0, 2)),
+            'customer_initial' => strtoupper(substr(trim($_POST['customer_name'] ?? ''), 0, 2)),
             'rating' => (int)($_POST['rating'] ?? 5),
             'testimonial_text' => trim($_POST['testimonial_text'] ?? ''),
             'testimonial_type' => $type,
@@ -123,9 +123,9 @@ ob_start();
 
             <div class="row g-3">
                 <div class="col-md-6">
-                    <label class="form-label font-weight-bold">Student / Customer Name *</label>
+                    <label class="form-label font-weight-bold">Student / Customer Name <span class="text-muted fw-normal">(optional)</span></label>
                     <input type="text" name="customer_name" class="form-control" 
-                           value="<?php echo htmlspecialchars($testimonial['customer_name']); ?>" required>
+                           value="<?php echo htmlspecialchars($testimonial['customer_name']); ?>">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label font-weight-bold">Testimonial Type *</label>

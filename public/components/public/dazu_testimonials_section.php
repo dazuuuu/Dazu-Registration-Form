@@ -78,7 +78,7 @@ $gradients = [
               $ytId = testimonial_youtube_id($t['video_url'] ?? '');
               $isFile = !$ytId && (($t['video_provider'] ?? '') === 'upload' || preg_match('#\.(mp4|webm|mov|m4v)(\?|$)#i', $embed));
               $thumb = trim((string) ($t['thumbnail_url'] ?? '')) ?: ($ytId ? 'https://img.youtube.com/vi/' . $ytId . '/hqdefault.jpg' : '');
-              $name = $t['customer_name'] ?? 'Alumni';
+              $name = trim((string) ($t['customer_name'] ?? ''));
               $meta = trim((string) ($t['role'] ?? '')) ?: ($t['service_tag'] ?? '');
               $quote = trim((string) ($t['testimonial_text'] ?? ''));
               $src = $isFile ? $embed : $embed . (str_contains($embed, '?') ? '&' : '?') . 'autoplay=1';
@@ -86,14 +86,14 @@ $gradients = [
             <article class="dz-sv-card" data-i="<?php echo $i; ?>" data-kind="<?php echo $isFile ? 'file' : 'embed'; ?>" data-src="<?php echo htmlspecialchars($src, ENT_QUOTES); ?>">
               <div class="dz-sv-media" style="background:<?php echo htmlspecialchars($gradients[$i % count($gradients)]); ?>">
                 <?php if ($thumb): ?>
-                  <img src="<?php echo htmlspecialchars($thumb, ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($name, ENT_QUOTES); ?>" loading="lazy" draggable="false">
+                  <img src="<?php echo htmlspecialchars($thumb, ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($name !== '' ? $name : 'Student story', ENT_QUOTES); ?>" loading="lazy" draggable="false">
                 <?php elseif ($isFile): ?>
                   <video class="dz-sv-poster" src="<?php echo htmlspecialchars($embed, ENT_QUOTES); ?>#t=0.5" muted playsinline preload="metadata"></video>
                 <?php endif; ?>
                 <button type="button" class="dz-sv-play"><svg viewBox="0 0 24 24"><path d="M6 4l15 8-15 8z"/></svg>Play Video</button>
                 <?php if ($quote): ?><p class="dz-sv-quote"><?php echo htmlspecialchars($quote); ?></p><?php endif; ?>
               </div>
-              <h4 class="dz-sv-name"><?php echo htmlspecialchars($name); ?></h4>
+              <?php if ($name !== ''): ?><h4 class="dz-sv-name"><?php echo htmlspecialchars($name); ?></h4><?php endif; ?>
               <?php if ($meta): ?><span class="dz-sv-meta"><?php echo htmlspecialchars($meta); ?></span><?php endif; ?>
             </article>
           <?php endforeach; ?>

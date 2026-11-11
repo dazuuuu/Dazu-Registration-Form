@@ -112,7 +112,7 @@ ob_start();
 .lp-btn{display:inline-block;background:var(--g);color:#fff!important;font-weight:700;font-size:.9rem;padding:.7rem 1.3rem;border-radius:8px;text-decoration:none;text-align:center}.lp-btn:hover{background:#037A3B}
 .lp-band{background:#0f172a;color:#fff;padding:40px 0}
 .lp-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:32px}.lp-grid>*{min-width:0}.lp{overflow-x:clip}
-@media(min-width:1024px){.lp-grid{grid-template-columns:minmax(0,1fr) 400px}.lp-band .lp-main{padding-right:8px}}
+@media(min-width:1024px){.lp-grid{grid-template-columns:minmax(0,1fr) 480px}.lp-band .lp-main{padding-right:8px}}
 .lp-cat{font-size:.8rem;font-weight:700;color:#86efac;text-transform:uppercase;letter-spacing:.08em}
 .lp-band h1{color:#fff;font-size:clamp(1.8rem,3.6vw,2.6rem);line-height:1.15;font-weight:800;margin:.5rem 0 .8rem}
 .lp-band p{color:#cbd5e1;font-size:1.05rem;line-height:1.6;margin:0 0 1.2rem;max-width:680px}
@@ -135,6 +135,10 @@ ob_start();
 .lp-mods div{display:flex;gap:14px;padding:14px 18px;border-top:1px solid var(--line)}.lp-mods div:first-child{border-top:0}
 .lp-mods span{flex:0 0 28px;height:28px;border-radius:50%;background:#ecfdf5;color:var(--g);font-weight:800;font-size:.8rem;display:flex;align-items:center;justify-content:center}
 .lp-mods b{display:block}.lp-mods small{color:var(--mut);font-size:.9rem}
+.lp-form>div{border:0!important;padding:4px 0 0!important;border-radius:0!important;box-shadow:none!important}
+.lp-form input:not([type=radio]):not([type=checkbox]),.lp-form select,.lp-form textarea{font-size:15px!important;padding:12px 14px!important}
+.lp-form label{font-size:12px!important}.lp-form button{font-size:14px!important}
+.lp-card .lp-in{padding:20px 24px}
 .lp-foot{border-top:1px solid var(--line);padding:20px 0;font-size:.85rem;color:var(--mut);text-align:center}
 .lp-mob{display:block}@media(min-width:1024px){.lp-mob{display:none}}
 .lp-desk{display:none}@media(min-width:1024px){.lp-desk{display:block}}
@@ -177,7 +181,7 @@ ob_start();
         <div class="lp-in">
           <div class="lp-price"><?php echo $fee > 0 ? 'KSh ' . number_format($fee) : 'Free'; ?></div>
           <?php $ikPart = 'top'; include __DIR__ . '/components/public/intake_panel.php'; ?>
-          <?php if ($ikShowForm || $reg_success): $pfx = 'lp'; include __DIR__ . '/components/public/dazu_admission_form.php'; endif; ?>
+          <div class="lp-form"><?php if ($ikShowForm || $reg_success): $pfx = 'lp'; include __DIR__ . '/components/public/dazu_admission_form.php'; endif; ?></div>
           <?php $ikPart = 'after'; include __DIR__ . '/components/public/intake_panel.php'; ?>
         </div>
       </div>

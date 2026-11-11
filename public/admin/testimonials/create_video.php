@@ -24,8 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {
         $error = 'Security check failed. Please refresh and try again.';
-    } elseif ($name === '') {
-        $error = 'Enter the student\'s name.';
     } elseif ($source === 'youtube') {
         $videoUrl = trim($_POST['video_url'] ?? '');
         if (!testimonial_youtube_id($videoUrl)) {
@@ -92,8 +90,8 @@ ob_start();
       <?php echo csrf_field(); ?>
       <div class="row g-3">
         <div class="col-md-6">
-          <label class="form-label">Student name *</label>
-          <input class="form-control" name="customer_name" value="<?php echo $e('customer_name'); ?>" required placeholder="e.g. Yuri Demidov">
+          <label class="form-label">Student name <span class="text-muted">(optional)</span></label>
+          <input class="form-control" name="customer_name" value="<?php echo $e('customer_name'); ?>" placeholder="e.g. Yuri Demidov">
         </div>
         <div class="col-md-6">
           <label class="form-label">Location or role</label>
