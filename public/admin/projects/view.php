@@ -119,6 +119,12 @@ ob_start();
 
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<?php if (empty($GLOBALS['dz_editor_loaded'])): $GLOBALS['dz_editor_loaded'] = 1; ?>
+<script>window.jQuery || document.write('<script src="https://code.jquery.com/jquery-3.6.0.min.js"><\/script>')</script>
+<?php include __DIR__ . '/../blogs/_editor.php'; ?>
+<script>$(function () { $('textarea[name="description"]').each(function () { dzInitEditor($(this), { height: 320, placeholder: 'Describe the project. Paste a YouTube link to show the video, or a website link to show the live site.' }); }); });</script>
+<?php endif; ?>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dropzone/5.9.3/dropzone.min.js"></script>
 

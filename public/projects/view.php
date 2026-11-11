@@ -2,6 +2,7 @@
 // public/projects/view.php — single student project, sandbox-embedded, styled after public/blogs/readmore.php
 
 require_once __DIR__ . '/../../app/v1/init.php';
+require_once __DIR__ . '/../../app/v1/helpers/rich_embeds.php';
 
 $slug = $_GET['slug'] ?? null;
 if (!$slug) {
@@ -77,20 +78,14 @@ ob_start();
     </div>
 
     <?php if (!empty($project['live_url'])): ?>
-      <div class="border border-slate-200 rounded-2xl overflow-hidden">
-        <div class="flex items-center justify-between px-4 py-2 bg-slate-50 border-b border-slate-200">
-          <span class="text-xs font-bold text-slate-500 truncate"><i class="fas fa-flask me-1"></i> Live Sandbox Preview</span>
-          <a href="<?php echo htmlspecialchars($project['live_url']); ?>" target="_blank" rel="noopener noreferrer" class="text-xs font-extrabold text-green-600 hover:text-green-700 whitespace-nowrap ml-3">Open in new tab ↗</a>
-        </div>
-        <iframe src="<?php echo htmlspecialchars($project['live_url']); ?>" class="w-full" style="height: 560px; border: 0;" loading="lazy" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
-      </div>
+      <?php echo preg_match('~^https?://~i', $project['live_url']) ? rich_site_html((string) $project['live_url']) : ''; ?>
     <?php elseif (!empty($project['cover_image'])): ?>
       <img src="<?php echo htmlspecialchars($project['cover_image']); ?>" alt="" class="w-full rounded-2xl border border-slate-200">
     <?php endif; ?>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="md:col-span-2 space-y-3 text-slate-700 leading-relaxed whitespace-pre-line">
-        <?php echo nl2br(htmlspecialchars($project['description'] ?? '')); ?>
+      <div class="md:col-span-2 space-y-3 text-slate-700 leading-relaxed">
+        <?php echo rich_text((string) ($project['description'] ?? '')); ?>
       </div>
       <div class="space-y-5 md:border-l md:border-slate-100 md:pl-6">
         <?php if (!empty($languages)): ?>

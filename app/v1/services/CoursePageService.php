@@ -320,6 +320,14 @@ if (!function_exists('cp_installed')) {
     }
 
     /** The video player: YouTube / Vimeo embed, an .mp4 file, else null. */
+    /** The page's own picture, else the course cover (absolute, for sharing). */
+    function cp_cover_url(array $page, ?array $course): string
+    {
+        $img = trim((string) ($page['cover_image'] ?? ''));
+        if ($img !== '') return course_share_absolute_url(url(ltrim($img, '/')));
+        return $course ? course_og_image_url($course) : '';
+    }
+
     function cp_video_html(?string $url, string $title): ?string
     {
         $url = trim((string) $url);

@@ -1,6 +1,7 @@
 <?php
 // public/projects/readmore.php
 require_once __DIR__ . '/../../app/v1/init.php';
+require_once __DIR__ . '/../../app/v1/helpers/rich_embeds.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
 
 $id = $_GET['id'] ?? null;
@@ -105,8 +106,14 @@ ob_start();
     <!-- Overview -->
     <div class="mb-12">
       <h2 class="text-xl font-extrabold text-slate-950 uppercase tracking-tight mb-4">Project Overview</h2>
-      <div class="text-slate-600 font-medium leading-relaxed"><?php echo nl2br(htmlspecialchars($project['description'] ?? '')); ?></div>
+      <div class="text-slate-600 font-medium leading-relaxed"><?php echo rich_text((string) ($project['description'] ?? '')); ?></div>
     </div>
+    <?php if (!empty($project['live_url']) && preg_match('~^https?://~i', $project['live_url'])): ?>
+    <div class="mb-12">
+      <h2 class="text-xl font-extrabold text-slate-950 uppercase tracking-tight mb-4">Live Site</h2>
+      <?php echo rich_site_html((string) $project['live_url']); ?>
+    </div>
+    <?php endif; ?>
 
     <!-- Gallery -->
     <?php if (!empty($gallery)): ?>

@@ -87,7 +87,7 @@ function dzInitEditor($el, extra) {
             ['color', ['color']],
             ['para', ['ul', 'ol', 'paragraph']],
             ['table', ['table']],
-            ['insert', ['link', 'picture', 'dzVideo']],
+            ['insert', ['link', 'picture', 'dzVideo', 'dzSite']],
             ['layout', ['dzColumns', 'dzFaq', 'hr']],
             ['view', ['fullscreen', 'codeview', 'help']]
         ],
@@ -96,6 +96,14 @@ function dzInitEditor($el, extra) {
                 const id = dzYoutubeId(prompt('Paste the YouTube link:') || '');
                 if (!id) { alert('That does not look like a YouTube link.'); return null; }
                 return dzYoutubeHtml(id);
+            }),
+            dzSite: dzInsertButton('fas fa-globe', 'Website', 'Show a live preview of a website', function () {
+                let u = (prompt('Paste the website link (https://…):') || '').trim();
+                if (!u) return null;
+                if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+                if (!/^https?:\/\/[^\s<>"']+\.[^\s<>"']+$/i.test(u)) { alert('That does not look like a website link.'); return null; }
+                const h = u.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+                return '<p><a href="' + h + '" target="_blank">' + h + '</a></p><p><br></p>';
             }),
             dzColumns: dzInsertButton('fas fa-columns', 'Columns', 'Text on one side, image/video on the other', () => DZ_COLUMNS_HTML),
             dzFaq: dzInsertButton('fas fa-question-circle', 'FAQ', 'Add a question & answer', () => DZ_FAQ_HTML)

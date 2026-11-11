@@ -72,11 +72,11 @@ if (!function_exists('dazu_asset_v')) {
   <?php if (!empty($extra_head)) echo $extra_head; ?>
 </head>
 <body class="bg-white text-slate-900 font-sans antialiased selection:bg-green-100 selection:text-green-800">
-<?php include __DIR__ . '/../../components/public/dazu_navbar.php'; ?>
+<?php if (empty($GLOBALS['dazu_bare'])) include __DIR__ . '/../../components/public/dazu_navbar.php'; ?>
 <main class="flex-1">
   <?php echo $content ?? ''; ?>
 </main>
-<?php include __DIR__ . '/../../components/public/dazu_footer.php'; ?>
+<?php if (empty($GLOBALS['dazu_bare'])) include __DIR__ . '/../../components/public/dazu_footer.php'; ?>
 <script src="<?php echo dazu_asset_v('js/dazu-course-category-filter.js'); ?>"></script>
 <?php if (!empty($extra_js)) echo $extra_js; ?>
 <script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>

@@ -24,8 +24,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         cp_regenerate($db, $id, $me);
         $_SESSION['success_msg'] = 'Content written again from the course. The address and Live/Hidden did not change.';
     } else {
+        // The picture and an uploaded video (kept as files in uploads/course_pages).
+        $abs = dirname(__DIR__, 2) . '/uploads/course_pages';
+        $up = null;
+        if (!empty($_FILES['cover_file']['name'])) {
+            $res = upload_image($_FILES['cover_file'], $abs, 'uploads/course_pages', ['jpg', 'jpeg', 'png', 'webp']);
+            if ($res['ok']) $up = '/' . $res['path']; else $_SESSION['error_msg'] = 'Picture not saved: ' . $res['error'];
+        }
+        if ($up !== null || !empty($_POST['remove_cover'])) {
+            try { $db->prepare('UPDATE course_pages SET cover_image = ? WHERE id = ?')->execute([$up, $id]); }
+            catch (Throwable $ex) { $_SESSION['error_msg'] = 'Run System Updates (migration 102) to give the page its own picture.'; }
+        }
+        if (!empty($_FILES['video_file']['name'])) {
+            $res = upload_video($_FILES['video_file'], $abs, 'uploads/course_pages');
+            if ($res['ok']) $_POST['video_url'] = '/' . $res['path']; else $_SESSION['error_msg'] = 'Video not saved: ' . $res['error'];
+        }
         $r = cp_save($db, $id, $_POST, $me);
-        $_SESSION[$r['ok'] ? 'success_msg' : 'error_msg'] = $r['ok'] ? 'Saved. The page is updated.' : $r['error'];
+        if (!$r['ok']) $_SESSION['error_msg'] = $r['error']; elseif (empty($_SESSION['error_msg'])) $_SESSION['success_msg'] = 'Saved. The page is updated.';
     }
     header('Location: ' . $self);
     exit;
@@ -35,7 +50,7 @@ $sections = json_decode((string) $page['sections_json'], true) ?: [];
 $cards = json_decode((string) $page['cards_json'], true) ?: [];
 $link = cp_url($page);
 $base = course_share_absolute_url(url(''));
-$cover = $course ? course_og_image_url($course) : '';
+$cover = cp_cover_url($page, $course);
 $page_title = 'Course page · ' . ($course['title'] ?? '');
 ob_start();
 ?>
@@ -50,7 +65,7 @@ ob_start();
       <form method="POST" onsubmit="return confirm('Write the headings, sections, cards and SEO again from the course? Your edits to them will be replaced.')"><?php echo csrf_field(); ?><input type="hidden" name="action" value="regenerate"><button class="btn btn-outline-dark btn-sm"><i class="fas fa-wand-magic-sparkles me-1"></i>Write again from the course</button></form>
     </div>
   </div>
-  <form method="POST" id="cpf"><?php echo csrf_field(); ?><input type="hidden" name="action" value="save">
+  <form method="POST" id="cpf" enctype="multipart/form-data"><?php echo csrf_field(); ?><input type="hidden" name="action" value="save">
   <div class="row g-3">
     <div class="col-xl-8">
       <div class="card p-3 mb-3">
@@ -62,8 +77,17 @@ ob_start();
         <h6 class="fw-bold">Top of the page</h6>
         <label class="form-label small fw-semibold mb-1">Main heading</label><input name="hero_heading" class="form-control form-control-sm mb-2" maxlength="150" required value="<?php echo $e($page['hero_heading']); ?>">
         <label class="form-label small fw-semibold mb-1">Intro text</label><textarea name="hero_text" class="form-control form-control-sm mb-2" rows="2" maxlength="400"><?php echo $e($page['hero_text']); ?></textarea>
-        <label class="form-label small fw-semibold mb-1">Preview video <span class="text-muted fw-normal">(YouTube, Vimeo or an .mp4 link; empty = the course cover picture)</span></label>
-        <input name="video_url" class="form-control form-control-sm" maxlength="500" placeholder="https://www.youtube.com/watch?v=…" value="<?php echo $e($page['video_url']); ?>">
+        <label class="form-label small fw-semibold mb-1">Preview video <span class="text-muted fw-normal">(paste a YouTube or Vimeo link, or upload an .mp4)</span></label>
+        <input name="video_url" class="form-control form-control-sm mb-1" maxlength="500" placeholder="https://www.youtube.com/watch?v=…" value="<?php echo $e($page['video_url']); ?>">
+        <input type="file" name="video_file" class="form-control form-control-sm mb-1" accept="video/mp4,video/webm,video/quicktime">
+        <div class="small text-muted mb-3">Empty = the picture below is shown. Clear the link to remove the video.</div>
+        <label class="form-label small fw-semibold mb-1">Picture <span class="text-muted fw-normal">(shown on the page and when the link is shared; 1200 × 630 is best)</span></label>
+        <div class="d-flex gap-3 align-items-start">
+          <img src="<?php echo $e($cover); ?>" alt="" style="width:160px;aspect-ratio:1.91/1;object-fit:cover;border-radius:8px;border:1px solid #e5e7eb">
+          <div class="flex-grow-1"><input type="file" name="cover_file" class="form-control form-control-sm mb-1" accept="image/jpeg,image/png,image/webp">
+            <?php if (!empty($page['cover_image'])): ?><label class="form-check small"><input type="checkbox" class="form-check-input" name="remove_cover" value="1"> Use the course cover instead</label>
+            <?php else: ?><div class="small text-muted">Now using the course cover.</div><?php endif; ?></div>
+        </div>
       </div>
       <div class="card p-3 mb-3">
         <div class="d-flex justify-content-between align-items-center"><h6 class="fw-bold mb-0">Sections</h6><button type="button" class="btn btn-sm btn-outline-success" id="addSec">+ Add section</button></div>

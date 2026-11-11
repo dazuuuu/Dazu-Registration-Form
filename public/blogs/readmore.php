@@ -2,6 +2,7 @@
 // public/blogs/readmore.php
 
 require_once __DIR__ . '/../../app/v1/init.php';
+require_once __DIR__ . '/../../app/v1/helpers/rich_embeds.php';
 
 $slug = $_GET['slug'] ?? null;
 if (!$slug) {
@@ -175,7 +176,7 @@ ob_start();
                       [&_a]:text-[#15A24A] [&_a]:font-semibold [&_a]:underline-offset-2 [&_a]:hover:underline
                       [&_img]:rounded-xl [&_img]:max-w-full [&_img]:border [&_img]:border-slate-200
                       [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6">
-            <?php echo $blog['content']; ?>
+            <?php echo rich_embeds((string) $blog['content']); ?>
             <?php if (!empty($sections)): ?>
               <?php foreach ($sections as $section): ?>
                 <?php if ($section['section_type'] === 'heading'): ?>

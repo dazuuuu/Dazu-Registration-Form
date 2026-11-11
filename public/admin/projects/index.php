@@ -106,6 +106,12 @@ ob_start();
 
 <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<?php if (empty($GLOBALS['dz_editor_loaded'])): $GLOBALS['dz_editor_loaded'] = 1; ?>
+<script>window.jQuery || document.write('<script src="https://code.jquery.com/jquery-3.6.0.min.js"><\/script>')</script>
+<?php include __DIR__ . '/../blogs/_editor.php'; ?>
+<script>$(function () { $('textarea[name="description"]').each(function () { dzInitEditor($(this), { height: 320, placeholder: 'Describe the project. Paste a YouTube link to show the video, or a website link to show the live site.' }); }); });</script>
+<?php endif; ?>
+
 
 <style>
     .project-card {
@@ -197,7 +203,7 @@ ob_start();
                                         <div class="card-body">
                                             <h5 class="card-title"><?php echo htmlspecialchars($project['small_title']); ?></h5>
                                             <h6 class="card-subtitle mb-2 text-muted"><?php echo htmlspecialchars($project['major_title']); ?></h6>
-                                            <p class="card-text small"><?php echo substr(htmlspecialchars($project['description']), 0, 100); ?>...</p>
+                                            <p class="card-text small"><?php echo htmlspecialchars(mb_substr(trim(html_entity_decode(strip_tags((string) $project['description']))), 0, 100)); ?>...</p>
                                             <?php if (!empty($project['student_name']) || !empty($project['student_username'])): ?>
                                             <p class="card-text small mb-1"><i class="fas fa-user-graduate me-1"></i><?php echo htmlspecialchars(trim($project['student_name']) ?: $project['student_username']); ?></p>
                                             <?php endif; ?>
@@ -244,7 +250,7 @@ ob_start();
                                     <!-- Same card structure as above -->
                                     <div class="card-body">
                                         <h5 class="card-title"><?php echo htmlspecialchars($project['small_title']); ?></h5>
-                                        <p class="card-text"><?php echo substr(htmlspecialchars($project['description']), 0, 100); ?>...</p>
+                                        <p class="card-text"><?php echo htmlspecialchars(mb_substr(trim(html_entity_decode(strip_tags((string) $project['description']))), 0, 100)); ?>...</p>
                                     </div>
                                     <div class="card-footer">
                                         <a href="view.php?id=<?php echo $project['id']; ?>" class="btn btn-sm btn-primary">View</a>
@@ -266,7 +272,7 @@ ob_start();
                                 <div class="card project-card">
                                     <div class="card-body">
                                         <h5 class="card-title"><?php echo htmlspecialchars($project['small_title']); ?></h5>
-                                        <p class="card-text"><?php echo substr(htmlspecialchars($project['description']), 0, 100); ?>...</p>
+                                        <p class="card-text"><?php echo htmlspecialchars(mb_substr(trim(html_entity_decode(strip_tags((string) $project['description']))), 0, 100)); ?>...</p>
                                     </div>
                                     <div class="card-footer">
                                         <a href="view.php?id=<?php echo $project['id']; ?>" class="btn btn-sm btn-primary">Edit Draft</a>
