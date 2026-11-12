@@ -1,6 +1,6 @@
 <?php
-$page_title = 'About Us — Dazu Training Institute';
-$page_description = 'Dazu Training Institute in Nairobi, Thika and online — hands-on labs, flexible classes, KICD-aligned curricula, and industry-led training for the next generation of innovators.';
+$page_title = 'About Dazu Training Institute | Technology & Vocational Training in Kenya';
+$page_description = 'DAZU Training Institute offers practical software engineering, cybersecurity, data science, AI, Python, caregiver, beauty and business training in Nairobi, Thika and online.';
 
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/dazu_theme.php';
@@ -14,127 +14,307 @@ try {
     $galleryItems = [];
 }
 
-$trainers = [
-    [
-        'initials' => 'DK',
-        'name' => 'ENG. DAVIS KAMAU',
-        'title' => 'Lead Software & Cloud Architect',
-        'bio' => 'Ex-Safaricom software engineer with 8+ years experience developing React systems, microservices, and secure databases.',
-    ],
-    [
-        'initials' => 'CW',
-        'name' => 'DR. CATHERINE WAMBUI',
-        'title' => 'AI & Data Science Specialist',
-        'bio' => 'Active data consultant specializing in custom LLMs, prompt pipelines, business intelligence, and Power BI reporting.',
-    ],
-    [
-        'initials' => 'MM',
-        'name' => 'MARK MWENDA',
-        'title' => 'Cybersecurity & Cisco Instructor',
-        'bio' => 'Certified Security Engineer lecturing ethical hacking, network defenses, router setups, and CompTIA systems.',
-    ],
+$whatsapp = 'https://wa.me/254722922454';
+
+$serve = [
+    ['Students and school leavers', 'looking to acquire market-relevant skills and prepare for future careers.'],
+    ['College and university graduates', 'seeking practical competencies that complement their academic qualifications.'],
+    ['Working professionals', 'interested in upgrading their skills and remaining competitive.'],
+    ['Career changers', 'looking to transition into technology, healthcare, business or other professional fields.'],
+    ['Entrepreneurs and business owners', 'seeking skills to establish, manage and grow successful businesses.'],
+    ['Organisations and businesses', 'looking to strengthen their teams through professional and digital skills training.'],
+];
+
+$schools = [
+    ['School of Software Engineering and Development', 'Build the technology that powers tomorrow.',
+     ['DAZU Training Institute provides practical software engineering and software development training in Kenya for learners interested in building websites, applications, digital platforms and business systems.',
+      'Our software development programmes introduce learners to the principles of programming, application development, databases, system architecture and modern software technologies.'],
+     ['Software Engineering', 'Full-Stack Web Development', 'Front-End Development', 'Back-End Development', 'Python Programming', 'Database Management', 'Mobile Application Development', 'UI/UX Design', 'API Development and Integration', 'Cloud Computing and DevOps'],
+     ['Learners develop practical programming and problem-solving skills through coding exercises, application development and project-based assignments.',
+      'Our goal is to help students build the technical foundations required to pursue opportunities in software development, web development, application development, freelance programming and technology entrepreneurship.'],
+     'Explore Software Engineering and Development Courses'],
+    ['School of Cybersecurity and Networking', 'Learn to protect systems, networks and digital information.',
+     ['As organisations increasingly depend on digital infrastructure, cybersecurity and network security have become essential areas of professional development.',
+      'DAZU offers cybersecurity and networking training designed to introduce learners to the technologies, methods and practical skills used to protect computer systems, networks and information.'],
+     ['Cybersecurity Fundamentals', 'Network Administration', 'Computer Networking', 'Ethical Hacking Fundamentals', 'Network Security', 'Linux Administration', 'Security Monitoring', 'Vulnerability Assessment', 'Digital Security Awareness', 'Incident Response Fundamentals'],
+     ['Students gain exposure to networking tools, security environments, practical laboratory exercises and defensive security techniques.',
+      'Our training helps learners develop foundational competencies relevant to potential pathways such as IT support, network administration, cybersecurity analysis and security operations.'],
+     'Explore Cybersecurity and Networking Courses'],
+    ['School of Data Science and Analytics', 'Transform information into meaningful insights.',
+     ['Data is an important resource for modern businesses, governments and organisations. The ability to collect, organise, analyse and interpret data is increasingly valuable across different industries.',
+      'DAZU Training Institute offers data science and data analytics training that introduces learners to the tools and techniques used to understand information and support evidence-based decision-making.'],
+     ['Data Science', 'Data Analytics', 'Business Intelligence', 'Microsoft Excel for Data Analysis', 'Power BI and Dashboard Development', 'Statistical Analysis', 'Data Visualisation', 'Python for Data Science', 'Database Fundamentals', 'Introduction to Machine Learning'],
+     ['Through practical assignments and data projects, learners develop skills in data cleaning, analysis, reporting, visualisation and interpretation.',
+      'These competencies are applicable in business, finance, marketing, healthcare, education, research and other data-driven industries.',
+      'Potential career pathways include data analyst, reporting assistant, business intelligence assistant and junior data science roles, depending on experience and further qualifications.'],
+     'Explore Data Science and Data Analytics Courses'],
+    ['School of Artificial Intelligence and Python Programming', 'Understand AI. Learn to code. Create intelligent solutions.',
+     ['Artificial Intelligence and programming are transforming how people work, communicate, develop products and solve problems.',
+      'At DAZU, we introduce learners to practical programming and AI technologies that can be applied in software development, business automation, data analysis and digital innovation.'],
+     ['Python Programming', 'Artificial Intelligence Fundamentals', 'Generative AI', 'Machine Learning', 'AI Automation', 'AI Agents and Workflows', 'Prompt Engineering', 'AI for Business', 'Python for Data Analysis', 'Introduction to AI Application Development'],
+     ['Python programming provides learners with a foundation in logical thinking, algorithms, programming structures, functions, object-oriented programming and automation.',
+      'Our AI programmes introduce learners to practical applications of artificial intelligence and responsible ways of integrating AI into professional and business workflows.',
+      'Students are encouraged to experiment, build projects and develop solutions using modern programming and AI tools.'],
+     'Explore AI and Python Programming Courses'],
+    ['School of Healthcare and Caregiver Training', 'Develop the knowledge and compassion required to support others.',
+     ['DAZU Training Institute recognises the importance of skilled, responsible and compassionate care professionals in healthcare and community support environments.',
+      'Our caregiver training programme introduces learners to essential caregiving principles, personal support, communication and basic care practices.'],
+     ['Introduction to Caregiving', 'Personal Hygiene and Grooming', 'Basic Patient Care', 'Elderly Care', 'Child and Family Care Fundamentals', 'Nutrition and Feeding Support', 'Infection Prevention and Control', 'Patient Safety', 'Communication and Emotional Support', 'Basic First Aid Awareness'],
+     ['The programme is designed to help learners understand the responsibilities involved in providing respectful, safe and compassionate assistance to individuals who require support.',
+      'Potential opportunities may exist in home-based care, elderly care, community support and other appropriate care settings, subject to the relevant qualifications and regulatory requirements.'],
+     'Explore Caregiver Training'],
+    ['School of Beauty and Business', 'Turn creativity and professional beauty skills into business opportunities.',
+     ['The beauty industry offers opportunities for individuals interested in personal care, beauty services, customer experience and entrepreneurship.',
+      'DAZU Training Institute combines beauty-related skills with business knowledge to help learners understand both the practical and commercial aspects of the beauty industry.'],
+     ['Introduction to Beauty Therapy', 'Skincare and Facial Care', 'Beauty Treatment Fundamentals', 'Personal Grooming', 'Professional Client Consultation', 'Hygiene and Sanitation', 'Customer Service', 'Salon Operations and Management', 'Beauty Business Marketing', 'Entrepreneurship and Business Development'],
+     ['Learners develop an understanding of beauty service delivery, customer relationships, business operations and the fundamentals of establishing and managing a beauty enterprise.',
+      'The programme is suitable for aspiring beauty professionals, entrepreneurs and individuals interested in starting or growing businesses within the beauty and personal care industry.'],
+     'Explore Beauty and Business Courses'],
+    ['School of Business and Entrepreneurship', 'Develop the skills to manage, market and grow a business.',
+     ['Business success requires more than an idea. It requires planning, financial awareness, communication, marketing and the ability to manage resources effectively.',
+      'Our business-related training equips learners with practical knowledge and skills that can support entrepreneurship, professional development and business operations.'],
+     ['Entrepreneurship and Business Development', 'Business Management Fundamentals', 'Digital Marketing', 'Social Media Management', 'Virtual Assistance', 'Customer Service', 'Business Communication', 'Digital Business Tools', 'Business Productivity and Automation', 'Introduction to Financial Management'],
+     ['We encourage learners to understand how business principles work in real situations, from developing a business idea to managing customers, promoting products and improving operations.',
+      'Our objective is to support individuals who want to establish businesses, improve their professional capabilities or contribute effectively to existing organisations.'],
+     'Explore Business and Professional Skills Courses'],
+];
+
+$approach = [
+    ['Practical and Laboratory-Based Learning', 'Learners engage with relevant software, tools, equipment and practical environments related to their chosen programmes.'],
+    ['Project-Based Learning', 'Students undertake projects that allow them to apply concepts, develop solutions and demonstrate their abilities.'],
+    ['Instructor-Led Training', 'Our learning sessions are guided by trainers and professionals with relevant technical and practical experience.'],
+    ['Mentorship and Guidance', 'Learners receive guidance as they develop their skills, complete assignments and explore professional development opportunities.'],
+    ['Portfolio and Skills Development', 'Where applicable, students build projects and practical work that can help demonstrate their competencies to prospective employers and clients.'],
+    ['Flexible Learning Options', 'We provide physical and online learning options to accommodate learners with different schedules and geographical needs.'],
+];
+
+$joiners = [
+    'A school leaver looking for practical professional skills.',
+    'A student interested in technology or vocational training.',
+    'A graduate seeking additional practical competencies.',
+    'A professional looking to upgrade or change careers.',
+    'An aspiring software developer, cybersecurity professional or data analyst.',
+    'An individual interested in caregiving or beauty services.',
+    'An entrepreneur seeking business and digital marketing skills.',
+    'A business looking to improve employee capabilities.',
+];
+
+$locations = [
+    ['Nairobi Campus', 'Cianda House, 4th Floor, Room 406B, Koinange Street, Nairobi.', 'Our Nairobi location serves learners seeking accessible professional and technology training within the city.'],
+    ['Thika Campus', 'Witeithie House, 5th Floor, Room 529, Thika Town.', 'Our Thika campus provides learners with access to physical training and practical learning opportunities.'],
+    ['Online Learning', 'Learn from anywhere.', 'For learners outside Nairobi and Thika, we offer online learning options for eligible programmes, providing an opportunity to develop professional and digital skills remotely.'],
+];
+
+$values = [
+    ['Practical Excellence', 'We emphasise the application of knowledge and the development of demonstrable skills.'],
+    ['Innovation', 'We encourage creativity, experimentation and the development of solutions to real-world challenges.'],
+    ['Accessibility', 'We strive to make relevant skills training accessible through different learning options.'],
+    ['Integrity', 'We value honesty, responsibility and professionalism in our training and institutional relationships.'],
+    ['Continuous Learning', 'We encourage learners and trainers to adapt, improve and remain curious.'],
+    ['Empowerment', 'We believe education should create opportunities for personal, professional and entrepreneurial growth.'],
+];
+
+$projectsList = [
+    'Websites, web applications and business management systems.',
+    'Python applications and automation scripts.',
+    'Data analysis reports and interactive dashboards.',
+    'Cybersecurity and networking laboratory exercises.',
+    'AI-powered applications and automation workflows.',
+    'Graphic design and digital marketing projects.',
+    'Business plans and entrepreneurship projects.',
+];
+
+$whyChoose = [
+    ['Multiple Training Disciplines', 'Explore technology, healthcare, beauty, business and professional skills programmes within one institution.'],
+    ['Practical Learning', 'Develop competencies through exercises, assignments and relevant projects.'],
+    ['Flexible Study Options', 'Access available programmes through our Nairobi and Thika training locations or online.'],
+    ['Career-Oriented Skills', 'Build competencies that can support employment applications, freelancing, entrepreneurship and professional growth.'],
+    ['Mentorship and Trainer Support', 'Learn with guidance from trainers and professionals with relevant experience.'],
+    ['Student Development', 'Build your knowledge, confidence and practical abilities through structured learning.'],
 ];
 
 $faqs = [
-    [
-        'q' => 'Where is Dazu Training Institute located?',
-        'a' => 'We serve learners through Thika Town, Nairobi, and online classes. Our Thika campus labs are in Room 529 and surrounding training rooms, and our Nairobi intake supports learners who prefer the city location.',
-    ],
-    [
-        'q' => 'Are the training sessions conducted physically or online?',
-        'a' => 'Both. Most tracks offer physical lab sessions in Thika and Nairobi plus flexible online study modes. Choose your preferred mode when you apply for a course.',
-    ],
-    [
-        'q' => 'Will I receive an industry-recognized certificate?',
-        'a' => 'Yes. Students who complete all modules, projects, and assessments receive a Dazu Training Institute certificate aligned with practical industry competencies.',
-    ],
-    [
-        'q' => 'Do you offer flexible installment options for tuition fees?',
-        'a' => 'Yes. We support monthly, 3-month, and full-payment plans. Registration fees and M-Pesa paybill details are shown on each course application page.',
-    ],
-    [
-        'q' => 'What are the entry prerequisites for the courses?',
-        'a' => 'Most beginner tracks require basic computer literacy. Advanced courses may expect prior programming or networking fundamentals — each course page lists specific requirements.',
-    ],
+    ['q' => 'What is DAZU Training Institute?', 'a' => 'DAZU Training Institute is a multidisciplinary training institution in Kenya offering technology, digital skills, healthcare, beauty and business-related training programmes.'],
+    ['q' => 'Where is DAZU Training Institute located?', 'a' => 'We have training locations in Nairobi at Cianda House, 4th Floor, Room 406B, Koinange Street, and in Thika at Witeithie House, 5th Floor, Room 529.'],
+    ['q' => 'Does DAZU offer Software Engineering courses in Kenya?', 'a' => 'Yes. We offer software engineering and development programmes covering programming, web development, databases, application development and related technologies.'],
+    ['q' => 'Can I study Cybersecurity at DAZU?', 'a' => 'Yes. Our cybersecurity and networking programmes introduce learners to network security, cybersecurity fundamentals, ethical hacking concepts and practical security exercises.'],
+    ['q' => 'Does DAZU offer Data Science and Data Analytics training?', 'a' => 'Yes. Our data programmes cover data analysis, data visualisation, Excel, Power BI, Python for data analysis and foundational data science concepts.'],
+    ['q' => 'Can beginners learn Python Programming?', 'a' => 'Yes. Our Python programming training introduces learners to programming fundamentals, functions, object-oriented programming and automation.'],
+    ['q' => 'Does DAZU offer caregiver training?', 'a' => 'Yes. Our caregiver programme introduces learners to personal care, hygiene, safety, communication, nutrition and compassionate care practices.'],
+    ['q' => 'Does DAZU offer Beauty and Business training?', 'a' => 'Yes. Our Beauty and Business programme combines beauty service fundamentals, customer care, salon management, marketing and entrepreneurship.'],
+    ['q' => 'Are classes conducted physically or online?', 'a' => 'We offer physical training options in Nairobi and Thika, as well as online learning opportunities for eligible programmes.'],
+    ['q' => 'Do students receive certificates?', 'a' => 'Students who successfully complete their programme requirements receive the relevant DAZU Training Institute certificate. Any additional external recognition or accreditation depends on the specific programme and applicable arrangements.'],
+    ['q' => 'Can I pay my tuition fees in instalments?', 'a' => 'Available payment plans vary by programme. Contact our admissions team for the current fees and payment arrangements.'],
+    ['q' => 'How do I apply for admission?', 'a' => 'Visit our website at https://dazu.ac.ke/courses to explore available programmes, or apply directly through https://dazu.ac.ke/apply. You can also contact our admissions team by phone or WhatsApp.'],
 ];
+
+// Google: these questions and answers as FAQ data.
+$extra_head = ($extra_head ?? '') . '<script type="application/ld+json">' . json_encode([
+    '@context' => 'https://schema.org', '@type' => 'FAQPage',
+    'mainEntity' => array_map(fn($f) => ['@type' => 'Question', 'name' => $f['q'], 'acceptedAnswer' => ['@type' => 'Answer', 'text' => $f['a']]], $faqs),
+], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) . '</script>';
+
+$h = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+$linkify = fn($t) => preg_replace('~https?://[^\s<]+[^\s<.,]~', '<a href="$0" class="ab-link">$0</a>', $h($t));
 
 ob_start();
 ?>
 
-<!-- Hero + stats -->
-<section class="bg-white py-16 md:py-24">
-  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-      <div class="space-y-6">
-        <span class="inline-block text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">About Dazu Training Institute</span>
-        <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-950 tracking-tight leading-tight uppercase">
-          Empowering Next-Gen Innovators Across Kenya.
-        </h1>
-        <div class="space-y-4 text-slate-600 font-medium leading-relaxed">
-          <p>Dazu Training Institute is a leading African technology and digital skills institute serving learners in Nairobi, Thika Town, and online. We equip students, graduates, professionals, entrepreneurs, and businesses with practical, job-ready skills for Africa's growing digital economy.</p>
-          <p>We bridge the gap between traditional education and real industry demands through hands-on training, project-based learning, and mentorship. Our programs focus on software development, artificial intelligence, cybersecurity, data science, digital marketing, graphics design, automation, and other high-demand digital skills.</p>
-          <p>Every learner builds real-world projects, gains practical experience, and develops the confidence to work, freelance, launch a business, or secure employment across Africa and beyond. Our mission is to develop skilled innovators, problem solvers, and technology leaders who drive Africa's digital transformation.</p>
-        </div>
-        <div class="flex flex-wrap gap-3 pt-2">
-          <a href="<?php echo url('courses/index.php'); ?>" class="px-6 py-3.5 text-xs font-extrabold tracking-widest uppercase text-white bg-[#15A24A] hover:bg-[#128a3e] rounded-xl transition-colors">Apply for Admission</a>
-          <a href="<?php echo url('courses/index.php'); ?>" class="px-6 py-3.5 text-xs font-extrabold tracking-widest uppercase text-slate-900 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors">View Our Courses</a>
-        </div>
-      </div>
+<style>
+/* About page: own styles (the site's built CSS only has the classes other pages use). */
+.ab-wrap{max-width:1280px;margin:0 auto;padding:0 16px}@media(min-width:768px){.ab-wrap{padding:0 32px}}@media(min-width:1024px){.ab-wrap{padding:0 48px}}
+.ab-sec{padding:72px 0}.ab-alt{background:#f8fafc;border-top:1px solid #f1f5f9;border-bottom:1px solid #f1f5f9}
+.ab-eye{color:#15A24A;font-size:12px;letter-spacing:.15em;text-transform:uppercase;font-weight:800}
+.ab-h2{font-size:clamp(1.6rem,3vw,2.25rem);font-weight:800;color:#020617;letter-spacing:-.01em;line-height:1.2;margin:.6rem 0 1rem}
+.ab-lead{color:#475569;line-height:1.75;font-weight:500;max-width:820px}.ab-lead p{margin:0 0 1rem}
+.ab-g2,.ab-g3{display:grid;grid-template-columns:1fr;gap:20px}
+@media(min-width:768px){.ab-g2{grid-template-columns:1fr 1fr}.ab-g3{grid-template-columns:1fr 1fr}}@media(min-width:1024px){.ab-g3{grid-template-columns:1fr 1fr 1fr}}
+.ab-card{background:#fff;border:1px solid #e2e8f0;border-radius:16px;padding:24px}
+.ab-card h3{font-size:1rem;font-weight:800;color:#020617;margin:0 0 .5rem}.ab-card p{color:#475569;font-size:.92rem;line-height:1.65;margin:0}
+.ab-num{display:inline-flex;width:36px;height:36px;border-radius:10px;background:#f0fdf4;color:#15A24A;font-weight:800;align-items:center;justify-content:center;margin-bottom:14px;font-size:.9rem}
+.ab-btns{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+.ab-btn{display:inline-block;padding:14px 22px;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;border-radius:12px;text-decoration:none;border:1px solid #e2e8f0;color:#0f172a;background:#fff}
+.ab-btn:hover{background:#f8fafc}.ab-btn.pri{background:#15A24A;border-color:#15A24A;color:#fff}.ab-btn.pri:hover{background:#128a3e}
+.ab-ticks{list-style:none;padding:0;margin:0;display:grid;gap:10px}.ab-ticks li{display:flex;gap:10px;color:#475569;line-height:1.6}.ab-ticks li:before{content:"✓";color:#15A24A;font-weight:800}
+.ab-school{background:#fff;border:1px solid #e2e8f0;border-radius:18px;padding:28px;margin-bottom:20px}
+.ab-school .ab-tag{color:#15A24A;font-weight:700;margin:.2rem 0 1rem}
+.ab-school p{color:#475569;line-height:1.7;margin:0 0 .8rem}
+.ab-chips{display:flex;flex-wrap:wrap;gap:8px;margin:.4rem 0 1.2rem}.ab-chips span{font-size:.82rem;padding:6px 12px;border-radius:999px;background:#f0fdf4;border:1px solid #bbf7d0;color:#166534;font-weight:600}
+.ab-more{color:#15A24A;font-weight:800;text-decoration:none;font-size:.9rem}.ab-more:hover{text-decoration:underline}
+.ab-link{color:#15A24A;text-decoration:underline}
+.ab-fold{position:relative;overflow:hidden;transition:max-height .45s ease}
+.ab-fold:not(.open){max-height:var(--peek,7.5rem)}
+.ab-fold:not(.open):after{content:"";position:absolute;left:0;right:0;bottom:0;height:5rem;background:linear-gradient(rgba(255,255,255,0),#fff);pointer-events:none}
+.ab-readmore{background:none;border:0;padding:6px 0;color:#15A24A;font-weight:800;font-size:.9rem;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.ab-readmore:hover{text-decoration:underline}
+.ab-cta{background:linear-gradient(135deg,#020617,#0f172a 60%,#03341d);color:#fff;text-align:center}
+.ab-cta .ab-h2{color:#fff}.ab-cta p{color:#cbd5e1;max-width:720px;margin:0 auto 1rem;line-height:1.7}
+.ab-cta .ab-btns{justify-content:center}.ab-cta .ab-btn{background:transparent;color:#fff;border-color:rgba(255,255,255,.5)}.ab-cta .ab-btn.pri{background:#15A24A;border-color:#15A24A}
+.ab-contact{margin-top:28px;font-size:.92rem;color:#e2e8f0;line-height:1.9}.ab-contact a{color:#86efac;text-decoration:none}
+</style>
 
-      <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6 md:p-8">
-        <div class="grid grid-cols-2 gap-4">
-          <div class="bg-white border border-slate-200 rounded-xl p-6 text-center">
-            <span class="block text-3xl md:text-4xl font-extrabold text-[#15A24A]">100%</span>
-            <span class="block mt-2 text-[10px] uppercase tracking-widest font-bold text-slate-500">Hands-On Labs</span>
-          </div>
-          <div class="bg-white border border-slate-200 rounded-xl p-6 text-center">
-            <span class="block text-3xl md:text-4xl font-extrabold text-[#15A24A]">85%</span>
-            <span class="block mt-2 text-[10px] uppercase tracking-widest font-bold text-slate-500">Job Placement Support</span>
-          </div>
-          <div class="bg-white border border-slate-200 rounded-xl p-6 text-center">
-            <span class="block text-3xl md:text-4xl font-extrabold text-[#15A24A]">Yes</span>
-            <span class="block mt-2 text-[10px] uppercase tracking-widest font-bold text-slate-500">KICD-Aligned Curriculums</span>
-          </div>
-          <div class="bg-white border border-slate-200 rounded-xl p-6 text-center">
-            <span class="block text-3xl md:text-4xl font-extrabold text-[#15A24A]">3 Modes</span>
-            <span class="block mt-2 text-[10px] uppercase tracking-widest font-bold text-slate-500">Nairobi, Thika & Online</span>
-          </div>
-        </div>
+<!-- Hero -->
+<section class="ab-sec" style="padding-top:64px">
+  <div class="ab-wrap">
+    <span class="inline-block text-[#15A24A] text-xs uppercase tracking-widest font-extrabold px-3 py-1.5 bg-green-50 border border-green-200 rounded-full">About DAZU Training Institute</span>
+    <h1 class="ab-h2" style="font-size:clamp(2rem,4.5vw,3.25rem);margin-top:1rem">Building Skills. Empowering Careers. Driving Innovation.</h1>
+    <div style="font-weight:700;color:#0f172a;margin-bottom:1.2rem">Practical Technology, Professional and Vocational Skills Training in Kenya</div>
+    <div class="ab-lead">
+      <p>DAZU Training Institute is a multidisciplinary technology, professional and vocational training institution in Kenya, serving students and professionals in Nairobi, Thika and across Africa through flexible online learning.</p>
+      <div class="ab-fold" style="--peek:4.5rem">
+      <p>We are dedicated to equipping individuals, graduates, entrepreneurs and organisations with practical, relevant and future-focused skills that respond to the changing demands of the workplace and the global economy.</p>
+      <p>From Software Engineering, Cybersecurity, Data Science and Artificial Intelligence to Python Programming, Healthcare, Beauty and Business Training, our programmes are designed to help learners develop practical competencies, solve real-world problems and pursue meaningful professional opportunities.</p>
+      <p>At DAZU, we believe education should go beyond theoretical knowledge. Our training approach combines instructor-led learning, practical exercises, technology laboratories, real-world projects and mentorship to help students build confidence and demonstrate what they can do.</p>
+      <p>Whether you are starting your first career, upgrading your professional skills, changing careers, starting a business or exploring opportunities in technology, DAZU Training Institute provides a learning environment designed to support your growth.</p>
       </div>
+      <button type="button" class="ab-readmore" aria-expanded="false">Read more <span>▾</span></button>
+      <p style="font-weight:700;color:#0f172a;margin-top:1rem">Explore your potential. Develop practical skills. Build your future with DAZU.</p>
+    </div>
+    <div class="ab-btns">
+      <a href="<?php echo url('courses'); ?>" class="ab-btn pri">Explore Our Courses</a>
+      <a href="<?php echo url('apply'); ?>" class="ab-btn">Apply for Admission</a>
+      <a href="<?php echo $whatsapp; ?>" target="_blank" rel="noopener" class="ab-btn">Talk to Our Admissions Team</a>
     </div>
   </div>
 </section>
 
-<!-- Vision, mission, core commitment -->
-<section class="bg-slate-50 border-y border-slate-100 py-20">
-  <div class="max-w-[1280px] mx-auto px-4 md:px-8 lg:px-12">
-    <div class="max-w-2xl mb-12">
-      <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Who We Are</span>
-      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Our Vision, Mission and Commitment</h2>
+<!-- Who we are -->
+<section class="ab-sec ab-alt">
+  <div class="ab-wrap">
+    <span class="ab-eye">Who We Are</span>
+    <h2 class="ab-h2">A Training Institution Focused on Practical Skills and Professional Development</h2>
+    <div class="ab-lead">
+      <p>DAZU Training Institute was established with a commitment to making quality, practical and accessible skills training available to individuals seeking personal, professional and career development.</p>
+      <p>We recognise that traditional academic knowledge alone may not always provide the practical competencies required in today's competitive job market. That is why our programmes emphasise applied learning, technical competence, problem-solving, creativity and professional development.</p>
+      <p>Our institution brings together technology education, digital skills development, healthcare training, beauty education and business skills under one learning environment.</p>
     </div>
+    <h3 style="font-weight:800;color:#020617;margin:1.5rem 0 1rem">We serve:</h3>
+    <div class="ab-g3">
+      <?php foreach ($serve as $s): ?><div class="ab-card"><h3><?php echo $h($s[0]); ?></h3><p><?php echo $h(ucfirst($s[1])); ?></p></div><?php endforeach; ?>
+    </div>
+    <p class="ab-lead" style="margin-top:1.5rem">Our focus is simple: equip learners with knowledge they can apply, practical experience they can demonstrate and skills they can continue developing throughout their careers.</p>
+  </div>
+</section>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-white border border-slate-200 rounded-2xl p-8">
-        <div class="w-12 h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-[#15A24A] mb-6">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-        </div>
-        <h3 class="text-sm font-extrabold text-slate-950 uppercase tracking-wide mb-3">Our Vision</h3>
-        <p class="text-slate-600 text-sm leading-relaxed">To be Africa&rsquo;s leading hub for technology, innovation, digital and practical skills.</p>
-      </div>
-      <div class="bg-white border border-slate-200 rounded-2xl p-8">
-        <div class="w-12 h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-[#15A24A] mb-6">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"/><circle cx="12" cy="12" r="5" stroke-width="2"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
-        </div>
-        <h3 class="text-sm font-extrabold text-slate-950 uppercase tracking-wide mb-3">Our Mission</h3>
-        <p class="text-slate-600 text-sm leading-relaxed">To equip learners with practical digital skills for careers, entrepreneurship, and innovation.</p>
-      </div>
-      <div class="bg-white border border-slate-200 rounded-2xl p-8">
-        <div class="w-12 h-12 bg-white border border-slate-200 rounded-xl flex items-center justify-center text-[#15A24A] mb-6">
-          <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
-        </div>
-        <h3 class="text-sm font-extrabold text-slate-950 uppercase tracking-wide mb-3">Our Core Commitment</h3>
-        <p class="text-slate-600 text-sm leading-relaxed">Practical Skills. Digital Innovation. Limitless Opportunities.</p>
-      </div>
+<!-- Schools -->
+<section class="ab-sec">
+  <div class="ab-wrap">
+    <span class="ab-eye">Our Schools</span>
+    <h2 class="ab-h2">Our Schools and Areas of Specialisation</h2>
+    <div style="margin-top:28px">
+      <?php foreach ($schools as $n => $s): ?>
+        <article class="ab-school" id="school-<?php echo $n + 1; ?>">
+          <h3 style="font-size:1.3rem;font-weight:800;color:#020617;margin:0"><?php echo ($n + 1) . '. ' . $h($s[0]); ?></h3>
+          <div class="ab-tag"><?php echo $h($s[1]); ?></div>
+          <p><?php echo $h($s[2][0]); ?></p>
+          <div class="ab-fold" style="--peek:3.2rem">
+          <?php foreach (array_slice($s[2], 1) as $p): ?><p><?php echo $h($p); ?></p><?php endforeach; ?>
+          <div style="font-weight:700;color:#0f172a;margin-top:.6rem"><?php echo $n === 5 ? 'Our Beauty and Business training covers areas such as:' : ($n === 6 ? 'Relevant training areas include:' : 'Training areas include:'); ?></div>
+          <div class="ab-chips"><?php foreach ($s[3] as $a): ?><span><?php echo $h($a); ?></span><?php endforeach; ?></div>
+          <?php foreach ($s[4] as $p): ?><p><?php echo $h($p); ?></p><?php endforeach; ?>
+          <a href="<?php echo url('courses'); ?>" class="ab-more"><?php echo $h($s[5]); ?> →</a>
+          </div>
+          <button type="button" class="ab-readmore" aria-expanded="false">Read more <span>▾</span></button>
+        </article>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+
+<!-- Training approach -->
+<section class="ab-sec ab-alt">
+  <div class="ab-wrap">
+    <span class="ab-eye">Our Training Approach</span>
+    <h2 class="ab-h2">Learning That Goes Beyond the Classroom</h2>
+    <div class="ab-lead"><p>At DAZU Training Institute, practical application is central to our approach to education.</p>
+      <p>We believe learners should have opportunities to practise what they study, work through challenges and demonstrate their understanding through practical assignments.</p>
+      <p style="font-weight:700;color:#0f172a">Our learning approach includes:</p></div>
+    <div class="ab-g3">
+      <?php foreach ($approach as $i => $a): ?><div class="ab-card"><span class="ab-num"><?php echo str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT); ?></span><h3><?php echo $h($a[0]); ?></h3><p><?php echo $h($a[1]); ?></p></div><?php endforeach; ?>
+    </div>
+  </div>
+</section>
+
+<!-- Who can join -->
+<section class="ab-sec">
+  <div class="ab-wrap ab-g2" style="align-items:start;gap:40px">
+    <div>
+      <span class="ab-eye">Admissions</span>
+      <h2 class="ab-h2">Who Can Join DAZU Training Institute?</h2>
+      <div class="ab-lead"><p>Our programmes are designed for different educational backgrounds, professional goals and levels of experience.</p>
+        <p>Whether you are a beginner or looking to advance your existing skills, you can explore programmes that match your interests and objectives.</p>
+        <p>Entry requirements vary depending on the course. Some beginner programmes require no previous technical experience, while advanced programmes may require foundational knowledge.</p></div>
+    </div>
+    <div class="ab-card"><h3 style="margin-bottom:1rem">You can join DAZU if you are:</h3>
+      <ul class="ab-ticks"><?php foreach ($joiners as $j): ?><li><?php echo $h($j); ?></li><?php endforeach; ?></ul></div>
+  </div>
+</section>
+
+<!-- Locations -->
+<section class="ab-sec ab-alt">
+  <div class="ab-wrap">
+    <span class="ab-eye">Study With DAZU in Nairobi, Thika or Online</span>
+    <h2 class="ab-h2">Accessible Skills Training in Kenya</h2>
+    <p class="ab-lead">DAZU Training Institute serves learners through physical training locations and online learning opportunities.</p>
+    <div class="ab-g3" style="margin-top:24px">
+      <?php foreach ($locations as $l): ?><div class="ab-card"><h3><?php echo $h($l[0]); ?></h3><p style="font-weight:700;color:#0f172a;margin-bottom:.5rem"><?php echo $h($l[1]); ?></p><p><?php echo $h($l[2]); ?></p></div><?php endforeach; ?>
+    </div>
+    <p class="ab-lead" style="margin-top:1.5rem">Whether you prefer classroom learning or online study, you can explore available courses and choose a suitable learning arrangement.</p>
+  </div>
+</section>
+
+<!-- Vision, mission, core values -->
+<section class="ab-sec">
+  <div class="ab-wrap">
+    <span class="ab-eye">Who We Are</span>
+    <h2 class="ab-h2">Our Vision, Mission and Core Values</h2>
+    <div class="ab-g2" style="margin-top:24px">
+      <div class="ab-card"><h3>Our Vision</h3><p>To become a leading African centre for technology education, innovation, professional development and practical skills training, empowering individuals to contribute meaningfully to a rapidly evolving world.</p></div>
+      <div class="ab-card"><h3>Our Mission</h3><p>To equip individuals and organisations with relevant, practical and future-focused skills through accessible education, hands-on training, mentorship and continuous learning.</p></div>
+    </div>
+    <h3 style="font-weight:800;color:#020617;margin:2rem 0 1rem">Our Core Values</h3>
+    <div class="ab-g3">
+      <?php foreach ($values as $v): ?><div class="ab-card"><h3><?php echo $h($v[0]); ?></h3><p><?php echo $h($v[1]); ?></p></div><?php endforeach; ?>
     </div>
   </div>
 </section>
@@ -302,13 +482,41 @@ $teamHref = static function (string $key, string $v): string {
   </div>
 </section>
 
+<!-- Student projects -->
+<section class="ab-sec ab-alt">
+  <div class="ab-wrap ab-g2" style="align-items:start;gap:40px">
+    <div>
+      <span class="ab-eye">Student Projects and Practical Learning</span>
+      <h2 class="ab-h2">We Believe in Skills You Can Demonstrate.</h2>
+      <div class="ab-lead"><p>At DAZU, we encourage learners to turn knowledge into practical work.</p>
+        <p>Our project-based learning approach gives students opportunities to develop and demonstrate skills through relevant assignments and projects.</p>
+        <p>We believe practical work helps learners develop problem-solving abilities, technical confidence and a stronger understanding of their chosen fields.</p></div>
+      <a href="<?php echo url('projects'); ?>" class="ab-more">Explore our Student Projects →</a>
+    </div>
+    <div class="ab-card"><h3 style="margin-bottom:1rem">Depending on their programmes, learners may work on:</h3>
+      <ul class="ab-ticks"><?php foreach ($projectsList as $p): ?><li><?php echo $h($p); ?></li><?php endforeach; ?></ul></div>
+  </div>
+</section>
+
+<!-- Why choose -->
+<section class="ab-sec">
+  <div class="ab-wrap">
+    <span class="ab-eye">Why DAZU</span>
+    <h2 class="ab-h2">Why Choose DAZU Training Institute?</h2>
+    <p class="ab-lead">Choosing a training institution is an important decision. At DAZU, we focus on providing a learning experience that connects education with practical application.</p>
+    <div class="ab-g3" style="margin-top:24px">
+      <?php foreach ($whyChoose as $i => $w): ?><div class="ab-card"><span class="ab-num"><?php echo str_pad((string) ($i + 1), 2, '0', STR_PAD_LEFT); ?></span><h3><?php echo $h($w[0]); ?></h3><p><?php echo $h($w[1]); ?></p></div><?php endforeach; ?>
+    </div>
+  </div>
+</section>
+
 <!-- FAQ -->
 <section class="bg-slate-50 border-t border-slate-100 py-20">
   <div class="max-w-[800px] mx-auto px-4 md:px-8 lg:px-12">
     <div class="text-center mb-12">
       <span class="text-[#15A24A] text-xs uppercase tracking-widest font-extrabold">Got Questions?</span>
-      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Frequently Asked Questions</h2>
-      <p class="text-slate-600 font-medium mt-4">Here are direct, helpful answers to the common questions about Dazu Training Institute courses, campus, and fees.</p>
+      <h2 class="text-3xl md:text-4xl font-extrabold text-slate-950 mt-3 uppercase tracking-tight">Frequently Asked Questions About DAZU Training Institute</h2>
+      <p class="text-slate-600 font-medium mt-4">Answers to common questions about our programmes, locations, certificates, fees and admission.</p>
     </div>
 
     <div class="space-y-3" id="dazu-faq">
@@ -322,7 +530,7 @@ $teamHref = static function (string $key, string $v): string {
             <span class="dazu-faq-icon shrink-0 text-[#15A24A] text-xl font-light leading-none">+</span>
           </button>
           <div class="dazu-faq-panel hidden px-5 pb-5 text-slate-600 text-sm leading-relaxed border-t border-slate-100 pt-4">
-            <?php echo htmlspecialchars($faq['a']); ?>
+            <?php echo $linkify($faq['a']); ?>
           </div>
         </div>
       <?php endforeach; ?>
@@ -330,9 +538,41 @@ $teamHref = static function (string $key, string $v): string {
   </div>
 </section>
 
+
+<!-- Call to action -->
+<section class="ab-sec ab-cta">
+  <div class="ab-wrap">
+    <span class="ab-eye" style="color:#86efac">Start Your Learning Journey With DAZU</span>
+    <h2 class="ab-h2">Your Skills. Your Future. Your Opportunity.</h2>
+    <p>The future belongs to people who continue learning, adapting and developing relevant skills.</p>
+    <p>Whether you want to become a software engineer, cybersecurity professional, data analyst, Python programmer, caregiver, beauty professional or entrepreneur, DAZU Training Institute provides programmes designed to support your learning and professional development.</p>
+    <p>Take the next step towards building your skills and exploring new opportunities.</p>
+    <p style="color:#fff;font-weight:700">Join DAZU Training Institute and invest in your future.</p>
+    <div class="ab-btns">
+      <a href="<?php echo url('courses'); ?>" class="ab-btn pri">Explore Courses</a>
+      <a href="<?php echo url('apply'); ?>" class="ab-btn">Apply for Admission</a>
+    </div>
+    <div class="ab-contact">
+      Call / WhatsApp: <a href="tel:+254722922454">+254 722 922 454</a><br>
+      <strong style="color:#fff">DAZU Training Institute</strong> · Nairobi | Thika | Online<br>
+      Website: <a href="https://dazu.ac.ke">https://dazu.ac.ke</a> · Email: <a href="mailto:admin@dazu.ac.ke">admin@dazu.ac.ke</a>
+    </div>
+  </div>
+</section>
+
 <?php
 $extra_js = <<<'HTML'
 <script>
+document.querySelectorAll('.ab-readmore').forEach(function (b) {
+  var box = b.previousElementSibling;
+  b.addEventListener('click', function () {
+    var open = box.classList.toggle('open');
+    if (open) { box.style.maxHeight = box.scrollHeight + 'px'; setTimeout(function () { if (box.classList.contains('open')) box.style.maxHeight = 'none'; }, 460); }
+    else { box.style.maxHeight = box.scrollHeight + 'px'; requestAnimationFrame(function () { box.style.maxHeight = ''; }); box.closest('article,section').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    b.setAttribute('aria-expanded', open);
+    b.innerHTML = open ? 'Read less <span>▴</span>' : 'Read more <span>▾</span>';
+  });
+});
 (function(){
   document.querySelectorAll('.dazu-faq-toggle').forEach(function(btn){
     btn.addEventListener('click', function(){
