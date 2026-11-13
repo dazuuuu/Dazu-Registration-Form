@@ -7,6 +7,8 @@
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../app/v1/services/CertificateService.php';
+require_once __DIR__ . '/../../app/v1/helpers/certificate_pdf.php';
+require_once __DIR__ . '/../../app/v1/helpers/certificate_v2.php';   // the joined paragraph under the name, as on the certificate
 
 $page_title = 'Verify a Certificate — Dazu Training Institute';
 $page_description = 'Check that a Dazu Training Institute certificate is genuine by scanning its QR code, uploading it, or entering its certificate number.';
@@ -24,17 +26,21 @@ if ($hash !== '' && preg_match('/^[a-f0-9]{16,100}$/i', $hash)) {
     $where = 'c.certificate_no = ?'; $arg = $certNo;
 }
 if (isset($where)) {
-    $st = $db->prepare(
-        "SELECT c.certificate_no, c.qr_code_hash, c.status, c.snapshot_name, c.snapshot_course, c.snapshot_duration_months,
-                c.snapshot_dates, c.taught_skills, c.tutor_name, c.ceo_name, c.issued_at,
+    $sql = "SELECT c.certificate_no, c.qr_code_hash, c.status, c.snapshot_name, c.snapshot_course, c.snapshot_duration_months,
+                c.snapshot_dates, c.taught_skills, c.tutor_name, c.ceo_name, c.issued_at, %s
                 r.registration_no, r.study_mode,
                 CASE WHEN up.profile_photo_status <> 'rejected' THEN up.profile_photo_path END AS photo
          FROM certificates c
          JOIN registrations r ON r.id = c.registration_id
          LEFT JOIN user_profiles up ON up.user_id = r.user_id
-         WHERE $where LIMIT 1"
-    );
-    $st->execute([$arg]);
+         WHERE $where LIMIT 1";
+    try {   // wording_text / issued_snapshot come with migration 100; before it the paragraph is built from the old fields
+        $st = $db->prepare(sprintf($sql, 'c.wording_text, c.issued_snapshot,'));
+        $st->execute([$arg]);
+    } catch (Throwable $e) {
+        $st = $db->prepare(sprintf($sql, ''));
+        $st->execute([$arg]);
+    }
     $cert = $st->fetch(PDO::FETCH_ASSOC) ?: null;
 }
 
@@ -198,6 +204,18 @@ ob_start();
             <small>Certificate <?php echo $e($cert['certificate_no']); ?> has been withdrawn by Dazu Training Institute and is no longer valid.</small></div>
         </div>
       <?php else: ?>
+        <?php
+        // The same joined paragraph as on the certificate: what was frozen at issue; otherwise the certificate's own two boxes.
+        $snap = !empty($cert['issued_snapshot']) ? json_decode((string) $cert['issued_snapshot'], true) : null;
+        $old = !$snap && in_array($cert['status'], ['issued', 'collected'], true);   // issued with the earlier layout: keep its sentence
+        $pd = [
+            'name' => $cert['snapshot_name'], 'course' => $cert['snapshot_course'], 'months' => max(1, (int) $cert['snapshot_duration_months']),
+            'wording' => is_array($snap) ? (string) ($snap['wording'] ?? CV2_DEFAULT_WORDING)
+                : ($old ? CV2_OLD_WORDING : (trim((string) ($cert['wording_text'] ?? '')) ?: cv2_settings($db)['wording'])),
+            'extra' => is_array($snap) ? (string) ($snap['extra'] ?? '') : (string) $cert['taught_skills'],
+        ];
+        $certParagraph = cv2_paragraph_html($pd, $old);
+        ?>
         <div class="vf-band ok">
           <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><circle cx="12" cy="12" r="10"/><path d="M7 12.5l3 3 7-7"/></svg>
           <div><b>Valid certificate</b><small>Issued by Dazu Training Institute<?php echo $cert['issued_at'] ? ' on ' . $e(date('j F Y', strtotime($cert['issued_at']))) : ''; ?></small></div>
@@ -206,7 +224,7 @@ ob_start();
           <?php if ($cert['photo']): ?><img class="vf-photo" src="<?php echo $e(settings_asset_url($cert['photo'])); ?>" alt="Photo of <?php echo $e($cert['snapshot_name']); ?>"><?php endif; ?>
           <div style="flex:1;min-width:240px">
             <p class="vf-name"><?php echo $e($cert['snapshot_name']); ?></p>
-            <div style="color:#475569">has successfully completed the <strong><?php echo $e($cert['snapshot_course']); ?></strong></div>
+            <div style="color:#475569;line-height:1.6"><?php echo $certParagraph; ?></div>
             <dl class="vf-dl">
               <div><dt>Certificate No</dt><dd><?php echo $e($cert['certificate_no']); ?></dd></div>
               <?php if ($cert['registration_no']): ?><div><dt>Registration No</dt><dd><?php echo $e($cert['registration_no']); ?></dd></div><?php endif; ?>
@@ -217,9 +235,6 @@ ob_start();
             </dl>
           </div>
         </div>
-        <?php if (trim((string) $cert['taught_skills']) !== ''): ?>
-          <div class="vf-text"><div class="vf-h" style="margin-bottom:6px">What was completed</div><?php echo nl2br($e(trim($cert['taught_skills']))); ?></div>
-        <?php endif; ?>
       <?php endif; ?>
     </div>
     <p class="vf-foot">Check that the name and course above match the paper certificate exactly.</p>

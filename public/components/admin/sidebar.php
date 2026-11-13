@@ -282,6 +282,20 @@ function isSmsSection($section) {
                 </div>
             </div>
 
+            <!--nav:progress-->
+            <a href="<?php echo url('admin/progress/index.php'); ?>"
+               class="nav-link <?php echo $current_dir == 'progress' ? 'active' : ''; ?>">
+                <i class="fas fa-chart-line"></i>
+                <span>Student Progress</span>
+            </a>
+
+            <!--nav:selfstudy-->
+            <a href="<?php echo url('admin/selfstudy/index.php'); ?>"
+               class="nav-link <?php echo $current_dir == 'selfstudy' ? 'active' : ''; ?>">
+                <i class="fas fa-laptop-code"></i>
+                <span>Self-study</span>
+            </a>
+
             <!--nav:certificates-->
             <!-- Certificates (Standalone) -->
             <a href="<?php echo url('admin/certificates/index.php'); ?>"

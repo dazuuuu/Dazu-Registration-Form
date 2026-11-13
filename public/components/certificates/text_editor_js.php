@@ -24,6 +24,11 @@
     clearTimeout(t); t = setTimeout(preview, 350);
   });
   form.addEventListener('change', function () { dirty = true; var d = document.getElementById('dirty'); if (d) d.hidden = false; clearTimeout(t); t = setTimeout(preview, 150); });
+  form.addEventListener('click', function (ev) {      // "Reset to default": the automatic sentence comes back (nothing is saved until Save)
+    var a = ev.target.closest && ev.target.closest('[data-reset]'); if (!a) return;
+    ev.preventDefault(); var ta = document.getElementById(a.dataset.reset); if (!ta) return;
+    ta.value = ta.dataset.default || ''; ta.dispatchEvent(new Event('input', { bubbles: true })); ta.focus();
+  });
   form.addEventListener('submit', function () { dirty = false; });
   window.addEventListener('beforeunload', function (e) { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
   counters(); preview();

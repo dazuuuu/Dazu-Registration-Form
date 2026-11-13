@@ -14,6 +14,8 @@ if (!function_exists('admin_nav_items')) {
             'import'           => ['Import Site', 'fa-file-import'],
             'updates'          => ['System Updates', 'fa-database'],
             'system'           => ['System (dropdown)', 'fa-cogs'],
+            'progress'         => ['Student Progress', 'fa-chart-line'],
+            'selfstudy'        => ['Self-study', 'fa-laptop-code'],
             'certificates'     => ['Certificates', 'fa-certificate'],
             'id_cards'         => ['Student ID Cards', 'fa-id-card'],
             'directors'        => ['Directors', 'fa-signature'],

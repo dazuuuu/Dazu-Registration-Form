@@ -1,6 +1,6 @@
 <?php
-// The text under the name on one certificate: (1) the default wording (≤ 200, fields {course} {duration} {student_name})
-// and (2) the tutor's extra lines (≤ 160). Admin and the student's own tutor may edit both; the name, registration number
+// The text under the name on one certificate, printed as ONE joined paragraph: (1) the first sentence (≤ 200, fields {course}
+// {a_duration} {duration} {institute} {student_name}; "Reset to default" brings back the automatic sentence) and (2) the tutor's extra lines (≤ 160). Admin and the student's own tutor may edit both; the name, registration number
 // and certificate number are locked. Live preview; nothing is kept until Save. An issued certificate stays exactly as issued:
 // saved text shows on it only after the admin presses Reissue. ?id=<certificate id>
 require_once __DIR__ . '/../../app/v1/init.php';
@@ -81,12 +81,12 @@ header('X-Robots-Tag: noindex');
     <form method="POST" id="tf" class="panel"><?php echo csrf_field(); ?><input type="hidden" name="id" value="<?php echo $id; ?>">
       <div class="locked"><div><span>Student</span><b><?php echo $e($cert['snapshot_name']); ?></b></div><div><span>Registration No.</span><b><?php echo $e($cert['registration_no'] ?? '—'); ?></b></div><div><span>Certificate No.</span><b><?php echo $e($cert['certificate_no']); ?></b></div>
         <small>Locked: nobody can change these.</small></div>
-      <?php $box = function (string $name, string $label, string $hint, string $val, int $max, int $rows) use ($e) { ?>
-        <label class="lbl" for="<?php echo $name; ?>"><?php echo $label; ?></label>
-        <textarea id="<?php echo $name; ?>" name="<?php echo $name; ?>" rows="<?php echo $rows; ?>" maxlength="<?php echo $max; ?>" data-max="<?php echo $max; ?>"><?php echo $e($val); ?></textarea>
+      <?php $box = function (string $name, string $label, string $hint, string $val, int $max, int $rows, ?string $default = null) use ($e) { ?>
+        <label class="lbl" for="<?php echo $name; ?>"><?php echo $label; ?><?php if ($default !== null): ?> <a href="#" data-reset="<?php echo $name; ?>" style="font-weight:400;font-size:.8rem;margin-left:8px">Reset to default</a><?php endif; ?></label>
+        <textarea id="<?php echo $name; ?>" name="<?php echo $name; ?>" rows="<?php echo $rows; ?>" maxlength="<?php echo $max; ?>" data-max="<?php echo $max; ?>"<?php echo $default !== null ? ' data-default="' . $e($default) . '"' : ''; ?>><?php echo $e($val); ?></textarea>
         <div class="meta"><span class="hint"><?php echo $hint; ?></span><span class="count" data-for="<?php echo $name; ?>"></span></div>
       <?php }; ?>
-      <?php $box('wording', '1 · Default wording', 'Fields: <code>{course}</code> <code>{a_duration}</code> <code>{duration}</code> <code>{student_name}</code>. {a_duration} writes "an 18-month" or "a 1-month" for you.', $wording, CV2_WORDING_MAX, 3); ?>
+      <?php $box('wording', '1 · First sentence', 'Filled in by the system: <code>{course}</code> <code>{a_duration}</code> <code>{duration}</code> <code>{institute}</code> <code>{student_name}</code>. {a_duration} writes "an 18-month" or "a 1-month" for you. Box 2 continues right after it, as one paragraph.', $wording, CV2_WORDING_MAX, 3, $set['wording']); ?>
       <?php $box('extra', '2 · Tutor\'s extra lines', 'Optional, about two lines.', $extra, CV2_EXTRA_MAX, 2); ?>
       <div class="bar"><span id="dirty" class="dirty" hidden>Unsaved changes</span><button class="btn" name="action" value="save">Save</button>
         <?php if ($isAdmin && $issued): ?><button class="btn o" name="action" value="reissue" formnovalidate onclick="return confirm('Reissue this certificate with the saved text and the current settings? The old version is kept in the history.')">Reissue</button><?php endif; ?></div>

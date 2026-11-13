@@ -52,6 +52,7 @@ $slDir = basename(dirname($_SERVER['PHP_SELF']));
 $slItems = [
     ['dashboard', 'Dashboard', 'fa-house', url('students/dashboard/index.php'), $slDir === 'dashboard', true, null, 'Home'],
     ['course', 'My Course', 'fa-book-open', url('students/course/index.php'), $slDir === 'course', true, null, 'Course'],
+    ['selfstudy', 'Self-study', 'fa-laptop-code', url('students/selfstudy/index.php'), $slDir === 'selfstudy', false],
     ['payments', 'Finance', 'fa-wallet', url('students/payments/index.php'), $slDir === 'payments', true, null, 'Finance'],
     ['classes', 'My Classes', 'fa-calendar-days', url('students/classes/index.php'), $slDir === 'classes', true, null, 'Classes'],
     ['documents', 'My Documents', 'fa-id-card', url('students/documents/index.php'), $slDir === 'documents', false, 'More', 'Docs'],

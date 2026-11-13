@@ -6,9 +6,12 @@
 // and the "Date of Issue | Certificate No" footer. Every green is the Dazu logo green.
 //
 // TEXT UNDER THE NAME, two boxes never mixed:
-//   wording_text  (certificates.wording_text, ≤ 200): the default wording; NULL = the wording in Settings. Fields {course},
-//                 {duration}, {student_name}.
+//   wording_text  (certificates.wording_text, ≤ 200): the first sentence; NULL = the wording in Settings. Fields {course},
+//                 {a_duration}, {duration}, {institute}, {student_name}.
 //   taught_skills (≤ 160): the tutor's extra lines, empty until someone writes them.
+//   On the certificate (and the verify page) the two boxes are ONE centred paragraph: the same font, size, weight, colour and
+//   line spacing, the extra text starting right after the first sentence (cv2_paragraph_html). A long paragraph is shrunk as a
+//   whole (cv2_paragraph_pt) so it stays above the signatures and clear of the QR code and the seal.
 //   The name, the registration number and the certificate number are never editable.
 // ISSUED = FROZEN: when a certificate is issued, everything it prints (wording, extra lines, NITA settings, logos, names and
 // signatures) is saved in certificates.issued_snapshot (cert_freeze) and the PDF is always drawn from that. Later edits and
@@ -25,7 +28,8 @@ if (!defined('CV2_GREEN')) {
     define('CV2_TINT', '#E3F3EA');
     define('CV2_WORDING_MAX', 200);
     define('CV2_EXTRA_MAX', 160);
-    define('CV2_DEFAULT_WORDING', 'Has successfully completed {a_duration} programme in {course} at Dazu Training Institute.');
+    define('CV2_INSTITUTE', 'Dazu Training Institute');
+    define('CV2_DEFAULT_WORDING', 'Has successfully completed {a_duration} programme in {course} at {institute}.');
     define('CV2_OLD_WORDING', 'Has successfully completed a {duration} programme of study in the {course} at Dazu Training Institute.');
     define('CV2_NITA_DEFAULTS', ['logo' => '', 'number' => 'TRN/2947', 'position' => 'top_right', 'style' => 'block', 'size' => 'medium', 'color' => '#048C44']);
 }
@@ -332,17 +336,47 @@ if (!function_exists('cv2_settings')) {
     }
 
     /** The wording as HTML: {course} bold green, {duration}, {a_duration} (with its "a"/"an"), {student_name}. */
-    function cv2_wording_html(string $wording, array $d): string
+    function cv2_wording_html(string $wording, array $d, bool $keepOld = false): string
     {
         $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
         // wording saved before the grammar fix ("a {duration} programme of study in the {course}") reads correctly too
-        $wording = $wording === CV2_OLD_WORDING ? CV2_DEFAULT_WORDING : preg_replace('/\ba \{duration\}/i', '{a_duration}', $wording);
+        // (not for a certificate issued with the earlier layout: its page keeps the sentence it was issued with)
+        if (!$keepOld) $wording = $wording === CV2_OLD_WORDING ? CV2_DEFAULT_WORDING : preg_replace('/\ba \{duration\}/i', '{a_duration}', $wording);
         return strtr($e($wording), [
+            '{institute}' => $e(CV2_INSTITUTE),
             '{course}' => '<b style="color:' . CV2_GREEN . '">' . $e(cv2_course_in_text((string) $d['course'])) . '</b>',
             '{a_duration}' => $e(cv2_a_duration((int) $d['months'])),
             '{duration}' => $e(cert_duration_label((int) $d['months'])),
             '{student_name}' => $e($d['name']),
         ]);
+    }
+
+    /**
+     * The two boxes under the name as ONE paragraph (HTML): the first sentence, one space, then the tutor's text on the same line
+     * when it fits. The system adds that single space; a double space or a doubled full stop typed by the tutor is removed.
+     * The course keeps its green highlight. $keepOld: an earlier-layout certificate keeps the sentence it was issued with.
+     */
+    function cv2_paragraph_html(array $d, bool $keepOld = false): string
+    {
+        $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
+        $tidy = fn(string $t) => trim(preg_replace('/(?<!\.)\.{2}(?!\.)/', '.', preg_replace('/\s+/u', ' ', $t)));
+        $first = $tidy((string) $d['wording']);
+        $extra = $tidy((string) ($d['extra'] ?? ''));
+        if ($first !== '' && $extra !== '' && substr($first, -1) === '.') $extra = ltrim($extra, '. ');
+        $html = cv2_wording_html($first, $d, $keepOld);
+        return $extra === '' ? $html : $html . ($html === '' ? '' : ' ') . $e($extra);
+    }
+
+    /** The font size (pt) of the joined paragraph: 14 as always, smaller (the whole paragraph, evenly) only when it would reach the signatures. */
+    function cv2_paragraph_pt(string $html, float $widthMm, float $maxHeightMm = 28.5): float
+    {
+        $n = mb_strlen(html_entity_decode(strip_tags($html), ENT_QUOTES, 'UTF-8'));
+        for ($pt = 14.0; $pt > 9.0; $pt -= 0.25) {
+            $perLine = $widthMm / (0.47 * $pt * 0.3528);          // average Times character, in mm
+            $lines = (int) ceil($n * 1.06 / $perLine);               // a little room for words that wrap
+            if ($lines * 1.35 * $pt * 0.3528 <= $maxHeightMm) return $pt;
+        }
+        return 9.0;
     }
 
     /** The NITA block or line for its place. */
@@ -401,7 +435,8 @@ if (!function_exists('cv2_settings')) {
         $serif = "font-family:'Times New Roman',Times,serif;";
         $sans = 'font-family:Helvetica,Arial,sans-serif;';
         $line = fn($l, $t, $w) => '<div style="' . $abs . 'left:' . $l . 'mm;top:' . $t . 'mm;width:' . $w . 'mm;border-top:0.5mm solid ' . $G . '"></div>';
-        $extra = trim($d['extra']);
+        $para = cv2_paragraph_html($d);
+        $paraPt = rtrim(rtrim(number_format(cv2_paragraph_pt($para, $wordW), 2, '.', ''), '0'), '.');
 
         $html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>@page{size:A4 landscape;margin:0}*{margin:0;padding:0}body{width:297mm;height:210mm;color:#111}</style></head><body>'
             . '<img src="' . cv2_uri($bgFile ?: cv2_background()) . '" style="' . $abs . 'left:0;top:0;width:297mm;height:210mm">'
@@ -416,9 +451,8 @@ if (!function_exists('cv2_settings')) {
             . '<div style="' . $abs . 'left:62mm;width:173mm;top:' . (113.5 - $nameSize * 0.42) . 'mm;text-align:center;' . $serif . 'font-weight:bold;font-style:italic;font-size:' . $nameSize . 'pt;line-height:1;color:' . $G . ';white-space:nowrap">' . $e($name) . '</div>'
             . $line(92, 115.8, 52) . $line(153, 115.8, 52)
             . '<div style="' . $abs . 'left:146.8mm;top:114.4mm;width:2.4mm;height:2.4mm;background:' . $G . ';transform:rotate(45deg)"></div>'
-            // the two boxes under the name
-            . '<div style="' . $abs . 'left:' . (148.5 - $wordW / 2) . 'mm;width:' . $wordW . 'mm;top:120.5mm;text-align:center;' . $serif . 'font-size:14pt;line-height:1.35">' . cv2_wording_html($d['wording'], $d)
-            . ($extra !== '' ? '<div style="margin-top:1mm;font-size:12.5pt">' . nl2br($e($extra)) . '</div>' : '') . '</div>'
+            // the two boxes under the name: one joined paragraph
+            . '<div style="' . $abs . 'left:' . (148.5 - $wordW / 2) . 'mm;width:' . $wordW . 'mm;top:120.5mm;text-align:center;' . $serif . 'font-size:' . $paraPt . 'pt;line-height:1.35">' . $para . '</div>'
             // verification column
             . '<div style="' . $abs . 'left:7mm;width:41mm;top:98mm;text-align:center;' . $sans . 'font-size:9.5pt">' . $e($d['cert_no']) . '</div>'
             . '<div style="' . $abs . 'left:14.5mm;top:104.5mm;width:26mm;height:26mm">'
