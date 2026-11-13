@@ -39,6 +39,7 @@ $sa_more = [
         ['Certificates', 'superadmin/certificates/index.php', 'fa-certificate'],
         ['Student ID cards', 'superadmin/id_cards/index.php', 'fa-id-card'],
         ['Assignments', 'superadmin/assignments/index.php', 'fa-file-lines'],
+        ['Staff Calendar', 'superadmin/staffcalendar/index.php', 'fa-calendar-check'],
     ],
     'Money' => [
         ['Payments', 'superadmin/payments/index.php', 'fa-money-bill-wave'],
@@ -89,6 +90,7 @@ $sa_side = [
         ['Certificates', 'superadmin/certificates/index.php', '/certificates/', 'fa-certificate'],
         ['ID Cards', 'superadmin/id_cards/index.php', '/id_cards/', 'fa-id-card'],
         ['Assignments', 'superadmin/assignments/index.php', '/superadmin/assignments/', 'fa-file-lines'],
+        ['Staff Calendar', 'superadmin/staffcalendar/index.php', '/superadmin/staffcalendar/', 'fa-calendar-check'],
     ],
     'Money' => [
         ['Payments', 'superadmin/payments/index.php', '/superadmin/payments/', 'fa-money-bill-wave'],

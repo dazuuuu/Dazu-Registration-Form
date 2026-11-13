@@ -37,6 +37,9 @@ try {
 } catch (Throwable $e) {
 }
 
+// Staff Calendar menu item: tutors and the super admin only (the page checks the role again on every request)
+require_once __DIR__ . '/../../../app/v1/services/StaffCalendar.php';
+$tlStaffCal = scal_can_see_menu($tlDb, $tlUid);
 // [key, label, icon, href, active, on tab bar, section heading, short tab label, badge count]
 $tlItems = [
     ['dashboard', 'Dashboard', 'fa-house', url('tutor/dashboard/index.php'), $tlDir === 'dashboard', true, null, 'Home'],
@@ -45,6 +48,7 @@ $tlItems = [
     ['submissions', 'Submissions', 'fa-clipboard-check', url('tutor/submissions/index.php'), $tlDir === 'submissions', true, null, 'Grade', $tlAwaiting],
     ['modules', 'Course Builder', 'fa-layer-group', url('tutor/modules/index.php'), $tlDir === 'modules', true, null, 'Builder'],
     ['calendar', 'Class Calendar', 'fa-calendar-days', url('tutor/calendar/index.php'), $tlDir === 'calendar', false, 'Teaching'],
+    ...($tlStaffCal ? [['staffcalendar', 'Staff Calendar', 'fa-calendar-check', url('tutor/staffcalendar/index.php'), $tlDir === 'staffcalendar', false]] : []),
     ['courses', 'My Courses', 'fa-book-open', url('tutor/courses/index.php'), $tlDir === 'courses', false],
     ['selfstudy', 'Self-study', 'fa-laptop-code', url('tutor/selfstudy/index.php'), $tlDir === 'selfstudy', false],
     ['resources', 'Resources', 'fa-folder-open', url('tutor/resources/index.php'), $tlDir === 'resources', false],
@@ -88,6 +92,7 @@ $shell['tabs'] = [
     ['link', 'Students', 'fa-user-graduate', url('tutor/students/index.php'), $tlOn(['students'])],
     ['sheet', 'courses', 'Courses', 'fa-book-open', [
         ['Class Calendar', 'fa-calendar-days', url('tutor/calendar/index.php'), $tlOn(['calendar'])],
+        ...($tlStaffCal ? [['Staff Calendar', 'fa-calendar-check', url('tutor/staffcalendar/index.php'), $tlOn(['staffcalendar'])]] : []),
         ['My courses', 'fa-book-open', url('tutor/courses/index.php'), $tlOn(['courses'])],
         ['Self-study', 'fa-laptop-code', url('tutor/selfstudy/index.php'), $tlOn(['selfstudy'])],
         ['Course builder', 'fa-layer-group', url('tutor/modules/index.php'), $tlOn(['modules'])],
