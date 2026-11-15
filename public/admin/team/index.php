@@ -150,7 +150,7 @@ ob_start();
     </div>
   </div>
   <div class="col-lg-8">
-    <div class="card"><div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">Team members</h5><small class="text-muted" id="orderMsg"><i class="fas fa-grip-vertical me-1"></i>Drag rows to set the order on the website</small></div><div class="card-body p-0">
+    <div class="card"><div class="card-header d-flex justify-content-between align-items-center"><h5 class="mb-0">Team members</h5><small class="text-muted" id="orderMsg"><i class="fas fa-grip-vertical me-1"></i>Drag rows to set the order: the top one shows in the middle (founder), the 2nd on its left, the 3rd on its right</small></div><div class="card-body p-0">
       <?php if (!$members): ?><p class="p-4 mb-0 text-muted">No team members yet.</p><?php else: ?>
       <div class="table-responsive"><table class="table table-hover align-middle mb-0"><thead><tr><th style="width:36px"></th><th>Member</th><th>Role</th><th>Socials</th><th></th></tr></thead><tbody id="teamRows">
       <?php foreach ($members as $member): ?><tr data-id="<?php echo (int) $member['id']; ?>">

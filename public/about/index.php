@@ -434,53 +434,121 @@ $teamHref = static function (string $key, string $v): string {
   return preg_match('#^https?://#i', $v) ? $v : 'https://' . ltrim($v, '/');
 };
 ?>
+<?php
+// Display order: the first member (Admin → Team, drag to order) in the middle, the 2nd to its left, the 3rd to its right, then outwards.
+$tmOrdered = array_values($teamMembers);
+$tmLeft = []; $tmRight = [];
+foreach (array_slice($tmOrdered, 1) as $k => $m) { if ($k % 2 === 0) array_unshift($tmLeft, $m); else $tmRight[] = $m; }
+$tmDisplay = array_merge($tmLeft, $tmOrdered ? [$tmOrdered[0]] : [], $tmRight);
+$tmStart = count($tmLeft);
+$tmFirstId = $tmOrdered ? (int) $tmOrdered[0]['id'] : 0;
+$tmColors = ['facebook' => '#1877F2', 'linkedin' => '#0A66C2', 'whatsapp' => '#25D366', 'tiktok' => '#111111', 'email' => '#EA4335', 'phone' => '#15A24A', 'instagram' => 'url(#dz-ig-grad)'];
+$tmName = static function (string $n): string { $n = trim($n); return $n === mb_strtoupper($n) ? mb_convert_case(mb_strtolower($n), MB_CASE_TITLE) : $n; };
+?>
 <style>
-.dz-team{background:#fff;padding:80px 16px 90px}
-.dz-team *{box-sizing:border-box}
-.dz-team-wrap{max-width:1120px;margin:0 auto}
-.dz-team-title{text-align:center;font-size:clamp(28px,3.6vw,40px);line-height:1.2;font-weight:700;color:#1e293b;letter-spacing:-.02em;margin:0 auto 64px;max-width:520px;text-transform:none}
-.dz-team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px 14px}
-@media(min-width:640px){.dz-team-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(min-width:960px){.dz-team-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:56px 10px}}
-.dz-team-photo{position:relative;aspect-ratio:1/0.88;border-radius:14px;overflow:hidden;display:flex;align-items:flex-end;justify-content:center}
-/* soft pastel backdrops, in the same order as the design */
-.dz-team-card:nth-child(8n+1) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#f1fbe2 100%)}
-.dz-team-card:nth-child(8n+2) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#e3d3fb 100%)}
-.dz-team-card:nth-child(8n+3) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#fbd3e6 100%)}
-.dz-team-card:nth-child(8n+4) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#d3e7fb 100%)}
-.dz-team-card:nth-child(8n+5) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#dbefc8 100%)}
-.dz-team-card:nth-child(8n+6) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#c9ece6 100%)}
-.dz-team-card:nth-child(8n+7) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#cfdde8 100%)}
-.dz-team-card:nth-child(8n+8) .dz-team-photo{background:linear-gradient(180deg,#fff 0%,#f6e6d6 100%)}
-.dz-team-photo img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block}
-.dz-team-initial{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:64px;font-weight:700;color:#334155}
-.dz-team-name{font-size:19px;line-height:1.3;font-weight:600;color:#0f172a;margin:18px 0 6px;text-transform:none;letter-spacing:-.01em}
-.dz-team-role{display:block;font-size:14px;color:#64748b}
-.dz-team-empty{border:1px dashed #cbd5e1;border-radius:14px;padding:40px;text-align:center;color:#64748b;grid-column:1/-1}
+.tm{background:linear-gradient(180deg,#fff 0%,#f0fdf4 100%);padding:80px 0 70px;overflow:hidden}
+.tm-head{text-align:center;max-width:620px;margin:0 auto 36px;padding:0 16px}
+.tm-eye{color:#15A24A;font-size:12px;letter-spacing:.15em;text-transform:uppercase;font-weight:800}
+.tm-title{font-size:clamp(26px,3.4vw,38px);font-weight:800;color:#0f172a;margin:.5rem 0 .4rem;letter-spacing:-.01em}
+.tm-sub{color:#64748b;margin:0}
+.tm-stage{position:relative;height:450px;touch-action:pan-y;user-select:none;cursor:grab;outline:none}
+.tm-stage.drag{cursor:grabbing}
+.tm-card{position:absolute;left:50%;top:10px;width:260px;margin-left:-130px;transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .38s,filter .38s;will-change:transform}
+.tm-stage.drag .tm-card{transition:none}
+.tm-photo{height:320px;border-radius:22px;overflow:hidden;background:linear-gradient(160deg,#dcfce7 0%,#15A24A 140%);box-shadow:0 18px 40px rgba(6,48,26,.18);position:relative}
+.tm-photo img{width:100%;height:100%;object-fit:cover;object-position:top center;display:block;pointer-events:none}
+.tm-ini{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:84px;font-weight:800;color:#fff}
+.tm-card.on .tm-photo{box-shadow:0 26px 50px rgba(6,48,26,.28);outline:3px solid #15A24A;outline-offset:4px}
+.tm-badge{position:absolute;left:12px;top:12px;background:#15A24A;color:#fff;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:5px 10px;border-radius:999px}
+.tm-info{text-align:center;margin-top:16px;opacity:0;transform:translateY(6px);transition:opacity .3s,transform .3s}
+.tm-card.on .tm-info{opacity:1;transform:none}
+.tm-name{font-size:19px;font-weight:800;color:#0f172a;margin:0;text-transform:none}
+.tm-role{display:block;font-size:13px;color:#15803d;font-weight:600;margin-top:2px}
+.tm-soc{display:flex;justify-content:center;gap:8px;margin-top:10px}
+.tm-soc a{width:30px;height:30px;border-radius:50%;background:#fff;border:1px solid #e2e8f0;display:flex;align-items:center;justify-content:center;transition:transform .15s}
+.tm-soc a:hover{transform:translateY(-2px)}
+.tm-soc svg{width:15px;height:15px}
+.tm-ctrl{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:6px}
+.tm-ctrl button.arr{width:42px;height:42px;border-radius:50%;border:1px solid #bbf7d0;background:#fff;color:#15803d;cursor:pointer;font-size:18px}
+.tm-ctrl button.arr:hover{background:#15A24A;color:#fff;border-color:#15A24A}
+.tm-dots{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;max-width:60vw}
+.tm-dots button{width:8px;height:8px;border-radius:999px;border:0;padding:0;background:#bbf7d0;cursor:pointer;transition:width .25s,background .25s}
+.tm-dots button.on{width:22px;background:#15A24A}
+.tm-empty{border:1px dashed #cbd5e1;border-radius:14px;padding:40px;text-align:center;color:#64748b;max-width:600px;margin:0 auto}
+@media(max-width:640px){.tm-stage{height:410px}.tm-card{width:220px;margin-left:-110px}.tm-photo{height:280px}}
 </style>
-<section class="dz-team" id="team">
+<section class="tm" id="team">
   <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><linearGradient id="dz-ig-grad" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#FEDA75"/><stop offset=".3" stop-color="#FA7E1E"/><stop offset=".6" stop-color="#D62976"/><stop offset=".8" stop-color="#962FBF"/><stop offset="1" stop-color="#4F5BD5"/></linearGradient></defs></svg>
-  <div class="dz-team-wrap">
-    <h2 class="dz-team-title">A Team That Never Says Impossible</h2>
-    <div class="dz-team-grid">
-      <?php if (!$teamMembers): ?>
-        <div class="dz-team-empty">Our team profiles will be available soon.</div>
-      <?php endif; ?>
-      <?php foreach ($teamMembers as $t): ?>
-        <article class="dz-team-card">
-          <div class="dz-team-photo">
-            <?php if (!empty($t['photo_path'])): ?>
-              <img src="<?php echo htmlspecialchars(url($t['photo_path']), ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($t['name'], ENT_QUOTES); ?>" loading="lazy">
-            <?php else: ?>
-              <div class="dz-team-initial"><?php echo htmlspecialchars(strtoupper(substr($t['name'], 0, 1))); ?></div>
-            <?php endif; ?>
-          </div>
-          <h3 class="dz-team-name"><?php $tn = trim((string) $t['name']); echo htmlspecialchars($tn === mb_strtoupper($tn) ? mb_convert_case(mb_strtolower($tn), MB_CASE_TITLE) : $tn); ?></h3>
-          <span class="dz-team-role"><?php echo htmlspecialchars($t['role']); ?></span>
-        </article>
-      <?php endforeach; ?>
-    </div>
+  <div class="tm-head">
+    <span class="tm-eye">Meet Our Team</span>
+    <h2 class="tm-title">Experienced People. Shared Commitment.</h2>
+    <p class="tm-sub">Our team brings together experience in software development, cybersecurity, networking, artificial intelligence, administration and institutional management.</p>
   </div>
+  <?php if (!$tmDisplay): ?>
+    <div class="tm-empty">Our team profiles will be available soon.</div>
+  <?php else: ?>
+  <div class="tm-stage" id="tmStage" tabindex="0" aria-roledescription="carousel" aria-label="Team members" data-start="<?php echo (int) $tmStart; ?>">
+    <?php foreach ($tmDisplay as $k => $t): ?>
+      <article class="tm-card" data-i="<?php echo $k; ?>">
+        <div class="tm-photo">
+          <?php if ((int) $t['id'] === $tmFirstId): ?><span class="tm-badge">Founder</span><?php endif; ?>
+          <?php if (!empty($t['photo_path'])): ?><img src="<?php echo htmlspecialchars(url($t['photo_path']), ENT_QUOTES); ?>" alt="<?php echo htmlspecialchars($t['name'], ENT_QUOTES); ?>" loading="lazy" draggable="false">
+          <?php else: ?><div class="tm-ini"><?php echo htmlspecialchars(mb_strtoupper(mb_substr(trim($t['name']), 0, 1))); ?></div><?php endif; ?>
+        </div>
+        <div class="tm-info">
+          <h3 class="tm-name"><?php echo htmlspecialchars($tmName((string) $t['name'])); ?></h3>
+          <span class="tm-role"><?php echo htmlspecialchars((string) $t['role']); ?></span>
+          <div class="tm-soc">
+            <?php foreach ($teamIcons as $key => [$label, $path]): if (empty($t[$key])) continue; ?>
+              <a href="<?php echo htmlspecialchars($teamHref($key, (string) $t[$key]), ENT_QUOTES); ?>" <?php echo in_array($key, ['phone', 'email'], true) ? '' : 'target="_blank" rel="noopener"'; ?> aria-label="<?php echo $label; ?>" title="<?php echo $label; ?>"><svg viewBox="0 0 24 24" fill="<?php echo $tmColors[$key]; ?>"><?php echo $path; ?></svg></a>
+            <?php endforeach; ?>
+          </div>
+        </div>
+      </article>
+    <?php endforeach; ?>
+  </div>
+  <div class="tm-ctrl">
+    <button type="button" class="arr" id="tmPrev" aria-label="Previous">&larr;</button>
+    <div class="tm-dots" id="tmDots"><?php foreach ($tmDisplay as $t): ?><button type="button" aria-label="Show <?php echo htmlspecialchars($tmName((string) $t['name']), ENT_QUOTES); ?>"></button><?php endforeach; ?></div>
+    <button type="button" class="arr" id="tmNext" aria-label="Next">&rarr;</button>
+  </div>
+  <script>
+  (function () {
+    var stage = document.getElementById('tmStage'); if (!stage) return;
+    var cards = stage.querySelectorAll('.tm-card'), dots = document.querySelectorAll('#tmDots button'), n = cards.length;
+    var cur = +stage.dataset.start || 0, gap = function () { return Math.min(230, Math.max(140, stage.offsetWidth / 5.2)); };
+    function lay(drag) {
+      var g = gap();
+      cards.forEach(function (c, i) {
+        var o = i - cur + (drag || 0), a = Math.abs(o);
+        c.style.transform = 'translateX(' + (o * g) + 'px) scale(' + Math.max(.62, 1 - a * .14) + ')';
+        c.style.opacity = a > 3.2 ? 0 : 1 - a * .18;
+        c.style.zIndex = 100 - Math.round(a * 10);
+        c.style.filter = a < .5 ? 'none' : 'grayscale(' + Math.min(.6, a * .3) + ')';
+        c.classList.toggle('on', Math.round(a) === 0 && !drag);
+        c.setAttribute('aria-hidden', Math.round(a) === 0 ? 'false' : 'true');
+      });
+      dots.forEach(function (d, i) { d.classList.toggle('on', i === cur); });
+    }
+    function go(i) { cur = Math.max(0, Math.min(n - 1, i)); lay(); }
+    document.getElementById('tmPrev').onclick = function () { go(cur - 1); };
+    document.getElementById('tmNext').onclick = function () { go(cur + 1); };
+    dots.forEach(function (d, i) { d.onclick = function () { go(i); }; });
+    stage.addEventListener('keydown', function (e) { if (e.key === 'ArrowLeft') go(cur - 1); if (e.key === 'ArrowRight') go(cur + 1); });
+    var x0 = null, moved = 0;
+    stage.addEventListener('pointerdown', function (e) { if (e.target.closest('a')) return; x0 = e.clientX; moved = 0; stage.classList.add('drag'); });
+    window.addEventListener('pointermove', function (e) { if (x0 === null) return; moved = e.clientX - x0; lay(Math.max(-2, Math.min(2, moved / gap()))); });
+    window.addEventListener('pointerup', function (e) {
+      if (x0 === null) return; stage.classList.remove('drag'); x0 = null;
+      if (Math.abs(moved) > 30) { var steps = Math.round(moved / gap()) || Math.sign(moved); go(cur - steps); }
+      else { var c = e.target.closest && e.target.closest('.tm-card'); if (c) go(+c.dataset.i); else lay(); }
+    });
+    stage.addEventListener('wheel', function (e) { if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 20) { e.preventDefault(); go(cur + (e.deltaX > 0 ? 1 : -1)); } }, { passive: false });
+    window.addEventListener('resize', function () { lay(); });
+    lay();
+  })();
+  </script>
+  <?php endif; ?>
 </section>
 
 <!-- Student projects -->
