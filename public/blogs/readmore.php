@@ -48,7 +48,7 @@ if (!empty($blog['category_id'])) {
         LEFT JOIN blog_categories c ON b.category_id = c.id
         WHERE b.status = 'published' AND b.id != :blog_id AND b.category_id = :category_id
         ORDER BY b.published_at DESC
-        LIMIT 3
+        LIMIT 8
     ");
     $stmt->execute([':blog_id' => $blog['id'], ':category_id' => $blog['category_id']]);
 } else {
@@ -58,11 +58,24 @@ if (!empty($blog['category_id'])) {
         LEFT JOIN blog_categories c ON b.category_id = c.id
         WHERE b.status = 'published' AND b.id != :blog_id
         ORDER BY b.published_at DESC
-        LIMIT 3
+        LIMIT 8
     ");
     $stmt->execute([':blog_id' => $blog['id']]);
 }
 $relatedPosts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+// "You might also like": newest posts not already shown (other categories first).
+$morePosts = [];
+try {
+    $skip = array_merge([(int) $blog['id']], array_map(fn($r) => (int) $r['id'], $relatedPosts));
+    $st = $pdo->prepare("SELECT b.id, b.slug, b.title, b.featured_image, b.published_at, c.name AS category_name FROM blogs b
+        LEFT JOIN blog_categories c ON b.category_id = c.id
+        WHERE b.status = 'published' AND b.id NOT IN (" . implode(',', $skip) . ")
+        ORDER BY (b.category_id <=> ?) ASC, b.published_at DESC LIMIT 6");
+    $st->execute([$blog['category_id']]);
+    $morePosts = $st->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
+    $morePosts = [];
+}
 
 function blog_youtube_id(string $url): string {
     preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/', $url, $matches);
@@ -309,35 +322,63 @@ ob_start();
           </div>
         </div>
 
+        <style>
+          .rb-sec{padding-top:36px;margin-top:40px;border-top:1px solid #e2e8f0}
+          .rb-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+          .rb-h h2{font-size:1.1rem;font-weight:800;color:#0f172a;margin:0}
+          .rb-nav{display:flex;gap:6px}.rb-nav button{width:32px;height:32px;border-radius:50%;border:1px solid #cbd5e1;background:#fff;color:#334155;cursor:pointer;line-height:1}
+          .rb-nav button:hover{border-color:#15A24A;color:#15A24A}
+          .rb-track{display:grid;grid-auto-flow:column;grid-auto-columns:180px;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;padding-bottom:4px}
+          .rb-track::-webkit-scrollbar{display:none}
+          .rb-card{scroll-snap-align:start;display:block;text-decoration:none;color:inherit}
+          .rb-thumb{display:block;width:100%;aspect-ratio:16/10;border-radius:10px;overflow:hidden;background:linear-gradient(135deg,#15A24A,#1e293b)}
+          .rb-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+          .rb-card:hover .rb-thumb img{transform:scale(1.05)}
+          .rb-cat{display:block;margin-top:8px;font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#15A24A}
+          .rb-t{font-size:.82rem;font-weight:700;line-height:1.35;color:#0f172a;margin-top:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+          .rb-card:hover .rb-t{color:#15A24A}
+          .rb-grid{display:grid;grid-template-columns:1fr;gap:10px}@media(min-width:640px){.rb-grid{grid-template-columns:1fr 1fr}}
+          .rb-mini{display:flex;gap:10px;align-items:center;padding:8px;border:1px solid #e2e8f0;border-radius:12px;text-decoration:none;color:inherit;background:#fff}
+          .rb-mini:hover{border-color:#15A24A}
+          .rb-mini .rb-thumb{width:64px;height:64px;flex:none;aspect-ratio:auto;border-radius:8px}
+          .rb-mini .rb-cat{margin-top:0}
+          .rb-d{display:block;font-size:10px;color:#94a3b8;font-weight:600;margin-top:2px}
+        </style>
+        <?php $rbUrl = fn($p) => url('blogs/readmore.php?slug=' . rawurlencode($p['slug'])); $rbE = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8'); ?>
         <?php if (!empty($relatedPosts)): ?>
-          <div class="pt-12 mt-12 border-t border-slate-200 space-y-6">
-            <h2 class="text-xl font-extrabold tracking-tight text-slate-900">Related Articles</h2>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <?php foreach ($relatedPosts as $related): ?>
-                <article class="bg-white border border-slate-200 rounded-2xl overflow-hidden hover:border-[#15A24A] hover:shadow-md transition-all group">
-                  <?php if (!empty($related['featured_image'])): ?>
-                    <img src="<?php echo htmlspecialchars($related['featured_image']); ?>" alt="" class="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300">
-                  <?php else: ?>
-                    <div class="h-36 bg-gradient-to-br from-[#15A24A] to-slate-800"></div>
-                  <?php endif; ?>
-                  <div class="p-5 space-y-2">
-                    <?php if (!empty($related['category_name'])): ?>
-                      <span class="text-[9px] font-extrabold uppercase tracking-widest text-[#15A24A]"><?php echo htmlspecialchars($related['category_name']); ?></span>
-                    <?php endif; ?>
-                    <h3 class="text-sm font-extrabold leading-snug">
-                      <a href="<?php echo url('blogs/readmore.php?slug=' . rawurlencode($related['slug'])); ?>" class="text-slate-900 group-hover:text-[#15A24A]">
-                        <?php echo htmlspecialchars($related['title']); ?>
-                      </a>
-                    </h3>
-                    <?php if (!empty($related['published_at'])): ?>
-                      <p class="text-[10px] text-slate-400 font-bold"><?php echo date('M d, Y', strtotime($related['published_at'])); ?></p>
-                    <?php endif; ?>
-                  </div>
-                </article>
+          <section class="rb-sec" id="rbRelated">
+            <div class="rb-h"><h2>Related articles</h2>
+              <?php if (count($relatedPosts) > 3): ?><div class="rb-nav"><button type="button" data-d="-1" aria-label="Previous">&larr;</button><button type="button" data-d="1" aria-label="Next">&rarr;</button></div><?php endif; ?></div>
+            <div class="rb-track">
+              <?php foreach ($relatedPosts as $rp): ?>
+                <a class="rb-card" href="<?php echo $rbE($rbUrl($rp)); ?>">
+                  <span class="rb-thumb"><?php if (!empty($rp['featured_image'])): ?><img src="<?php echo $rbE($rp['featured_image']); ?>" alt="" loading="lazy" onerror="this.remove()"><?php endif; ?></span>
+                  <?php if (!empty($rp['category_name'])): ?><span class="rb-cat"><?php echo $rbE($rp['category_name']); ?></span><?php endif; ?>
+                  <span class="rb-t"><?php echo $rbE($rp['title']); ?></span>
+                </a>
               <?php endforeach; ?>
             </div>
-          </div>
+          </section>
         <?php endif; ?>
+        <?php if ($morePosts): ?>
+          <section class="rb-sec">
+            <div class="rb-h"><h2>You might also like</h2></div>
+            <div class="rb-grid">
+              <?php foreach ($morePosts as $mp): ?>
+                <a class="rb-mini" href="<?php echo $rbE($rbUrl($mp)); ?>">
+                  <span class="rb-thumb"><?php if (!empty($mp['featured_image'])): ?><img src="<?php echo $rbE($mp['featured_image']); ?>" alt="" loading="lazy" onerror="this.remove()"><?php endif; ?></span>
+                  <span style="min-width:0"><?php if (!empty($mp['category_name'])): ?><span class="rb-cat"><?php echo $rbE($mp['category_name']); ?></span><?php endif; ?>
+                    <span class="rb-t"><?php echo $rbE($mp['title']); ?></span>
+                    <?php if (!empty($mp['published_at'])): ?><span class="rb-d"><?php echo date('M j, Y', strtotime($mp['published_at'])); ?></span><?php endif; ?></span>
+                </a>
+              <?php endforeach; ?>
+            </div>
+          </section>
+        <?php endif; ?>
+        <script>
+          (function () { var s = document.getElementById('rbRelated'); if (!s) return; var t = s.querySelector('.rb-track');
+            s.querySelectorAll('.rb-nav button').forEach(function (b) { b.onclick = function () { t.scrollBy({ left: (+b.dataset.d) * 388, behavior: 'smooth' }); }; }); })();
+        </script>
       </article>
 
       <!-- Sidebar -->
