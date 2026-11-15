@@ -1,4 +1,4 @@
--- 120_tutor_finance_wallet.sql
+-- 122_tutor_finance_wallet.sql
 -- Tutor Finance page: a 6-digit wallet PIN per tutor, and "missed payment" claims sent to the superadmin.
 ALTER TABLE tutor_payroll_requests MODIFY type ENUM('unassign','complete','adjust','claim') NOT NULL;
 ALTER TABLE tutor_payroll_requests ADD COLUMN months TINYINT UNSIGNED NULL AFTER amount;

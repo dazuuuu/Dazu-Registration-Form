@@ -629,7 +629,7 @@ class PayrollModel
             $lines[] = $line;
         }
 
-        $payLines = array_map(fn($p) => ['amount' => $p['amount'], 'month' => $p['paid_for_month']], $payments);
+        $payLines = array_map(fn($p) => ['amount' => $p['amount'], 'month' => $p['paid_for_month'], 'paid_on' => $p['paid_on'] ?? null], $payments);
         $adjustments = $this->getAdjustments($tutorId);
         $ledger = PayrollCalculator::ledger($lines, $payLines, $asOf, $tutorPauses,
             array_map(fn($a) => ['amount' => $a['amount'], 'month' => $a['for_month']], $adjustments), $this->countsFrom());

@@ -194,7 +194,11 @@ class PayrollCalculator
         $paymentIdxs = [];
         foreach ($payments as $p) {
             $idx = min(self::monthIndex((string) $p['month']), $asOfIdx);
-            if ($fromIdx !== null && $idx < $fromIdx) continue;
+            if ($fromIdx !== null && $idx < $fromIdx) {
+                // Settled months are left out, but a payment MADE in a counted month still counts (it pays what is owed now).
+                if (empty($p['paid_on']) || self::monthIndex((string) $p['paid_on']) < $fromIdx) continue;
+                $idx = $fromIdx;
+            }
             $paidByMonth[$idx] = ($paidByMonth[$idx] ?? 0) + self::cents($p['amount']);
             $paymentIdxs[] = $idx;
         }
