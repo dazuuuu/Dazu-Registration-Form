@@ -53,7 +53,7 @@ class CampusMediaModel
             $stmt->execute();
             return $stmt->fetchAll(PDO::FETCH_ASSOC);
         } catch (PDOException $e) {
-            if (($e->errorInfo[1] ?? null) === 1146) {
+            if (($e->errorInfo[1] ?? null) === 1146 || $e->getCode() === '42P01') {
                 return [];
             }
             throw $e;

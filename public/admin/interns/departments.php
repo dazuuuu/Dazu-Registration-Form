@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             in_audit($db, null, 'department_saved', $name);
         } catch (PDOException $e) {
-            $_SESSION['error_msg'] = (int) ($e->errorInfo[1] ?? 0) === 1062 ? 'A department with that name already exists.' : 'Could not save. Run System Updates (migration 075) first.';
+            $_SESSION['error_msg'] = ((int) ($e->errorInfo[1] ?? 0) === 1062 || $e->getCode() === '23505') ? 'A department with that name already exists.' : 'Could not save. Run System Updates (migration 075) first.';
         }
     }
     header('Location: ' . $self);

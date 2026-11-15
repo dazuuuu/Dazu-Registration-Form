@@ -599,7 +599,7 @@ class CourseModel {
 
     private function mapDbError(\PDOException $e, string $abbr): ?string {
         $sqlState = (string) $e->getCode();
-        if ($sqlState !== '23000') {
+        if ($sqlState !== '23000' && $sqlState !== '23505') {   // MySQL / PostgreSQL unique violation
             return null;
         }
 

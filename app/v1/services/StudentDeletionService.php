@@ -134,7 +134,7 @@ class StudentDeletionService
         try {
             $this->db->prepare($sql)->execute($args);
         } catch (PDOException $e) {
-            if (!in_array((int) ($e->errorInfo[1] ?? 0), [1146, 1054], true)) throw $e;
+            if (!in_array((int) ($e->errorInfo[1] ?? 0), [1146, 1054], true) && !in_array($e->getCode(), ['42P01', '42703'], true)) throw $e;
         }
     }
 

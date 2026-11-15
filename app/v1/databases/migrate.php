@@ -10,23 +10,20 @@ if (php_sapi_name() !== 'cli') {
 require_once __DIR__ . '/../config/paths.php';
 require_once __DIR__ . '/../services/MigrationService.php';
 $config = require __DIR__ . '/../config/database.php';
-
-// Connect without a database first so CREATE DATABASE IF NOT EXISTS (below) always works.
-try {
-    $pdo = new PDO(
-        "mysql:host={$config['host']};charset={$config['charset']}",
-        $config['username'],
-        $config['password']
-    );
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    fwrite(STDERR, "Connection failed: {$e->getMessage()}\n");
-    exit(1);
+if (getenv('DAZU_DB_NAME')) {
+    $config['dbname'] = getenv('DAZU_DB_NAME');   // e.g. DAZU_DB_NAME=dazu_scratch to try the migrations on a throw-away database
 }
 
-$dbName = $config['dbname'];
-$pdo->exec("CREATE DATABASE IF NOT EXISTS `{$dbName}` CHARACTER SET utf8mb4");
-$pdo->exec("USE `{$dbName}`");
+// Create the database first when it is missing (MySQL or PostgreSQL, from config/database.php), then connect to it.
+require_once __DIR__ . '/../lib/DazuPdo.php';
+try {
+    DazuPdo::ensureDatabase($config);
+    $pdo = DazuPdo::open($config);
+} catch (PDOException $e) {
+    fwrite(STDERR, "Connection failed: {$e->getMessage()}
+");
+    exit(1);
+}
 
 $migrations = new MigrationService($pdo, DATABASES_PATH . '/required_migrations');
 $result = $migrations->applyPending(static function (string $message): void {

@@ -210,7 +210,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($pdo->inTransaction()) {
                     $pdo->rollBack();
                 }
-                if ($e->getCode() == 23000) {
+                if ($e->getCode() == 23000 || $e->getCode() === '23505') {
                     SessionModel::setFlash('error', 'That registration number is already in use by another student.');
                 } else {
                     SessionModel::setFlash('error', 'Could not update registration number.');

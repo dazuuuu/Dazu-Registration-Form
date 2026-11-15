@@ -7,6 +7,8 @@ class MigrationService
     private string $migrationsDir;
 
     private const ALREADY_EXISTS_CODES = [1050, 1060, 1061, 1068, 1022, 1826];
+    // PostgreSQL SQLSTATEs: duplicate table, duplicate column, duplicate object (constraint/trigger), multiple primary keys
+    private const ALREADY_EXISTS_STATES = ['42P07', '42701', '42710', '42P16'];
 
     public function __construct(PDO $pdo, ?string $migrationsDir = null)
     {
@@ -16,6 +18,8 @@ class MigrationService
 
     public function ensureTable(): void
     {
+        require_once __DIR__ . '/../lib/DazuPdo.php';
+        DazuPdo::installCompat($this->pdo);   // MySQL functions the queries use, when the database is PostgreSQL
         $this->pdo->exec(
             "CREATE TABLE IF NOT EXISTS schema_migrations (
                 filename VARCHAR(255) NOT NULL PRIMARY KEY,
@@ -157,7 +161,7 @@ class MigrationService
                         $this->pdo->exec($statement);
                     } catch (PDOException $e) {
                         $code = $e->errorInfo[1] ?? null;
-                        if (in_array($code, self::ALREADY_EXISTS_CODES, true)) {
+                        if (in_array($code, self::ALREADY_EXISTS_CODES, true) || in_array($e->errorInfo[0] ?? '', self::ALREADY_EXISTS_STATES, true)) {
                             $skipped[] = $e->errorInfo[2] ?? $e->getMessage();
                             continue;
                         }

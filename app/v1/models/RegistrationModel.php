@@ -228,7 +228,7 @@ class RegistrationModel {
             if ($this->db->inTransaction()) {
                 $this->db->rollBack();
             }
-            if ((int) $e->errorInfo[1] === 1062) {
+            if ((int) $e->errorInfo[1] === 1062 || $e->getCode() === '23505') {
                 return ['ok' => false, 'error' => 'That email is already in use by another account.'];
             }
             error_log('[RegistrationModel::updateContact] ' . $e->getMessage());

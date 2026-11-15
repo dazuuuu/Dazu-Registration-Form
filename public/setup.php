@@ -14,6 +14,7 @@ require_once __DIR__ . '/../app/v1/services/SiteBackupService.php';
 require_once __DIR__ . '/../app/v1/services/MigrationService.php';
 require_once __DIR__ . '/../app/v1/services/Mailer.php';
 require_once __DIR__ . '/../app/v1/helpers/mail_settings.php';
+require_once __DIR__ . '/../app/v1/lib/DazuPdo.php';
 
 header('Cache-Control: no-store');
 header('X-Robots-Tag: noindex');
@@ -134,17 +135,12 @@ function setup_apply_smtp(PDO $pdo): ?string
     return $r['ok'] ? null : 'The email settings could not be saved (' . $r['error'] . '). Set them in Settings → Email.';
 }
 
-/** Try a database login. Returns [PDO|null, error|null]. Creates the database when the user is allowed to. */
+/** Try a database login (MySQL or PostgreSQL). Returns [PDO|null, error|null]. Creates the database when the user is allowed to. */
 function setup_try_db(array $in): array
 {
     try {
-        $srv = new PDO("mysql:host={$in['host']};charset=utf8mb4", $in['username'], $in['password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 8]);
-        try {
-            $srv->exec('CREATE DATABASE IF NOT EXISTS `' . $in['dbname'] . '` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
-        } catch (PDOException $e) {
-            // Shared hosts often forbid CREATE DATABASE; the database made in the control panel is used as-is.
-        }
-        return [new PDO("mysql:host={$in['host']};dbname={$in['dbname']};charset=utf8mb4", $in['username'], $in['password'], [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]), null];
+        DazuPdo::ensureDatabase($in);   // silent when the host forbids CREATE DATABASE
+        return [DazuPdo::open($in, true, [PDO::ATTR_TIMEOUT => 8]), null];
     } catch (PDOException $e) {
         return [null, 'Could not connect with those details: ' . $e->getMessage()];
     }
@@ -185,7 +181,9 @@ if (empty($wiz['open'])) {
 // Step 1: database login — tested, then written over the old one.
 if ($state === 'db' && $post) {
     $in = [
+        'driver'   => ($_POST['db_driver'] ?? '') === 'pgsql' ? 'pgsql' : 'mysql',
         'host'     => trim((string) ($_POST['db_host'] ?? '')) ?: 'localhost',
+        'port'     => (int) ($_POST['db_port'] ?? 0) ?: (($_POST['db_driver'] ?? '') === 'pgsql' ? 5432 : 3306),
         'dbname'   => trim((string) ($_POST['db_name'] ?? '')),
         'username' => trim((string) ($_POST['db_user'] ?? '')),
         'password' => (string) ($_POST['db_pass'] ?? ''),
@@ -201,6 +199,16 @@ if ($state === 'db' && $post) {
         [$test, $err] = setup_try_db($in);
         if ($err) {
             $message = $err;
+        } elseif (($_POST['db_action'] ?? '') === 'migrate') {
+            // Create all tables: applies every pending migration (safe to run again).
+            @set_time_limit(0);
+            $run = (new MigrationService($test, APP_V1_ROOT . '/databases/required_migrations'))->applyPending();
+            if (!empty($run['failed'])) {
+                $message = 'Creating the tables stopped at ' . $run['failed'][0]['filename'] . ': ' . $run['failed'][0]['error'];
+            } else {
+                $warning = $run['ran'] > 0 ? 'Done. ' . $run['ran'] . ' migration' . ($run['ran'] === 1 ? '' : 's') . ' applied to "' . $in['dbname'] . '". Press Save and continue.'
+                                           : 'The tables are already up to date. Press Save and continue.';
+            }
         } elseif (($_POST['db_action'] ?? '') === 'test') {
             $tables = (int) $test->query('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()')->fetchColumn();
             $warning = 'Connection works. The database "' . $in['dbname'] . '" has ' . $tables . ' table' . ($tables === 1 ? '' : 's') . '. Press Save and continue to use it.';
@@ -351,7 +359,14 @@ button,.btn{display:block;margin-top:18px;width:100%;padding:12px;border:0;borde
   <?php else: ?>
   <p class="mut">The database and user from your hosting control panel. These replace the login saved now. If the database does not exist yet it is created when the user is allowed to.</p>
   <form method="POST" autocomplete="off"><?php echo csrf_field(); ?>
-    <label>Database host</label><input name="db_host" value="<?php echo htmlspecialchars((string) $dbCfg['host']); ?>">
+    <label>Database type</label>
+    <select name="db_driver" id="dbDriver" onchange="var p=document.getElementById('dbPort');if(p.value==''||p.value=='3306'||p.value=='5432')p.value=this.value=='pgsql'?'5432':'3306'">
+      <?php $curDriver = DazuPdo::driver($dbCfg); foreach (['mysql' => 'MySQL / MariaDB', 'pgsql' => 'PostgreSQL'] as $k => $l): ?><option value="<?php echo $k; ?>" <?php echo $curDriver === $k ? 'selected' : ''; ?>><?php echo $l; ?></option><?php endforeach; ?>
+    </select>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:0 10px">
+      <div><label>Database host</label><input name="db_host" value="<?php echo htmlspecialchars((string) $dbCfg['host']); ?>"></div>
+      <div><label>Port</label><input name="db_port" id="dbPort" inputmode="numeric" value="<?php echo (int) ($dbCfg['port'] ?? ($curDriver === 'pgsql' ? 5432 : 3306)); ?>"></div>
+    </div>
     <label>Database name</label><input name="db_name" required value="<?php echo htmlspecialchars((string) $dbCfg['dbname']); ?>">
     <label>Database user</label><input name="db_user" required value="<?php echo htmlspecialchars((string) $dbCfg['username']); ?>">
     <label>Database password</label><input type="password" name="db_pass" autocomplete="new-password">
@@ -360,8 +375,9 @@ button,.btn{display:block;margin-top:18px;width:100%;padding:12px;border:0;borde
     <?php endif; ?>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 10px">
       <button name="db_action" value="test" style="background:transparent;color:var(--ink);border:1px solid var(--line)">Test connection</button>
-      <button name="db_action" value="save">Save and continue</button>
+      <button name="db_action" value="migrate" style="background:transparent;color:var(--ink);border:1px solid var(--line)">Create tables</button>
     </div>
+    <button name="db_action" value="save">Save and continue</button>
   </form>
   <?php endif; ?>
 <?php elseif ($state === 'smtp'): ?>
@@ -401,6 +417,7 @@ button,.btn{display:block;margin-top:18px;width:100%;padding:12px;border:0;borde
   <a class="btn" href="<?php echo htmlspecialchars(url('auth/login.php')); ?>">Go to sign in</a>
 <?php elseif ($state === 'import'): ?>
   <?php if ($message): ?><p class="err"><?php echo htmlspecialchars($message); ?></p><?php endif; ?>
+  <?php if (DazuPdo::driver($dbCfg) === 'pgsql'): ?><p class="err">This site is using PostgreSQL. A backup made on a MySQL site cannot be restored into it yet: use "Start a new, empty site" below.</p><?php endif; ?>
   <h2 style="font-size:1.1rem;margin:0">Restore your site</h2>
   <p class="mut">Upload the zip from <strong>Export Site</strong> on the old host. Everything comes back as it was: accounts, students, courses, payments, files and settings.
   The backup is loaded first, then its database is updated to this version.<?php if (!$fresh): ?> <strong>This replaces everything on this site now.</strong><?php endif; ?></p>
@@ -421,7 +438,7 @@ button,.btn{display:block;margin-top:18px;width:100%;padding:12px;border:0;borde
   <?php if ($fresh): ?>
 </div>
 <div class="card" style="margin-top:16px">
-  <details>
+  <details <?php echo DazuPdo::driver($dbCfg) === 'pgsql' ? 'open' : ''; ?>>
   <summary style="font-weight:700;cursor:pointer">No backup? Start a new, empty site instead</summary>
   <p class="mut">Creates all tables and the two accounts that run the site.</p>
   <form method="POST" autocomplete="off"><?php echo csrf_field(); ?><input type="hidden" name="mode" value="fresh">

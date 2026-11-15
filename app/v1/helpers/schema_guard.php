@@ -69,6 +69,17 @@ if (!function_exists('dazu_schema_guard')) {
             $columnsOk = static function () use ($pdo, $columnHas): bool {
                 foreach ($columnHas as $col => $needle) {
                     [$table, $column] = explode('.', $col);
+                    if ($pdo->getAttribute(PDO::ATTR_DRIVER_NAME) === 'pgsql') {
+                        // PostgreSQL has no ENUM/TINYINT column types here: the column only has to exist (enum options are plain text).
+                        $st = $pdo->prepare('SELECT data_type FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = ? AND column_name = ?');
+                        $st->execute([$table, $column]);
+                        $have = (string) $st->fetchColumn();
+                        $types = ['varchar' => 'character varying', 'int' => 'integer', 'tinyint' => 'smallint', 'datetime' => 'timestamp', 'timestamp' => 'timestamp', 'text' => 'text', 'date' => 'date'];
+                        if ($have === '' || ($needle[0] !== "'" && isset($types[$needle]) && strpos($have, $types[$needle]) === false)) {
+                            return false;
+                        }
+                        continue;
+                    }
                     $st = $pdo->prepare('SELECT COLUMN_TYPE FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?');
                     $st->execute([$table, $column]);
                     if (strpos((string) $st->fetchColumn(), $needle) === false) {
