@@ -70,5 +70,6 @@ if (!function_exists('dazu_asset_v')) {
 <script src="<?php echo dazu_asset_v('js/dazu-course-category-filter.js'); ?>"></script>
 <?php if (!empty($extra_js)) echo $extra_js; ?>
 <script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
+<script src="<?php echo url('assets/js/protect-images.js'); ?>?v=1" defer></script>
 </body>
 </html>

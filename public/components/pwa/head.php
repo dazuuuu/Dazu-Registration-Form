@@ -9,6 +9,6 @@ $pwaInfo = pwa_portal($pwaPortal);
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="<?php echo htmlspecialchars($pwaInfo['name']); ?>">
 <?php $pwaIcon = in_array($pwaPortal, ['students', 'tutor'], true) ? $pwaPortal : 'favicon'; ?>
-<link rel="apple-touch-icon" href="<?php echo url('assets/icons/' . $pwaIcon . '-180.png'); ?>">
-<link rel="icon" type="image/png" sizes="192x192" href="<?php echo url('assets/icons/' . $pwaIcon . '-192.png'); ?>">
+<link rel="apple-touch-icon" href="<?php echo url('assets/icons/' . $pwaIcon . '-180.png') . '?v=2'; ?>">
+<link rel="icon" type="image/png" sizes="192x192" href="<?php echo url('assets/icons/' . $pwaIcon . '-192.png') . '?v=2'; ?>">
 <?php require __DIR__ . '/styles.php'; ?>

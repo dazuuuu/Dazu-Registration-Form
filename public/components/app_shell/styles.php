@@ -168,3 +168,66 @@ h1,h2,h3,h4,h5,h6{font-weight:600;letter-spacing:-.01em;color:var(--ink)}
 .locked-banner i{font-size:2.4rem;margin-bottom:10px}
 .badge-plan{background:var(--g-50);color:var(--g-d)}
 </style>
+<?php
+// Neumorphic finish (same as the sign-in page): one soft green-grey surface, raised cards and buttons, sunken fields,
+// the active tab pressed in. Overrides the look above for BOTH portals; the page structure is unchanged.
+?>
+<style>
+:root{
+    --g:#15A24A; --g-d:#0f8a3d; --g-50:#dcefe1; --g-100:#c7e6cf;
+    --nm-bg:#e7efe9; --nm-hi:#ffffff; --nm-sh:#bccbc0;
+    --bg:var(--nm-bg); --card:var(--nm-bg); --line:#d6e1d9; --ink:#14201a; --muted:#5b6b60; --char:#1f2a23;
+    --nm-up:7px 7px 16px var(--nm-sh),-7px -7px 16px var(--nm-hi);
+    --nm-up-sm:4px 4px 9px var(--nm-sh),-4px -4px 9px var(--nm-hi);
+    --nm-in:inset 4px 4px 9px var(--nm-sh),inset -4px -4px 9px var(--nm-hi);
+    --shadow:var(--nm-up);
+}
+body{background:var(--nm-bg)}
+/* sidebar */
+.as-side{background:var(--nm-bg);border-right:0;box-shadow:6px 0 18px rgba(188,203,192,.55)}
+.as-side:before,.as-hero:before,.as-hero:after{display:none!important}
+.as-role{background:var(--nm-bg);box-shadow:var(--nm-in);color:var(--g-d)}
+.as-nav a{color:#3c4a41}
+.as-nav a i{color:#6d7d72}
+.as-nav a:hover{background:transparent;box-shadow:var(--nm-up-sm)}
+.as-nav a.on{background:var(--nm-bg);color:var(--g-d);box-shadow:var(--nm-in);font-weight:600}
+.as-nav a.on i{color:var(--g)}
+.as-me{background:var(--nm-bg);box-shadow:var(--nm-up-sm)}
+.as-ava{background:var(--g)}
+/* top bar */
+.as-top,.as-top.scrolled{background:rgba(231,239,233,.92);border-bottom:0}
+.as-top .as-mark,.as-iconbtn,.as-actions .notif-bell{background:var(--nm-bg)!important;box-shadow:var(--nm-up-sm)!important;border:0!important;color:#3c4a41}
+.as-iconbtn:active,.as-actions .notif-bell:active{box-shadow:var(--nm-in)!important}
+.dropdown-menu{background:var(--nm-bg);border:0;box-shadow:var(--nm-up)}
+/* cards and blocks */
+.card-tutor,.card-student,.stat-card,.card,.as-stat,.as-quick a,.list-group,.modal-content,.accordion-item{background:var(--nm-bg)!important;border:0!important;box-shadow:var(--nm-up)!important}
+.card-tutor .head,.card-student .card-head,.card-header,.card-footer{background:transparent!important;border-bottom:1px solid var(--line)}
+.list-group-item{background:transparent;border-color:var(--line)}
+.table{--bs-table-bg:transparent;--bs-table-hover-bg:rgba(255,255,255,.35)}
+.table thead th,.table-light th{background:rgba(255,255,255,.35)!important}
+.as-stat .ic,.as-quick a i,.as-grid a i{background:var(--nm-bg)!important;box-shadow:var(--nm-up-sm);color:var(--g)!important}
+.as-stat .ic.warn{color:#b45309!important}.as-stat .ic.red{color:#b42318!important}.as-stat .ic.dark{color:var(--char)!important}
+.as-quick a:hover{transform:none;box-shadow:var(--nm-in)!important}
+/* welcome banner: a calm green panel, no decorative shapes */
+.as-hero{background:linear-gradient(135deg,#22c55e,var(--g) 55%,var(--g-d));box-shadow:var(--nm-up)}
+.as-hero .btn-light{background:#fff;color:var(--g-d)}
+/* fields: sunken */
+.form-control,.form-select{background-color:var(--nm-bg);border:0;box-shadow:var(--nm-in);border-radius:12px}
+.form-control:focus,.form-select:focus{background-color:var(--nm-bg);box-shadow:var(--nm-in),0 0 0 2px rgba(21,162,74,.35)}
+/* buttons: raised */
+.btn{border-radius:12px}
+.btn-brand,.btn-success,.btn-primary{background:linear-gradient(135deg,#22c55e,var(--g) 60%,var(--g-d));border:0;box-shadow:var(--nm-up-sm)}
+.btn-brand:active,.btn-success:active,.btn-primary:active{box-shadow:inset 3px 3px 8px rgba(0,0,0,.2)}
+.btn-light,.btn-outline-secondary,.btn-outline-success,.btn-outline-primary,.btn-outline-dark{background:var(--nm-bg);border:0;box-shadow:var(--nm-up-sm);color:#3c4a41}
+.btn-light:hover,.btn-outline-secondary:hover,.btn-outline-success:hover,.btn-outline-primary:hover,.btn-outline-dark:hover{background:var(--nm-bg);color:var(--g-d);box-shadow:var(--nm-in)}
+.alert{box-shadow:var(--nm-up-sm)}
+.progress{background:var(--nm-bg);box-shadow:var(--nm-in)}
+/* bottom tabs (phones): a raised bar; the open tab is pressed in and green */
+.as-tabs{background:var(--nm-bg);box-shadow:8px 8px 20px var(--nm-sh),-8px -8px 20px var(--nm-hi);border:0}
+.as-tabs a,.as-tabs button{color:#5b6b60}
+.as-tabs .on{background:var(--nm-bg);color:var(--g);box-shadow:var(--nm-in)}
+.as-sheet.offcanvas-bottom{background:var(--nm-bg)}
+.as-grid a{background:var(--nm-bg);box-shadow:var(--nm-up-sm)}
+.as-grid a.on{box-shadow:var(--nm-in);color:var(--g-d)}
+.locked-banner h1,.locked-banner h2,.locked-banner h3,.locked-banner h4,.as-hero h1,.as-hero h2{color:#fff}
+</style>

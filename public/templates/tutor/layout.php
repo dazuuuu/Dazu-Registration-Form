@@ -92,7 +92,6 @@ $shell['tabs'] = [
         ['Install app', 'fa-download', '#install', false],
     ], $tlOn(['notifications', 'announcements'])],
     ['link', 'Students', 'fa-user-graduate', url('tutor/students/index.php'), $tlOn(['students'])],
-    ['link', 'Finance', 'fa-wallet', url('tutor/finance/index.php'), $tlOn(['finance'])],
     ['sheet', 'courses', 'Courses', 'fa-book-open', [
         ['Class Calendar', 'fa-calendar-days', url('tutor/calendar/index.php'), $tlOn(['calendar'])],
         ...($tlStaffCal ? [['Staff Calendar', 'fa-calendar-check', url('tutor/staffcalendar/index.php'), $tlOn(['staffcalendar'])]] : []),
@@ -109,11 +108,13 @@ $shell['tabs'] = [
     ], $tlOn(['calendar', 'courses', 'selfstudy', 'modules', 'resources', 'quizzes', 'assignments', 'capstone', 'certificates', 'submissions', 'progress'])],
     ['link', 'Assignments', 'fa-file-pen', url('tutor/assignments/index.php'), $tlOn(['assignments']), $tlAwaiting],
     ['sheet', 'more', 'More', 'fa-grip', array_merge(
-        [['My profile & ID', 'fa-id-badge', url('tutor/profile/index.php'), $tlOn(['profile'])],
+        [['Finance', 'fa-wallet', url('tutor/finance/index.php'), $tlOn(['finance'])],
+         ['Previous students', 'fa-clock-rotate-left', url('tutor/students/previous.php'), basename($_SERVER['PHP_SELF']) === 'previous.php'],
+         ['My profile & ID', 'fa-id-badge', url('tutor/profile/index.php'), $tlOn(['profile'])],
          ['Intern Helpers', 'fa-hands-helping', url('tutor/helpers/index.php'), $tlOn(['helpers'])]],
         $tlAdmin ? [['Admin portal', 'fa-user-shield', url('admin/dashboard.php'), false]] : [],
         [['Sign out', 'fa-arrow-right-from-bracket', '#logout', false]]
-    ), $tlOn(['profile', 'helpers'])],
+    ), $tlOn(['profile', 'helpers', 'finance'])],
 ];
 ?>
 <!DOCTYPE html>
@@ -126,7 +127,7 @@ $shell['tabs'] = [
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <?php $pwaPortal = 'tutor'; require __DIR__ . '/../../components/pwa/head.php'; ?>
     <?php require __DIR__ . '/../../components/app_shell/styles.php'; ?>
-    <?php require __DIR__ . '/../../components/app_shell/glass.php'; ?>
+    <?php /* glass phone theme replaced by the shared neumorphic finish (app_shell/styles.php) */ ?>
     <meta name="theme-color" content="#f7fbf4" media="(max-width: 991.98px)">
     <?php if (isset($extra_css)) echo $extra_css; ?>
 </head>
@@ -153,5 +154,6 @@ echo $content;
 <?php require __DIR__ . '/../../components/classes/tz_prompt.php'; ?>
 <?php if (isset($extra_js)) echo $extra_js; ?>
 <script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
+<script src="<?php echo url('assets/js/protect-images.js'); ?>?v=1" defer></script>
 </body>
 </html>

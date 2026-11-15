@@ -5,8 +5,8 @@
  *   opens the right page when a notification is tapped.
  * - Never stores portal pages or data: pages always come from the network, with an offline page when there is none. */
 const OFFLINE_URL = new URL('../assets/portal-offline.html', self.location).href;
-const BADGE_ICON = new URL('../assets/icons/icon-192.png', self.location).href;
-const CACHE = 'dazu-portal-v1';
+const BADGE_ICON = new URL('../assets/icons/icon-192.png?v=2', self.location).href;
+const CACHE = 'dazu-portal-v2';   // v2: new app icon (bump to make every installed app refresh)
 const RES_CACHE = 'dazu-portal-res-v1';   // resources saved by the install banner (shared by all portals)
 
 self.addEventListener('install', (e) => {

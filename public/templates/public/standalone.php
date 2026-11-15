@@ -81,5 +81,6 @@ echo seo_head_tags(
 </script>
 <?php if (isset($extra_js)) echo $extra_js; ?>
 <script src="<?php echo url('assets/js/dazu-loader.js'); ?>?v=1" defer data-logo="<?php echo url('assets/images/logo/logo.png'); ?>"></script>
+<script src="<?php echo url('assets/js/protect-images.js'); ?>?v=1" defer></script>
 </body>
 </html>
