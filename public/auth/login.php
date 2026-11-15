@@ -138,41 +138,40 @@ $og_image = url('assets/images/share/students-share.png');
 ob_start();
 ?>
 <style>
-/* Triangle sign-in (brand green). Desktop: the form sits inside a white triangle with an outline and dark shards holding ENTER.
-   Phones: the same look as a simple card, so the fields stay a comfortable size. */
-.lg{--g:#15A24A;--gd:#0b5d2b;--gx:#06301a;--ln:#4ade80;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    background:radial-gradient(circle at 50% 45%,#f8fafc 0%,#e7ece9 70%,#dfe6e2 100%);padding:40px 16px;font-family:inherit}
-.lg-msg{width:100%;max-width:520px;margin-bottom:18px;font-size:12px;font-weight:600;border-radius:10px;padding:12px 14px}
+/* Sign-in shaped like the Dazu logo: the graduation cap is the header, the two green swooshes of the "A" frame the form,
+   and the round dot is the ENTER button. Phones get the same pieces stacked as a card. */
+.lg{--g:#15A24A;--g2:#0c7a35;--g3:#064d22;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 40%,#ffffff 0%,#eef6f0 65%,#e3efe6 100%);padding:36px 16px}
+.lg-msg{width:100%;max-width:520px;margin-bottom:14px;font-size:12px;font-weight:600;border-radius:10px;padding:12px 14px}
 .lg-err{background:#fef2f2;border:1px solid #fecaca;color:#b91c1c}.lg-ok{background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d}
 .lg-info{background:#fff;border:1px solid #e2e8f0;color:#334155}.lg-msg a{color:var(--g);text-decoration:underline}
-.lg-stage{position:relative;width:600px;height:620px}
-.lg-stage>svg{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 30px 40px rgba(15,40,25,.18))}
-.lg-form{position:absolute;left:70px;top:150px;width:260px}
-.lg-logo{width:44px;height:44px;border-radius:10px;display:block;margin-bottom:14px}
-.lg-t{font-size:26px;line-height:1.15;letter-spacing:.06em;color:#64748b;font-weight:300;margin:0;text-transform:uppercase}
-.lg-t b{display:block;font-weight:700;color:#334155}
-.lg-bar{height:2px;width:120px;margin:12px 0 26px;background:linear-gradient(90deg,var(--g) 0 30px,#bbf7d0 30px)}
-.lg-f{position:relative;margin-bottom:14px}
-.lg-f input{width:100%;border:0;border-bottom:1px solid #e2e8f0;background:transparent;padding:10px 34px 10px 2px;font-size:14px;color:#0f172a;letter-spacing:.04em;outline:none;border-radius:0}
-.lg-f input::placeholder{color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;font-size:12px}
+.lg-stage{position:relative;width:640px;height:720px}
+.lg-stage>svg{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 22px 34px rgba(6,77,34,.18))}
+.lg-cap{position:absolute;left:0;right:0;top:78px;text-align:center;color:#fff;pointer-events:none}
+.lg-cap small{display:block;font-size:10px;letter-spacing:.3em;text-transform:uppercase;opacity:.85}
+.lg-cap b{display:block;font-size:22px;letter-spacing:.12em;text-transform:uppercase;font-weight:800;margin-top:2px}
+.lg-panel{position:absolute;left:160px;top:232px;width:320px;background:#fff;border-radius:18px;padding:26px 28px 20px;box-shadow:0 18px 40px rgba(6,77,34,.16)}
+.lg-f{position:relative;margin-bottom:16px}
+.lg-f label{display:block;font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#64748b;margin-bottom:4px}
+.lg-f input{width:100%;border:0;border-bottom:2px solid #e2e8f0;background:transparent;padding:8px 34px 8px 2px;font-size:15px;color:#0f172a;outline:none;border-radius:0}
 .lg-f input:focus{border-bottom-color:var(--g)}
-.lg-eye{position:absolute;right:0;top:6px;border:0;background:none;color:#94a3b8;padding:4px;cursor:pointer}.lg-eye:hover{color:var(--g)}
-.lg-forgot{display:inline-block;margin:6px 0 0 26px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#94a3b8;border:1px solid #e2e8f0;padding:5px 10px;text-decoration:none}
-.lg-forgot:hover{color:var(--g);border-color:var(--g)}
-.lg-enter{position:absolute;left:372px;top:432px;width:110px;height:84px;border:0;background:none;color:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:11px;letter-spacing:.14em;font-weight:600}
-.lg-enter svg{width:22px;height:22px}
-.lg-enter:hover{color:#bbf7d0}
+.lg-eye{position:absolute;right:0;bottom:6px;border:0;background:none;color:#94a3b8;padding:4px;cursor:pointer}.lg-eye:hover{color:var(--g)}
+.lg-eye svg{width:18px;height:18px}
+.lg-forgot{font-size:11px;font-weight:700;color:var(--g);text-decoration:none}.lg-forgot:hover{text-decoration:underline}
+.lg-dot{position:absolute;left:262px;top:560px;width:116px;height:116px;border-radius:50%;border:0;cursor:pointer;color:#fff;
+  background:radial-gradient(circle at 35% 30%,#22c55e,#15A24A 55%,#0c7a35);box-shadow:0 14px 30px rgba(6,77,34,.35);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.16em;transition:transform .15s}
+.lg-dot:hover{transform:scale(1.05)}.lg-dot svg{width:24px;height:24px}
 .lg-links{margin-top:10px;display:flex;gap:18px;font-size:12px}
 .lg-links a{color:#64748b;text-decoration:none}.lg-links a.ap{color:var(--g);font-weight:700}
-.lg-mob-btn{display:none}
-@media(max-width:660px){
-  .lg-stage{width:100%;max-width:400px;height:auto;background:#fff;border-radius:18px;padding:34px 26px 26px;box-shadow:0 20px 40px rgba(15,40,25,.14);
-    border-top:4px solid var(--g);overflow:hidden}
+@media(max-width:680px){
+  .lg-stage{width:100%;max-width:400px;height:auto;padding-top:120px;padding-bottom:20px}
   .lg-stage>svg{display:none}
-  .lg-form{position:static;width:100%}
-  .lg-enter{display:none}
-  .lg-mob-btn{display:flex;width:100%;margin-top:22px;align-items:center;justify-content:center;gap:10px;border:0;border-radius:10px;padding:14px;color:#fff;
-    background:linear-gradient(135deg,var(--gd),var(--gx));font-size:12px;letter-spacing:.14em;font-weight:700;cursor:pointer}
+  .lg-stage::before{content:"";position:absolute;left:50%;top:0;width:260px;height:110px;margin-left:-130px;background:linear-gradient(135deg,#22c55e,#0c7a35);
+    clip-path:polygon(50% 0,100% 45%,50% 90%,0 45%)}
+  .lg-cap{top:30px}
+  .lg-panel{position:relative;left:auto;top:auto;width:100%}
+  .lg-dot{position:relative;left:auto;top:auto;margin:22px auto 0;width:96px;height:96px}
 }
 </style>
 <div class="lg">
@@ -181,42 +180,37 @@ ob_start();
   <?php if ($continueUrl): ?><div class="lg-msg lg-info">You're signed in as <strong><?php echo htmlspecialchars($_SESSION['email'] ?? $_SESSION['username'] ?? ''); ?></strong>. <a href="<?php echo htmlspecialchars($continueUrl); ?>">Continue</a> or sign in below with a different account.</div><?php endif; ?>
 
   <form method="POST" class="lg-stage" autocomplete="on">
-    <svg viewBox="0 0 600 620" aria-hidden="true">
+    <svg viewBox="0 0 640 720" aria-hidden="true">
       <defs>
-        <linearGradient id="lgShardA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#15A24A"/><stop offset="1" stop-color="#0b5d2b"/></linearGradient>
-        <linearGradient id="lgShardB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0b5d2b"/><stop offset="1" stop-color="#06301a"/></linearGradient>
+        <linearGradient id="lgCap" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22c55e"/><stop offset="1" stop-color="#0c7a35"/></linearGradient>
+        <linearGradient id="lgLegR" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#15A24A"/><stop offset=".7" stop-color="#22c55e"/><stop offset="1" stop-color="#064d22"/></linearGradient>
+        <linearGradient id="lgLegL" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0c7a35"/><stop offset="1" stop-color="#15A24A"/></linearGradient>
       </defs>
-      <!-- green outline triangle behind, shifted up-right -->
-      <polygon points="70,10 590,290 70,570" fill="none" stroke="#4ade80" stroke-width="4" opacity=".9"/>
-      <polygon points="82,30 560,290 82,550" fill="none" stroke="#4ade80" stroke-width="1.5" opacity=".6"/>
-      <!-- dark shards holding ENTER -->
-      <polygon points="345,400 520,330 505,600" fill="url(#lgShardB)"/>
-      <polygon points="330,420 480,345 470,590 380,520" fill="url(#lgShardA)"/>
-      <polygon points="455,560 500,600 470,605" fill="none" stroke="#4ade80" stroke-width="3"/>
-      <!-- light frame and white main triangle -->
-      <polygon points="18,30 595,320 18,610" fill="#eef2ef"/>
-      <polygon points="34,58 560,320 34,582" fill="#ffffff"/>
-      <!-- corner ticks -->
-      <polyline points="54,92 54,80 66,86" fill="none" stroke="#4ade80" stroke-width="1.5"/>
-      <polyline points="496,284 508,290 496,300" fill="none" stroke="#4ade80" stroke-width="1.5"/>
-      <polyline points="54,548 54,560 66,554" fill="none" stroke="#4ade80" stroke-width="1.5"/>
+      <!-- left leg of the A -->
+      <path d="M330 300 C 300 360, 200 520, 110 700 L 30 700 C 120 560, 230 400, 288 270 Z" fill="url(#lgLegL)"/>
+      <!-- right leg (the long swoosh), crossing over -->
+      <path d="M230 205 C 300 230, 330 260, 360 320 C 410 420, 470 560, 560 700 L 470 700 C 400 590, 350 470, 300 370 C 270 310, 240 260, 200 225 Z" fill="url(#lgLegR)"/>
+      <!-- graduation cap -->
+      <polygon points="320,30 600,130 320,230 40,130" fill="url(#lgCap)"/>
+      <polygon points="320,190 600,130 600,142 320,202" fill="#0c7a35" opacity=".35"/>
+      <!-- tassel -->
+      <line x1="560" y1="145" x2="560" y2="250" stroke="#0c7a35" stroke-width="6" stroke-linecap="round"/>
+      <path d="M548 250 h24 l6 40 h-36 z" fill="#15A24A"/>
     </svg>
+    <div class="lg-cap"><small>Dazu Training Institute</small><b>Portal sign in</b></div>
 
-    <div class="lg-form">
-      <img class="lg-logo" src="<?php echo url('assets/icons/students-512.png'); ?>" alt="Dazu Training Institute">
-      <h1 class="lg-t">Log into<b>Dazu portal</b></h1>
-      <div class="lg-bar"></div>
-      <div class="lg-f"><input type="text" id="email" name="email" required autocomplete="username" aria-label="Email or registration number"
-             placeholder="Email or reg. number…" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"></div>
-      <div class="lg-f"><input type="password" id="password" name="password" required autocomplete="current-password" aria-label="Password" placeholder="Password…">
+    <div class="lg-panel">
+      <div class="lg-f"><label for="email">Email or registration number</label>
+        <input type="text" id="email" name="email" required autocomplete="username" placeholder="student@gmail.com or DCH061/26" value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>"></div>
+      <div class="lg-f"><label for="password">Password</label>
+        <input type="password" id="password" name="password" required autocomplete="current-password">
         <button type="button" class="lg-eye" id="pwToggle" aria-label="Show password" aria-pressed="false" title="Show password">
-          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3" stroke-width="2"/><path data-slash stroke-linecap="round" stroke-width="2" d="M4 4l16 16" style="display:none"/></svg></button></div>
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.5 12S6 5 12 5s9.5 7 9.5 7-3.5 7-9.5 7S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3" stroke-width="2"/><path data-slash stroke-linecap="round" stroke-width="2" d="M4 4l16 16" style="display:none"/></svg></button></div>
       <a class="lg-forgot" href="<?php echo url('auth/forgot_password.php'); ?>">Forgot password?</a>
-      <button type="submit" class="lg-mob-btn"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>ENTER</button>
     </div>
 
-    <button type="submit" class="lg-enter" aria-label="Sign in">
-      <svg fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/><circle cx="12" cy="16" r="1.2" fill="currentColor"/></svg>ENTER</button>
+    <button type="submit" class="lg-dot" aria-label="Sign in">
+      <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 018 0v4"/></svg>ENTER</button>
   </form>
 
   <div class="lg-links"><a class="ap" href="<?php echo url('courses/index.php'); ?>">New student? Apply here</a><a href="<?php echo url('/'); ?>">← Back to website</a></div>
