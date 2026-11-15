@@ -35,12 +35,15 @@ if (!function_exists('scal_installed')) {
      * Who is asking, or null when they may not use the Staff Calendar. Only a tutor (active, with an active tutor record) or the super admin passes.
      * @return array{uid:int, name:string, first:string, role:string}|null role is 'tutor' or 'superadmin'
      */
+    /** Admins (by login email) who may also use the Staff Calendar, from the admin portal. Other admins may not. */
+    function scal_admin_emails(): array { return ['karanjav494@gmail.com']; }
+
     function scal_actor(PDO $db, ?int $userId = null): ?array
     {
         $uid = $userId ?? (int) ($_SESSION['user_id'] ?? 0);
         if ($uid <= 0) return null;
         try {
-            $st = $db->prepare("SELECT u.id, u.username, r.role_name, up.first_name, up.last_name,
+            $st = $db->prepare("SELECT u.id, u.username, u.email, r.role_name, up.first_name, up.last_name,
                                        (SELECT COUNT(*) FROM tutors t WHERE t.user_id = u.id AND t.is_active = 1) AS live_tutor
                                 FROM users u JOIN roles r ON r.id = u.role_id LEFT JOIN user_profiles up ON up.user_id = u.id
                                 WHERE u.id = ? AND u.is_active = 1");
@@ -52,7 +55,8 @@ if (!function_exists('scal_installed')) {
         if (!$r) return null;
         $role = (string) $r['role_name'];
         if ($role === 'tutor' && (int) $r['live_tutor'] < 1) return null;
-        if (!in_array($role, ['tutor', 'superadmin'], true)) return null;
+        if ($role === 'admin' && !in_array(strtolower(trim((string) $r['email'])), scal_admin_emails(), true)) return null;
+        if (!in_array($role, ['tutor', 'superadmin', 'admin'], true)) return null;
         $name = scal_display_name($r['first_name'], $r['last_name'], $r['username']);
         return ['uid' => (int) $r['id'], 'name' => $name, 'first' => trim((string) $r['first_name']) !== '' ? trim((string) $r['first_name']) : $name, 'role' => $role];
     }
@@ -566,14 +570,16 @@ if (!function_exists('scal_installed')) {
     {
         try {
             require_once __DIR__ . '/PortalNotifications.php';
+            $adm = implode(',', array_map([$db, 'quote'], scal_admin_emails()));
             $rows = $db->query("SELECT u.id, r.role_name FROM users u JOIN roles r ON r.id = u.role_id
-                                WHERE u.is_active = 1 AND (r.role_name = 'superadmin' OR (r.role_name = 'tutor' AND EXISTS (SELECT 1 FROM tutors t WHERE t.user_id = u.id AND t.is_active = 1)))")->fetchAll(PDO::FETCH_ASSOC);
+                                WHERE u.is_active = 1 AND (r.role_name = 'superadmin' OR (r.role_name = 'admin' AND LOWER(u.email) IN ($adm))
+                                   OR (r.role_name = 'tutor' AND EXISTS (SELECT 1 FROM tutors t WHERE t.user_id = u.id AND t.is_active = 1)))")->fetchAll(PDO::FETCH_ASSOC);
             $s = new DateTime($startAt, scal_tz());
             $when = $s->format('D j M Y') . ($allDay ? ', all day' : ', ' . scal_time($s));
             $body = 'Added by ' . $actor['name'] . ' · ' . $when . ($loc !== '' ? ' · ' . $loc : '');
             foreach ($rows as $r) {
                 if ((int) $r['id'] === $actor['uid']) continue;
-                $path = ($r['role_name'] === 'superadmin' ? 'superadmin' : 'tutor') . '/staffcalendar/index.php?d=' . $s->format('Y-m-d');
+                $path = (in_array($r['role_name'], ['superadmin', 'admin'], true) ? $r['role_name'] : 'tutor') . '/staffcalendar/index.php?d=' . $s->format('Y-m-d');
                 \PortalNotifications::notify($db, (int) $r['id'], 'staff_calendar', ($isChange ? 'Staff event: ' : 'New staff event: ') . $title, $body, $path);
             }
         } catch (Throwable $e) {

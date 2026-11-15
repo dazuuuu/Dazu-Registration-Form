@@ -96,6 +96,10 @@ class PayrollCalculator
             $end = !empty($p['end']) ? strtotime(substr((string) $p['end'], 0, 10) . ' UTC') : PHP_INT_MAX;
             $lastIdx = $end === PHP_INT_MAX ? $to : min($to, self::monthIndex(gmdate('Y-m', $end)));
             for ($i = max($from, self::monthIndex(gmdate('Y-m', $start))); $i <= $lastIdx; $i++) {
+                if ($end === PHP_INT_MAX) {   // still paused: the whole month is off, including the month the pause started
+                    $set[$i] = true;
+                    continue;
+                }
                 $monthStart = strtotime(self::indexToKey($i) . '-01 UTC');
                 $monthEnd = strtotime(self::indexToKey($i + 1) . '-01 UTC');
                 $overlap = (min($end, $monthEnd) - max($start, $monthStart)) / 86400;
@@ -118,9 +122,11 @@ class PayrollCalculator
      * @return array {as_of, default_rate, students[], months[], earned_to_date, paid_to_date, balance,
      *                this_month{month,brought_forward,earned,paid,balance}, monthly_run_rate, active_students}
      */
-    public static function ledger(array $students, array $payments, ?string $asOf = null, array $tutorPauses = [], array $adjustments = []): array
+    public static function ledger(array $students, array $payments, ?string $asOf = null, array $tutorPauses = [], array $adjustments = [], ?string $countFrom = null): array
     {
         $asOfIdx = self::monthIndex($asOf ?? self::currentMonth());
+        // Months before $countFrom are settled: their earnings, payments and corrections are left out completely.
+        $fromIdx = $countFrom ? self::monthIndex($countFrom) : null;
         $defaultCents = self::cents(self::DEFAULT_MONTHLY_RATE);
 
         $tutorPaused = [];
@@ -133,7 +139,7 @@ class PayrollCalculator
             $isCustom = isset($s['rate']) && $s['rate'] !== null && $s['rate'] !== '';
             $rateCents = $isCustom ? self::cents($s['rate']) : $defaultCents;
             $startIdx = self::monthIndex((string) $s['start']);
-            // A student marked completed earns nothing after the month they completed.
+            // A student who completed (or got a certificate) earns nothing from the month they completed.
             $lastIdx = !empty($s['completed_on']) ? self::monthIndex((string) $s['completed_on']) : null;
 
             // The months this student earns, in order. Months paused before or at the as-of month are skipped.
@@ -148,7 +154,7 @@ class PayrollCalculator
                 $months = max(0, (int) ($s['months'] ?? 0));
                 $studentPaused = !empty($s['pauses']) ? self::pausedMonths($s['pauses'], $startIdx, $asOfIdx) : [];
                 for ($i = $startIdx; count($earn) < $months; $i++) {
-                    if ($lastIdx !== null && $i > $lastIdx) {
+                    if ($lastIdx !== null && $i >= $lastIdx) {
                         break;
                     }
                     if ($i <= $asOfIdx && (isset($tutorPaused[$i]) || isset($studentPaused[$i]))) {
@@ -157,6 +163,10 @@ class PayrollCalculator
                     $earn[] = $i;
                 }
                 $months = count($earn);
+            }
+            if ($fromIdx !== null) {
+                $earn = array_values(array_filter($earn, fn($i) => $i >= $fromIdx));
+                $months = isset($s['fixed_months']) ? count($earn) : $months;
             }
             $set = array_fill_keys($earn, true);
             $elapsed = count(array_filter($earn, fn($i) => $i <= $asOfIdx));
@@ -184,6 +194,7 @@ class PayrollCalculator
         $paymentIdxs = [];
         foreach ($payments as $p) {
             $idx = min(self::monthIndex((string) $p['month']), $asOfIdx);
+            if ($fromIdx !== null && $idx < $fromIdx) continue;
             $paidByMonth[$idx] = ($paidByMonth[$idx] ?? 0) + self::cents($p['amount']);
             $paymentIdxs[] = $idx;
         }
@@ -192,6 +203,7 @@ class PayrollCalculator
         $adjByMonth = [];
         foreach ($adjustments as $a) {
             $idx = min(self::monthIndex((string) $a['month']), $asOfIdx);
+            if ($fromIdx !== null && $idx < $fromIdx) continue;
             $adjByMonth[$idx] = ($adjByMonth[$idx] ?? 0) + self::cents($a['amount']);
             $paymentIdxs[] = $idx;
         }

@@ -99,7 +99,7 @@ $remaining = $pay['balance'];
             <p class="small text-muted mb-2">Ask the superadmin to unassign a student you no longer teach (their unpaid shares are removed), mark a student as completed (no more shares after that month), or correct your balance. Nothing changes until it is approved.</p>
             <form method="POST" action="<?php echo url('tutor/payroll/request.php'); ?>" class="row g-2 align-items-end"><?php echo csrf_field(); ?>
                 <div class="col-md-3"><label class="form-label small mb-0">What</label>
-                    <select name="type" class="form-select form-select-sm" id="fixType"><?php foreach (\Models\PayrollRequestModel::TYPES as $k => $l): ?><option value="<?php echo $k; ?>"><?php echo htmlspecialchars($l); ?></option><?php endforeach; ?></select></div>
+                    <select name="type" class="form-select form-select-sm" id="fixType"><?php foreach (array_diff_key(\Models\PayrollRequestModel::TYPES, ['claim' => 1]) as $k => $l): ?><option value="<?php echo $k; ?>"><?php echo htmlspecialchars($l); ?></option><?php endforeach; ?></select></div>
                 <div class="col-md-3 fix-student"><label class="form-label small mb-0">Student</label>
                     <select name="student" class="form-select form-select-sm"><option value="">Choose…</option><?php foreach ($pay['current_students'] as $cs): ?><option value="<?php echo (int) $cs['user_id']; ?>"><?php echo htmlspecialchars($cs['student_name']); ?></option><?php endforeach; ?></select></div>
                 <div class="col-md-2 fix-date d-none"><label class="form-label small mb-0">Completed on</label><input type="date" name="completed_on" class="form-control form-control-sm" max="<?php echo date('Y-m-d'); ?>"></div>

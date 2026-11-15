@@ -108,11 +108,24 @@ class MigrationService
         foreach ($list as $r) foreach ((array) ($r['files'] ?? []) as $f) $listed[$f] = true;
         $loose = array_values(array_filter($onDisk, static fn ($f) => !isset($listed[$f])));
         if ($loose) {
-            $last = $list ? (string) end($list)['version'] : '1.0';
-            $parts = explode('.', $last);
-            $next = count($parts) >= 3 ? implode('.', array_slice($parts, 0, -1)) . '.' . ((int) end($parts) + 1) : $last . '.1';
-            $list[] = ['version' => $next, 'title' => 'Maintenance update', 'date' => null,
-                       'notes' => ['Fixes and improvements'], 'files' => $loose];
+            // Each update not named in releases.php gets its own version from its file number: 070 → 1.5.0, 101 → 1.8.1, 110 → 1.9.0.
+            // Files sharing a number are one update. A file without a number joins a final maintenance update.
+            sort($loose);
+            $byNum = [];
+            $other = [];
+            foreach ($loose as $f) {
+                if (preg_match('/^(\d{3})_/', $f, $m)) $byNum[(int) $m[1]][] = $f; else $other[] = $f;
+            }
+            ksort($byNum);
+            foreach ($byNum as $n => $files) {
+                $titles = array_map(static fn ($f) => ucfirst(str_replace('_', ' ', preg_replace(['/^\d{3}_/', '/\.sql$/'], '', $f))), $files);
+                $list[] = ['version' => '1.' . max(0, intdiv($n, 10) - 2) . '.' . ($n % 10), 'title' => implode(' · ', $titles), 'date' => null,
+                           'notes' => $titles, 'files' => $files];
+            }
+            if ($other) {
+                $list[] = ['version' => (string) end($list)['version'] . '.1', 'title' => 'Maintenance update', 'date' => null,
+                           'notes' => ['Fixes and improvements'], 'files' => $other];
+            }
         }
         $out = [];
         foreach ($list as $r) {

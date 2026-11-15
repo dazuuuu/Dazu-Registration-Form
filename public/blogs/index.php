@@ -117,6 +117,7 @@ if (!$filtered) {
     $popular = array_values(array_filter($articles, static fn($a) => !empty($a['popular'])));
     usort($popular, static fn($a, $b) => strcmp((string) ($b['date'] ?? ''), (string) ($a['date'] ?? '')));
     $popular = array_slice($popular, 0, 8);
+    if (!$popular && $articles) $popular = [$articles[0]];   // nothing ticked popular: feature the newest post
     $latest = array_slice($articles, 0, 4); // $articles is already newest first
 }
 
@@ -135,6 +136,13 @@ $blogHref = static function (array $over) use ($categoryFilter, $search, $sort):
     $qs = array_filter(array_merge($qs, $over), static fn($v) => $v !== null && $v !== '' && $v !== 'All' && $v !== 'latest' && $v !== 1);
     return url('blogs/index.php' . ($qs ? '?' . http_build_query($qs) : ''));
 };
+// One row per category (like "Founders corner"), each scrolling sideways with arrows. Only on the unfiltered first page.
+$catRows = [];
+if (!$filtered && $pageNo === 1) {
+    foreach ($articles as $a) $catRows[$a['category']][] = $a;
+    uksort($catRows, static fn($x, $y) => count($catRows[$y] ?? []) <=> count($catRows[$x] ?? []) ?: strcmp($x, $y));
+    $catRows = array_map(static fn($l) => array_slice($l, 0, 10), $catRows);
+}
 $fmtDate = static fn($a) => date('M j', strtotime($a['date'] ?? 'now') ?: time());
 $h = static fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 
@@ -216,6 +224,18 @@ ob_start();
 .bl-card .bl-meta{margin-top:auto}
 .bl-empty{text-align:center;padding:60px 20px;border:1px dashed #d1d5db;border-radius:14px;color:#6b7280}
 
+.bl-row{margin-bottom:40px;padding-bottom:36px;border-bottom:1px solid #eef0f2}
+.bl-row-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.bl-row-h a.bl-sec:hover{color:#15803d}
+.bl-row-h .all{font-size:13px;color:#15803d;font-weight:500;margin-right:8px}
+.bl-nav{display:flex;align-items:center;gap:8px}
+.bl-nav button{width:36px;height:36px;border-radius:50%;border:1px solid #d1d5db;background:#fff;color:#374151;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.bl-nav button:hover{border-color:#15803d;color:#15803d}
+.bl-track{display:grid;grid-auto-flow:column;grid-auto-columns:85%;gap:20px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;padding-bottom:4px}
+.bl-track::-webkit-scrollbar{display:none}
+@media(min-width:640px){.bl-track{grid-auto-columns:calc((100% - 20px)/2)}}
+@media(min-width:1000px){.bl-track{grid-auto-columns:calc((100% - 40px)/3)}}
+.bl-track .bl-card{scroll-snap-align:start}
 /* ── Pagination ── */
 .bl-pages{display:flex;justify-content:space-between;align-items:center;margin-top:36px;padding-top:24px;border-top:1px solid #eef0f2}
 .bl-pages .nums{display:flex;gap:6px}
@@ -224,6 +244,19 @@ ob_start();
 .bl-pages .cur{background:#111827;color:#fff}
 .bl-pages .dis{opacity:.3}
 </style>
+<?php $blCard = function (array $a) use ($h, $fmtDate) { ?>
+        <article class="bl-card">
+          <a class="bl-thumb" href="<?php echo $h($a['url']); ?>" aria-label="Read more: <?php echo $h($a['title']); ?>"><?php if (!empty($a['image'])): ?><img src="<?php echo $h($a['image']); ?>" alt="" loading="lazy" onerror="this.remove()"><?php endif; ?></a>
+          <div class="bl-body">
+            <span class="bl-chip"><i></i><?php echo $h($a['category']); ?></span>
+            <h3><a href="<?php echo $h($a['url']); ?>"><?php echo $h($a['title']); ?></a></h3>
+            <p><?php echo $h($a['summary']); ?></p>
+            <div class="bl-meta"><?php echo $h($fmtDate($a)); ?><b></b><?php echo $h($a['read_time']); ?>
+              <a class="bl-more" href="<?php echo $h($a['url']); ?>">Read more <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
+            </div>
+          </div>
+        </article>
+<?php }; ?>
 <div class="bl"><div class="bl-wrap">
 
   <?php if ($popular): ?>
@@ -261,6 +294,18 @@ ob_start();
   </section>
   <?php endif; ?>
 
+  <?php foreach ($catRows as $cat => $list): ?>
+  <section class="bl-row" aria-label="<?php echo $h($cat); ?>">
+    <div class="bl-row-h">
+      <a class="bl-sec" href="<?php echo $h($blogHref(['category' => $cat, 'page' => null])); ?>"><?php echo $h($cat); ?></a>
+      <div class="bl-nav"><a class="all" href="<?php echo $h($blogHref(['category' => $cat, 'page' => null])); ?>">See all</a>
+        <button type="button" class="prev" aria-label="Previous"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
+        <button type="button" class="next" aria-label="Next"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+    </div>
+    <div class="bl-track"><?php foreach ($list as $a) $blCard($a); ?></div>
+  </section>
+  <?php endforeach; ?>
+
   <div class="bl-bar">
     <nav class="bl-tabs" aria-label="Categories">
       <?php foreach ($categories as $cat): ?>
@@ -284,19 +329,7 @@ ob_start();
     <div class="bl-empty">No articles match your search.</div>
   <?php else: ?>
     <div class="bl-grid">
-      <?php foreach ($pageArticles as $a): ?>
-        <article class="bl-card">
-          <a class="bl-thumb" href="<?php echo $h($a['url']); ?>" aria-label="Read more: <?php echo $h($a['title']); ?>"><?php if (!empty($a['image'])): ?><img src="<?php echo $h($a['image']); ?>" alt="" loading="lazy" onerror="this.remove()"><?php endif; ?></a>
-          <div class="bl-body">
-            <span class="bl-chip"><i></i><?php echo $h($a['category']); ?></span>
-            <h3><a href="<?php echo $h($a['url']); ?>"><?php echo $h($a['title']); ?></a></h3>
-            <p><?php echo $h($a['summary']); ?></p>
-            <div class="bl-meta"><?php echo $h($fmtDate($a)); ?><b></b><?php echo $h($a['read_time']); ?>
-              <a class="bl-more" href="<?php echo $h($a['url']); ?>">Read more <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a>
-            </div>
-          </div>
-        </article>
-      <?php endforeach; ?>
+      <?php foreach ($pageArticles as $a) $blCard($a); ?>
     </div>
 
     <?php if ($pages > 1): ?>
@@ -313,6 +346,11 @@ ob_start();
   <?php endif; ?>
 </div></div>
 <script>
+document.querySelectorAll('.bl-row').forEach(function (row) {
+  var t = row.querySelector('.bl-track'), step = function () { var c = t.querySelector('.bl-card'); return c ? c.offsetWidth + 20 : 300; };
+  row.querySelector('.prev').onclick = function () { t.scrollBy({ left: -step(), behavior: 'smooth' }); };
+  row.querySelector('.next').onclick = function () { t.scrollBy({ left: step(), behavior: 'smooth' }); };
+});
 (function () {
   const root = document.getElementById('blSlider');
   if (!root) return;

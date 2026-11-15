@@ -43,7 +43,9 @@ $tlStaffCal = scal_can_see_menu($tlDb, $tlUid);
 // [key, label, icon, href, active, on tab bar, section heading, short tab label, badge count]
 $tlItems = [
     ['dashboard', 'Dashboard', 'fa-house', url('tutor/dashboard/index.php'), $tlDir === 'dashboard', true, null, 'Home'],
-    ['students', 'My Students', 'fa-user-graduate', url('tutor/students/index.php'), $tlDir === 'students', true, null, 'Students'],
+    ['students', 'My Students', 'fa-user-graduate', url('tutor/students/index.php'), $tlDir === 'students' && basename($_SERVER['PHP_SELF']) !== 'previous.php', true, null, 'Students'],
+    ['previous', 'Previous Students', 'fa-clock-rotate-left', url('tutor/students/previous.php'), basename($_SERVER['PHP_SELF']) === 'previous.php', false],
+    ['finance', 'Finance', 'fa-wallet', url('tutor/finance/index.php'), $tlDir === 'finance', false],
     ['progress', 'Student Progress', 'fa-chart-line', url('tutor/progress/index.php'), $tlDir === 'progress', false],
     ['submissions', 'Submissions', 'fa-clipboard-check', url('tutor/submissions/index.php'), $tlDir === 'submissions', true, null, 'Grade', $tlAwaiting],
     ['modules', 'Course Builder', 'fa-layer-group', url('tutor/modules/index.php'), $tlDir === 'modules', true, null, 'Builder'],
@@ -90,6 +92,7 @@ $shell['tabs'] = [
         ['Install app', 'fa-download', '#install', false],
     ], $tlOn(['notifications', 'announcements'])],
     ['link', 'Students', 'fa-user-graduate', url('tutor/students/index.php'), $tlOn(['students'])],
+    ['link', 'Finance', 'fa-wallet', url('tutor/finance/index.php'), $tlOn(['finance'])],
     ['sheet', 'courses', 'Courses', 'fa-book-open', [
         ['Class Calendar', 'fa-calendar-days', url('tutor/calendar/index.php'), $tlOn(['calendar'])],
         ...($tlStaffCal ? [['Staff Calendar', 'fa-calendar-check', url('tutor/staffcalendar/index.php'), $tlOn(['staffcalendar'])]] : []),

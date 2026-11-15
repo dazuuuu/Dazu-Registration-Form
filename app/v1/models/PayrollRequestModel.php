@@ -6,6 +6,8 @@
 //            student is taken off the tutor. Months already paid stay paid.
 //  complete: the student finished. On approval no more months are earned after that month.
 //  adjust:   change the balance by an amount (+ or -) with a reason.
+//  claim:    a payment the tutor was owed but did not get (a student, and a number of months or an amount). On approval the money is
+//            added to this month's balance, so it shows as owed until the superadmin pays it and the tutor confirms it.
 namespace Models;
 
 use PDO;
@@ -14,7 +16,7 @@ require_once __DIR__ . '/PayrollModel.php';
 
 class PayrollRequestModel
 {
-    public const TYPES = ['unassign' => 'Unassign a student', 'complete' => 'Student completed', 'adjust' => 'Correct my balance'];
+    public const TYPES = ['unassign' => 'Unassign a student', 'complete' => 'Student completed', 'adjust' => 'Correct my balance', 'claim' => 'Missed payment'];
 
     private PDO $db;
     private PayrollModel $payroll;
@@ -41,6 +43,15 @@ class PayrollRequestModel
         if (!isset(self::TYPES[$type])) return ['ok' => false, 'error' => 'Choose what you want to change.'];
         $reason = trim($reason);
         if ($reason === '') return ['ok' => false, 'error' => 'Say why, so the superadmin can decide.'];
+        if ($type === 'claim') {
+            if (!$studentUserId || !$this->taughtBy($tutorId, $studentUserId)) return ['ok' => false, 'error' => 'Choose one of your students.'];
+            $months = $completedOn !== null && ctype_digit($completedOn) ? (int) $completedOn : 0;   // for a claim, the months come in this argument
+            if ($months > 0) $amount = $months * $this->rateFor($tutorId, $studentUserId);
+            if ($amount === null || $amount < 1) return ['ok' => false, 'error' => 'Enter the number of months or the amount not paid.'];
+            $this->db->prepare("INSERT INTO tutor_payroll_requests (tutor_id, type, student_user_id, amount, months, completed_on, reason, status, created_at) VALUES (?, 'claim', ?, ?, ?, NULL, ?, 'pending', NOW())")
+                ->execute([$tutorId, $studentUserId, round((float) $amount, 2), $months ?: null, mb_substr($reason, 0, 2000)]);
+            return ['ok' => true, 'id' => (int) $this->db->lastInsertId()];
+        }
         if ($type !== 'adjust') {
             $mine = array_map(fn($s) => (int) $s['user_id'], $this->payroll->getCurrentStudents($tutorId));
             if (!$studentUserId || !in_array($studentUserId, $mine, true)) return ['ok' => false, 'error' => 'Choose one of your students.'];
@@ -61,6 +72,36 @@ class PayrollRequestModel
         $this->db->prepare("INSERT INTO tutor_payroll_requests (tutor_id, type, student_user_id, amount, completed_on, reason, status, created_at) VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())")
             ->execute([$tutorId, $type, $studentUserId, $type === 'adjust' ? round((float) $amount, 2) : null, $completedOn, mb_substr($reason, 0, 2000)]);
         return ['ok' => true, 'id' => (int) $this->db->lastInsertId()];
+    }
+
+    /** Is (or was) this student with this tutor? */
+    public function taughtBy(int $tutorId, int $userId): bool
+    {
+        $st = $this->db->prepare("SELECT (SELECT COUNT(*) FROM tutor_students WHERE tutor_id = ? AND user_id = ?) + (SELECT COUNT(*) FROM tutor_payroll_history WHERE tutor_id = ? AND user_id = ?)");
+        $st->execute([$tutorId, $userId, $tutorId, $userId]);
+        return (int) $st->fetchColumn() > 0;
+    }
+
+    /** The monthly rate for this student (their custom rate, else the default). */
+    public function rateFor(int $tutorId, int $userId): float
+    {
+        $st = $this->db->prepare("SELECT monthly_rate FROM tutor_students WHERE tutor_id = ? AND user_id = ? UNION ALL SELECT monthly_rate FROM tutor_payroll_history WHERE tutor_id = ? AND user_id = ? LIMIT 1");
+        $st->execute([$tutorId, $userId, $tutorId, $userId]);
+        $r = $st->fetchColumn();
+        return ($r !== false && $r !== null && (float) $r > 0) ? (float) $r : PayrollCalculator::DEFAULT_MONTHLY_RATE;
+    }
+
+    /** Every student this tutor has or had, for the claim search: [user_id, name, registration_no, course]. */
+    public function studentsForSearch(int $tutorId): array
+    {
+        $st = $this->db->prepare("SELECT u.id AS user_id,
+                   COALESCE((SELECT r.full_name FROM registrations r WHERE r.user_id = u.id ORDER BY r.id DESC LIMIT 1), u.username) AS name,
+                   (SELECT r.registration_no FROM registrations r WHERE r.user_id = u.id ORDER BY r.id DESC LIMIT 1) AS reg_no,
+                   (SELECT c.title FROM registrations r JOIN courses c ON c.id = r.course_id WHERE r.user_id = u.id ORDER BY r.id DESC LIMIT 1) AS course
+            FROM users u WHERE u.id IN (SELECT user_id FROM tutor_students WHERE tutor_id = ? UNION SELECT user_id FROM tutor_payroll_history WHERE tutor_id = ?)
+            ORDER BY name");
+        $st->execute([$tutorId, $tutorId]);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function cancel(int $id, int $tutorId): bool
@@ -96,7 +137,7 @@ class PayrollRequestModel
     public function preview(array $q): float
     {
         if ($q['type'] === 'unassign') return -$this->payroll->unpaidForStudent((int) $q['tutor_id'], (int) $q['student_user_id']);
-        if ($q['type'] === 'adjust') return (float) $q['amount'];
+        if ($q['type'] === 'adjust' || $q['type'] === 'claim') return (float) $q['amount'];
         return 0.0;
     }
 
@@ -124,6 +165,9 @@ class PayrollRequestModel
                 if (!$this->payroll->unassignStudent($tutorId, $uid)) throw new \RuntimeException('The student is no longer with this tutor.');
             } elseif ($q['type'] === 'complete') {
                 if (!$this->payroll->markCompleted($tutorId, $uid, (string) $q['completed_on'])) throw new \RuntimeException('The student is no longer with this tutor.');
+            } elseif ($q['type'] === 'claim') {
+                $applied = (float) $q['amount'];
+                $this->payroll->addAdjustment($tutorId, $uid, $applied, $month, 'Missed payment: ' . $q['student_name'] . ($q['months'] ? ' (' . (int) $q['months'] . ' month' . ((int) $q['months'] > 1 ? 's' : '') . ')' : ''), $id, $actor);
             } else {
                 $applied = (float) $q['amount'];
                 $this->payroll->addAdjustment($tutorId, null, $applied, $month, 'Balance corrected: ' . mb_substr((string) $q['reason'], 0, 200), $id, $actor);

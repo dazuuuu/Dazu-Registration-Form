@@ -52,6 +52,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             SessionModel::setFlash($r['ok'] ? 'success' : 'error', $r['ok'] ? 'Credentials emailed.' : ($r['error'] ?? 'Failed'));
             header('Location: view.php?id='.$id); exit();
         }
+        if ($action === 'reset_wallet_pin') {
+            try { $pdo->prepare("DELETE FROM tutor_wallet_pins WHERE tutor_id = ?")->execute([$id]); } catch (Throwable $ex) {}
+            SessionModel::setFlash('success', 'Wallet PIN reset. The tutor sets a new one the next time they open Finance.');
+            header('Location: view.php?id='.$id); exit();
+        }
         $studentActions = ['assign_students', 'unassign', 'move', 'start_pause', 'end_pause', 'reassign_former'];
         if (in_array($action, $studentActions, true)) {
             if (!$installed) $flash(false, 'Apply the pending system update (migration 048) first.');
@@ -285,7 +290,8 @@ ob_start();
         </form>
     <?php endif; ?>
 </div></div>
-<?php if ((int)($_SESSION['role_id'] ?? 99) === 1): ?><a href="<?php echo url('superadmin/payroll/tutor.php?id=' . $id); ?>" class="btn btn-outline-primary w-100 mb-4"><i class="fas fa-wallet me-1"></i>Salary and payments</a><?php endif; ?>
+<?php if ((int)($_SESSION['role_id'] ?? 99) === 1): ?><a href="<?php echo url('superadmin/payroll/tutor.php?id=' . $id); ?>" class="btn btn-outline-primary w-100 mb-2"><i class="fas fa-wallet me-1"></i>Salary and payments</a>
+<form method="POST" class="mb-4" onsubmit="return confirm('Reset this tutor\'s wallet PIN? They will set a new one next time they open Finance.')"><?php echo csrf_field(); ?><input type="hidden" name="action" value="reset_wallet_pin"><button class="btn btn-outline-secondary btn-sm w-100"><i class="fas fa-key me-1"></i>Reset wallet PIN</button></form><?php endif; ?>
 <?php endif; ?>
 <div class="card border-primary"><div class="card-header bg-primary text-white">Credentials</div><div class="card-body">
 <p class="small text-muted">Reset password and email login details.</p>

@@ -47,7 +47,9 @@ $greet = $hour < 12 ? 'Good morning' : ($hour < 17 ? 'Good afternoon' : 'Good ev
 <div class="th-desktop">
 <?php require __DIR__ . '/_desktop_home.php'; ?>
 </div><!-- /.th-desktop -->
-<?php require __DIR__ . '/payroll_section.php'; ?>
+<div class="card-tutor mt-4"><div class="p-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <div><div class="fw-semibold"><i class="fas fa-wallet me-2 text-success"></i>Your pay is in Finance</div><div class="small text-muted">Earnings, payments to confirm and missed-payment claims. Protected by your wallet PIN.</div></div>
+    <a class="btn btn-sm btn-brand" href="<?php echo url('tutor/finance/index.php'); ?>">Open Finance</a></div></div>
 <?php
 $content = ob_get_clean();
 require __DIR__ . '/../../templates/tutor/layout.php';

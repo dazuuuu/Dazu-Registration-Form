@@ -14,7 +14,7 @@ use Models\PayrollModel;
 
 Middleware::requireTutor();
 
-$back = url('tutor/dashboard/index.php') . '#payroll';
+$back = url('tutor/finance/index.php') . '#payroll';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: ' . $back);

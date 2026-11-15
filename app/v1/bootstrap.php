@@ -135,7 +135,7 @@ if (!function_exists('dazu_fatal_details')) {
         $msg = preg_replace('/\s*Stack trace:.*$/s', '', $msg);
         return '<div style="text-align:left;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 14px;margin-top:18px;font-size:13px;color:#7f1d1d">'
              . '<b>Details for staff</b><br><span style="font-family:ui-monospace,monospace;word-break:break-word">' . $h($msg) . '<br>in ' . $h(str_replace($root . '/', '', (string) $err['file'])) . ' line ' . (int) $err['line'] . '</span>'
-             . '<br><span style="color:#991b1b">Send this to the developer. All errors: Superadmin → File check, or /superadmin/errors.</span></div>';
+             . '<br><span style="color:#991b1b">Send this to the developer. All errors: Admin → Error log, or Superadmin → File check.</span></div>';
     }
 }
 

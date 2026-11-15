@@ -89,6 +89,7 @@ echo acc_tabs('requests.php', acc_pending($pdo));
             <div><strong><?php echo $e($q['tutor_name']); ?></strong> · <?php echo $e(PayrollRequestModel::TYPES[$q['type']]); ?>
                 <?php if ($q['student_name']): ?>: <?php echo $e($q['student_name']); ?><?php endif; ?>
                 <?php if ($q['type'] === 'complete'): ?> on <?php echo $e(date('j M Y', strtotime($q['completed_on']))); ?><?php endif; ?>
+                <?php if ($q['type'] === 'claim'): ?> · <?php echo $e(ExpenseModel::money((float) $q['amount'])); ?><?php echo $q['months'] ? ' (' . (int) $q['months'] . ' month' . ((int) $q['months'] > 1 ? 's' : '') . ')' : ''; ?><?php endif; ?>
                 <?php if ($q['type'] === 'adjust'): ?> by <?php echo $e(ExpenseModel::money((float) $q['amount'])); ?><?php endif; ?>
                 <div class="small text-muted">Asked <?php echo $e(date('j M Y, H:i', strtotime($q['created_at']))); ?> · "<?php echo $e($q['reason']); ?>"</div></div>
             <span class="badge bg-<?php echo ['pending' => 'warning', 'approved' => 'success', 'declined' => 'secondary', 'cancelled' => 'light text-dark'][$q['status']]; ?> align-self-start"><?php echo $e(ucfirst($q['status'])); ?></span>
@@ -97,6 +98,7 @@ echo acc_tabs('requests.php', acc_pending($pdo));
             <div class="small my-2"><?php
                 if ($q['type'] === 'unassign') echo 'Approving takes the student off this tutor and removes ' . $e(ExpenseModel::money(-$pv)) . ' still unpaid for them. Months already paid stay paid.';
                 elseif ($q['type'] === 'complete') echo 'Approving stops this student\'s shares after ' . $e(PayrollCalculator::monthLabel($q['completed_on'])) . '.';
+                elseif ($q['type'] === 'claim') echo 'Approving adds ' . $e(ExpenseModel::money($pv)) . ' to this tutor\'s pay this month. It shows as owed (in red) on the tutor\'s salary page until you pay it and the tutor confirms; the payment then counts as a company expense.';
                 else echo 'Approving changes the tutor\'s balance by ' . $e(ExpenseModel::money($pv)) . ' this month.'; ?></div>
             <form method="POST" class="d-flex flex-wrap gap-2"><?php echo csrf_field(); ?><input type="hidden" name="action" value="payroll"><input type="hidden" name="id" value="<?php echo (int) $q['id']; ?>">
                 <input name="note" class="form-control form-control-sm" style="max-width:300px" placeholder="Note to the tutor (optional)">

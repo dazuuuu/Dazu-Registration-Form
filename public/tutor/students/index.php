@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/TutorModel.php';
 require_once __DIR__ . '/../../../app/v1/models/TutorCourseModel.php';
 require_once __DIR__ . '/../../../app/v1/services/CertificateService.php';
+require_once __DIR__ . '/../../../app/v1/models/PayrollModel.php';
 
 use Models\Connection;
 use Models\TutorModel;
@@ -23,7 +24,26 @@ if ($students) {
     $ids = implode(',', array_map(fn($s) => (int) $s['id'], $students));
     $certs = $pdo->query("SELECT registration_id, certificate_no FROM certificates WHERE status <> 'withdrawn' AND registration_id IN ($ids)")->fetchAll(\PDO::FETCH_KEY_PAIR);
 }
-$page_title = 'My Students';
+// Finished students (completed or certified) move to Previous students; paused ones stay here with a Resume button.
+$tsDone = [];
+$tsPaused = [];
+try {
+    $tsPayroll = new \Models\PayrollModel($pdo);
+    if ($tsPayroll->isInstalled()) {
+        foreach ($tsPayroll->getCurrentStudents((int) $tutor['id']) as $cs) if (!empty($cs['finished_on'])) $tsDone[(int) $cs['user_id']] = $cs['finished_on'];
+        foreach ($tsPayroll->getPauses((int) $tutor['id']) as $pz) {
+            if ($pz['user_id'] !== null && ($c = \Models\PayrollModel::currentPause([$pz], (int) $pz['user_id'])) && $c['state'] === 'active') $tsPaused[(int) $pz['user_id']] = $c;
+        }
+    }
+} catch (Throwable $e) {
+    error_log('tutor students: ' . $e->getMessage());
+}
+$tsView = $tsView ?? 'current';
+$students = array_values(array_filter($students, function ($s) use ($tsDone, $certs, $tsView) {
+    $done = isset($tsDone[(int) $s['user_id']]) || isset($certs[$s['id']]) || !empty($s['studies_completed_at']);
+    return $tsView === 'previous' ? $done : !$done;
+}));
+$page_title = $tsView === 'previous' ? 'Previous Students' : 'My Students';
 ob_start();
 ?>
 <style>
@@ -51,10 +71,12 @@ ob_start();
 </style>
 <div class="ts-bar">
     <div class="ts-search"><i class="fas fa-search"></i><input type="search" class="form-control" id="tsFilter" placeholder="Search your <?php echo count($students); ?> students…"></div>
-    <span class="small text-muted"><i class="fas fa-circle-info me-1"></i>“Resend login” emails a new temporary password.</span>
+    <span class="small text-muted"><i class="fas fa-circle-info me-1"></i><?php echo $tsView === 'previous' ? 'Students who completed or got their certificate. You are not paid for them.' : 'Completed and certified students move to Previous students.'; ?></span>
+    <a href="<?php echo url('tutor/students/' . ($tsView === 'previous' ? 'index.php' : 'previous.php')); ?>" class="btn btn-sm btn-outline-secondary"><i class="fas fa-<?php echo $tsView === 'previous' ? 'user-graduate' : 'clock-rotate-left'; ?> me-1"></i><?php echo $tsView === 'previous' ? 'My current students' : 'Previous students'; ?></a>
 </div>
+<?php foreach (['success_msg' => 'success', 'error_msg' => 'danger'] as $k => $c): if (!empty($_SESSION[$k])): ?><div class="alert alert-<?php echo $c; ?> py-2"><?php echo htmlspecialchars($_SESSION[$k]); unset($_SESSION[$k]); ?></div><?php endif; endforeach; ?>
 <?php if (empty($students)): ?>
-    <div class="card-tutor"><div class="as-empty"><i class="fas fa-user-graduate"></i>No students have been assigned to you yet.</div></div>
+    <div class="card-tutor"><div class="as-empty"><i class="fas fa-user-graduate"></i><?php echo $tsView === 'previous' ? 'No previous students yet. Students who complete or get their certificate appear here.' : 'No current students. New students assigned to you appear here.'; ?></div></div>
 <?php else: ?>
 <div class="ts-grid">
 <?php foreach ($students as $s):
@@ -68,7 +90,8 @@ ob_start();
                 <div class="nm text-truncate"><?php echo htmlspecialchars($s['full_name']); ?></div>
                 <div class="sb"><?php echo htmlspecialchars($s['registration_no']); ?> · <?php echo $s['study_mode'] === 'physical' ? 'Physical' : 'Online'; ?></div>
             </div>
-            <?php if (isset($certs[$s['id']])): ?><span class="badge bg-success"><i class="fas fa-award me-1"></i>Certified</span>
+            <?php if (isset($tsPaused[(int) $s['user_id']])): ?><span class="badge bg-warning text-dark"><i class="fas fa-pause me-1"></i>Paused</span>
+            <?php elseif (isset($certs[$s['id']])): ?><span class="badge bg-success"><i class="fas fa-award me-1"></i>Certified</span>
             <?php elseif (!empty($s['studies_completed_at'])): ?><span class="badge bg-info text-dark">Completed</span>
             <?php else: ?><span class="badge bg-light text-dark border">In progress</span><?php endif; ?>
         </div>
@@ -84,6 +107,19 @@ ob_start();
             <form method="POST" action="credentials.php" onsubmit="return confirm('Send <?php echo htmlspecialchars(addslashes($s['full_name']), ENT_QUOTES); ?> a new temporary password by email? Their current password will stop working.')">
                 <?php echo csrf_field(); ?><input type="hidden" name="reg_id" value="<?php echo (int) $s['id']; ?>">
                 <button class="btn btn-sm btn-outline-success"><i class="fas fa-key me-1"></i>Resend login</button>
+            </form>
+        </div>
+        <?php $sn = htmlspecialchars(addslashes($s['full_name']), ENT_QUOTES); ?>
+        <div class="ts-act">
+            <?php if ($tsView === 'current'): $isP = isset($tsPaused[(int) $s['user_id']]); ?>
+            <form method="POST" action="manage.php" onsubmit="return confirm('<?php echo $isP ? 'Resume ' . $sn . '? You are paid for them again.' : 'Pause ' . $sn . '? You are not paid for them until you resume.'; ?>')">
+                <?php echo csrf_field(); ?><input type="hidden" name="user_id" value="<?php echo (int) $s['user_id']; ?>"><input type="hidden" name="action" value="<?php echo $isP ? 'resume' : 'pause'; ?>">
+                <button class="btn btn-sm <?php echo $isP ? 'btn-outline-primary' : 'btn-outline-warning'; ?>"><i class="fas fa-<?php echo $isP ? 'play' : 'pause'; ?> me-1"></i><?php echo $isP ? 'Resume' : 'Pause'; ?></button>
+            </form>
+            <?php endif; ?>
+            <form method="POST" action="manage.php" onsubmit="return confirm('Remove <?php echo $sn; ?> from your students? They leave your list and you are not paid for them this month.')">
+                <?php echo csrf_field(); ?><input type="hidden" name="user_id" value="<?php echo (int) $s['user_id']; ?>"><input type="hidden" name="action" value="remove"><input type="hidden" name="from" value="<?php echo $tsView; ?>">
+                <button class="btn btn-sm btn-outline-danger"><i class="fas fa-trash me-1"></i>Remove</button>
             </form>
         </div>
     </div>

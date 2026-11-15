@@ -117,7 +117,48 @@ class PayrollModel
              ORDER BY student_name"
         );
         $stmt->execute([':tid' => $tutorId]);
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+        // Finished = marked completed, studies completed, or a certificate issued: the earliest of those dates counts.
+        foreach ($rows as &$r) {
+            $r['finished_on'] = $this->finishedOn($r);
+            $r['completed_on'] = $r['finished_on'];
+        }
+        unset($r);
+        return $rows;
+    }
+
+    /** The date a student finished with this tutor (completed or certified), or null if still studying. */
+    private function finishedOn(array $s): ?string
+    {
+        $dates = [];
+        if (!empty($s['completed_on'])) $dates[] = substr((string) $s['completed_on'], 0, 10);
+        if (!empty($s['registration_id'])) {
+            try {
+                $st = $this->db->prepare("SELECT r.studies_completed_at,
+                        (SELECT MIN(COALESCE(c.issued_at, c.created_at)) FROM certificates c WHERE c.registration_id = r.id AND c.status <> 'withdrawn') AS cert_at
+                    FROM registrations r WHERE r.id = ?");
+                $st->execute([(int) $s['registration_id']]);
+                if ($x = $st->fetch(\PDO::FETCH_ASSOC)) {
+                    foreach (['studies_completed_at', 'cert_at'] as $k) if (!empty($x[$k])) $dates[] = substr((string) $x[$k], 0, 10);
+                }
+            } catch (\Throwable $e) {
+                // a column is missing on an older database: use what we have
+            }
+        }
+        return $dates ? min($dates) : null;
+    }
+
+    /** The first month that counts on the payroll; everything before it is settled (Admin → Settings: payroll_counts_from). */
+    public function countsFrom(): string
+    {
+        try {
+            $st = $this->db->prepare("SELECT setting_value FROM site_settings WHERE setting_key = 'payroll_counts_from'");
+            $st->execute();
+            $v = (string) $st->fetchColumn();
+            if (preg_match('/^\d{4}-\d{2}/', $v)) return substr($v, 0, 7);
+        } catch (\Throwable $e) {
+        }
+        return '2026-11';
     }
 
     /** Students taken off this tutor earlier; what they earned is kept. */
@@ -591,7 +632,7 @@ class PayrollModel
         $payLines = array_map(fn($p) => ['amount' => $p['amount'], 'month' => $p['paid_for_month']], $payments);
         $adjustments = $this->getAdjustments($tutorId);
         $ledger = PayrollCalculator::ledger($lines, $payLines, $asOf, $tutorPauses,
-            array_map(fn($a) => ['amount' => $a['amount'], 'month' => $a['for_month']], $adjustments));
+            array_map(fn($a) => ['amount' => $a['amount'], 'month' => $a['for_month']], $adjustments), $this->countsFrom());
         $ledger['adjustments'] = $adjustments;
 
         $ledger['current_students'] = array_values(array_filter($ledger['students'], fn($s) => $s['kind'] === 'current'));

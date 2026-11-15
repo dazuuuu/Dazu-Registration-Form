@@ -15,7 +15,7 @@ use Models\PayrollRequestModel;
 
 Middleware::requireTutor();
 
-$back = url('tutor/dashboard/index.php') . '#payroll-fix';
+$back = url('tutor/finance/index.php') . '#payroll-fix';
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !csrf_verify($_POST['csrf_token'] ?? null)) {
     SessionModel::setFlash('error', 'Security check failed. Please try again.');
     header('Location: ' . $back);

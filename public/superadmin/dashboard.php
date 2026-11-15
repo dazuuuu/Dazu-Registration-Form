@@ -180,6 +180,20 @@ $sa_smsInstalled = !empty($sms['installed']);
 ob_start();
 $pwaPortal = 'superadmin'; require __DIR__ . '/../components/pwa/banner.php';
 ?>
+<?php
+$saClaims = [];
+try {
+    $saClaims = $pdo->query("SELECT q.amount, COALESCE(NULLIF(TRIM(CONCAT_WS(' ', tp.first_name, tp.last_name)), ''), tu.username) AS tutor
+        FROM tutor_payroll_requests q JOIN tutors t ON t.id = q.tutor_id JOIN users tu ON tu.id = t.user_id LEFT JOIN user_profiles tp ON tp.user_id = tu.id
+        WHERE q.status = 'pending' AND q.type = 'claim' ORDER BY q.id")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) { $saClaims = []; }
+if ($saClaims): ?>
+<div class="alert alert-danger d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div><i class="fas fa-hand-holding-dollar me-2"></i><strong><?php echo count($saClaims); ?> missed-payment claim<?php echo count($saClaims) > 1 ? 's' : ''; ?> from tutors</strong>
+        <span class="small d-block"><?php echo htmlspecialchars(implode(', ', array_map(fn($c) => $c['tutor'] . ' (KES ' . number_format((float) $c['amount']) . ')', $saClaims))); ?></span></div>
+    <a class="btn btn-sm btn-light" href="<?php echo url('superadmin/accounting/requests.php'); ?>">Review</a>
+</div>
+<?php endif; ?>
 <div class="sa-head">
     <div>
         <h1>Overview</h1>

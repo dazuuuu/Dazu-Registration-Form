@@ -110,6 +110,25 @@ function isSmsSection($section) {
                 <i class="fas fa-bell"></i>
                 <span>Notifications</span>
             </a>
+            <?php
+            $sbScal = false;
+            try {
+                require_once __DIR__ . '/../../../app/v1/services/StaffCalendar.php';
+                $sbDb = isset($pdo) && $pdo instanceof PDO ? $pdo : \Models\Connection::getInstance()->getConnection();
+                $sbScal = scal_can_see_menu($sbDb, (int) ($_SESSION['user_id'] ?? 0));
+            } catch (Throwable $e) { $sbScal = false; }
+            if ($sbScal): ?>
+            <a href="<?php echo url('admin/staffcalendar/index.php'); ?>"
+               class="nav-link <?php echo $current_dir == 'staffcalendar' ? 'active' : ''; ?>">
+                <i class="fas fa-calendar-check"></i>
+                <span>Staff Calendar</span>
+            </a>
+            <?php endif; ?>
+            <a href="<?php echo url('admin/errors/index.php'); ?>"
+               class="nav-link <?php echo $current_dir == 'errors' ? 'active' : ''; ?>">
+                <i class="fas fa-triangle-exclamation"></i>
+                <span>Error log</span>
+            </a>
             <a href="<?php echo url('admin/classes/index.php'); ?>"
                class="nav-link <?php echo $current_dir == 'classes' ? 'active' : ''; ?>">
                 <i class="fas fa-calendar-days"></i>
