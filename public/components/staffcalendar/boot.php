@@ -14,6 +14,7 @@ if (!empty($sc_plain)) {
     $sc_db0 = \Models\Connection::getInstance()->getConnection();
     if (session_status() === PHP_SESSION_NONE) session_start();
     $sc_a0 = scal_actor($sc_db0);
+    if ($sc_a0 && $sc_a0['role'] === 'admin' && ($sc_portal ?? '') === 'tutor') $sc_a0['role'] = 'tutor';   // an allowed admin who also teaches
     if (!in_array($sc_portal ?? '', ['tutor', 'superadmin', 'admin'], true) || !$sc_a0 || $sc_a0['role'] !== $sc_portal) {
         http_response_code(403); header('Content-Type: text/plain; charset=utf-8'); echo 'Not allowed.'; exit;
     }
@@ -25,6 +26,8 @@ else { http_response_code(403); exit('Not allowed.'); }
 
 $db = \Models\Connection::getInstance()->getConnection();
 $actor = scal_actor($db);
+// An allowed admin (scal_admin_emails) who also teaches uses the calendar from the tutor portal as well.
+if ($actor && $actor['role'] === 'admin' && $sc_portal === 'tutor') $actor['role'] = 'tutor';
 if (!$actor || $actor['role'] !== $sc_portal) {
     http_response_code(403);
     echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Not allowed</title>'
