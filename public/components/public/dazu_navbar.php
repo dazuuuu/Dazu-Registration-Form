@@ -31,6 +31,28 @@ require_once __DIR__ . '/../../../app/v1/helpers/brand.php';
 $contact = site_contact_settings();
 $navSiteName = trim((string) ($contact['site_name'] ?? '')) ?: 'Dazu Training Institute';
 $navCategories = function_exists('dazu_navbar_categories') ? dazu_navbar_categories() : [];
+
+// Simple dropdowns: About (its sections) and Blogs (the categories that have published posts).
+$navSubs = [
+    'about' => [
+        ['Who We Are', url('about') . '#who-we-are'],
+        ['Our Schools', url('about') . '#our-schools'],
+        ['Our Training Approach', url('about') . '#training-approach'],
+        ['Vision, Mission & Values', url('about') . '#vision-mission'],
+        ['Meet Our Team', url('about') . '#team'],
+    ],
+    'blog' => [],
+];
+try {
+    $navDb = (isset($pdo) && $pdo instanceof PDO) ? $pdo : ($GLOBALS['pdo'] ?? null);
+    if ($navDb instanceof PDO) {
+        $navBlogCats = $navDb->query("SELECT c.name FROM blog_categories c WHERE EXISTS (SELECT 1 FROM blogs b WHERE b.category_id = c.id AND b.status = 'published') ORDER BY c.name")->fetchAll(PDO::FETCH_COLUMN);
+        foreach ($navBlogCats as $bc) $navSubs['blog'][] = [$bc, url('blogs/index.php') . '?category=' . rawurlencode($bc)];
+    }
+} catch (Throwable $e) {
+    // no categories in the menu
+}
+$navSubTop = ['about' => ['About DAZU', 'Our story, schools and people'], 'blog' => ['All Articles', 'Every blog post']];
 ?>
 <style>
 /* Scoped styles for Dazu Navbar & Courses Dropdown */
@@ -229,6 +251,28 @@ $navCategories = function_exists('dazu_navbar_categories') ? dazu_navbar_categor
                 </div>
               </div>
             </div>
+          <?php elseif (!empty($navSubs[$item['key']])): ?>
+            <div class="dazu-nav-dropdown">
+              <a href="<?php echo $item['href']; ?>" class="relative py-2 text-xs font-bold tracking-widest transition-colors hover:text-[#22C55E] flex items-center gap-1.5 <?php echo $active ? 'text-slate-900 font-extrabold' : 'text-slate-700'; ?>" aria-haspopup="true">
+                <span><?php echo htmlspecialchars($item['name']); ?></span>
+                <svg class="dazu-dropdown-caret w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                <?php if ($active): ?><span class="absolute bottom-0 left-0 right-0 h-[2px] bg-[#22C55E] rounded-full"></span><?php endif; ?>
+              </a>
+              <div class="dazu-dropdown-menu" role="menu">
+                <div class="dazu-dropdown-card">
+                  <a href="<?php echo $item['href']; ?>" class="dazu-dropdown-item-all">
+                    <span class="dazu-dropdown-all-icon"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg></span>
+                    <div><div class="text-xs font-extrabold text-slate-900 leading-tight"><?php echo htmlspecialchars($navSubTop[$item['key']][0]); ?></div><div class="text-[10px] text-slate-500 font-medium leading-tight"><?php echo htmlspecialchars($navSubTop[$item['key']][1]); ?></div></div>
+                  </a>
+                  <div class="dazu-dropdown-header-label"><?php echo $item['key'] === 'blog' ? 'Categories' : 'On this page'; ?></div>
+                  <div class="dazu-dropdown-scroll">
+                    <?php foreach ($navSubs[$item['key']] as $sub): ?>
+                      <a href="<?php echo htmlspecialchars($sub[1]); ?>" class="dazu-dropdown-school-item" role="menuitem"><span class="dazu-dropdown-school-dot"></span><span class="dazu-dropdown-school-text"><?php echo htmlspecialchars($sub[0]); ?></span></a>
+                    <?php endforeach; ?>
+                  </div>
+                </div>
+              </div>
+            </div>
           <?php else: ?>
             <a href="<?php echo $item['href']; ?>" class="relative py-2 text-xs font-bold tracking-widest transition-colors hover:text-[#22C55E] <?php echo $active ? 'text-slate-900 font-extrabold' : 'text-slate-700'; ?>">
               <?php echo htmlspecialchars($item['name']); ?>
@@ -290,6 +334,21 @@ $navCategories = function_exists('dazu_navbar_categories') ? dazu_navbar_categor
               <?php endforeach; ?>
             </div>
           </div>
+        <?php elseif (!empty($navSubs[$item['key']])): ?>
+          <div class="rounded-xl border border-slate-100 overflow-hidden">
+            <div class="flex items-center justify-between <?php echo $active ? 'bg-green-50/60' : 'bg-white'; ?>">
+              <a href="<?php echo $item['href']; ?>" class="flex-1 px-4 py-3 text-xs font-bold tracking-wider <?php echo $active ? 'text-[#22C55E]' : 'text-slate-700 hover:text-[#15A24A]'; ?>"><?php echo htmlspecialchars($item['name']); ?></a>
+              <button type="button" class="dazu-mobile-sub-toggle px-4 py-3 text-slate-400 hover:text-[#15A24A] flex items-center justify-center focus:outline-none" aria-label="Show <?php echo htmlspecialchars(strtolower($item['name'])); ?> links">
+                <svg class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+            </div>
+            <div class="hidden px-3 py-2 space-y-1 bg-slate-50 border-t border-slate-100">
+              <a href="<?php echo $item['href']; ?>" class="block px-3 py-2 text-xs font-extrabold text-slate-900 hover:text-[#15A24A] rounded-lg hover:bg-white transition-colors">&rarr; <?php echo htmlspecialchars($navSubTop[$item['key']][0]); ?></a>
+              <?php foreach ($navSubs[$item['key']] as $sub): ?>
+                <a href="<?php echo htmlspecialchars($sub[1]); ?>" class="dazu-mobile-sub-link block px-3 py-2 text-xs font-semibold text-slate-700 hover:text-[#15A24A] rounded-lg hover:bg-white transition-colors"><?php echo htmlspecialchars($sub[0]); ?></a>
+              <?php endforeach; ?>
+            </div>
+          </div>
         <?php else: ?>
           <a href="<?php echo $item['href']; ?>" class="block px-4 py-3 text-xs font-bold tracking-wider rounded-xl <?php echo $active ? 'text-[#22C55E] bg-green-50/60' : 'text-slate-700 hover:bg-slate-50'; ?>">
             <?php echo htmlspecialchars($item['name']); ?>
@@ -346,6 +405,19 @@ $navCategories = function_exists('dazu_navbar_categories') ? dazu_navbar_categor
       }
     });
   }
+
+  // Mobile About / Blogs sub-lists
+  document.querySelectorAll('.dazu-mobile-sub-toggle').forEach(function (b) {
+    b.addEventListener('click', function (e) {
+      e.preventDefault();
+      var sub = b.parentNode.nextElementSibling, open = sub.classList.toggle('hidden') === false;
+      b.querySelector('svg').style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+    });
+  });
+  // Close the drawer after jumping to a section on the same page
+  document.querySelectorAll('.dazu-mobile-sub-link').forEach(function (a) {
+    a.addEventListener('click', function () { if (mobileMenu) mobileMenu.classList.add('hidden'); });
+  });
 
   // Desktop dropdown tap / keyboard escape support
   var dropdownWrapper = document.getElementById('nav-courses-dropdown');
