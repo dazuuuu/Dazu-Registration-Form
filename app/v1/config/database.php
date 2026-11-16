@@ -3,7 +3,7 @@
 
 return array (
   'host' => 'localhost',
-  'dbname' => 'test_data',
+  'dbname' => 'registration_system',
   'username' => 'root',
   'password' => '',
   'charset' => 'utf8mb4',
