@@ -698,7 +698,7 @@ input.scf-sw:focus-visible{outline:2px solid var(--sc-g);outline-offset:2px}
         <input type="hidden" name="view" value="<?php echo $e($view); ?>"><input type="hidden" name="d" value="<?php echo $e($dayS); ?>">
         <i class="fas fa-magnifying-glass"></i><input type="search" name="q" value="<?php echo $e($q); ?>" placeholder="Search events" aria-label="Search events by title" maxlength="100">
     </form>
-    <button type="button" class="sc-btn" data-new="<?php echo $e($dayS); ?>"><i class="fas fa-plus"></i>New event</button>
+    <?php if (!scal_is_view_only($actor)): /* SECRETARY RULE: a View only secretary has no New event button */ ?><button type="button" class="sc-btn" data-new="<?php echo $e($dayS); ?>"><i class="fas fa-plus"></i>New event</button><?php endif; ?>
 </div>
 
 <div class="sc-layout">
@@ -1049,6 +1049,7 @@ $months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'Augu
     $('scf-cover-rm').hidden = !url; $('scf-cover-pick').lastChild.textContent = url ? ' Replace' : ' Upload image';
   }
   function openForm(ev, date) {
+    if (<?php echo scal_is_view_only($actor) ? 'true' : 'false'; ?>) return;   // SECRETARY RULE: View only means no event form (the server refuses it too)
     closePop(); form.reset(); err(''); $('scf-cl').innerHTML = ''; $('scf-tk').innerHTML = ''; multi = false;
     if (coverBlob) { URL.revokeObjectURL(coverBlob); coverBlob = ''; }
     editing = !!ev; F('id').value = ev ? ev.id : ''; F('remove_cover').value = '';

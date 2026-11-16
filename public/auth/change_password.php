@@ -39,6 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($role === 'intern') {
             redirect(url('intern/dashboard/index.php'));
         }
+        if ($role === 'secretary') {
+            redirect(url('secretary/dashboard/index.php'));
+        }
         if ($role === 'employee') {
             redirect(url('employee/dashboard/index.php'));
         }

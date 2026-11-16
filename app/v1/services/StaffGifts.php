@@ -73,10 +73,10 @@ if (!function_exists('sg_installed')) {
     function sg_people(PDO $db): array
     {
         $st = $db->query("SELECT u.id, r.role_name FROM users u JOIN roles r ON r.id = u.role_id
-                          WHERE u.is_active = 1 AND (r.role_name = 'superadmin' OR (r.role_name = 'tutor' AND EXISTS (SELECT 1 FROM tutors t WHERE t.user_id = u.id AND t.is_active = 1)))");
+                          WHERE u.is_active = 1 AND (r.role_name = 'superadmin' OR (r.role_name = 'tutor' AND EXISTS (SELECT 1 FROM tutors t WHERE t.user_id = u.id AND t.is_active = 1)) OR " . scal_secretary_sql($db, true) . ")");   // SECRETARY RULE: a Full secretary is in the gift list, a View only one is not
         $roles = $st->fetchAll(PDO::FETCH_KEY_PAIR);
         $out = [];
-        foreach (sbd_people($db) as $id => $p) if (isset($roles[$id])) $out[$id] = $p + ['role' => $roles[$id] === 'superadmin' ? 'Super admin' : 'Tutor'];
+        foreach (sbd_people($db) as $id => $p) if (isset($roles[$id])) $out[$id] = $p + ['role' => $roles[$id] === 'superadmin' ? 'Super admin' : ($roles[$id] === 'secretary' ? 'Secretary' : 'Tutor')];   // SECRETARY RULE: the role word
         return $out;
     }
 
@@ -108,6 +108,7 @@ if (!function_exists('sg_installed')) {
             return $v === false ? null : (int) $v;
         };
         if ($id = $find()) return $id;
+        if (!isset(sg_people($db)[$userId])) return 0;   // SECRETARY RULE: a birthday person who is not in the gift list (a View only secretary) gets no list
         $people = sg_people($db); $excl = sg_exclusions($db); $amount = sg_amount($db);
         $now = scal_now()->format('Y-m-d H:i:s');
         try {
