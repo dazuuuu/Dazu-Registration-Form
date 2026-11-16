@@ -504,7 +504,20 @@ $tmName = static function (string $n): string { $n = trim($n); return $n === mb_
   (function () { var t = document.getElementById('tmTrack'); if (!t) return;
     function step() { var c = t.querySelector('.tm-card'); return c ? c.offsetWidth + 26 : 300; }
     document.getElementById('tmPrev').onclick = function () { t.scrollBy({ left: -step(), behavior: 'smooth' }); };
-    document.getElementById('tmNext').onclick = function () { t.scrollBy({ left: step(), behavior: 'smooth' }); };
+    document.getElementById('tmNext').onclick = function () { next(); restart(); };
+    // Slides on its own every 3.5 s and loops back to the start; pauses while the mouse is over it or a finger is on it.
+    var timer = null, paused = false;
+    function atEnd() { return t.scrollLeft + t.clientWidth >= t.scrollWidth - 4; }
+    function next() { if (atEnd()) t.scrollTo({ left: 0, behavior: 'smooth' }); else t.scrollBy({ left: step(), behavior: 'smooth' }); }
+    function restart() { clearInterval(timer); if (t.scrollWidth > t.clientWidth + 4) timer = setInterval(function () { if (!paused && !document.hidden) next(); }, 3500); }
+    var box = t.parentNode;
+    box.addEventListener('mouseenter', function () { paused = true; });
+    box.addEventListener('mouseleave', function () { paused = false; });
+    t.addEventListener('touchstart', function () { paused = true; }, { passive: true });
+    t.addEventListener('touchend', function () { setTimeout(function () { paused = false; }, 4000); });
+    document.getElementById('tmPrev').addEventListener('click', restart);
+    window.addEventListener('resize', restart);
+    restart();
   })();
   </script>
   <?php endif; ?>
