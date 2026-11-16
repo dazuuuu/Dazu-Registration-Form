@@ -27,6 +27,9 @@ $fixed = ['robots.txt' => 'robots.php', 'sitemap.xml' => 'sitemap.php', 'login' 
 if (isset($fixed[$rel])) {
     return $serve($fixed[$rel]);
 }
+if (preg_match('#^blog/category/([A-Za-z0-9_-]+)/?$#', $rel, $m)) {
+    return $serve('blogs/category.php', ['slug' => $m[1]]);
+}
 if (preg_match('#^blog/([^/]+)$#', $rel, $m)) {
     return $serve('blogs/readmore.php', ['slug' => $m[1]]);
 }

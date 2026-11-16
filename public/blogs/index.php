@@ -143,6 +143,10 @@ if (!$filtered && $pageNo === 1) {
     uksort($catRows, static fn($x, $y) => count($catRows[$y] ?? []) <=> count($catRows[$x] ?? []) ?: strcmp($x, $y));
     $catRows = array_map(static fn($l) => array_slice($l, 0, 10), $catRows);
 }
+// Category landing pages (/blog/category/<slug>), by category name.
+$catSlugs = [];
+try { foreach ($pdo->query("SELECT name, slug FROM blog_categories") as $cr) $catSlugs[$cr['name']] = $cr['slug']; } catch (Throwable $e) {}
+$catLink = static fn(string $name): string => isset($catSlugs[$name]) ? url('blog/category/' . rawurlencode($catSlugs[$name])) : $blogHref(['category' => $name, 'page' => null]);
 $fmtDate = static fn($a) => date('M j', strtotime($a['date'] ?? 'now') ?: time());
 $h = static fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 
@@ -297,8 +301,8 @@ ob_start();
   <?php foreach ($catRows as $cat => $list): ?>
   <section class="bl-row" aria-label="<?php echo $h($cat); ?>">
     <div class="bl-row-h">
-      <a class="bl-sec" href="<?php echo $h($blogHref(['category' => $cat, 'page' => null])); ?>"><?php echo $h($cat); ?></a>
-      <div class="bl-nav"><a class="all" href="<?php echo $h($blogHref(['category' => $cat, 'page' => null])); ?>">See all</a>
+      <a class="bl-sec" href="<?php echo $h($catLink($cat)); ?>"><?php echo $h($cat); ?></a>
+      <div class="bl-nav"><a class="all" href="<?php echo $h($catLink($cat)); ?>">See all</a>
         <button type="button" class="prev" aria-label="Previous"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></svg></button>
         <button type="button" class="next" aria-label="Next"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
     </div>

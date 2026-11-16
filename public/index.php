@@ -21,6 +21,9 @@ $__routed = (function (): ?string {
     $file = null;
     if (isset($fixed[$rel])) {
         $file = $fixed[$rel];
+    } elseif (preg_match('#^blog/category/([A-Za-z0-9_-]+)/?$#', $rel, $m)) {
+        $file = 'blogs/category.php';
+        $_GET['slug'] = $_REQUEST['slug'] = $m[1];
     } elseif (preg_match('#^blog/([^/]+)$#', $rel, $m)) {
         $file = 'blogs/readmore.php';
         $_GET['slug'] = $_REQUEST['slug'] = $m[1];

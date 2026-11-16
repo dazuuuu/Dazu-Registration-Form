@@ -591,6 +591,31 @@ $tmName = static function (string $n): string { $n = trim($n); return $n === mb_
 <?php
 $extra_js = <<<'HTML'
 <script>
+/* Menu links to a section (about#team etc.): scroll there once the page has finished loading (images and the
+   loading screen move the content, so the browser's own jump lands in the wrong place). Same-page links scroll smoothly. */
+(function () {
+  function go(hash, smooth) {
+    if (!hash || hash.length < 2) return;
+    var el = document.getElementById(decodeURIComponent(hash.slice(1)));
+    if (!el) return;
+    var top = el.getBoundingClientRect().top + window.pageYOffset - 90;
+    window.scrollTo({ top: top, behavior: smooth ? 'smooth' : 'auto' });
+  }
+  if (location.hash) {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    go(location.hash, false);
+    window.addEventListener('load', function () { go(location.hash, false); setTimeout(function () { go(location.hash, true); }, 400); });
+  }
+  window.addEventListener('hashchange', function () { go(location.hash, true); });
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[href*="#"]'); if (!a) return;
+    var u = new URL(a.href, location.href);
+    if (u.pathname.replace(/\/(index\.php)?$/, '') !== location.pathname.replace(/\/(index\.php)?$/, '') || !u.hash) return;
+    var el = document.getElementById(decodeURIComponent(u.hash.slice(1))); if (!el) return;
+    e.preventDefault(); history.pushState(null, '', u.hash); go(u.hash, true);
+    var menu = document.getElementById('dazu-mobile-menu'); if (menu) menu.classList.add('hidden');
+  });
+})();
 document.querySelectorAll('.ab-readmore').forEach(function (b) {
   var box = b.previousElementSibling;
   b.addEventListener('click', function () {

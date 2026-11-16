@@ -46,8 +46,8 @@ $navSubs = [
 try {
     $navDb = (isset($pdo) && $pdo instanceof PDO) ? $pdo : ($GLOBALS['pdo'] ?? null);
     if ($navDb instanceof PDO) {
-        $navBlogCats = $navDb->query("SELECT c.name FROM blog_categories c WHERE EXISTS (SELECT 1 FROM blogs b WHERE b.category_id = c.id AND b.status = 'published') ORDER BY c.name")->fetchAll(PDO::FETCH_COLUMN);
-        foreach ($navBlogCats as $bc) $navSubs['blog'][] = [$bc, url('blogs/index.php') . '?category=' . rawurlencode($bc)];
+        $navBlogCats = $navDb->query("SELECT c.name, c.slug FROM blog_categories c WHERE EXISTS (SELECT 1 FROM blogs b WHERE b.category_id = c.id AND b.status = 'published') ORDER BY c.name")->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($navBlogCats as $bc) $navSubs['blog'][] = [$bc['name'], url('blog/category/' . rawurlencode($bc['slug']))];
     }
 } catch (Throwable $e) {
     // no categories in the menu
