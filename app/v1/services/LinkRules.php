@@ -31,6 +31,7 @@ class LinkRules
     {
         if ($site === 'youtube') return 'https://www.youtube.com/oembed?format=json&url=' . rawurlencode($url);
         if ($site === 'loom') return 'https://www.loom.com/v1/oembed?url=' . rawurlencode($url);
+        if ($site === 'github' && ($api = self::githubApiUrl($url))) return $api;
         if ($site === 'google' && ($id = self::googleFileId($url))) {
             $host = strtolower((string) parse_url($url, PHP_URL_HOST));
             if ($host === 'docs.google.com' && preg_match('#^/(document|spreadsheets|presentation|forms)/#', (string) parse_url($url, PHP_URL_PATH), $m)) {
@@ -39,6 +40,27 @@ class LinkRules
             return 'https://drive.google.com/file/d/' . $id . '/view';
         }
         return $url;
+    }
+
+    /**
+     * GitHub's own API for a repo, profile or gist link. GitHub often sends a server that opens a repo PAGE to the sign-in
+     * page or answers 404 (it treats it as a bot), so a public repo looked private. The API answers plainly:
+     * 200 = public, 404 = private or not there, 403/429 = busy (not proof of anything).
+     */
+    public static function githubApiUrl(string $url): ?string
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        $parts = array_values(array_filter(explode('/', (string) parse_url($url, PHP_URL_PATH)), 'strlen'));
+        if ($host === 'gist.github.com') {
+            $id = end($parts);
+            return $id && preg_match('/^[0-9a-f]{6,}$/i', $id) ? 'https://api.github.com/gists/' . $id : null;
+        }
+        if ($host !== 'github.com' && $host !== 'www.github.com') return null;
+        $reserved = ['login', 'join', 'settings', 'orgs', 'organizations', 'features', 'topics', 'explore', 'marketplace', 'sponsors', 'about', 'pricing', 'search', 'notifications', 'new', 'apps'];
+        if (!$parts || in_array(strtolower($parts[0]), $reserved, true) || !preg_match('/^[A-Za-z0-9-]{1,39}$/', $parts[0])) return null;
+        if (count($parts) === 1) return 'https://api.github.com/users/' . $parts[0];
+        $repo = preg_replace('/\.git$/i', '', $parts[1]);
+        return preg_match('/^[A-Za-z0-9._-]{1,100}$/', $repo) ? 'https://api.github.com/repos/' . $parts[0] . '/' . $repo : null;
     }
 
     public static function googleFileId(string $url): ?string
@@ -66,7 +88,7 @@ class LinkRules
      */
     public static function classify(string $site, int $code, bool $loginRedirect, string $body = ''): string
     {
-        if ($loginRedirect) return 'private';
+        if ($loginRedirect) return $site === 'github' ? 'unknown' : 'private';   // GitHub also sends bots to sign-in: not proof
         if ($code === 0 || $code === 429 || $code >= 500) return 'unknown';
         if ($site === 'google') {
             if (preg_match('/You need access|Request access|You need permission/i', $body)) return 'request_access';
@@ -76,8 +98,8 @@ class LinkRules
             return $code === 200 ? 'works' : 'unknown';
         }
         if ($site === 'github') {
-            // GitHub answers 403 when it rate-limits anonymous requests, so 403 is not proof of anything.
-            if ($code === 200) return 'works';
+            // GitHub answers 403/429 when it rate-limits anonymous requests, so those are not proof of anything.
+            if ($code === 200 || $code === 301) return 'works';
             return $code === 404 ? 'not_found' : 'unknown';
         }
         if ($site === 'gitlab') {
