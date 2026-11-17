@@ -36,6 +36,9 @@ if (!csrf_verify($_POST['csrf_token'] ?? null)) $finish(false, 'Security check f
 if (!$sc_ready) $finish(false, 'The Staff Calendar is not installed yet.', 503);
 
 $id = (int) ($_POST['id'] ?? 0);
+// SECRETARY RULE (start): a secretary on "View only" may look and set her own birthday, nothing else (events, projects, tasks, ticks, gifts and suggestions are all refused here, and again in the services).
+if (scal_is_view_only($actor) && !in_array($_POST['op'] ?? '', ['prefs_save', 'bday_save', 'bday_remove'], true)) $finish(false, 'Your Staff Calendar access is View only. Ask the admin if you need to add or change events.', 403);
+// SECRETARY RULE (end)
 if (($_POST['op'] ?? '') === 'prefs_save') {   // "My settings": the logged-in person's own switches. Always their own: the person is never taken from the request.
     require_once __DIR__ . '/../../../app/v1/services/StaffSettings.php';
     header('Content-Type: application/json; charset=utf-8');

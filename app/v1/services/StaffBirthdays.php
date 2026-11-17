@@ -37,8 +37,8 @@ if (!function_exists('sbd_installed')) {
     {
         $st = $db->query("SELECT u.id, u.username, up.first_name, up.last_name
                           FROM users u JOIN roles r ON r.id = u.role_id LEFT JOIN user_profiles up ON up.user_id = u.id
-                          WHERE u.is_active = 1 AND (r.role_name = 'superadmin' OR (r.role_name = 'tutor' AND EXISTS (SELECT 1 FROM tutors t WHERE t.user_id = u.id AND t.is_active = 1)))
-                          ORDER BY up.first_name, u.username");
+                          WHERE u.is_active = 1 AND (r.role_name = 'superadmin' OR (r.role_name = 'tutor' AND EXISTS (SELECT 1 FROM tutors t WHERE t.user_id = u.id AND t.is_active = 1)) OR " . scal_secretary_sql($db, false) . ")
+                          ORDER BY up.first_name, u.username");   // SECRETARY RULE: Full and View only secretaries can have a birthday
         $out = [];
         foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
             $name = scal_display_name($r['first_name'], $r['last_name'], $r['username']);

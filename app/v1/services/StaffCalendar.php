@@ -31,6 +31,39 @@ if (!function_exists('scal_installed')) {
         return $n !== '' ? $n : trim((string) $username);
     }
 
+    // ---- SECRETARY RULE (start) -----------------------------------------------------------------------------------------------------------------------------
+    // A secretary uses the Staff Calendar through her "Staff Calendar" switch (set by the admin on the Secretaries page): Full (stored as 'edit') = the same access as a
+    // tutor; View only ('view') = she sees events and can add her own birthday, but cannot create, change or delete events, and is not in the gift list; Off = no access.
+    // It is read from the database on every request, together with her active login and her status (Active or On leave; Left blocks her).
+
+    /** 'full', 'view', or null (no access) for a user id that belongs to a secretary. */
+    function scal_secretary_level(PDO $db, int $userId): ?string
+    {
+        try {
+            $st = $db->prepare("SELECT w.switch_value FROM secretaries s JOIN secretary_switches w ON w.secretary_id = s.id AND w.switch_key = 'staff_calendar'
+                                WHERE s.user_id = ? AND s.status IN ('active', 'on_leave')");   // SECRETARY RULE: On leave does not block, only Left does
+            $st->execute([$userId]);
+            $v = $st->fetchColumn();
+        } catch (Throwable $e) {
+            return null;   // the secretary tables are not installed
+        }
+        return $v === 'edit' ? 'full' : ($v === 'view' ? 'view' : null);
+    }
+
+    /** SQL for "is a secretary who may be here": Full only, or Full and View only. Needs the aliases u (users) and r (roles). Matches nobody when the secretary tables are missing. */
+    function scal_secretary_sql(PDO $db, bool $fullOnly): string
+    {
+        static $ok = null;
+        if ($ok === null) { try { $db->query('SELECT 1 FROM secretaries WHERE 1 = 0'); $db->query('SELECT 1 FROM secretary_switches WHERE 1 = 0'); $ok = true; } catch (Throwable $e) { $ok = false; } }
+        if (!$ok) return '1 = 0';
+        return "(r.role_name = 'secretary' AND EXISTS (SELECT 1 FROM secretaries sx JOIN secretary_switches sw ON sw.secretary_id = sx.id AND sw.switch_key = 'staff_calendar'
+                WHERE sx.user_id = u.id AND sx.status IN ('active', 'on_leave') /* SECRETARY RULE: On leave does not block */ AND sw.switch_value IN (" . ($fullOnly ? "'edit'" : "'edit', 'view'") . ")))";
+    }
+
+    /** A secretary on "View only": she may look, and add her own birthday, nothing else. */
+    function scal_is_view_only(array $actor): bool { return ($actor['level'] ?? 'full') === 'view'; }
+    // ---- SECRETARY RULE (end) -------------------------------------------------------------------------------------------------------------------------------
+
     /**
      * Who is asking, or null when they may not use the Staff Calendar. Only a tutor (active, with an active tutor record) or the super admin passes.
      * @return array{uid:int, name:string, first:string, role:string}|null role is 'tutor' or 'superadmin'
@@ -54,6 +87,14 @@ if (!function_exists('scal_installed')) {
         }
         if (!$r) return null;
         $role = (string) $r['role_name'];
+        // SECRETARY RULE (start)
+        if ($role === 'secretary') {
+            $lvl = scal_secretary_level($db, (int) $r['id']);
+            if ($lvl === null) return null;
+            $sname = scal_display_name($r['first_name'], $r['last_name'], $r['username']);
+            return ['uid' => (int) $r['id'], 'name' => $sname, 'first' => trim((string) $r['first_name']) !== '' ? trim((string) $r['first_name']) : $sname, 'role' => 'secretary', 'level' => $lvl];
+        }
+        // SECRETARY RULE (end)
         if ($role === 'tutor' && (int) $r['live_tutor'] < 1) return null;
         if ($role === 'admin' && !in_array(strtolower(trim((string) $r['email'])), scal_admin_emails(), true)) return null;
         if (!in_array($role, ['tutor', 'superadmin', 'admin'], true)) return null;
@@ -437,7 +478,7 @@ if (!function_exists('scal_installed')) {
         return $r ? scal_shape($r) : null;
     }
 
-    function scal_can_change(array $actor, array $ev): bool { return $actor['role'] === 'superadmin' || $actor['uid'] === (int) $ev['owner_id']; }
+    function scal_can_change(array $actor, array $ev): bool { return !scal_is_view_only(/* SECRETARY RULE */ $actor) && ($actor['role'] === 'superadmin' || $actor['uid'] === (int) $ev['owner_id']); }
 
     // ------------------------------------------------------------------ writing
 
@@ -457,6 +498,7 @@ if (!function_exists('scal_installed')) {
      */
     function scal_save(PDO $db, array $actor, array $in, ?array $file = null, int $id = 0): array
     {
+        if (scal_is_view_only($actor)) return ['ok' => false, 'error' => 'Only a person with full Staff Calendar access can add or change events.'];   // SECRETARY RULE
         $old = null;
         if ($id > 0) {
             $old = scal_find($db, $actor, $id);
@@ -554,6 +596,7 @@ if (!function_exists('scal_installed')) {
 
     function scal_delete(PDO $db, array $actor, int $id): array
     {
+        if (scal_is_view_only($actor)) return ['ok' => false, 'error' => 'Only a person with full Staff Calendar access can delete events.'];   // SECRETARY RULE
         $ev = scal_find($db, $actor, $id);
         if (!$ev) return ['ok' => false, 'error' => 'That event was not found.'];
         if (!scal_can_change($actor, $ev)) return ['ok' => false, 'error' => 'Only the person who added an event can delete it.'];
@@ -573,13 +616,13 @@ if (!function_exists('scal_installed')) {
             $adm = implode(',', array_map([$db, 'quote'], scal_admin_emails()));
             $rows = $db->query("SELECT u.id, r.role_name FROM users u JOIN roles r ON r.id = u.role_id
                                 WHERE u.is_active = 1 AND (r.role_name = 'superadmin' OR (r.role_name = 'admin' AND LOWER(u.email) IN ($adm))
-                                   OR (r.role_name = 'tutor' AND EXISTS (SELECT 1 FROM tutors t WHERE t.user_id = u.id AND t.is_active = 1)))")->fetchAll(PDO::FETCH_ASSOC);
+                                   OR (r.role_name = 'tutor' AND EXISTS (SELECT 1 FROM tutors t WHERE t.user_id = u.id AND t.is_active = 1)) OR " . scal_secretary_sql($db, true) . ")")->fetchAll(PDO::FETCH_ASSOC);   // SECRETARY RULE: a Full secretary is told like a tutor
             $s = new DateTime($startAt, scal_tz());
             $when = $s->format('D j M Y') . ($allDay ? ', all day' : ', ' . scal_time($s));
             $body = 'Added by ' . $actor['name'] . ' · ' . $when . ($loc !== '' ? ' · ' . $loc : '');
             foreach ($rows as $r) {
                 if ((int) $r['id'] === $actor['uid']) continue;
-                $path = (in_array($r['role_name'], ['superadmin', 'admin'], true) ? $r['role_name'] : 'tutor') . '/staffcalendar/index.php?d=' . $s->format('Y-m-d');
+                $path = (in_array($r['role_name'], ['superadmin', 'admin', 'secretary'], true) ? $r['role_name'] : 'tutor') . '/staffcalendar/index.php?d=' . $s->format('Y-m-d');   // SECRETARY RULE: her own portal folder
                 \PortalNotifications::notify($db, (int) $r['id'], 'staff_calendar', ($isChange ? 'Staff event: ' : 'New staff event: ') . $title, $body, $path);
             }
         } catch (Throwable $e) {

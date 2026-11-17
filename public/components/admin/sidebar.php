@@ -271,6 +271,11 @@ function isSmsSection($section) {
                             <i class="fas fa-user-lock"></i>
                             <span>Permissions</span>
                         </a>
+                        <a href="<?php echo url('admin/secretaries/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'secretaries' ? 'active' : ''; ?>">
+                            <i class="fas fa-user-tie"></i>
+                            <span>Secretaries</span>
+                        </a>
                         <?php endif; ?>
                         <a href="<?php echo url('admin/students/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'students' ? 'active' : ''; ?>">
@@ -519,6 +524,7 @@ $adm_sheets = [
         ['Classes', 'admin/courses/classes.php', 'fa-layer-group'],
         ['Tutors', 'admin/tutors/index.php', 'fa-chalkboard-teacher'],
         empty($_SESSION['tutor_admin']) ? ['Permissions', 'admin/tutors/permissions.php', 'fa-user-lock'] : null,
+        empty($_SESSION['tutor_admin']) ? ['Secretaries', 'admin/secretaries/index.php', 'fa-user-tie'] : null,
         ['Students', 'admin/students/index.php', 'fa-user-graduate'],
         ['Enrol student', 'admin/students/enroll.php', 'fa-user-plus'],
         ['Resources & IDs', 'admin/resources/index.php', 'fa-folder-open'],

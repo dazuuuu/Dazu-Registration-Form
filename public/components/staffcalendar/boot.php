@@ -15,13 +15,16 @@ if (!empty($sc_plain)) {
     if (session_status() === PHP_SESSION_NONE) session_start();
     $sc_a0 = scal_actor($sc_db0);
     if ($sc_a0 && $sc_a0['role'] === 'admin' && ($sc_portal ?? '') === 'tutor') $sc_a0['role'] = 'tutor';   // an allowed admin who also teaches
-    if (!in_array($sc_portal ?? '', ['tutor', 'superadmin', 'admin'], true) || !$sc_a0 || $sc_a0['role'] !== $sc_portal) {
+    if (!in_array($sc_portal ?? '', ['tutor', 'superadmin', 'admin', 'secretary'], true) ||   /* SECRETARY RULE: the secretary portal */ !$sc_a0 || $sc_a0['role'] !== $sc_portal) {
         http_response_code(403); header('Content-Type: text/plain; charset=utf-8'); echo 'Not allowed.'; exit;
     }
 }
 if (($sc_portal ?? '') === 'tutor') Middleware::requireTutor();
 elseif (($sc_portal ?? '') === 'superadmin') Middleware::requireSuperPortal();
 elseif (($sc_portal ?? '') === 'admin') Middleware::requireAdmin();
+// SECRETARY RULE (start): a secretary needs a signed-in, Active secretary account whose "Staff Calendar" switch is Full or View only (checked in the database on every request).
+elseif (($sc_portal ?? '') === 'secretary') { require_once __DIR__ . '/../../../app/v1/helpers/secretary.php'; secretary_require('staff_calendar', 'view'); }
+// SECRETARY RULE (end)
 else { http_response_code(403); exit('Not allowed.'); }
 
 $db = \Models\Connection::getInstance()->getConnection();
@@ -31,7 +34,7 @@ if ($actor && $actor['role'] === 'admin' && $sc_portal === 'tutor') $actor['role
 if (!$actor || $actor['role'] !== $sc_portal) {
     http_response_code(403);
     echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Not allowed</title>'
-        . '<body style="font-family:sans-serif;max-width:520px;margin:12vh auto;padding:0 16px"><h2>Not allowed</h2><p>The Staff Calendar is only for tutors and the super admin.</p></body>';
+        . '<body style="font-family:sans-serif;max-width:520px;margin:12vh auto;padding:0 16px"><h2>Not allowed</h2><p>The Staff Calendar is only for tutors, the super admin and secretaries who have been given access.</p></body>';   // SECRETARY RULE: the wording names secretaries
     exit;
 }
 $sc_base = url($sc_portal . '/staffcalendar/index.php');

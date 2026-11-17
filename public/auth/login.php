@@ -32,6 +32,8 @@ if (isLoggedIn()) {
         $continueUrl = url('employee/dashboard/index.php');
     } elseif ($role === 'intern') {
         $continueUrl = url('intern/dashboard/index.php');
+    } elseif ($role === 'secretary') {
+        $continueUrl = url('secretary/dashboard/index.php');
     } else {
         $continueUrl = url('profile/client/index.php');
     }
@@ -125,6 +127,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 redirect(url('employee/dashboard/index.php'));
             } elseif ($user['role_name'] === 'intern') {
                 redirect(url('intern/dashboard/index.php'));
+            } elseif ($user['role_name'] === 'secretary') {
+                redirect(url('secretary/dashboard/index.php'));
             } else {
                 redirect(url('profile/client/index.php'));
             }

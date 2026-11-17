@@ -37,12 +37,12 @@ if (!function_exists('srm_installed')) {
     function srm_people(PDO $db): array
     {
         $st = $db->query("SELECT u.id, u.username, u.email, r.role_name, up.first_name, up.last_name FROM users u JOIN roles r ON r.id = u.role_id LEFT JOIN user_profiles up ON up.user_id = u.id
-                          WHERE u.is_active = 1 AND (r.role_name = 'superadmin' OR (r.role_name = 'tutor' AND EXISTS (SELECT 1 FROM tutors t WHERE t.user_id = u.id AND t.is_active = 1)))");
+                          WHERE u.is_active = 1 AND (r.role_name = 'superadmin' OR (r.role_name = 'tutor' AND EXISTS (SELECT 1 FROM tutors t WHERE t.user_id = u.id AND t.is_active = 1)) OR " . scal_secretary_sql($db, false) . ")");   // SECRETARY RULE: event reminders and birthday notices go to a Full or View only secretary (gifts never do: she is not in the gift list)
         $out = [];
         foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $r) {
             $name = scal_display_name($r['first_name'], $r['last_name'], $r['username']);
             $first = trim((string) $r['first_name']) !== '' ? trim((string) $r['first_name']) : (strtok($name, ' ') ?: $name);
-            $out[(int) $r['id']] = ['id' => (int) $r['id'], 'name' => $name, 'first' => $first, 'email' => trim((string) $r['email']), 'dir' => $r['role_name'] === 'superadmin' ? 'superadmin' : 'tutor'];
+            $out[(int) $r['id']] = ['id' => (int) $r['id'], 'name' => $name, 'first' => $first, 'email' => trim((string) $r['email']), 'dir' => $r['role_name'] === 'superadmin' ? 'superadmin' : ($r['role_name'] === 'secretary' ? 'secretary' : 'tutor')];   // SECRETARY RULE: her own portal folder
         }
         return $out;
     }
