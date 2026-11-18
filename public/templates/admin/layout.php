@@ -566,7 +566,8 @@ if (isset($pdo)) {
     <?php if (isset($extra_css)): ?>
         <?php echo $extra_css; ?>
     <?php endif; ?>
-    <link rel="stylesheet" href="<?php echo url('assets/css/neu-portal.css'); ?>?v=1">
+    <?php require __DIR__ . '/../../components/app_shell/styles.php'; /* the tutor/student portal look */ ?>
+    <style>.admin-sidebar,.admin-sidebar-toggle,.admin-sidebar-overlay,.adm-bottom,.adm-sheet,.adm-sheet-bg{display:none!important}body{padding-bottom:0!important}.as-main .page-title{display:none}</style>
 </head>
 <body class="admin-mode-simple">
 <script>
@@ -575,61 +576,41 @@ if (isset($pdo)) {
     document.body.className = 'admin-mode-' + (mode === 'dev' ? 'dev' : 'simple');
 })();
 </script>
-    <div class="admin-wrapper">
-        <!-- Include Admin Sidebar -->
-        <?php include_once __DIR__ . '/../../components/admin/sidebar.php'; ?>
-        
-        <!-- Main Content Area -->
-        <div class="admin-content fade-in">
-            <!-- Top Bar -->
-            <div class="top-bar">
-                <div>
-                    <h1 class="page-title"><?php echo $page_title ?? 'Dashboard'; ?></h1>
-                    <?php if (isset($breadcrumbs)): ?>
-                        <nav aria-label="breadcrumb">
-                            <ol class="breadcrumb mt-2">
-                                <li class="breadcrumb-item"><a href="<?php echo url('admin/dashboard.php'); ?>">Dashboard</a></li>
-                                <?php foreach ($breadcrumbs as $crumb): ?>
-                                    <li class="breadcrumb-item <?php echo isset($crumb['active']) ? 'active' : ''; ?>">
-                                        <?php if (isset($crumb['url']) && !isset($crumb['active'])): ?>
-                                            <a href="<?php echo $crumb['url']; ?>"><?php echo $crumb['label']; ?></a>
-                                        <?php else: ?>
-                                            <?php echo $crumb['label']; ?>
-                                        <?php endif; ?>
-                                    </li>
-                                <?php endforeach; ?>
-                            </ol>
-                        </nav>
-                    <?php endif; ?>
-                </div>
-                <div class="d-flex align-items-center gap-3 flex-wrap">
-                    <div class="admin-mode-toggle" role="group" aria-label="Admin UI mode">
-                        <button type="button" data-admin-mode="simple" title="Standard admin panel">Simple</button>
-                        <button type="button" data-admin-mode="dev" title="Terminal command mode">Dev</button>
-                    </div>
-                    <div class="user-dropdown dropdown">
-                    <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-user-circle me-2"></i>
-                        <?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin'); ?>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item" href="<?php echo url('profile/admin/'); ?>">
-                            <i class="fas fa-user"></i> My Profile
-                        </a></li>
-                        <?php if (isset($_SESSION['role_id']) && $_SESSION['role_id'] <= 2): ?>
-                        <li><a class="dropdown-item" href="<?php echo url('admin/settings/index.php'); ?>">
-                            <i class="fas fa-cog"></i> Settings
-                        </a></li>
-                        <?php endif; ?>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item text-danger" href="<?php echo url('auth/logout.php'); ?>">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </a></li>
-                    </ul>
-                    </div>
-                </div>
-            </div>
-            
+<?php
+    // The admin menu (sidebar.php) is rendered as before but kept hidden: its links become the shared shell's menu,
+    // and its scripts (order alerts etc.) keep running.
+    ob_start();
+    include_once __DIR__ . '/../../components/admin/sidebar.php';
+    $adminSidebarHtml = ob_get_clean();
+    require __DIR__ . '/../../components/admin/shell_items.php';
+    echo $adminSidebarHtml;
+    $adName = trim((string) ($_SESSION['username'] ?? 'Admin'));
+    $shell = [
+        'portal'   => 'admin',
+        'role'     => !empty($_SESSION['tutor_admin']) ? 'Admin (tutor)' : 'Admin portal',
+        'title'    => strip_tags((string) ($page_title ?? 'Dashboard')),
+        'user'     => $adName,
+        'user_sub' => (int) ($_SESSION['role_id'] ?? 2) <= 2 ? 'Administrator' : 'Staff',
+        'photo'    => null,
+        'items'    => $adminShellItems ?: [['dashboard', 'Dashboard', 'fa-gauge', url('admin/dashboard.php'), true, true]],
+        'menu'     => '<li><a class="dropdown-item" href="' . url('profile/admin/') . '"><i class="fas fa-user me-2"></i>My profile</a></li>'
+                    . ((int) ($_SESSION['role_id'] ?? 99) <= 2 ? '<li><a class="dropdown-item" href="' . url('admin/settings/index.php') . '"><i class="fas fa-cog me-2"></i>Settings</a></li>' : '')
+                    . '<li><div class="dropdown-item d-flex gap-2 align-items-center admin-mode-toggle" role="group" aria-label="Admin UI mode"><span class="small text-muted me-1">Mode</span>'
+                    . '<button type="button" class="btn btn-sm btn-light" data-admin-mode="simple">Simple</button><button type="button" class="btn btn-sm btn-light" data-admin-mode="dev">Dev</button></div></li>'
+                    . ($adminShellForms ? '<li><hr class="dropdown-divider"></li>' . $adminShellForms : ''),
+        'logout'   => url('auth/logout.php'),
+    ];
+    require __DIR__ . '/../../components/app_shell/shell.php';
+    ?>
+    <main class="as-main">
+            <?php if (isset($breadcrumbs)): ?>
+                <nav aria-label="breadcrumb"><ol class="breadcrumb small mb-3">
+                    <li class="breadcrumb-item"><a href="<?php echo url('admin/dashboard.php'); ?>">Dashboard</a></li>
+                    <?php foreach ($breadcrumbs as $crumb): ?>
+                        <li class="breadcrumb-item <?php echo isset($crumb['active']) ? 'active' : ''; ?>"><?php if (isset($crumb['url']) && !isset($crumb['active'])): ?><a href="<?php echo $crumb['url']; ?>"><?php echo $crumb['label']; ?></a><?php else: echo $crumb['label']; endif; ?></li>
+                    <?php endforeach; ?>
+                </ol></nav>
+            <?php endif; ?>
             <!-- Flash Messages -->
             <?php if (isset($_SESSION['flash']['success'])): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -675,8 +656,8 @@ if (isset($pdo)) {
             
             <!-- Page Content -->
             <?php echo $content; ?>
-        </div>
-    </div>
+    </main>
+    <?php require __DIR__ . '/../../components/app_shell/tabs.php'; ?>
 
     <div id="adminTerminalShell" class="admin-terminal-shell" aria-label="Admin terminal">
         <div class="admin-terminal-header">
