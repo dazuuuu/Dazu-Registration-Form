@@ -6,8 +6,8 @@ header('Cache-Control: no-cache');
 $root = WEB_ROOT === '' ? '' : rtrim(WEB_ROOT, '/');
 $scope = $root . '/secretary/';
 $icons = [];
-foreach ([72, 96, 128, 144, 152, 180, 192, 384, 512] as $s) $icons[] = ['src' => $root . "/assets/icons/secretary-$s.png", 'sizes' => "{$s}x{$s}", 'type' => 'image/png', 'purpose' => 'any'];
-foreach ([192, 512] as $s) $icons[] = ['src' => $root . "/assets/icons/secretary-maskable-$s.png", 'sizes' => "{$s}x{$s}", 'type' => 'image/png', 'purpose' => 'maskable'];
+foreach ([72, 96, 128, 144, 152, 180, 192, 384, 512] as $s) $icons[] = ['src' => $root . "/assets/icons/secretary-$s.png?v=2", 'sizes' => "{$s}x{$s}", 'type' => 'image/png', 'purpose' => 'any'];
+foreach ([192, 512] as $s) $icons[] = ['src' => $root . "/assets/icons/secretary-maskable-$s.png?v=2", 'sizes' => "{$s}x{$s}", 'type' => 'image/png', 'purpose' => 'maskable'];
 echo json_encode([
     'id' => $scope,
     'name' => 'Dazu Secretary',

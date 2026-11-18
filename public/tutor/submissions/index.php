@@ -41,7 +41,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && csrf_verify($_POST['csrf_token'] ??
 }
 
 $tab = in_array($_GET['tab'] ?? '', ['awaiting', 'requests', 'graded', 'returned', 'all', 'course'], true) ? $_GET['tab'] : 'awaiting';
-$filters = ['course' => (int) ($_GET['course'] ?? 0), 'assignment' => (int) ($_GET['assignment'] ?? 0), 'q' => trim((string) ($_GET['q'] ?? ''))];
+$filters = ['course' => (int) ($_GET['course'] ?? 0), 'assignment' => (int) ($_GET['assignment'] ?? 0), 'q' => trim((string) ($_GET['q'] ?? '')),
+            'student' => (int) ($_GET['student'] ?? 0), 'sort' => ($_GET['sort'] ?? '') === 'oldest' ? 'oldest' : 'latest'];
 
 if (($_GET['export'] ?? '') === 'csv') {
     header('Content-Type: text/csv; charset=utf-8');
@@ -65,7 +66,11 @@ $courseWorkCount = count($moduleSubs) + count($legacySubs);
 $rows = in_array($tab, ['awaiting', 'graded', 'returned', 'all'], true) ? $am->queue($tutorId, $tab, $filters) : [];
 $courses = $am->tutorCourses($tutorId);
 $assignments = $am->listAll($tutorId);
-$qs = fn(array $over) => '?' . http_build_query(array_filter(array_merge(['tab' => $tab] + $filters, $over), fn($v) => $v !== '' && $v !== 0 && $v !== null));
+// Students who have handed in work to this tutor (for the "Student" filter).
+$subStudents = [];
+foreach ($am->queue($tutorId, 'all', array_intersect_key($filters, ['course' => 1, 'assignment' => 1])) as $r0) $subStudents[(int) $r0['student_user_id']] = $r0['full_name'];
+asort($subStudents);
+$qs = fn(array $over) => '?' . http_build_query(array_filter(array_merge(['tab' => $tab] + $filters, $over), fn($v) => $v !== '' && $v !== 0 && $v !== null && $v !== 'latest'));
 $page_title = 'Grade Submissions';
 ob_start();
 ?>
@@ -87,11 +92,16 @@ ob_start();
 
 <?php if (in_array($tab, ['awaiting', 'graded', 'returned', 'all'], true)): ?>
 <form class="row g-2 mb-3" method="GET"><input type="hidden" name="tab" value="<?php echo asg_e($tab); ?>">
-    <div class="col-md-4"><select name="course" class="form-select form-select-sm" onchange="this.form.submit()"><option value="">All my courses (<?php echo count($courses); ?>)</option>
+    <div class="col-md-3"><select name="course" class="form-select form-select-sm" onchange="this.form.submit()"><option value="">All my courses (<?php echo count($courses); ?>)</option>
         <?php foreach ($courses as $cid => $ct): ?><option value="<?php echo (int) $cid; ?>" <?php echo $filters['course'] === (int) $cid ? 'selected' : ''; ?>><?php echo asg_e($ct); ?></option><?php endforeach; ?></select></div>
-    <div class="col-md-4"><select name="assignment" class="form-select form-select-sm" onchange="this.form.submit()"><option value="">All assignments</option>
+    <div class="col-md-3"><select name="assignment" class="form-select form-select-sm" onchange="this.form.submit()"><option value="">All assignments</option>
         <?php foreach ($assignments as $x): if ($filters['course'] && (int) $x['course_id'] !== $filters['course']) continue; ?><option value="<?php echo (int) $x['id']; ?>" <?php echo $filters['assignment'] === (int) $x['id'] ? 'selected' : ''; ?>><?php echo asg_e($x['title']); ?></option><?php endforeach; ?></select></div>
-    <div class="col-md-4"><input type="search" name="q" class="form-control form-control-sm" placeholder="Search student" value="<?php echo asg_e($filters['q']); ?>"></div>
+    <div class="col-md-3"><select name="student" class="form-select form-select-sm" onchange="this.form.submit()"><option value="">All students (<?php echo count($subStudents); ?>)</option>
+        <?php foreach ($subStudents as $sid => $sn): ?><option value="<?php echo (int) $sid; ?>" <?php echo $filters['student'] === (int) $sid ? 'selected' : ''; ?>><?php echo asg_e($sn); ?></option><?php endforeach; ?></select></div>
+    <div class="col-md-3"><select name="sort" class="form-select form-select-sm" onchange="this.form.submit()">
+        <option value="latest" <?php echo $filters['sort'] === 'latest' ? 'selected' : ''; ?>>Latest submitted first</option>
+        <option value="oldest" <?php echo $filters['sort'] === 'oldest' ? 'selected' : ''; ?>>Oldest first (fair queue)</option></select></div>
+    <?php if ($filters['q'] !== ''): ?><input type="hidden" name="q" value="<?php echo asg_e($filters['q']); ?>"><?php endif; ?>
 </form>
 <div class="card-tutor">
     <?php if (!$rows): ?><div class="as-empty"><i class="fas fa-inbox"></i><?php echo $tab === 'awaiting' ? 'No submissions awaiting grading.' : 'Nothing here.'; ?></div><?php else: ?>

@@ -918,12 +918,14 @@ class AssignmentModel {
         if (!empty($f['assignment'])) { $where[] = "a.id = ?"; $args[] = (int) $f['assignment']; }
         $name = sprintf(self::STUDENT_NAME_SQL, 's.student_user_id', 's.student_user_id');
         if (!empty($f['q'])) { $where[] = "$name LIKE ?"; $args[] = '%' . $f['q'] . '%'; }
+        if (!empty($f['student'])) { $where[] = "s.student_user_id = ?"; $args[] = (int) $f['student']; }
+        $order = ($f['sort'] ?? '') === 'latest' ? 's.submitted_at DESC, s.id DESC' : 's.submitted_at ASC, s.id ASC';
         $st = $this->db->prepare(
             "SELECT s.*, a.title, a.course_id, a.tutor_id, a.max_score, a.grading_mode, c.title AS course_title, $name AS full_name
              FROM tutor_assignment_submissions s
              JOIN tutor_assignments a ON a.id = s.assignment_id
              LEFT JOIN courses c ON c.id = a.course_id
-             WHERE " . implode(' AND ', $where) . " ORDER BY s.submitted_at ASC, s.id ASC LIMIT 500"
+             WHERE " . implode(' AND ', $where) . " ORDER BY $order LIMIT 500"
         );
         $st->execute($args);
         return $st->fetchAll(PDO::FETCH_ASSOC);

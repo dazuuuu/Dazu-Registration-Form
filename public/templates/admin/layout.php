@@ -566,6 +566,7 @@ if (isset($pdo)) {
     <?php if (isset($extra_css)): ?>
         <?php echo $extra_css; ?>
     <?php endif; ?>
+    <link rel="stylesheet" href="<?php echo url('assets/css/neu-portal.css'); ?>?v=1">
 </head>
 <body class="admin-mode-simple">
 <script>

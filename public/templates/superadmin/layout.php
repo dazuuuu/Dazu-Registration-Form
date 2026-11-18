@@ -31,6 +31,7 @@ $flashes = ['success' => 'check-circle', 'error' => 'exclamation-circle', 'warni
     })();
     </script>
     <?php if (isset($extra_css)) echo $extra_css; ?>
+    <link rel="stylesheet" href="<?php echo url('assets/css/neu-portal.css'); ?>?v=1">
 </head>
 <body class="sa-body">
 <div class="sa-frame">

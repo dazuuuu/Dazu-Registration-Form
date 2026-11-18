@@ -92,7 +92,8 @@ ob_start();
 <?php if ($mp['modules']): ?>
 <div class="card-student mb-4"><div class="card-head"><i class="fas fa-layer-group me-2"></i>Modules</div><div class="card-body p-0">
     <div class="list-group list-group-flush">
-    <?php foreach ($mp['modules'] as $i => $tm): ?>
+    <?php $othersDone = !array_filter($mp['modules'], fn($m) => empty($m['unlock_after_all']) && empty($m['is_done'])); ?>
+    <?php foreach ($mp['modules'] as $i => $tm): $tmLocked = !empty($tm['unlock_after_all']) && !$othersDone; ?>
     <div class="list-group-item p-3 d-flex justify-content-between align-items-center gap-2 flex-wrap">
         <div>
             <?php echo $tm['is_done'] ? '<i class="fas fa-check-circle text-success me-2"></i>' : '<i class="far fa-circle text-muted me-2"></i>'; ?>
@@ -100,7 +101,8 @@ ob_start();
             <?php if ($tm['is_done']): ?><span class="badge bg-success ms-1">Completed</span><?php endif; ?>
             <?php if ($tm['description']): ?><div class="text-muted small mt-1"><?php echo htmlspecialchars($tm['description']); ?></div><?php endif; ?>
         </div>
-        <?php if (!$portal_locked): ?><a href="tutor_module.php?id=<?php echo (int) $tm['id']; ?>" class="btn btn-sm btn-brand"><?php echo $tm['is_done'] ? 'Review' : 'Open'; ?></a><?php endif; ?>
+        <?php if ($tmLocked): ?><span class="badge bg-secondary"><i class="fas fa-lock me-1"></i>Opens when you finish the other modules</span>
+        <?php elseif (!$portal_locked): ?><a href="tutor_module.php?id=<?php echo (int) $tm['id']; ?>" class="btn btn-sm btn-brand"><?php echo $tm['is_done'] ? 'Review' : 'Open'; ?></a><?php endif; ?>
     </div>
     <?php endforeach; ?>
     </div>

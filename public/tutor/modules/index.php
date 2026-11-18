@@ -42,6 +42,8 @@ if (!$courseId) {
     ob_start();
     ?>
     <p class="text-muted">Build your own course content once per course. Every student of that course assigned to you sees it — including students assigned to you later.</p>
+    <div class="alert alert-success d-flex flex-wrap justify-content-between align-items-center gap-2"><span><i class="fas fa-wand-magic-sparkles me-1"></i><strong>Faster:</strong> fill one spreadsheet with all units, lessons, questions and final assignments, and add it to all your courses at once.</span>
+      <a href="import.php" class="btn btn-sm btn-brand">Import a course</a></div>
     <?php if (!$courses): ?>
         <div class="card-tutor"><p class="p-3 text-muted mb-0">You have no assigned students yet. Courses appear here once the admin assigns students to you.</p></div>
     <?php else: ?>

@@ -3,7 +3,7 @@
  * What it may keep on the phone: the offline page and the app's own look (the Dazu icons, logo, styles, scripts, fonts), nothing else.
  * It NEVER keeps a page, a data answer, an upload or anything private: every page and every .php address goes to the network,
  * and when there is no network the visitor gets the offline page. It also shows push notifications and the app-icon badge. */
-const SHELL = 'dazu-secretary-shell-v1';
+const SHELL = 'dazu-secretary-shell-v2';   // v2: new app icon
 const OFFLINE = new URL('offline.html', self.location).href;
 const ICON = new URL('../assets/icons/secretary-192.png', self.location).href;
 const LOGO = new URL('../assets/images/logo/logo.png', self.location).href;

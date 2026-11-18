@@ -25,6 +25,15 @@ $module = $tutor ? $tc->getModule($moduleId, (int) $tutor['user_id']) : null;
 if (!$module || (int) $module['course_id'] !== (int) $reg['course_id']) { header('Location: index.php'); exit(); }
 $regId = (int) $reg['id'];
 $self = 'tutor_module.php?id=' . $moduleId;
+// Final assignments (from a course import) open only after every other module of the course is done.
+if (!empty($module['unlock_after_all'])) {
+    foreach ($tc->getModules((int) $tutor['user_id'], (int) $reg['course_id']) as $om) {
+        if ((int) $om['id'] !== $moduleId && empty($om['unlock_after_all']) && !$tc->isModuleDone($regId, (int) $om['id'])) {
+            SessionModel::setFlash('error', 'The final assignments open when you have finished every other module.');
+            header('Location: index.php'); exit();
+        }
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_verify($_POST['csrf_token'] ?? null)) {

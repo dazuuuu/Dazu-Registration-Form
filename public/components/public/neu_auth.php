@@ -18,6 +18,10 @@ if (realpath($_SERVER['SCRIPT_FILENAME'] ?? '') === __FILE__) { http_response_co
 .neu-field>svg{width:17px;height:17px;flex:none;margin-left:16px;color:#475569}
 .neu-field input{flex:1;min-width:0;border:0;background:transparent;padding:14px 12px;font-size:14px;color:#0f172a;outline:none}
 .neu-field input::placeholder{color:#94a3b8}
+/* Chrome/Safari autofill paints its own light-blue box over saved logins: blend it into the sunken field instead. */
+.neu-field input:-webkit-autofill,.neu-field input:-webkit-autofill:hover,.neu-field input:-webkit-autofill:focus,.neu-field input:-webkit-autofill:active{
+  -webkit-box-shadow:0 0 0 1000px var(--bg) inset!important;box-shadow:0 0 0 1000px var(--bg) inset!important;-webkit-text-fill-color:#0f172a!important;caret-color:#0f172a;transition:background-color 9999s ease-out 0s}
+.neu-field input:autofill{background:var(--bg)!important}
 .neu-field:focus-within{box-shadow:inset 5px 5px 10px var(--sh),inset -5px -5px 10px var(--hi),0 0 0 2px rgba(21,162,74,.35)}
 .neu-otp input{text-align:center;letter-spacing:.5em;font-weight:800;font-family:ui-monospace,monospace;font-size:18px}
 .neu-eye{border:0;background:none;color:#64748b;padding:8px 14px 8px 4px;cursor:pointer;display:flex}

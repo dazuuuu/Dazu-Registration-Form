@@ -1,0 +1,51 @@
+/* Dazu neumorphic finish for the ADMIN and SUPERADMIN portals — the same look as the student/tutor portals and the sign-in page:
+   one soft green-grey surface, raised cards and buttons, sunken fields, the active menu item pressed in. Loaded last, so it
+   only changes the look; the pages and menus stay as they are. */
+:root{--nm-bg:#e7efe9;--nm-hi:#fff;--nm-sh:#bccbc0;--nm-g:#15A24A;--nm-gd:#0f8a3d;--nm-ink:#14201a;--nm-muted:#5b6b60;--nm-line:#d6e1d9;
+  --nm-up:7px 7px 16px var(--nm-sh),-7px -7px 16px var(--nm-hi);--nm-up-sm:4px 4px 9px var(--nm-sh),-4px -4px 9px var(--nm-hi);
+  --nm-in:inset 4px 4px 9px var(--nm-sh),inset -4px -4px 9px var(--nm-hi)}
+body,body.sa-body{background:var(--nm-bg)!important;color:var(--nm-ink)}
+
+/* ── Admin portal ── */
+.admin-wrapper,.main-content,.content-wrapper,.admin-main{background:var(--nm-bg)!important}
+.admin-sidebar{background:var(--nm-bg)!important;border-right:0!important;box-shadow:6px 0 18px rgba(188,203,192,.55)!important}
+.admin-sidebar .sidebar-header{background:transparent!important;border-bottom:1px solid var(--nm-line)!important}
+.admin-sidebar .nav-link{color:#3c4a41!important;border-radius:12px!important;margin:2px 10px!important;background:transparent!important}
+.admin-sidebar .nav-link i{color:#6d7d72!important}
+.admin-sidebar .nav-link:hover{box-shadow:var(--nm-up-sm)!important;color:var(--nm-ink)!important}
+.admin-sidebar .nav-link.active{box-shadow:var(--nm-in)!important;color:var(--nm-gd)!important;font-weight:600}
+.admin-sidebar .nav-link.active i{color:var(--nm-g)!important}
+.admin-sidebar .collapse,.admin-sidebar .collapse .nav-link{background:transparent!important}
+.top-bar,.top-navbar,.admin-topbar,.navbar.admin-navbar{background:rgba(231,239,233,.94)!important;border-bottom:0!important;box-shadow:0 4px 14px rgba(188,203,192,.45)!important}
+
+/* ── Superadmin portal ── */
+body.sa-body .sa-frame{background:var(--nm-bg)!important;box-shadow:var(--nm-up)!important;border:0!important}
+.sa-nav{background:var(--nm-bg)!important;box-shadow:var(--nm-in)!important}
+.sa-nav a{color:#3c4a41!important}
+.sa-nav a:hover{background:transparent!important;color:var(--nm-gd)!important}
+.sa-nav a.active{background:var(--nm-bg)!important;color:var(--nm-gd)!important;box-shadow:var(--nm-up-sm)!important}
+.sa-card,.sa-panel,.sa-tile,.sa-list,.sa-detail,.sa-row,.sa-quick a,.sa-filters,.sa-alert{background:var(--nm-bg)!important;border:0!important;box-shadow:var(--nm-up)!important}
+.sa-chip,.sa-pill,.sa-icon,.sa-avatar,.sa-brand-mark{box-shadow:var(--nm-up-sm)}
+.sa-input,.sa-seg{background:var(--nm-bg)!important;border:0!important;box-shadow:var(--nm-in)!important}
+.sa-btn-primary{background:linear-gradient(135deg,#22c55e,var(--nm-g) 60%,var(--nm-gd))!important;border:0!important;box-shadow:var(--nm-up-sm)!important;color:#fff!important}
+.sa-btn-ghost,.sa-btn-white,.sa-back{background:var(--nm-bg)!important;border:0!important;box-shadow:var(--nm-up-sm)!important;color:#3c4a41!important}
+.sa-bottom{background:var(--nm-bg)!important;box-shadow:8px 8px 20px var(--nm-sh),-8px -8px 20px var(--nm-hi)!important}
+.sa-bottom a{color:var(--nm-muted)!important}
+.sa-bottom a.active,.sa-bottom a.on{color:var(--nm-g)!important;box-shadow:var(--nm-in);background:var(--nm-bg)!important}
+
+/* ── Shared Bootstrap blocks (both portals) ── */
+.card,.modal-content,.list-group,.accordion-item,.dropdown-menu,.stat-card,.stats-card{background:var(--nm-bg)!important;border:0!important;box-shadow:var(--nm-up)!important;border-radius:18px!important}
+.card-header,.card-footer{background:transparent!important;border-color:var(--nm-line)!important}
+.list-group-item{background:transparent!important;border-color:var(--nm-line)!important}
+.table{--bs-table-bg:transparent;--bs-table-hover-bg:rgba(255,255,255,.35)}
+.table thead th,.table-light,.table-light th{background:rgba(255,255,255,.35)!important}
+.form-control,.form-select,.input-group-text{background-color:var(--nm-bg)!important;border:0!important;box-shadow:var(--nm-in)!important;border-radius:12px}
+.form-control:focus,.form-select:focus{box-shadow:var(--nm-in),0 0 0 2px rgba(21,162,74,.35)!important}
+.btn{border-radius:12px}
+.btn-primary,.btn-success{background:linear-gradient(135deg,#22c55e,var(--nm-g) 60%,var(--nm-gd))!important;border:0!important;box-shadow:var(--nm-up-sm);color:#fff!important}
+.btn-primary:active,.btn-success:active{box-shadow:inset 3px 3px 8px rgba(0,0,0,.2)!important}
+.btn-light,.btn-outline-secondary,.btn-outline-primary,.btn-outline-success,.btn-outline-dark,.btn-secondary{background:var(--nm-bg)!important;border:0!important;box-shadow:var(--nm-up-sm)!important;color:#3c4a41!important}
+.btn-light:hover,.btn-outline-secondary:hover,.btn-outline-primary:hover,.btn-outline-success:hover,.btn-outline-dark:hover{box-shadow:var(--nm-in)!important;color:var(--nm-gd)!important}
+.alert{border:0;border-radius:14px;box-shadow:var(--nm-up-sm)}
+.progress{background:var(--nm-bg);box-shadow:var(--nm-in)}
+.form-control:-webkit-autofill{-webkit-box-shadow:0 0 0 1000px var(--nm-bg) inset!important}
