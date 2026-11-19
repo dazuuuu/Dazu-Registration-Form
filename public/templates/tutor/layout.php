@@ -49,7 +49,8 @@ $tlItems = [
     ['progress', 'Student Progress', 'fa-chart-line', url('tutor/progress/index.php'), $tlDir === 'progress', false],
     ['submissions', 'Submissions', 'fa-clipboard-check', url('tutor/submissions/index.php'), $tlDir === 'submissions', true, null, 'Grade', $tlAwaiting],
     ['modules', 'Course Builder', 'fa-layer-group', url('tutor/modules/index.php'), $tlDir === 'modules', true, null, 'Builder'],
-    ['calendar', 'Class Calendar', 'fa-calendar-days', url('tutor/calendar/index.php'), $tlDir === 'calendar', false, 'Teaching'],
+    ['timetable', 'Timetables', 'fa-table-list', url('tutor/timetable/index.php'), $tlDir === 'timetable', false, 'Teaching'],
+    ['calendar', 'Class Calendar', 'fa-calendar-days', url('tutor/calendar/index.php'), $tlDir === 'calendar', false],
     ...($tlStaffCal ? [['staffcalendar', 'Staff Calendar', 'fa-calendar-check', url('tutor/staffcalendar/index.php'), $tlDir === 'staffcalendar', false]] : []),
     ['courses', 'My Courses', 'fa-book-open', url('tutor/courses/index.php'), $tlDir === 'courses', false],
     ['selfstudy', 'Self-study', 'fa-laptop-code', url('tutor/selfstudy/index.php'), $tlDir === 'selfstudy', false],
@@ -93,6 +94,7 @@ $shell['tabs'] = [
     ], $tlOn(['notifications', 'announcements'])],
     ['link', 'Students', 'fa-user-graduate', url('tutor/students/index.php'), $tlOn(['students'])],
     ['sheet', 'courses', 'Courses', 'fa-book-open', [
+        ['Timetables', 'fa-table-list', url('tutor/timetable/index.php'), $tlOn(['timetable'])],
         ['Class Calendar', 'fa-calendar-days', url('tutor/calendar/index.php'), $tlOn(['calendar'])],
         ...($tlStaffCal ? [['Staff Calendar', 'fa-calendar-check', url('tutor/staffcalendar/index.php'), $tlOn(['staffcalendar'])]] : []),
         ['My courses', 'fa-book-open', url('tutor/courses/index.php'), $tlOn(['courses'])],
@@ -105,7 +107,7 @@ $shell['tabs'] = [
         ['Capstone', 'fa-graduation-cap', url('tutor/capstone/index.php'), $tlOn(['capstone'])],
         ['Certificate requests' . ($tlCertPending ? ' (' . $tlCertPending . ')' : ''), 'fa-award', url('tutor/certificates/index.php'), $tlOn(['certificates'])],
         ['Grade work' . ($tlAwaiting ? ' (' . $tlAwaiting . ')' : ''), 'fa-clipboard-check', url('tutor/submissions/index.php'), $tlOn(['submissions'])],
-    ], $tlOn(['calendar', 'courses', 'selfstudy', 'modules', 'resources', 'quizzes', 'assignments', 'capstone', 'certificates', 'submissions', 'progress'])],
+    ], $tlOn(['calendar', 'timetable', 'courses', 'selfstudy', 'modules', 'resources', 'quizzes', 'assignments', 'capstone', 'certificates', 'submissions', 'progress'])],
     ['link', 'Assignments', 'fa-file-pen', url('tutor/assignments/index.php'), $tlOn(['assignments']), $tlAwaiting],
     ['sheet', 'more', 'More', 'fa-grip', array_merge(
         [['Finance', 'fa-wallet', url('tutor/finance/index.php'), $tlOn(['finance'])],

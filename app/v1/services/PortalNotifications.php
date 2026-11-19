@@ -65,12 +65,12 @@ class PortalNotifications
      * @param string      $path  app-relative link opened when the notification is tapped, e.g. 'students/course/index.php'
      * @param string|null $icon  app-relative picture (e.g. the tutor's photo); the app icon is used when null
      */
-    public static function notify(PDO $db, int $userId, string $type, string $title, string $body = '', string $path = '', ?string $icon = null): void
+    public static function notify(PDO $db, int $userId, string $type, string $title, string $body = '', string $path = '', ?string $icon = null, bool $always = false): void
     {
         if ($userId <= 0) return;
         // Only kinds the person switched on (Notifications page). Nothing is stored or pushed otherwise.
         $choices = self::choices($db, $userId);
-        if ($choices !== null && empty($choices[self::categoryOf($type)])) return;
+        if (!$always && $choices !== null && empty($choices[self::categoryOf($type)])) return;   // $always: class alerts from timetables
         // Older uploads were saved with the dev folder in front; keep only the path inside public/.
         $icon = $icon ? ltrim(preg_replace('#^/?Registration-System/public/#', '', $icon), '/') : null;
         try {

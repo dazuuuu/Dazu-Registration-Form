@@ -55,6 +55,7 @@ $slItems = [
     ['selfstudy', 'Self-study', 'fa-laptop-code', url('students/selfstudy/index.php'), $slDir === 'selfstudy', false],
     ['payments', 'Finance', 'fa-wallet', url('students/payments/index.php'), $slDir === 'payments', true, null, 'Finance'],
     ['classes', 'My Classes', 'fa-calendar-days', url('students/classes/index.php'), $slDir === 'classes', true, null, 'Classes'],
+    ['timetable', 'Timetable', 'fa-table-list', url('students/timetable/index.php'), $slDir === 'timetable', false],
     ['documents', 'My Documents', 'fa-id-card', url('students/documents/index.php'), $slDir === 'documents', false, 'More', 'Docs'],
     ['assignments', 'Assignments', 'fa-file-pen', url('students/assignments/index.php'), $slDir === 'assignments', false],
 ];
@@ -79,7 +80,7 @@ $slItems[] = ['profile', 'My profile', 'fa-user-circle', url('students/profile/i
 if ($portal_locked) {
     // Fees overdue: the course lessons are locked, but assignments and quizzes (receive, view, submit, grades),
     // documents and payments stay open.
-    $slItems = array_values(array_filter($slItems, fn($i) => in_array($i[0], ['dashboard', 'payments', 'documents', 'assignments', 'capstone', 'classwork', 'notifications', 'profile'], true)));
+    $slItems = array_values(array_filter($slItems, fn($i) => in_array($i[0], ['dashboard', 'payments', 'documents', 'timetable', 'assignments', 'capstone', 'classwork', 'notifications', 'profile'], true)));
     foreach ($slItems as &$slIt) { if (in_array($slIt[0], ['documents', 'assignments'], true)) { $slIt[5] = true; $slIt[6] = null; } }
     unset($slIt);
 }

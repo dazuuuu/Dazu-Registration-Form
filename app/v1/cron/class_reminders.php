@@ -3,7 +3,8 @@
 //   */5 * * * * /usr/bin/php /path/to/app/v1/cron/class_reminders.php >> /path/to/app/v1/storage/class_cron.log 2>&1
 // 1. Reminders 24 hours and 1 hour before each class (each sent once — class_reminders_sent).
 // 2. Students who joined a whole-course class get its future classes.
-// 3. Sends queued emails and retries failed ones (up to 5 tries).
+// 3. Alerts before tutor timetable classes (TimetableService).
+// 4. Sends queued emails and retries failed ones (up to 5 tries).
 if (PHP_SAPI !== 'cli') {
     http_response_code(403);
     exit('Run from the command line.');
@@ -13,6 +14,15 @@ require_once __DIR__ . '/../models/Connection.php';
 require_once __DIR__ . '/../services/ClassCalendarService.php';
 
 $db = \Models\Connection::getInstance()->getConnection();
+// Tutor timetables (weekly table): alert students and the tutor before each class.
+require_once __DIR__ . '/../services/TimetableService.php';
+try {
+    $tt = TimetableService::sendAlerts($db);
+    PortalNotifications::flush();
+    echo date('c') . " timetable alerts: $tt\n";
+} catch (Throwable $e) {
+    echo date('c') . ' timetable alerts failed: ' . $e->getMessage() . "\n";
+}
 if (!cal_installed($db)) {
     echo date('c') . " Class Calendar not installed (migration 076).\n";
     exit(0);
