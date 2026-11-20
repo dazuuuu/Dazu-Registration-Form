@@ -38,6 +38,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $subjects = $courseId && isset($courses[$courseId]) ? subj_list($pdo, $courseId, $tutorId) : [];
+$courseSubjects = array_values(array_filter($subjects, fn($s) => (int) $s['tutor_id'] === 0));   // set by the admin: read-only here
+$subjects = array_values(array_filter($subjects, fn($s) => (int) $s['tutor_id'] !== 0));
 $weights = $courseId && isset($courses[$courseId]) ? subj_effective_weights($pdo, $courseId, $tutorId) : [];
 $defaultWeight = $courseId && isset($courses[$courseId]) ? subj_default_weight($pdo, $courseId, $tutorId) : 0;
 $page_title = 'Subjects';
@@ -57,9 +59,23 @@ ob_start();
 </div>
 
 <?php if ($courseId && isset($courses[$courseId])): ?>
+<?php if ($courseSubjects): ?>
 <div class="card-tutor p-3 p-md-4 mb-3">
-    <h6 class="fw-bold">Your subjects in <?php echo asg_e($courses[$courseId]); ?></h6>
-    <?php if (!$subjects): ?><p class="small text-muted">No subjects yet. Until you add one, assignments in this course do not need a subject.</p><?php endif; ?>
+    <h6 class="fw-bold mb-1">Course subjects set by the admin</h6>
+    <p class="small text-muted mb-2">Use these on your assignments and monthly projects. Only the admin can change them.</p>
+    <div class="table-responsive"><table class="table table-sm align-middle mb-0"><thead><tr><th>Month</th><th>Subject</th><th>Weight</th><th>Used by</th></tr></thead><tbody>
+    <?php foreach ($courseSubjects as $s): $used = subj_usage_count($pdo, (int) $s['id']); ?>
+        <tr<?php echo (int) $s['is_active'] ? '' : ' class="text-muted"'; ?>><td><?php echo !empty($s['month_no']) ? 'Month ' . (int) $s['month_no'] : '-'; ?></td>
+            <td class="fw-semibold"><?php echo asg_e($s['name']); ?><?php echo $s['code'] ? ' <span class="text-muted small">(' . asg_e($s['code']) . ')</span>' : ''; ?><?php echo (int) $s['is_active'] ? '' : ' <span class="badge bg-secondary">INACTIVE</span>'; ?></td>
+            <td class="small"><?php echo asg_e((string) ($weights[(int) $s['id']] ?? '')); ?></td>
+            <td class="small"><?php echo $used; ?> assignment<?php echo $used === 1 ? '' : 's'; ?></td></tr>
+    <?php endforeach; ?>
+    </tbody></table></div>
+</div>
+<?php endif; ?>
+<div class="card-tutor p-3 p-md-4 mb-3">
+    <h6 class="fw-bold">Your own subjects in <?php echo asg_e($courses[$courseId]); ?></h6>
+    <?php if (!$subjects): ?><p class="small text-muted"><?php echo $courseSubjects ? 'None. The course subjects above are usually enough.' : 'No subjects yet. Until you add one, assignments in this course do not need a subject.'; ?></p><?php endif; ?>
     <?php foreach ($subjects as $i => $s): $used = subj_usage_count($pdo, (int) $s['id']); ?>
     <form method="POST" class="border rounded p-2 mb-2<?php echo (int) $s['is_active'] ? '' : ' bg-light'; ?>"><?php echo csrf_field(); ?>
         <input type="hidden" name="course_id" value="<?php echo $courseId; ?>"><input type="hidden" name="id" value="<?php echo (int) $s['id']; ?>">

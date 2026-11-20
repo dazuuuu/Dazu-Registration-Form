@@ -1,6 +1,7 @@
 <?php
 // app/v1/services/SubjectService.php
-// Subjects for assignments (migration 091). A subject belongs to ONE course and ONE tutor. Every assignment and monthly project may be linked to a subject.
+// Subjects for assignments (migration 091). A subject belongs to ONE course and ONE tutor, or (tutor_id 0, migration 135) to the course
+// itself: set by the admin, with the month of the course, and offered to every tutor of the course. Tutors cannot change those. Every assignment and monthly project may be linked to a subject.
 //
 // THE RULES, in one place:
 //  1 A subject mark is NEVER typed by anyone. subjectMarks() calculates it from the marks of the assignments under the subject, by calling
@@ -20,12 +21,35 @@ if (!function_exists('subjectMarks')) {
 
     /* ---------------- reading ---------------- */
 
-    /** Subjects of one course for one tutor, in order. */
+    /** Subjects of one course for one tutor, in order: the admin's course subjects (by month) first, then the tutor's own. */
     function subj_list(PDO $db, int $courseId, int $tutorId, bool $activeOnly = false): array
     {
-        $st = $db->prepare('SELECT * FROM course_subjects WHERE course_id = ? AND tutor_id = ?' . ($activeOnly ? ' AND is_active = 1' : '') . ' ORDER BY sort_order, id');
+        $st = $db->prepare('SELECT * FROM course_subjects WHERE course_id = ? AND tutor_id IN (?, 0)' . ($activeOnly ? ' AND is_active = 1' : '')
+            . ' ORDER BY tutor_id <> 0, ' . (subj_has_month($db) ? 'COALESCE(month_no, 99), ' : '') . 'sort_order, id');
         $st->execute([$courseId, $tutorId]);
         return $st->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Migration 135 run (admin course subjects with a month)? */
+    function subj_has_month(PDO $db): bool
+    {
+        static $has = null;
+        if ($has === null) { try { $db->query('SELECT month_no FROM course_subjects LIMIT 0'); $has = true; } catch (Throwable $e) { $has = false; } }
+        return $has;
+    }
+
+    /** Label for a subject box: "Month 2 · Databases (DB-01)". */
+    function subj_label(array $s): string
+    {
+        return (!empty($s['month_no']) ? 'Month ' . (int) $s['month_no'] . ' · ' : '') . $s['name'] . (!empty($s['code']) ? ' (' . $s['code'] . ')' : '');
+    }
+
+    /** A subject this tutor may put on an assignment: their own, or the admin's for the course. */
+    function subj_get_usable(PDO $db, int $id, int $tutorId): ?array
+    {
+        $st = $db->prepare('SELECT * FROM course_subjects WHERE id = ? AND tutor_id IN (?, 0)');
+        $st->execute([$id, $tutorId]);
+        return $st->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
     /** A subject only if this tutor owns it (tutors.id). */
@@ -184,7 +208,7 @@ if (!function_exists('subjectMarks')) {
     {
         $s = subj_get_own($db, $id, $tutorId);
         if (!$s) return ['ok' => false, 'error' => 'Subject not found.'];
-        $ids = array_map(fn($r) => (int) $r['id'], subj_list($db, (int) $s['course_id'], $tutorId));
+        $ids = array_map(fn($r) => (int) $r['id'], array_filter(subj_list($db, (int) $s['course_id'], $tutorId), fn($r) => (int) $r['tutor_id'] === $tutorId));
         $i = array_search($id, $ids, true);
         $j = $i + ($dir < 0 ? -1 : 1);
         if ($i === false || $j < 0 || $j >= count($ids)) return ['ok' => true];
@@ -219,7 +243,7 @@ if (!function_exists('subjectMarks')) {
             $mustHave = $isNew || $currentSubjectId > 0;
             return $mustHave && subj_required($db, $courseId, $tutorId) ? 'Choose a subject for this assignment. It is needed so the subject mark can be worked out.' : null;
         }
-        $s = subj_get_own($db, $subjectId, $tutorId);
+        $s = subj_get_usable($db, $subjectId, $tutorId);
         if (!$s || (int) $s['course_id'] !== $courseId) return 'That subject is not one of yours in this course.';
         if (!(int) $s['is_active'] && $subjectId !== $currentSubjectId) return 'That subject is inactive. Choose an active subject.';
         return null;
@@ -281,7 +305,7 @@ if (!function_exists('subjectMarks')) {
             }
             $by[(int) $r['subject_id']][] = $r;
         }
-        $st = $db->prepare('SELECT * FROM course_subjects WHERE course_id = ? AND (tutor_id IN (SELECT tutor_id FROM tutor_students WHERE user_id = ?)'
+        $st = $db->prepare('SELECT * FROM course_subjects WHERE course_id = ? AND (tutor_id = 0 OR tutor_id IN (SELECT tutor_id FROM tutor_students WHERE user_id = ?)'
             . ($by ? ' OR id IN (' . implode(',', array_map('intval', array_keys($by))) . ')' : '') . ') ORDER BY tutor_id, sort_order, id');
         $st->execute([$courseId, $studentUserId]);
         $out = [];
@@ -301,7 +325,7 @@ if (!function_exists('subjectMarks')) {
     {
         $sid = (int) ($assignment['subject_id'] ?? 0);
         if (!$sid) return null;
-        $st = $db->prepare('SELECT * FROM course_subjects WHERE id = ? AND tutor_id = ?');
+        $st = $db->prepare('SELECT * FROM course_subjects WHERE id = ? AND tutor_id IN (?, 0)');
         $st->execute([$sid, (int) $assignment['tutor_id']]);
         $s = $st->fetch(PDO::FETCH_ASSOC);
         if (!$s) return null;

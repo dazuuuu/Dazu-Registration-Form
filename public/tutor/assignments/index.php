@@ -1,5 +1,6 @@
 <?php
-// Tutor: every assignment, grouped by course, in the order students take them. Drag rows to reorder.
+// Tutor: by default, every student with the work they handed in (open a student, grade each piece on its own).
+// The other tabs list every assignment, grouped by course, in the order students take them. Drag rows to reorder.
 require __DIR__ . '/../../components/assignments/tutor_boot.php';
 
 use Models\AssignmentModel;
@@ -13,11 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $ids = array_filter(array_map('intval', explode(',', (string) ($_POST['order'] ?? ''))));
             $own = array_map(fn($a) => (int) $a['id'], $am->listAll($tutorId));
             $am->reorder($tutorId, array_values(array_intersect($ids, $own)), $me);
-            asg_back('index.php', 'New order saved. Students who already opened an assignment keep it.');
+            asg_back('index.php?tab=all', 'New order saved. Students who already opened an assignment keep it.');
         case 'delete':
             if (!$am->getForTutor($id, $tutorId)) asg_back('index.php');
             $r = $am->deleteOrArchive($id, $me, true);
-            asg_back('index.php', $r === 'deleted' ? 'Assignment deleted.' : 'Students have already submitted work, so the assignment was archived instead of deleted.');
+            asg_back('index.php?tab=all', $r === 'deleted' ? 'Assignment deleted.' : 'Students have already submitted work, so the assignment was archived instead of deleted.');
         case 'duplicate':
         case 'save_template':
         case 'use_template':
@@ -46,7 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             asg_back('index.php');
         case 'archive':
             if ($am->getForTutor($id, $tutorId)) $am->setArchived($id, true, $me);
-            asg_back('index.php', 'Archived. Nothing was deleted; students no longer see it in their to-do.');
+            asg_back('index.php?tab=all', 'Archived. Nothing was deleted; students no longer see it in their to-do.');
         case 'restore':
             if ($am->getForTutor($id, $tutorId)) $am->setArchived($id, false, $me);
             asg_back('index.php?tab=archived', 'Assignment restored.');
@@ -54,8 +55,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     asg_back('index.php');
 }
 
-$tabs = ['all' => 'All', 'live' => 'Live', 'scheduled' => 'Scheduled', 'drafts' => 'Drafts', 'closed' => 'Closed', 'archived' => 'Archived', 'templates' => 'Templates'];
-$tab = isset($tabs[$_GET['tab'] ?? '']) ? $_GET['tab'] : (!empty($_GET['archived']) ? 'archived' : 'all');
+$tabs = ['students' => 'By student', 'all' => 'All assignments', 'live' => 'Live', 'scheduled' => 'Scheduled', 'drafts' => 'Drafts', 'closed' => 'Closed', 'archived' => 'Archived', 'templates' => 'Templates'];
+$tab = isset($tabs[$_GET['tab'] ?? '']) ? $_GET['tab'] : (!empty($_GET['archived']) ? 'archived' : 'students');
 $showArchived = $tab === 'archived';
 $tabOf = function (array $a): string {
     if ($a['status'] === 'archived') return 'archived';
@@ -66,7 +67,7 @@ $all = $am->listAll($tutorId, true);
 $tabCount = array_count_values(array_map($tabOf, $all));
 $tabCount['templates'] = count($templatesMine = $am->listAll($tutorId, false, true));
 $tabCount['all'] = count(array_filter($all, fn($x) => $x['status'] !== 'archived'));
-$list = $tab === 'templates' ? $templatesMine : array_filter($all, fn($x) => $tab === 'all' ? $x['status'] !== 'archived' : $tabOf($x) === $tab);
+$list = $tab === 'students' ? [] : ($tab === 'templates' ? $templatesMine : array_filter($all, fn($x) => $tab === 'all' ? $x['status'] !== 'archived' : $tabOf($x) === $tab));
 $shared = $tab === 'templates' ? $am->sharedTemplates() : [];
 $groups = [];
 foreach ($list as $a) {
@@ -113,7 +114,13 @@ ob_start();
 </form>
 <?php endif; ?>
 
-<?php if (!$groups): ?>
+<?php if ($tab === 'students'):
+    $rows = $am->queue($tutorId, 'all', ['sort' => 'latest']);
+    $sbStudents = $am->tutorStudents($tutorId);
+    $sbGrade = '../submissions/grade.php';
+    $sbEmpty = 'No students are assigned to you yet.';
+    require __DIR__ . '/../../components/assignments/by_student.php';
+elseif (!$groups): ?>
 <div class="card-tutor"><div class="as-empty"><i class="fas fa-file-pen"></i><?php echo $tab === 'all' ? 'No assignments yet. Press New assignment to create the first one.' : 'Nothing here.'; ?></div></div>
 <?php endif; ?>
 

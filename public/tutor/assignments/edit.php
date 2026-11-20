@@ -227,6 +227,17 @@ foreach ($courses as $cid => $ct) {
         if ((int) $sj['is_active'] || (int) $sj['id'] === (int) $f['subject_id']) $subjectsByCourse[(int) $cid][] = $sj;
     }
 }
+// Which month of the course most of this tutor's students are in (from their start date), so the matching course subject is suggested.
+$monthNow = [];
+$monthQ = $pdo->prepare('SELECT created_at FROM registrations WHERE user_id = ? AND course_id = ? ORDER BY id DESC LIMIT 1');
+foreach ($courses as $cid => $ct) {
+    $ms = [];
+    foreach ($am->tutorStudents($tutorId, (int) $cid) as $stu) {
+        $monthQ->execute([(int) $stu['user_id'], (int) $cid]);
+        if ($d = $monthQ->fetchColumn()) $ms[] = max(1, (int) floor((time() - strtotime($d)) / (30.44 * 86400)) + 1);
+    }
+    if ($ms) { $c = array_count_values($ms); arsort($c); $monthNow[(int) $cid] = (int) array_key_first($c); }
+}
 $orderNo = $a ? $am->number($a) : count(array_filter($am->listAll($tutorId), fn($x) => (int) $x['course_id'] === (int) $f['course_id'] && ($x['kind'] ?? 'daily') === $f['kind'])) + 1;
 $page_title = $a ? 'Edit assignment' : 'New assignment';
 $selCourse = $f['course_id'];
@@ -266,10 +277,11 @@ ob_start();
         <div class="mb-3" id="subjectBox" data-must="<?php echo !$a || (int) ($a['subject_id'] ?? 0) > 0 ? '1' : '0'; ?>"><label class="form-label fw-semibold" for="subjectSel">Subject <span class="text-muted fw-normal" id="subjectReq"></span></label>
             <div class="input-group">
                 <select name="subject_id" id="subjectSel" class="form-select"><option value="">No subject</option>
-                    <?php foreach ($subjectsByCourse as $cid => $list): foreach ($list as $sj): ?><option value="<?php echo (int) $sj['id']; ?>" data-course="<?php echo (int) $cid; ?>" <?php echo (int) $sj['id'] === (int) $f['subject_id'] ? 'selected' : ''; ?>><?php echo asg_e($sj['name'] . ($sj['code'] ? ' (' . $sj['code'] . ')' : '') . ((int) $sj['is_active'] ? '' : ' - inactive')); ?></option><?php endforeach; endforeach; ?>
+                    <?php foreach ($subjectsByCourse as $cid => $list): foreach ($list as $sj): ?><option value="<?php echo (int) $sj['id']; ?>" data-course="<?php echo (int) $cid; ?>" data-month="<?php echo (int) ($sj['month_no'] ?? 0); ?>" <?php echo (int) $sj['id'] === (int) $f['subject_id'] ? 'selected' : ''; ?>><?php echo asg_e(subj_label($sj) . ((int) $sj['is_active'] ? '' : ' - inactive')); ?></option><?php endforeach; endforeach; ?>
                 </select>
                 <button type="button" class="btn btn-outline-secondary" id="subjNew"><i class="fas fa-plus me-1"></i>New subject</button>
             </div>
+            <div class="small text-success fw-semibold" id="subjMonth" data-months='<?php echo json_encode($monthNow); ?>'></div>
             <div class="small text-muted">The subject mark is worked out by itself from the marks of the work under it. <a href="subjects.php" target="_blank">Manage subjects</a></div>
             <div class="border rounded p-2 mt-2 d-none" id="subjForm">
                 <div class="row g-2">
@@ -572,6 +584,11 @@ $extra_js = <<<'JS'
         subjSel.required = n > 0 && subjMust;
         $('#subjectReq').textContent = n === 0 ? '(this course has no subjects yet)' : (subjMust ? '(required for this course)' : '(optional for this older assignment)');
         $('#subjNew').disabled = !course;
+        // Suggest the course subject of the month most of the students are in (only when nothing is chosen yet).
+        var mBox = $('#subjMonth'), m = (JSON.parse(mBox.dataset.months || '{}'))[course] || 0, hit = null;
+        $$('#subjectSel option[data-course]').forEach(function (o) { if (!hit && m && +o.dataset.month === m) hit = o; });
+        mBox.textContent = m ? 'Most of your students in this course are in month ' + m + (hit ? '. Suggested subject: ' + hit.textContent : '') + '.' : '';
+        if (hit && !subjSel.value && !keep) subjSel.value = hit.value;
     }
     $('#courseSel').addEventListener('change', subjects); subjects();
     $('#subjNew').addEventListener('click', function () { $('#subjForm').classList.remove('d-none'); $('#subjName').focus(); });

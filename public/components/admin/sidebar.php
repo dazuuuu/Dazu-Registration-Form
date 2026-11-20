@@ -242,6 +242,11 @@ function isSmsSection($section) {
                                         <i class="fas fa-book"></i>
                                         <span>Courses</span>
                                     </a>
+                                    <a href="<?php echo url('admin/courses/subjects.php'); ?>"
+                                       class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'subjects.php' ? 'active' : ''; ?>">
+                                        <i class="fas fa-list-ol"></i>
+                                        <span>Course Subjects</span>
+                                    </a>
                                     <a href="<?php echo url('admin/free-courses/index.php'); ?>"
                                        class="nav-link <?php echo $current_dir == 'free-courses' ? 'active' : ''; ?>">
                                         <i class="fas fa-gift"></i>
@@ -520,6 +525,7 @@ $adm_sheets = [
         ['My interns', 'admin/interns/supervise.php', 'fa-user-check'],
         ['Courses', 'admin/courses/index.php', 'fa-book'],
         ['Add a course', 'admin/courses/create.php', 'fa-plus'],
+        ['Course subjects', 'admin/courses/subjects.php', 'fa-list-ol'],
         ['Free courses', 'admin/free-courses/index.php', 'fa-gift'],
         ['Classes', 'admin/courses/classes.php', 'fa-layer-group'],
         ['Tutors', 'admin/tutors/index.php', 'fa-chalkboard-teacher'],

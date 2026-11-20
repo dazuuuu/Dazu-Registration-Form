@@ -230,6 +230,8 @@ foreach (['public/subject_mark', 'public/admin', 'public/superadmin', 'public/st
     if (!is_dir("$root/$dir")) continue;
     foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator("$root/$dir", FilesystemIterator::SKIP_DOTS)) as $f) {
         if ($f->getExtension() !== 'php') continue;
+        // The admin's Course subjects page sets subjects up (names, months); it never reads or types a mark.
+        if (str_ends_with($f->getPathname(), 'admin/courses/subjects.php')) continue;
         $src = file_get_contents($f->getPathname());
         if (preg_match('/subjectMarks|SubjectService|subj_[a-z_]+\(|course_subjects|course_subject_events/', $src)) $bad[] = str_replace($root . DIRECTORY_SEPARATOR, '', $f->getPathname());
     }
