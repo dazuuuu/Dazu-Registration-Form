@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../helpers/tutor_active.php';
 // app/v1/services/StudentProgress.php
 // Student Progress: a progress card for every student, for tutors and admin. READ-ONLY on marks, assignments and monthly projects.
 //
@@ -79,7 +80,7 @@ if (!function_exists('sp_viewer')) {
             $sql = "SELECT DISTINCT r.user_id FROM registrations r WHERE r.status = 'approved' AND r.user_id IN ($in)";
             $args = $chunk;
             if ($viewer['role'] === 'tutor') {
-                $sql .= ' AND EXISTS (SELECT 1 FROM tutor_students ts WHERE ts.user_id = r.user_id AND ts.tutor_id = ?)';
+                $sql .= ' AND EXISTS (SELECT 1 FROM tutor_students ts WHERE ts.user_id = r.user_id AND ts.tutor_id = ? AND ' . tutor_active_sql($db) . ')';
                 $args[] = (int) $viewer['tutor_id'];
             }
             $st = $db->prepare($sql);
@@ -130,10 +131,10 @@ if (!function_exists('sp_viewer')) {
         $where = ["r.status = 'approved'", 'r.user_id IS NOT NULL', 'r.id = (SELECT MAX(r2.id) FROM registrations r2 WHERE r2.user_id = r.user_id AND r2.status = \'approved\')'];
         $args = [];
         if ($viewer['role'] === 'tutor') {
-            $where[] = 'EXISTS (SELECT 1 FROM tutor_students ts WHERE ts.user_id = r.user_id AND ts.tutor_id = ?)';
+            $where[] = 'EXISTS (SELECT 1 FROM tutor_students ts WHERE ts.user_id = r.user_id AND ts.tutor_id = ? AND ' . tutor_active_sql($db) . ')';
             $args[] = (int) $viewer['tutor_id'];
         } elseif (!empty($f['tutor'])) {
-            $where[] = 'EXISTS (SELECT 1 FROM tutor_students ts WHERE ts.user_id = r.user_id AND ts.tutor_id = ?)';
+            $where[] = 'EXISTS (SELECT 1 FROM tutor_students ts WHERE ts.user_id = r.user_id AND ts.tutor_id = ? AND ' . tutor_active_sql($db) . ')';
             $args[] = (int) $f['tutor'];
         }
         if (!empty($f['course'])) { $where[] = 'r.course_id = ?'; $args[] = (int) $f['course']; }

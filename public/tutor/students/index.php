@@ -24,7 +24,7 @@ if ($students) {
     $ids = implode(',', array_map(fn($s) => (int) $s['id'], $students));
     $certs = $pdo->query("SELECT registration_id, certificate_no FROM certificates WHERE status <> 'withdrawn' AND registration_id IN ($ids)")->fetchAll(\PDO::FETCH_KEY_PAIR);
 }
-// Finished students (completed or certified) move to Previous students; paused ones stay here with a Resume button.
+// Finished students (completed or certified) move to Previous students; paused ones leave the list (the admin can resume them).
 $tsDone = [];
 $tsPaused = [];
 try {
@@ -39,9 +39,10 @@ try {
     error_log('tutor students: ' . $e->getMessage());
 }
 $tsView = $tsView ?? 'current';
-$students = array_values(array_filter($students, function ($s) use ($tsDone, $certs, $tsView) {
+// Paused students leave the current list too; the admin sees them under Students → Completed & paused and can resume them.
+$students = array_values(array_filter($students, function ($s) use ($tsDone, $certs, $tsView, $tsPaused) {
     $done = isset($tsDone[(int) $s['user_id']]) || isset($certs[$s['id']]) || !empty($s['studies_completed_at']);
-    return $tsView === 'previous' ? $done : !$done;
+    return $tsView === 'previous' ? $done : (!$done && !isset($tsPaused[(int) $s['user_id']]));
 }));
 $page_title = $tsView === 'previous' ? 'Previous Students' : 'My Students';
 ob_start();
@@ -112,7 +113,7 @@ ob_start();
         <?php $sn = htmlspecialchars(addslashes($s['full_name']), ENT_QUOTES); ?>
         <div class="ts-act">
             <?php if ($tsView === 'current'): $isP = isset($tsPaused[(int) $s['user_id']]); ?>
-            <form method="POST" action="manage.php" onsubmit="return confirm('<?php echo $isP ? 'Resume ' . $sn . '? You are paid for them again.' : 'Pause ' . $sn . '? You are not paid for them until you resume.'; ?>')">
+            <form method="POST" action="manage.php" onsubmit="return confirm('<?php echo $isP ? 'Resume ' . $sn . '? You are paid for them again.' : 'Pause ' . $sn . '? They leave your list and you are not paid for them. Only the admin can resume them.'; ?>')">
                 <?php echo csrf_field(); ?><input type="hidden" name="user_id" value="<?php echo (int) $s['user_id']; ?>"><input type="hidden" name="action" value="<?php echo $isP ? 'resume' : 'pause'; ?>">
                 <button class="btn btn-sm <?php echo $isP ? 'btn-outline-primary' : 'btn-outline-warning'; ?>"><i class="fas fa-<?php echo $isP ? 'play' : 'pause'; ?> me-1"></i><?php echo $isP ? 'Resume' : 'Pause'; ?></button>
             </form>

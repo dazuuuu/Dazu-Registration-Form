@@ -287,6 +287,11 @@ function isSmsSection($section) {
                             <i class="fas fa-user-graduate"></i>
                             <span>Students</span>
                         </a>
+                        <a href="<?php echo url('admin/students/finished.php'); ?>"
+                           class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'finished.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-user-check"></i>
+                            <span>Completed &amp; Paused</span>
+                        </a>
                         <a href="<?php echo url('admin/students/enroll.php'); ?>"
                            class="nav-link">
                             <i class="fas fa-user-plus"></i>
@@ -532,6 +537,7 @@ $adm_sheets = [
         empty($_SESSION['tutor_admin']) ? ['Permissions', 'admin/tutors/permissions.php', 'fa-user-lock'] : null,
         empty($_SESSION['tutor_admin']) ? ['Secretaries', 'admin/secretaries/index.php', 'fa-user-tie'] : null,
         ['Students', 'admin/students/index.php', 'fa-user-graduate'],
+        ['Completed & paused', 'admin/students/finished.php', 'fa-user-check'],
         ['Enrol student', 'admin/students/enroll.php', 'fa-user-plus'],
         ['Resources & IDs', 'admin/resources/index.php', 'fa-folder-open'],
         ['Partners', 'admin/partners/index.php', 'fa-handshake'],

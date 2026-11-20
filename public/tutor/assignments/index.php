@@ -83,6 +83,7 @@ ob_start();
         <a href="progress.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-table-cells me-1"></i>Student progress</a>
         <a href="records.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-lines me-1"></i>Student records</a>
         <a href="subjects.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-layer-group me-1"></i>Subjects</a>
+        <a href="reset.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-rotate-left me-1"></i>Reset a course</a>
                 <a href="edit.php" class="btn btn-brand btn-sm"><i class="fas fa-plus me-1"></i>New assignment</a>
     </div>
 </div>

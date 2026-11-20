@@ -5,6 +5,8 @@
 // A student sees an item when its audience is 'all' and they are assigned to the tutor, or they are in its targets.
 namespace Models;
 
+require_once __DIR__ . '/../helpers/tutor_active.php';
+
 use PDO;
 
 class ClassworkModel {
@@ -31,7 +33,7 @@ class ClassworkModel {
              FROM tutor_students ts
              JOIN registrations r ON r.user_id = ts.user_id AND r.status = 'approved'
              JOIN courses c ON c.id = r.course_id
-             WHERE ts.tutor_id = ? ORDER BY r.full_name, r.id DESC"
+             WHERE ts.tutor_id = ? AND " . \tutor_active_sql($this->db) . " ORDER BY r.full_name, r.id DESC"
         );
         $st->execute([$tutorId]);
         $out = [];

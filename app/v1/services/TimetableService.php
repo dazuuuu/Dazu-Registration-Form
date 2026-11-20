@@ -100,7 +100,8 @@ class TimetableService
     public static function recipients(PDO $db, array $t): array
     {
         if ($t['audience'] === 'selected') return $t['students'];
-        $st = $db->prepare("SELECT DISTINCT ts.user_id FROM tutor_students ts JOIN tutors t ON t.id = ts.tutor_id WHERE t.user_id = ?");
+        require_once __DIR__ . '/../helpers/tutor_active.php';
+        $st = $db->prepare("SELECT DISTINCT ts.user_id FROM tutor_students ts JOIN tutors t ON t.id = ts.tutor_id WHERE t.user_id = ? AND " . tutor_active_sql($db));
         $st->execute([$t['tutor_user_id']]);
         return array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
     }

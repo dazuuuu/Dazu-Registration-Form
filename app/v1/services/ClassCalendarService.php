@@ -148,6 +148,7 @@ if (!function_exists('cal_e')) {
     /** The tutor's own approved students: user id, registration, name, course, mode, campus, joining date. */
     function cal_tutor_students(PDO $db, int $tutorUid): array
     {
+        require_once __DIR__ . '/../helpers/tutor_active.php';
         static $cache = [];
         if (!isset($cache[$tutorUid])) {
             $st = $db->prepare("SELECT r.user_id, r.id AS reg_id, r.full_name, r.course_id, c.title AS course, r.study_mode, r.study_location,
@@ -155,6 +156,7 @@ if (!function_exists('cal_e')) {
                                 FROM registrations r JOIN courses c ON c.id = r.course_id
                                 JOIN tutor_students ts ON ts.user_id = r.user_id JOIN tutors t ON t.id = ts.tutor_id AND t.user_id = ?
                                 WHERE r.status = 'approved' AND r.user_id IS NOT NULL AND r.registration_no NOT LIKE 'PREVIEW-%'
+                                  AND " . tutor_active_sql($db) . "
                                 ORDER BY c.title, r.full_name");
             $st->execute([$tutorUid]);
             $rows = [];

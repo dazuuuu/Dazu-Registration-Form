@@ -7,6 +7,7 @@
 namespace Models;
 
 require_once __DIR__ . '/../services/LinkRules.php';
+require_once __DIR__ . '/../helpers/tutor_active.php';
 
 use PDO;
 
@@ -178,7 +179,7 @@ class AssignmentModel {
             "SELECT DISTINCT c.id, c.title FROM courses c
              JOIN registrations r ON r.course_id = c.id AND r.status = 'approved'
              JOIN tutor_students ts ON ts.user_id = r.user_id
-             WHERE ts.tutor_id = ? ORDER BY c.title"
+             WHERE ts.tutor_id = ? AND " . \tutor_active_sql($this->db) . " ORDER BY c.title"
         );
         $st->execute([$tutorId]);
         return array_map(fn($t) => (string) $t, $st->fetchAll(PDO::FETCH_KEY_PAIR));
@@ -194,7 +195,7 @@ class AssignmentModel {
                 JOIN registrations r ON r.user_id = ts.user_id AND r.status = 'approved'
                 JOIN users u ON u.id = r.user_id
                 JOIN courses c ON c.id = r.course_id
-                WHERE ts.tutor_id = ?";
+                WHERE ts.tutor_id = ? AND " . \tutor_active_sql($this->db);
         $args = [$tutorId];
         if ($courseId) { $sql .= " AND r.course_id = ?"; $args[] = $courseId; }
         $st = $this->db->prepare($sql . " ORDER BY r.full_name, r.id DESC");
@@ -909,7 +910,7 @@ class AssignmentModel {
         $args = [];
         if ($tutorId !== null) {
             $where[] = "a.tutor_id = ?";
-            $where[] = "EXISTS (SELECT 1 FROM tutor_students ts WHERE ts.tutor_id = a.tutor_id AND ts.user_id = s.student_user_id)";
+            $where[] = "EXISTS (SELECT 1 FROM tutor_students ts WHERE ts.tutor_id = a.tutor_id AND ts.user_id = s.student_user_id AND " . \tutor_active_sql($this->db) . ")";
             $args[] = $tutorId;
         }
         $statusFor = ['awaiting' => 'submitted', 'graded' => 'graded', 'returned' => 'returned'];
@@ -938,7 +939,7 @@ class AssignmentModel {
                 "SELECT COUNT(*) FROM tutor_assignment_submissions s JOIN tutor_assignments a ON a.id = s.assignment_id
                  WHERE a.tutor_id = ? AND a.status <> 'archived' AND s.status = 'submitted' AND s.submitted_at IS NOT NULL
                  AND NOT EXISTS (SELECT 1 FROM tutor_assignment_group_members gm JOIN tutor_assignment_groups gg ON gg.id = gm.group_id AND gg.assignment_id = s.assignment_id JOIN tutor_assignment_group_members gm2 ON gm2.group_id = gg.id WHERE gm.student_user_id = s.student_user_id AND gm2.student_user_id < s.student_user_id)
-                 AND EXISTS (SELECT 1 FROM tutor_students ts WHERE ts.tutor_id = a.tutor_id AND ts.user_id = s.student_user_id)"
+                 AND EXISTS (SELECT 1 FROM tutor_students ts WHERE ts.tutor_id = a.tutor_id AND ts.user_id = s.student_user_id AND " . \tutor_active_sql($this->db) . ")"
             );
             $st->execute([$tutorId]);
             return (int) $st->fetchColumn();
@@ -1520,6 +1521,43 @@ class AssignmentModel {
             if ($own) $this->db->rollBack();
             throw $e;
         }
+    }
+
+    /**
+     * Reset a course: every published assignment of this tutor in the course is sent again as a new one (same content, same order),
+     * to the given students, with new deadlines. The old ones are archived: their work and marks are kept on record but no longer count
+     * in progress or averages. $dues: UTC due date for each assignment in order (the last one repeats if short).
+     * @return array{new:int[], uids:int[]}
+     */
+    public function resetCourse(int $tutorId, int $courseId, array $dues, array $studentIds, int $actor): array {
+        $st = $this->db->prepare("SELECT id FROM tutor_assignments WHERE tutor_id = ? AND course_id = ? AND status = 'published' AND COALESCE(is_template, 0) = 0 ORDER BY sort_order, id");
+        $st->execute([$tutorId, $courseId]);
+        $old = array_map('intval', $st->fetchAll(PDO::FETCH_COLUMN));
+        $studentIds = array_values(array_unique(array_map('intval', $studentIds)));
+        $new = [];
+        if (!$old || !$studentIds) return ['new' => [], 'uids' => $studentIds];
+        $this->db->beginTransaction();
+        try {
+            $hasSubject = true;
+            try { $this->db->query('SELECT subject_id FROM tutor_assignments LIMIT 0'); } catch (\Throwable $e) { $hasSubject = false; }
+            foreach ($old as $i => $id) {
+                $n = $this->copyAssignment($id, $tutorId, $courseId, false, $actor);
+                if (!$n) continue;
+                $due = $dues[$i] ?? end($dues) ?: null;
+                $this->db->prepare("UPDATE tutor_assignments SET due_at = ?" . ($hasSubject ? ", subject_id = (SELECT x.subject_id FROM (SELECT subject_id FROM tutor_assignments WHERE id = ?) x)" : '') . " WHERE id = ?")
+                    ->execute($hasSubject ? [$due, $id, $n] : [$due, $n]);
+                $this->syncRecipients($n, $studentIds);
+                $this->setArchived($id, true, $actor);
+                $this->publish($n, $actor);
+                $this->log($n, $actor, null, 'reset', ['from' => $id, 'course_id' => $courseId]);
+                $new[] = $n;
+            }
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+        return ['new' => $new, 'uids' => $studentIds];
     }
 
     /** Templates shared by Dazu (filled by admin later; starts empty). */
