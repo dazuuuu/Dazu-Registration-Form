@@ -83,11 +83,15 @@ ob_start();
         <a href="progress.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-table-cells me-1"></i>Student progress</a>
         <a href="records.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-file-lines me-1"></i>Student records</a>
         <a href="subjects.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-layer-group me-1"></i>Subjects</a>
-        <a href="reset.php" class="btn btn-outline-secondary btn-sm"><i class="fas fa-rotate-left me-1"></i>Reset a course</a>
                 <a href="edit.php" class="btn btn-brand btn-sm"><i class="fas fa-plus me-1"></i>New assignment</a>
     </div>
 </div>
 
+<div class="card-tutor p-3 mb-3 d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-left:5px solid #f0ad4e">
+    <div><div class="fw-bold"><i class="fas fa-rotate-left me-2 text-warning"></i>Reset a course</div>
+        <div class="small text-muted">Optional: send all the assignments of a course again as new, with new deadlines, so students start over.</div></div>
+    <a href="reset.php" class="btn btn-warning fw-semibold"><i class="fas fa-rotate-left me-1"></i>Reset a course</a>
+</div>
 <?php if (!$courses): ?>
 <div class="alert alert-info">No students are assigned to you yet, so there is no course to set work for. An admin assigns students to tutors.</div>
 <?php endif; ?>
