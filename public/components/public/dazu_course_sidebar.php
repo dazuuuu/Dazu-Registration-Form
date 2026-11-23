@@ -122,7 +122,7 @@ $enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => n
     </details>
     <?php endif; ?>
 
-    <?php $fee_compact = false; $fee_show_download = false; include __DIR__ . '/dazu_course_fee_breakdown.php'; ?>
+    <?php $fee_compact = false; include __DIR__ . '/dazu_course_fee_breakdown.php'; ?>
     <?php $brochure_compact = false; include __DIR__ . '/dazu_course_brochure_cta.php'; ?>
 
     <div>

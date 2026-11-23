@@ -391,14 +391,40 @@ if (!function_exists('course_fee_structure_catalog_total')) {
     }
 }
 
+if (!function_exists('course_default_brochure_path')) {
+    /** The site-wide fallback brochure (Admin → Courses → Brochure), used when a course has none of its own. */
+    function course_default_brochure_path(): ?string
+    {
+        static $cached = null;
+        static $loaded = false;
+        if ($loaded) {
+            return $cached;
+        }
+        $loaded = true;
+        try {
+            require_once __DIR__ . '/../models/Connection.php';
+            require_once __DIR__ . '/../models/SettingModel.php';
+            $settings = new SettingModel(\Models\Connection::getInstance()->getConnection());
+            $cached = trim((string) ($settings->get('default_course_brochure', '') ?? '')) ?: null;
+        } catch (Throwable $e) {
+            $cached = null;
+        }
+        return $cached;
+    }
+}
+
 if (!function_exists('course_brochure_url')) {
     function course_brochure_url(array $course): ?string
     {
         $path = trim((string) ($course['brochure_path'] ?? ''));
-        if ($path === '') {
-            return null;
-        }
         $id = (int) ($course['id'] ?? 0);
+        if ($path === '') {
+            // No brochure of its own: only link out if a site-wide default exists to serve instead.
+            if ($id <= 0 || !course_default_brochure_path()) {
+                return null;
+            }
+            return url('courses/brochure.php?id=' . $id);
+        }
         if ($id > 0) {
             return url('courses/brochure.php?id=' . $id);
         }
@@ -409,10 +435,11 @@ if (!function_exists('course_brochure_url')) {
     }
 }
 
-if (!function_exists('course_brochure_absolute_path')) {
-    function course_brochure_absolute_path(array $course): ?string
+if (!function_exists('course_brochure_resolve_abs')) {
+    /** Resolve a brochure_path-style relative path to an absolute file on disk, or null. */
+    function course_brochure_resolve_abs(string $rel): ?string
     {
-        $rel = ltrim(trim((string) ($course['brochure_path'] ?? '')), '/');
+        $rel = ltrim(trim($rel), '/');
         if ($rel === '' || preg_match('#^https?://#i', $rel)) {
             return null;
         }
@@ -429,6 +456,18 @@ if (!function_exists('course_brochure_absolute_path')) {
             }
         }
         return null;
+    }
+}
+
+if (!function_exists('course_brochure_absolute_path')) {
+    function course_brochure_absolute_path(array $course): ?string
+    {
+        $abs = course_brochure_resolve_abs((string) ($course['brochure_path'] ?? ''));
+        if ($abs) {
+            return $abs;
+        }
+        $default = course_default_brochure_path();
+        return $default ? course_brochure_resolve_abs($default) : null;
     }
 }
 

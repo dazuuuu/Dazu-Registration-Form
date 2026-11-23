@@ -17,7 +17,7 @@ $username = $_SESSION['username'] ?? 'Tutor';
             <?php
             require_once __DIR__ . '/../../../app/v1/helpers/tutor_permissions.php';
             require_once __DIR__ . '/../../../app/v1/models/Connection.php';
-            if (empty($_SESSION['preview']) && tutor_admin_allowed(\Models\Connection::getInstance()->getConnection(), (int) ($_SESSION['user_id'] ?? 0))): ?>
+            if (empty($_SESSION['preview']) && (!empty($_SESSION['admin_tutor']) || tutor_admin_allowed(\Models\Connection::getInstance()->getConnection(), (int) ($_SESSION['user_id'] ?? 0)))): ?>
             <a class="btn btn-sm btn-dark" href="<?php echo url('admin/dashboard.php'); ?>"><i class="fas fa-user-shield me-1"></i>Admin portal</a>
             <?php endif; ?>
             <button type="button" class="btn btn-sm btn-outline-success d-none" data-pwa-install><i class="fas fa-download me-1"></i>Install app</button>

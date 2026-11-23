@@ -20,24 +20,29 @@ function isStoreActive($current_dir) {
     return $current_dir == 'store' || $current_dir == 'categories' || $current_dir == 'products';
 }
 
-// New System group: registration, courses, tutors, payments, resources, partners, testimonials
+// System group: registration, courses, tutors, students
 function isSystemActive($current_dir) {
-    return in_array($current_dir, ['registrations', 'intakes', 'courses', 'free-courses', 'tutors', 'students', 'resources', 'partners', 'testimonials'], true);
+    return in_array($current_dir, ['registrations', 'intakes', 'courses', 'free-courses', 'tutors', 'students'], true);
 }
 
-// Courses sub-section: paid (admin/courses) and free (admin/free-courses) are fully
-// separate listings/forms, not one page with a toggle — see CourseModel::listFiltered().
-function isCoursesGroupActive($current_dir) {
-    return in_array($current_dir, ['courses', 'free-courses'], true);
-}
-
-// Existing public-site content pages, now grouped under "Website Content"
+// Website Content: the public-site content pages
 function isWebsiteActive($current_dir) {
     if (isSmsActive()) {
         return false;
     }
-    return in_array($current_dir, ['orders', 'enquiries', 'projects', 'services', 'blogs', 'gallery', 'campus-media', 'team'], true)
-        || isStoreActive($current_dir);
+    return in_array($current_dir, ['blogs', 'gallery', 'campus-media', 'team'], true);
+}
+
+// Others: everything that isn't Dashboard, Expense requests, System or Website Content
+function isOthersActive($current_dir, $current_page) {
+    if (isStoreActive($current_dir)) {
+        return true;
+    }
+    return in_array($current_dir, [
+        'announcements', 'notifications', 'staffcalendar', 'errors', 'classes', 'interns',
+        'resources', 'partners', 'testimonials', 'orders', 'enquiries', 'projects', 'services',
+        'progress', 'selfstudy', 'certificates', 'id_cards', 'directors', 'system', 'settings',
+    ], true) || in_array($current_page, ['backup.php', 'import.php'], true);
 }
 
 // SmS module (admin/sms/*)
@@ -100,105 +105,8 @@ function isSmsSection($section) {
                 <span>Expense requests</span>
             </a>
             <?php endif; ?>
-            <a href="<?php echo url('admin/announcements/index.php'); ?>"
-               class="nav-link <?php echo $current_dir == 'announcements' ? 'active' : ''; ?>">
-                <i class="fas fa-bullhorn"></i>
-                <span>Announcements</span>
-            </a>
-            <a href="<?php echo url('admin/notifications/index.php'); ?>"
-               class="nav-link <?php echo $current_dir == 'notifications' ? 'active' : ''; ?>">
-                <i class="fas fa-bell"></i>
-                <span>Notifications</span>
-            </a>
-            <?php
-            $sbScal = false;
-            try {
-                require_once __DIR__ . '/../../../app/v1/services/StaffCalendar.php';
-                $sbDb = isset($pdo) && $pdo instanceof PDO ? $pdo : \Models\Connection::getInstance()->getConnection();
-                $sbScal = scal_can_see_menu($sbDb, (int) ($_SESSION['user_id'] ?? 0));
-            } catch (Throwable $e) { $sbScal = false; }
-            if ($sbScal): ?>
-            <a href="<?php echo url('admin/staffcalendar/index.php'); ?>"
-               class="nav-link <?php echo $current_dir == 'staffcalendar' ? 'active' : ''; ?>">
-                <i class="fas fa-calendar-check"></i>
-                <span>Staff Calendar</span>
-            </a>
-            <?php endif; ?>
-            <a href="<?php echo url('admin/errors/index.php'); ?>"
-               class="nav-link <?php echo $current_dir == 'errors' ? 'active' : ''; ?>">
-                <i class="fas fa-triangle-exclamation"></i>
-                <span>Error log</span>
-            </a>
-            <a href="<?php echo url('admin/classes/index.php'); ?>"
-               class="nav-link <?php echo $current_dir == 'classes' ? 'active' : ''; ?>">
-                <i class="fas fa-calendar-days"></i>
-                <span>Classes &amp; Attendance</span>
-            </a>
-            <a href="<?php echo url('admin/interns/index.php'); ?>"
-               class="nav-link <?php echo $current_dir == 'interns' ? 'active' : ''; ?>">
-                <i class="fas fa-user-graduate"></i>
-                <span>Interns</span>
-            </a>
-
-            <?php
-            $exportMenuOn = $importMenuOn = true;
-            try {
-                require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
-                require_once __DIR__ . '/../../../app/v1/models/Connection.php';
-                $siteSettings = new SettingModel(\Models\Connection::getInstance()->getConnection());
-                $exportMenuOn = $siteSettings->get('site_export_enabled', '1') !== '0';
-                $importMenuOn = $siteSettings->get('site_import_enabled', '1') !== '0';
-            } catch (Throwable $e) {}
-            ?>
-            <!--nav:preview-->
-            <?php if (!function_exists('csrf_field')) { require_once __DIR__ . '/../../../app/v1/helpers/uploads.php'; } ?>
-            <form method="POST" action="<?php echo url('admin/preview-portal.php'); ?>" target="_blank" class="m-0"><?php echo csrf_field(); ?>
-                <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent">
-                    <i class="fas fa-eye"></i>
-                    <span>Preview Student Portal</span>
-                </button>
-            </form>
-            <form method="POST" action="<?php echo url('admin/preview-tutor-portal.php'); ?>" target="_blank" class="m-0"><?php echo csrf_field(); ?>
-                <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent">
-                    <i class="fas fa-chalkboard-teacher"></i>
-                    <span>Preview Tutor Portal</span>
-                </button>
-            </form>
-            <form method="POST" action="<?php echo url('admin/preview-intern-portal.php'); ?>" target="_blank" class="m-0"><?php echo csrf_field(); ?>
-                <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent">
-                    <i class="fas fa-user-graduate"></i>
-                    <span>Preview Intern Portal</span>
-                </button>
-            </form>
-            <!--nav:export-->
-            <?php if ($exportMenuOn): ?>
-            <a href="<?php echo url('admin/backup.php'); ?>"
-               class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'backup.php' ? 'active' : ''; ?>">
-                <i class="fas fa-box-archive"></i>
-                <span>Export Site</span>
-            </a>
-            <?php endif; ?>
-            <!--nav:import-->
-            <?php if ($importMenuOn): ?>
-            <a href="<?php echo url('admin/import.php'); ?>"
-               class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'import.php' ? 'active' : ''; ?>">
-                <i class="fas fa-file-import"></i>
-                <span>Import Site</span>
-            </a>
-            <?php endif; ?>
-
-            <!--nav:updates-->
-            <a href="<?php echo url('admin/system/updates.php'); ?>"
-               class="nav-link <?php echo $current_dir == 'system' ? 'active' : ''; ?>">
-                <i class="fas fa-database"></i>
-                <span>System Updates</span>
-                <?php if (!empty($pending_migration_count)): ?>
-                    <span class="updates-badge"><?php echo (int) $pending_migration_count; ?></span>
-                <?php endif; ?>
-            </a>
-
             <!--nav:system-->
-            <!-- SYSTEM SECTION: registration, courses, students, tutors, payments -->
+            <!-- SYSTEM SECTION: registration, courses, students, tutors -->
             <div class="nav-item">
                 <a href="#systemMenu" class="nav-link <?php echo isSystemActive($current_dir) ? 'active' : ''; ?>"
                    data-bs-toggle="collapse" role="button" aria-expanded="<?php echo isSystemActive($current_dir) ? 'true' : 'false'; ?>">
@@ -208,12 +116,6 @@ function isSmsSection($section) {
                 </a>
                 <div class="collapse <?php echo isSystemActive($current_dir) ? 'show' : ''; ?>" id="systemMenu">
                     <div class="ps-4 mt-2">
-                        <a href="<?php echo url('admin/registrations/index.php?status=pending'); ?>"
-                           class="nav-link <?php echo $current_dir == 'registrations' ? 'active' : ''; ?>">
-                            <i class="fas fa-user-clock"></i>
-                            <span>Pending Approvals</span>
-                            <span class="registrations-badge" id="registrationsBadge" style="display:none;">0</span>
-                        </a>
                         <?php $ikOpen = 0; try { require_once __DIR__ . "/../../../app/v1/models/Connection.php"; $ikDb = \Models\Connection::getInstance()->getConnection(); $ikOpen = (int) $ikDb->query("SELECT COUNT(*) FROM enrolment_bookings WHERE status = 'waiting'")->fetchColumn(); } catch (Throwable $ikE) {} ?>
                         <a href="<?php echo url('admin/intakes/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'intakes' && $current_page !== 'bookings.php' ? 'active' : ''; ?>">
@@ -227,39 +129,52 @@ function isSmsSection($section) {
                             <?php $ikPay = 0; try { $ikPay = (int) $ikDb->query("SELECT COUNT(*) FROM enrolment_bookings WHERE status = 'payment_received'")->fetchColumn(); } catch (Throwable $e) {} ?>
                             <?php if ($ikPay): ?><span class="registrations-badge" title="Payments to confirm"><?php echo $ikPay; ?></span><?php elseif ($ikOpen): ?><span class="registrations-badge"><?php echo $ikOpen; ?></span><?php endif; ?>
                         </a>
-                        <!-- COURSES SUB-SECTION: paid and free are separate listings/forms -->
-                        <div class="nav-item">
-                            <a href="#coursesMenu" class="nav-link <?php echo isCoursesGroupActive($current_dir) ? 'active' : ''; ?>"
-                               data-bs-toggle="collapse" role="button" aria-expanded="<?php echo isCoursesGroupActive($current_dir) ? 'true' : 'false'; ?>">
-                                <i class="fas fa-book"></i>
-                                <span>Courses</span>
-                                <i class="fas fa-chevron-down ms-auto" style="font-size: 12px;"></i>
-                            </a>
-                            <div class="collapse <?php echo isCoursesGroupActive($current_dir) ? 'show' : ''; ?>" id="coursesMenu">
-                                <div class="ps-4 mt-2">
-                                    <a href="<?php echo url('admin/courses/index.php'); ?>"
-                                       class="nav-link <?php echo $current_dir == 'courses' ? 'active' : ''; ?>">
-                                        <i class="fas fa-book"></i>
-                                        <span>Courses</span>
-                                    </a>
-                                    <a href="<?php echo url('admin/courses/subjects.php'); ?>"
-                                       class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'subjects.php' ? 'active' : ''; ?>">
-                                        <i class="fas fa-list-ol"></i>
-                                        <span>Course Subjects</span>
-                                    </a>
-                                    <a href="<?php echo url('admin/free-courses/index.php'); ?>"
-                                       class="nav-link <?php echo $current_dir == 'free-courses' ? 'active' : ''; ?>">
-                                        <i class="fas fa-gift"></i>
-                                        <span>Free Courses</span>
-                                    </a>
-                                    <a href="<?php echo url('admin/courses/classes.php'); ?>"
-                                       class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'classes.php' ? 'active' : ''; ?>">
-                                        <i class="fas fa-layer-group"></i>
-                                        <span>Classes</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+                        <a href="<?php echo url('admin/students/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'students' ? 'active' : ''; ?>">
+                            <i class="fas fa-user-graduate"></i>
+                            <span>Students</span>
+                        </a>
+                        <a href="<?php echo url('admin/students/enroll.php'); ?>"
+                           class="nav-link">
+                            <i class="fas fa-user-plus"></i>
+                            <span>Enrol Student</span>
+                        </a>
+                        <a href="<?php echo url('admin/students/finished.php'); ?>"
+                           class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'finished.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-user-check"></i>
+                            <span>Completed &amp; Paused</span>
+                        </a>
+                        <a href="<?php echo url('admin/courses/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'courses' && !in_array(basename($_SERVER['PHP_SELF'] ?? ''), ['brochure.php', 'subjects.php', 'classes.php'], true) ? 'active' : ''; ?>">
+                            <i class="fas fa-book"></i>
+                            <span>Courses</span>
+                        </a>
+                        <a href="<?php echo url('admin/courses/brochure.php'); ?>"
+                           class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'brochure.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-file-pdf"></i>
+                            <span>Brochure</span>
+                        </a>
+                        <a href="<?php echo url('admin/courses/subjects.php'); ?>"
+                           class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'subjects.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-list-ol"></i>
+                            <span>Course Subjects</span>
+                        </a>
+                        <a href="<?php echo url('admin/free-courses/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'free-courses' ? 'active' : ''; ?>">
+                            <i class="fas fa-gift"></i>
+                            <span>Free Courses</span>
+                        </a>
+                        <a href="<?php echo url('admin/courses/classes.php'); ?>"
+                           class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'classes.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-layer-group"></i>
+                            <span>Classes</span>
+                        </a>
+                        <a href="<?php echo url('admin/registrations/index.php?status=pending'); ?>"
+                           class="nav-link <?php echo $current_dir == 'registrations' ? 'active' : ''; ?>">
+                            <i class="fas fa-user-clock"></i>
+                            <span>Pending Approvals</span>
+                            <span class="registrations-badge" id="registrationsBadge" style="display:none;">0</span>
+                        </a>
                         <a href="<?php echo url('admin/tutors/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'tutors' ? 'active' : ''; ?>">
                             <i class="fas fa-chalkboard-teacher"></i>
@@ -282,20 +197,104 @@ function isSmsSection($section) {
                             <span>Secretaries</span>
                         </a>
                         <?php endif; ?>
-                        <a href="<?php echo url('admin/students/index.php'); ?>"
-                           class="nav-link <?php echo $current_dir == 'students' ? 'active' : ''; ?>">
+                    </div>
+                </div>
+            </div>
+
+            <!--nav:website-->
+            <!-- WEBSITE CONTENT SECTION -->
+            <div class="nav-item">
+                <a href="#websiteMenu" class="nav-link <?php echo isWebsiteActive($current_dir) ? 'active' : ''; ?>"
+                   data-bs-toggle="collapse" role="button" aria-expanded="<?php echo isWebsiteActive($current_dir) ? 'true' : 'false'; ?>">
+                    <i class="fas fa-globe"></i>
+                    <span>Website Content</span>
+                    <i class="fas fa-chevron-down ms-auto" style="font-size: 12px;"></i>
+                </a>
+                <div class="collapse <?php echo isWebsiteActive($current_dir) ? 'show' : ''; ?>" id="websiteMenu">
+                    <div class="ps-4 mt-2">
+                        <a href="<?php echo url('admin/blogs/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'blogs' && in_array($current_page, ['index.php', 'edit.php'], true) ? 'active' : ''; ?>">
+                            <i class="fas fa-list"></i>
+                            <span>All Posts</span>
+                        </a>
+                        <a href="<?php echo url('admin/blogs/create.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'blogs' && $current_page == 'create.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-plus"></i>
+                            <span>New Post</span>
+                        </a>
+                        <a href="<?php echo url('admin/blogs/categories.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'blogs' && $current_page == 'categories.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-folder"></i>
+                            <span>Category</span>
+                        </a>
+                        <a href="<?php echo url('admin/team/index.php'); ?>"
+                           class="nav-link <?php echo isActive('team', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-users"></i>
+                            <span>Team</span>
+                        </a>
+                        <a href="<?php echo url('admin/gallery/index.php'); ?>"
+                           class="nav-link <?php echo isActive('gallery', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-images"></i>
+                            <span>Gallery</span>
+                        </a>
+                        <a href="<?php echo url('admin/campus-media/index.php'); ?>"
+                           class="nav-link <?php echo isActive('campus-media', $current_dir, $current_page) ? 'active' : ''; ?>">
+                            <i class="fas fa-camera-retro"></i>
+                            <span>Campus Media</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!--nav:others-->
+            <!-- OTHERS: everything that is not Dashboard, Expense requests, System or Website Content -->
+            <div class="nav-item">
+                <a href="#othersMenu" class="nav-link <?php echo isOthersActive($current_dir, $current_page) ? 'active' : ''; ?>"
+                   data-bs-toggle="collapse" role="button" aria-expanded="<?php echo isOthersActive($current_dir, $current_page) ? 'true' : 'false'; ?>">
+                    <i class="fas fa-grip"></i>
+                    <span>Others</span>
+                    <i class="fas fa-chevron-down ms-auto" style="font-size: 12px;"></i>
+                </a>
+                <div class="collapse <?php echo isOthersActive($current_dir, $current_page) ? 'show' : ''; ?>" id="othersMenu">
+                    <div class="ps-4 mt-2">
+                        <a href="<?php echo url('admin/announcements/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'announcements' ? 'active' : ''; ?>">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Announcements</span>
+                        </a>
+                        <a href="<?php echo url('admin/notifications/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'notifications' ? 'active' : ''; ?>">
+                            <i class="fas fa-bell"></i>
+                            <span>Notifications</span>
+                        </a>
+                        <?php
+                        $sbScal = false;
+                        try {
+                            require_once __DIR__ . '/../../../app/v1/services/StaffCalendar.php';
+                            $sbDb = isset($pdo) && $pdo instanceof PDO ? $pdo : \Models\Connection::getInstance()->getConnection();
+                            $sbScal = scal_can_see_menu($sbDb, (int) ($_SESSION['user_id'] ?? 0));
+                        } catch (Throwable $e) { $sbScal = false; }
+                        if ($sbScal): ?>
+                        <a href="<?php echo url('admin/staffcalendar/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'staffcalendar' ? 'active' : ''; ?>">
+                            <i class="fas fa-calendar-check"></i>
+                            <span>Staff Calendar</span>
+                        </a>
+                        <?php endif; ?>
+                        <a href="<?php echo url('admin/errors/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'errors' ? 'active' : ''; ?>">
+                            <i class="fas fa-triangle-exclamation"></i>
+                            <span>Error log</span>
+                        </a>
+                        <a href="<?php echo url('admin/classes/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'classes' ? 'active' : ''; ?>">
+                            <i class="fas fa-calendar-days"></i>
+                            <span>Classes &amp; Attendance</span>
+                        </a>
+                        <a href="<?php echo url('admin/interns/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'interns' ? 'active' : ''; ?>">
                             <i class="fas fa-user-graduate"></i>
-                            <span>Students</span>
-                        </a>
-                        <a href="<?php echo url('admin/students/finished.php'); ?>"
-                           class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'finished.php' ? 'active' : ''; ?>">
-                            <i class="fas fa-user-check"></i>
-                            <span>Completed &amp; Paused</span>
-                        </a>
-                        <a href="<?php echo url('admin/students/enroll.php'); ?>"
-                           class="nav-link">
-                            <i class="fas fa-user-plus"></i>
-                            <span>Enrol Student</span>
+                            <span>Interns</span>
                         </a>
                         <a href="<?php echo url('admin/resources/index.php'); ?>"
                            class="nav-link <?php echo $current_dir == 'resources' ? 'active' : ''; ?>">
@@ -312,185 +311,146 @@ function isSmsSection($section) {
                             <i class="fas fa-star"></i>
                             <span>Testimonials</span>
                         </a>
-                    </div>
-                </div>
-            </div>
-
-            <!--nav:progress-->
-            <a href="<?php echo url('admin/progress/index.php'); ?>"
-               class="nav-link <?php echo $current_dir == 'progress' ? 'active' : ''; ?>">
-                <i class="fas fa-chart-line"></i>
-                <span>Student Progress</span>
-            </a>
-
-            <!--nav:selfstudy-->
-            <a href="<?php echo url('admin/selfstudy/index.php'); ?>"
-               class="nav-link <?php echo $current_dir == 'selfstudy' ? 'active' : ''; ?>">
-                <i class="fas fa-laptop-code"></i>
-                <span>Self-study</span>
-            </a>
-
-            <!--nav:certificates-->
-            <!-- Certificates (Standalone) -->
-            <a href="<?php echo url('admin/certificates/index.php'); ?>"
-               class="nav-link <?php echo $current_dir == 'certificates' ? 'active' : ''; ?>">
-                <i class="fas fa-certificate"></i>
-                <span>Certificates</span>
-            </a>
-
-            <!--nav:id_cards-->
-            <a href="<?php echo url('admin/id_cards/index.php'); ?>"
-               class="nav-link <?php echo $current_dir == 'id_cards' ? 'active' : ''; ?>">
-                <i class="fas fa-id-card"></i>
-                <span>Student ID Cards</span>
-            </a>
-
-            <!--nav:directors-->
-            <a href="<?php echo url('admin/directors/index.php'); ?>"
-               class="nav-link <?php echo $current_dir == 'directors' ? 'active' : ''; ?>">
-                <i class="fas fa-signature"></i>
-                <span>Directors</span>
-            </a>
-
-            <!--nav:website-->
-            <!-- WEBSITE CONTENT SECTION: the original public-site management pages -->
-            <div class="nav-item">
-                <a href="#websiteMenu" class="nav-link <?php echo isWebsiteActive($current_dir) ? 'active' : ''; ?>"
-                   data-bs-toggle="collapse" role="button" aria-expanded="<?php echo isWebsiteActive($current_dir) ? 'true' : 'false'; ?>">
-                    <i class="fas fa-globe"></i>
-                    <span>Website Content</span>
-                    <i class="fas fa-chevron-down ms-auto" style="font-size: 12px;"></i>
-                </a>
-                <div class="collapse <?php echo isWebsiteActive($current_dir) ? 'show' : ''; ?>" id="websiteMenu">
-                    <div class="ps-4 mt-2">
-                        <a href="<?php echo url('admin/orders/index.php'); ?>" 
+                        <a href="<?php echo url('admin/orders/index.php'); ?>"
                            class="nav-link <?php echo isActive('orders', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-receipt"></i>
                             <span>Orders</span>
                             <span class="orders-badge" id="ordersBadge" style="display:none;">0</span>
                         </a>
-                        <a href="<?php echo url('admin/enquiries/index.php'); ?>" 
+                        <a href="<?php echo url('admin/enquiries/index.php'); ?>"
                            class="nav-link <?php echo isActive('enquiries', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-question-circle"></i>
                             <span>Enquiries</span>
                             <span class="enquiries-badge" id="enquiriesBadge" style="display:none;">0</span>
                         </a>
-                        <a href="<?php echo url('admin/projects/index.php'); ?>" 
+                        <a href="<?php echo url('admin/projects/index.php'); ?>"
                            class="nav-link <?php echo isActive('projects', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-folder-open"></i>
                             <span>Projects</span>
                         </a>
-                        <a href="<?php echo url('admin/services/index.php'); ?>" 
+                        <a href="<?php echo url('admin/services/index.php'); ?>"
                            class="nav-link <?php echo isActive('services', $current_dir, $current_page) ? 'active' : ''; ?>">
                             <i class="fas fa-cogs"></i>
                             <span>Services</span>
                         </a>
-                        <!-- BLOG SUB-SECTION: posts and categories -->
-                        <div class="nav-item">
-                            <a href="#blogMenu" class="nav-link <?php echo $current_dir == 'blogs' ? 'active' : ''; ?>"
-                               data-bs-toggle="collapse" role="button" aria-expanded="<?php echo $current_dir == 'blogs' ? 'true' : 'false'; ?>">
-                                <i class="fas fa-blog"></i>
-                                <span>Blog</span>
-                                <i class="fas fa-chevron-down ms-auto" style="font-size: 12px;"></i>
-                            </a>
-                            <div class="collapse <?php echo $current_dir == 'blogs' ? 'show' : ''; ?>" id="blogMenu">
-                                <div class="ps-4 mt-2">
-                                    <a href="<?php echo url('admin/blogs/index.php'); ?>"
-                                       class="nav-link <?php echo $current_dir == 'blogs' && in_array($current_page, ['index.php', 'edit.php'], true) ? 'active' : ''; ?>">
-                                        <i class="fas fa-list"></i>
-                                        <span>All Posts</span>
-                                    </a>
-                                    <a href="<?php echo url('admin/blogs/create.php'); ?>"
-                                       class="nav-link <?php echo $current_dir == 'blogs' && $current_page == 'create.php' ? 'active' : ''; ?>">
-                                        <i class="fas fa-plus"></i>
-                                        <span>New Post</span>
-                                    </a>
-                                    <a href="<?php echo url('admin/blogs/categories.php'); ?>"
-                                       class="nav-link <?php echo $current_dir == 'blogs' && $current_page == 'categories.php' ? 'active' : ''; ?>">
-                                        <i class="fas fa-folder"></i>
-                                        <span>Categories</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        <a href="<?php echo url('admin/gallery/index.php'); ?>"
-                           class="nav-link <?php echo isActive('gallery', $current_dir, $current_page) ? 'active' : ''; ?>">
-                            <i class="fas fa-images"></i>
-                            <span>Gallery</span>
+                        <a href="<?php echo url('admin/store/products/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'products' ? 'active' : ''; ?>">
+                            <i class="fas fa-box"></i>
+                            <span>Store Products</span>
                         </a>
-                        <a href="<?php echo url('admin/campus-media/index.php'); ?>"
-                           class="nav-link <?php echo isActive('campus-media', $current_dir, $current_page) ? 'active' : ''; ?>">
-                            <i class="fas fa-camera-retro"></i>
-                            <span>Campus Media</span>
+                        <a href="<?php echo url('admin/store/categories/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'categories' ? 'active' : ''; ?>">
+                            <i class="fas fa-tags"></i>
+                            <span>Store Categories</span>
                         </a>
-                        <a href="<?php echo url('admin/team/index.php'); ?>"
-                           class="nav-link <?php echo isActive('team', $current_dir, $current_page) ? 'active' : ''; ?>">
-                            <i class="fas fa-users"></i>
-                            <span>Team</span>
+                        <a href="<?php echo url('admin/progress/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'progress' ? 'active' : ''; ?>">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Student Progress</span>
                         </a>
-                        <!-- STORE SUB-SECTION (nested collapse, unchanged from original) -->
-                        <div class="nav-item">
-                            <a href="#storeMenu" class="nav-link <?php echo isStoreActive($current_dir) ? 'active' : ''; ?>" 
-                               data-bs-toggle="collapse" role="button" aria-expanded="<?php echo isStoreActive($current_dir) ? 'true' : 'false'; ?>">
-                                <i class="fas fa-store"></i>
-                                <span>Store</span>
-                                <i class="fas fa-chevron-down ms-auto" style="font-size: 12px;"></i>
-                            </a>
-                            <div class="collapse <?php echo isStoreActive($current_dir) ? 'show' : ''; ?>" id="storeMenu">
-                                <div class="ps-4 mt-2">
-                                    <a href="<?php echo url('admin/store/products/index.php'); ?>" 
-                                       class="nav-link <?php echo $current_dir == 'products' ? 'active' : ''; ?>">
-                                        <i class="fas fa-box"></i>
-                                        <span>Products</span>
-                                    </a>
-                                    <a href="<?php echo url('admin/store/categories/index.php'); ?>" 
-                                       class="nav-link <?php echo $current_dir == 'categories' ? 'active' : ''; ?>">
-                                        <i class="fas fa-tags"></i>
-                                        <span>Categories</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
+                        <a href="<?php echo url('admin/selfstudy/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'selfstudy' ? 'active' : ''; ?>">
+                            <i class="fas fa-laptop-code"></i>
+                            <span>Self-study</span>
+                        </a>
+                        <a href="<?php echo url('admin/certificates/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'certificates' ? 'active' : ''; ?>">
+                            <i class="fas fa-certificate"></i>
+                            <span>Certificates</span>
+                        </a>
+                        <a href="<?php echo url('admin/id_cards/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'id_cards' ? 'active' : ''; ?>">
+                            <i class="fas fa-id-card"></i>
+                            <span>Student ID Cards</span>
+                        </a>
+                        <a href="<?php echo url('admin/directors/index.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'directors' ? 'active' : ''; ?>">
+                            <i class="fas fa-signature"></i>
+                            <span>Directors</span>
+                        </a>
+                        <?php
+                        $exportMenuOn = $importMenuOn = true;
+                        try {
+                            require_once __DIR__ . '/../../../app/v1/models/SettingModel.php';
+                            require_once __DIR__ . '/../../../app/v1/models/Connection.php';
+                            $siteSettings = new SettingModel(\Models\Connection::getInstance()->getConnection());
+                            $exportMenuOn = $siteSettings->get('site_export_enabled', '1') !== '0';
+                            $importMenuOn = $siteSettings->get('site_import_enabled', '1') !== '0';
+                        } catch (Throwable $e) {}
+                        ?>
+                        <?php if (!function_exists('csrf_field')) { require_once __DIR__ . '/../../../app/v1/helpers/uploads.php'; } ?>
+                        <form method="POST" action="<?php echo url('admin/preview-portal.php'); ?>" target="_blank" class="m-0"><?php echo csrf_field(); ?>
+                            <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent">
+                                <i class="fas fa-eye"></i>
+                                <span>Preview Student Portal</span>
+                            </button>
+                        </form>
+                        <form method="POST" action="<?php echo url('admin/preview-tutor-portal.php'); ?>" target="_blank" class="m-0"><?php echo csrf_field(); ?>
+                            <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent">
+                                <i class="fas fa-chalkboard-teacher"></i>
+                                <span>Preview Tutor Portal</span>
+                            </button>
+                        </form>
+                        <form method="POST" action="<?php echo url('admin/preview-intern-portal.php'); ?>" target="_blank" class="m-0"><?php echo csrf_field(); ?>
+                            <button type="submit" class="nav-link w-100 text-start border-0 bg-transparent">
+                                <i class="fas fa-user-graduate"></i>
+                                <span>Preview Intern Portal</span>
+                            </button>
+                        </form>
+                        <?php if ($exportMenuOn): ?>
+                        <a href="<?php echo url('admin/backup.php'); ?>"
+                           class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'backup.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-box-archive"></i>
+                            <span>Export Site</span>
+                        </a>
+                        <?php endif; ?>
+                        <?php if ($importMenuOn): ?>
+                        <a href="<?php echo url('admin/import.php'); ?>"
+                           class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'import.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-file-import"></i>
+                            <span>Import Site</span>
+                        </a>
+                        <?php endif; ?>
+                        <a href="<?php echo url('admin/system/updates.php'); ?>"
+                           class="nav-link <?php echo $current_dir == 'system' ? 'active' : ''; ?>">
+                            <i class="fas fa-database"></i>
+                            <span>System Updates</span>
+                            <?php if (!empty($pending_migration_count)): ?>
+                                <span class="updates-badge"><?php echo (int) $pending_migration_count; ?></span>
+                            <?php endif; ?>
+                        </a>
+                        <a href="<?php echo url('profile/admin/'); ?>"
+                           class="nav-link <?php echo $current_page == 'profile.php' ? 'active' : ''; ?>">
+                            <i class="fas fa-user-circle"></i>
+                            <span>My Profile</span>
+                        </a>
+                        <a href="<?php echo url('admin/settings/index.php'); ?>"
+                           class="nav-link <?php echo isActive('settings', $current_dir, $current_page) && !$is_class_schedule_page && !$is_contact_settings_page && !$is_footer_settings_page ? 'active' : ''; ?>">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                        <a href="<?php echo url('admin/settings/edit.php?section=contact'); ?>"
+                           class="nav-link <?php echo $is_contact_settings_page ? 'active' : ''; ?>">
+                            <i class="fas fa-address-book"></i>
+                            <span>Contact Settings</span>
+                        </a>
+                        <a href="<?php echo url('admin/settings/edit.php?section=footer'); ?>"
+                           class="nav-link <?php echo $is_footer_settings_page ? 'active' : ''; ?>">
+                            <i class="fas fa-shoe-prints"></i>
+                            <span>Footer &amp; Social Links</span>
+                        </a>
+                        <a href="<?php echo url('admin/settings/edit.php?section=schedule'); ?>"
+                           class="nav-link <?php echo $is_class_schedule_page ? 'active' : ''; ?>">
+                            <i class="fas fa-calendar-days"></i>
+                            <span>Class Schedule</span>
+                        </a>
                     </div>
                 </div>
             </div>
-            
+
             <!--nav:divider-->
             <hr>
-            
-            <!--nav:profile-->
-            <!-- Profile -->
-            <a href="<?php echo url('profile/admin/'); ?>" 
-               class="nav-link <?php echo $current_page == 'profile.php' ? 'active' : ''; ?>">
-                <i class="fas fa-user-circle"></i>
-                <span>My Profile</span>
-            </a>
-            
-            <!--nav:settings-->
-            <!-- Settings -->
-            <a href="<?php echo url('admin/settings/index.php'); ?>"
-               class="nav-link <?php echo isActive('settings', $current_dir, $current_page) && !$is_class_schedule_page && !$is_contact_settings_page && !$is_footer_settings_page ? 'active' : ''; ?>">
-                <i class="fas fa-cog"></i>
-                <span>Settings</span>
-            </a>
-            <!--nav:contact_settings-->
-            <a href="<?php echo url('admin/settings/edit.php?section=contact'); ?>"
-               class="nav-link <?php echo $is_contact_settings_page ? 'active' : ''; ?>">
-                <i class="fas fa-address-book"></i>
-                <span>Contact Settings</span>
-            </a>
-            <!--nav:footer_settings-->
-            <a href="<?php echo url('admin/settings/edit.php?section=footer'); ?>"
-               class="nav-link <?php echo $is_footer_settings_page ? 'active' : ''; ?>">
-                <i class="fas fa-shoe-prints"></i>
-                <span>Footer &amp; Social Links</span>
-            </a>
-            <!--nav:schedule-->
-            <a href="<?php echo url('admin/settings/edit.php?section=schedule'); ?>"
-               class="nav-link <?php echo $is_class_schedule_page ? 'active' : ''; ?>">
-                <i class="fas fa-calendar-days"></i>
-                <span>Class Schedule</span>
-            </a>
+
 
             <?php
             require_once __DIR__ . '/../../../app/v1/helpers/admin_nav.php';
@@ -523,46 +483,53 @@ function isSmsSection($section) {
 $adm_self = $_SERVER['PHP_SELF'] ?? '';
 $adm_sheets = [
     'system' => ['System', 'fa-graduation-cap', isSystemActive($current_dir), [
-        ['Pending approvals', 'admin/registrations/index.php?status=pending', 'fa-user-clock'],
-        ['Announcements', 'admin/announcements/index.php', 'fa-bullhorn'],
-        ['Classes & attendance', 'admin/classes/index.php', 'fa-calendar-days'],
-        ['Interns', 'admin/interns/index.php', 'fa-user-graduate'],
-        ['My interns', 'admin/interns/supervise.php', 'fa-user-check'],
+        ['Enrolment', 'admin/intakes/index.php', 'fa-calendar-days'],
+        ['Bookings', 'admin/intakes/bookings.php', 'fa-bookmark'],
+        ['Students', 'admin/students/index.php', 'fa-user-graduate'],
+        ['Enrol student', 'admin/students/enroll.php', 'fa-user-plus'],
+        ['Completed & paused', 'admin/students/finished.php', 'fa-user-check'],
         ['Courses', 'admin/courses/index.php', 'fa-book'],
         ['Add a course', 'admin/courses/create.php', 'fa-plus'],
+        ['Brochure', 'admin/courses/brochure.php', 'fa-file-pdf'],
         ['Course subjects', 'admin/courses/subjects.php', 'fa-list-ol'],
         ['Free courses', 'admin/free-courses/index.php', 'fa-gift'],
         ['Classes', 'admin/courses/classes.php', 'fa-layer-group'],
+        ['Pending approvals', 'admin/registrations/index.php?status=pending', 'fa-user-clock'],
         ['Tutors', 'admin/tutors/index.php', 'fa-chalkboard-teacher'],
+        ['Tutor IDs', 'admin/tutors/ids.php', 'fa-id-badge'],
         empty($_SESSION['tutor_admin']) ? ['Permissions', 'admin/tutors/permissions.php', 'fa-user-lock'] : null,
         empty($_SESSION['tutor_admin']) ? ['Secretaries', 'admin/secretaries/index.php', 'fa-user-tie'] : null,
-        ['Students', 'admin/students/index.php', 'fa-user-graduate'],
-        ['Completed & paused', 'admin/students/finished.php', 'fa-user-check'],
-        ['Enrol student', 'admin/students/enroll.php', 'fa-user-plus'],
+        ['Interns', 'admin/interns/index.php', 'fa-user-graduate'],
+        ['My interns', 'admin/interns/supervise.php', 'fa-user-check'],
+    ]],
+    'website' => ['Website', 'fa-globe', isWebsiteActive($current_dir), [
+        ['All posts', 'admin/blogs/index.php', 'fa-list'],
+        ['New post', 'admin/blogs/create.php', 'fa-plus'],
+        ['Category', 'admin/blogs/categories.php', 'fa-folder'],
+        ['Team', 'admin/team/index.php', 'fa-users'],
+        ['Gallery', 'admin/gallery/index.php', 'fa-images'],
+        ['Campus media', 'admin/campus-media/index.php', 'fa-camera-retro'],
+    ]],
+    'others' => ['Others', 'fa-grip', isOthersActive($current_dir, $current_page), [
+        !empty($_SESSION['tutor_admin']) ? ['My tutor portal', 'tutor/dashboard/index.php', 'fa-chalkboard-teacher'] : null,
+        ['Announcements', 'admin/announcements/index.php', 'fa-bullhorn'],
+        ['Notifications', 'admin/notifications/index.php', 'fa-bell'],
+        ['Error log', 'admin/errors/index.php', 'fa-triangle-exclamation'],
+        ['Classes & attendance', 'admin/classes/index.php', 'fa-calendar-days'],
         ['Resources & IDs', 'admin/resources/index.php', 'fa-folder-open'],
         ['Partners', 'admin/partners/index.php', 'fa-handshake'],
         ['Testimonials', 'admin/testimonials/index.php', 'fa-star'],
-        ['Certificates', 'admin/certificates/index.php', 'fa-certificate'],
-        ['Student ID cards', 'admin/id_cards/index.php', 'fa-id-card'],
-        ['Directors', 'admin/directors/index.php', 'fa-signature'],
-    ]],
-    'website' => ['Website', 'fa-globe', isWebsiteActive($current_dir), [
         ['Orders', 'admin/orders/index.php', 'fa-receipt'],
         ['Enquiries', 'admin/enquiries/index.php', 'fa-question-circle'],
         ['Projects', 'admin/projects/index.php', 'fa-folder-open'],
         ['Services', 'admin/services/index.php', 'fa-cogs'],
-        ['Blog posts', 'admin/blogs/index.php', 'fa-blog'],
-        ['New post', 'admin/blogs/create.php', 'fa-plus'],
-        ['Blog categories', 'admin/blogs/categories.php', 'fa-folder'],
-        ['Gallery', 'admin/gallery/index.php', 'fa-images'],
-        ['Campus media', 'admin/campus-media/index.php', 'fa-camera-retro'],
-        ['Team', 'admin/team/index.php', 'fa-users'],
-        ['Products', 'admin/store/products/index.php', 'fa-box'],
+        ['Store products', 'admin/store/products/index.php', 'fa-box'],
         ['Store categories', 'admin/store/categories/index.php', 'fa-tags'],
-    ]],
-    'more' => ['More', 'fa-grip', in_array($current_dir, ['settings', 'system'], true) || in_array($current_page, ['backup.php', 'import.php'], true), [
-        !empty($_SESSION['tutor_admin']) ? ['My tutor portal', 'tutor/dashboard/index.php', 'fa-chalkboard-teacher'] : null,
-        ['Notifications', 'admin/notifications/index.php', 'fa-bell'],
+        ['Student progress', 'admin/progress/index.php', 'fa-chart-line'],
+        ['Self-study', 'admin/selfstudy/index.php', 'fa-laptop-code'],
+        ['Certificates', 'admin/certificates/index.php', 'fa-certificate'],
+        ['Student ID cards', 'admin/id_cards/index.php', 'fa-id-card'],
+        ['Directors', 'admin/directors/index.php', 'fa-signature'],
         ['System updates', 'admin/system/updates.php', 'fa-database'],
         ['Settings', 'admin/settings/index.php', 'fa-cog'],
         ['Contact settings', 'admin/settings/edit.php?section=contact', 'fa-address-book'],
@@ -580,7 +547,7 @@ $adm_sheets = [
 ?>
 <nav class="adm-bottom" aria-label="Admin sections">
     <a href="<?php echo url('admin/dashboard.php'); ?>" class="<?php echo $current_page === 'dashboard.php' ? 'on' : ''; ?>"><i class="fas fa-house"></i><span>Home</span></a>
-    <?php foreach (['system', 'enrol', 'website', 'more'] as $key): ?>
+    <?php foreach (['system', 'enrol', 'website', 'others'] as $key): ?>
         <?php if ($key === 'enrol'): ?>
             <a href="<?php echo url('admin/students/enroll.php'); ?>" class="adm-fab <?php echo $current_page === 'enroll.php' ? 'on' : ''; ?>" aria-label="Enrol a student"><b><i class="fas fa-plus"></i></b><span>Enrol</span></a>
         <?php else: [$label, $icon, $active] = $adm_sheets[$key]; ?>
@@ -1061,7 +1028,7 @@ $adm_sheets = [
 <script>
 // Persist collapse state per menu group in localStorage
 document.addEventListener('DOMContentLoaded', function() {
-    var groups = ['systemMenu', 'coursesMenu', 'websiteMenu', 'storeMenu'];
+    var groups = ['systemMenu', 'websiteMenu', 'othersMenu'];
     groups.forEach(function (id) {
         var link = document.querySelector('a[href="#' + id + '"]');
         var menu = document.getElementById(id);

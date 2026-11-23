@@ -7,11 +7,26 @@ require __DIR__ . '/../../components/assignments/tutor_boot.php';
 
 use Models\AssignmentModel;
 
-$courses = $am->tutorCourses($tutorId);
-$liveIn = function (int $cid) use ($am, $tutorId): array {
-    return array_values(array_filter($am->listAll($tutorId), fn($a) => (int) $a['course_id'] === $cid && $a['status'] === 'published'));
-};
 $problem = null;
+$loadProblem = null;
+$courses = [];
+$courseStudents = [];
+$courseLive = [];
+try {
+    $courses = $am->tutorCourses($tutorId);
+    $allLive = $am->listAll($tutorId);
+    foreach ($courses as $cid => $ct) {
+        $cid = (int) $cid;
+        $courseLive[$cid] = array_values(array_filter($allLive, fn($a) => (int) $a['course_id'] === $cid && $a['status'] === 'published'));
+        $courseStudents[$cid] = $am->tutorStudents($tutorId, $cid);
+    }
+} catch (Throwable $e) {
+    // A blank page here (GET, before anything is rendered) is worse than a visible error: show one and log it.
+    error_log('reset course (load): ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+    $loadProblem = $e->getMessage();
+    $courses = [];
+}
+$liveIn = fn(int $cid): array => $courseLive[$cid] ?? [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     asg_csrf_or_back('reset.php');
@@ -82,6 +97,7 @@ ob_start();
 ?>
 <a href="index.php?tab=all" class="btn btn-link btn-sm ps-0 mb-2">← Assignments</a>
 <?php if ($problem): ?><div class="alert alert-danger"><strong>The reset did not finish.</strong> Courses listed before the problem may already be reset; check Assignments. Details: <?php echo asg_e($problem); ?></div><?php endif; ?>
+<?php if ($loadProblem): ?><div class="alert alert-danger"><strong>Could not load your courses.</strong> <?php echo asg_e($loadProblem); ?></div><?php endif; ?>
 <style>
 .rs-c{border:1px solid #dfe7e3;border-radius:12px;padding:10px 12px;margin-bottom:8px}
 .rs-c summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px}.rs-c summary::-webkit-details-marker{display:none}
@@ -94,7 +110,7 @@ ob_start();
 
     <h6 class="fw-bold">1. Courses</h6>
     <?php if (!$courses): ?><p class="small text-muted">You have no current students, so there is no course to reset.</p><?php endif; ?>
-    <?php foreach ($courses as $cid => $ct): $live = $liveIn((int) $cid); $studs = $am->tutorStudents($tutorId, (int) $cid); ?>
+    <?php foreach ($courses as $cid => $ct): $live = $liveIn((int) $cid); $studs = $courseStudents[(int) $cid] ?? []; ?>
     <details class="rs-c" <?php echo $pre === (int) $cid ? 'open' : ''; ?>>
         <summary><input type="checkbox" class="form-check-input rs-course" name="courses[]" value="<?php echo (int) $cid; ?>" <?php echo $pre === (int) $cid ? 'checked' : ''; ?> onclick="event.stopPropagation()">
             <span class="fw-semibold flex-grow-1"><?php echo asg_e($ct); ?></span>

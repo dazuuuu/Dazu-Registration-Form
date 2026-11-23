@@ -2,6 +2,7 @@
 // public/courses/brochure.php — download the course brochure PDF
 require_once __DIR__ . '/../../app/v1/init.php';
 require_once __DIR__ . '/../../app/v1/helpers/course_share.php';
+require_once __DIR__ . '/../../app/v1/helpers/course_fee_structure.php';
 require_once __DIR__ . '/../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../app/v1/models/CourseModel.php';
 
@@ -12,13 +13,22 @@ $pdo = Connection::getInstance()->getConnection();
 $courseModel = new CourseModel($pdo);
 $course = course_resolve_for_page($courseModel);
 
-if (!course_is_shareable($course) || empty($course['brochure_path'])) {
+if (!course_is_shareable($course)) {
     http_response_code(404);
     echo 'Brochure not found.';
     exit();
 }
 
-$rel = ltrim((string) $course['brochure_path'], '/');
+$rel = ltrim((string) ($course['brochure_path'] ?? ''), '/');
+if ($rel === '') {
+    // This course has no brochure of its own: fall back to the site-wide default (Admin → Courses → Brochure).
+    $rel = ltrim((string) (course_default_brochure_path() ?? ''), '/');
+}
+if ($rel === '') {
+    http_response_code(404);
+    echo 'Brochure not found.';
+    exit();
+}
 if (preg_match('#^https?://#i', $rel)) {
     header('Location: ' . $rel);
     exit();

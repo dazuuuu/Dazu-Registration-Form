@@ -45,6 +45,17 @@ $editUrl = url('admin/' . ($isFree ? 'free-courses' : 'courses') . '/edit.php?id
         <?= $enrollWindow['closed'] ? ' (closed — hidden from public list)' : '' ?>
       </p>
     <?php endif; ?>
+    <?php if (empty($course['brochure_path'])):
+        require_once __DIR__ . '/../../../app/v1/helpers/course_fee_structure.php';
+        $hasDefaultBrochure = (bool) course_default_brochure_path();
+    ?>
+      <p class="small mb-2 <?= $hasDefaultBrochure ? 'text-info' : 'text-danger' ?>">
+        <i class="fas fa-triangle-exclamation me-1"></i>
+        <?= $hasDefaultBrochure
+            ? 'No brochure of its own — using the default brochure.'
+            : 'No brochure uploaded, and no default brochure is set.' ?>
+      </p>
+    <?php endif; ?>
     <?php if (!empty($course['overview'])): ?>
       <p class="small text-muted flex-grow-1 mb-2 line-clamp-2"><?= htmlspecialchars($course['overview']) ?></p>
     <?php else: ?>

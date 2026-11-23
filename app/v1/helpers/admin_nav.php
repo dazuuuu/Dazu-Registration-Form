@@ -8,24 +8,11 @@ if (!function_exists('admin_nav_items')) {
     function admin_nav_items(): array
     {
         return [
-            'dashboard'        => ['Dashboard', 'fa-tachometer-alt'],
-            'preview'          => ['Preview Student Portal', 'fa-eye'],
-            'export'           => ['Export Site', 'fa-box-archive'],
-            'import'           => ['Import Site', 'fa-file-import'],
-            'updates'          => ['System Updates', 'fa-database'],
-            'system'           => ['System (dropdown)', 'fa-cogs'],
-            'progress'         => ['Student Progress', 'fa-chart-line'],
-            'selfstudy'        => ['Self-study', 'fa-laptop-code'],
-            'certificates'     => ['Certificates', 'fa-certificate'],
-            'id_cards'         => ['Student ID Cards', 'fa-id-card'],
-            'directors'        => ['Directors', 'fa-signature'],
-            'website'          => ['Website Content (dropdown)', 'fa-globe'],
-            'divider'          => ['— Divider line —', 'fa-minus'],
-            'profile'          => ['My Profile', 'fa-user-circle'],
-            'settings'         => ['Settings', 'fa-cog'],
-            'contact_settings' => ['Contact Settings', 'fa-address-book'],
-            'footer_settings'  => ['Footer & Social Links', 'fa-shoe-prints'],
-            'schedule'         => ['Class Schedule', 'fa-calendar-days'],
+            'dashboard' => ['Dashboard', 'fa-tachometer-alt'],
+            'system'    => ['System (dropdown)', 'fa-cogs'],
+            'website'   => ['Website Content (dropdown)', 'fa-globe'],
+            'others'    => ['Others (dropdown)', 'fa-grip'],
+            'divider'   => ['— Divider line —', 'fa-minus'],
         ];
     }
 
