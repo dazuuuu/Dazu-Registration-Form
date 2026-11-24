@@ -109,15 +109,15 @@ ob_start();
 
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       <div class="lg:col-span-5 space-y-6">
-        <?php include __DIR__ . '/../components/public/dazu_course_sidebar.php'; ?>
+        <?php $courseChoices = $courseModel->getAll(true); include __DIR__ . '/../components/public/dazu_course_sidebar.php'; ?>
       </div>
       <div class="lg:col-span-7">
         <?php
           $pfx = 'share';
           $allowCourseChange = true;
-          $courseChoices = $courseModel->getAll(true);
           $courseChangeUrl = url('courses/share.php') . ($refParam !== '' ? ('?ref=' . rawurlencode($refParam)) : '');
           $ikPart = 'top'; include __DIR__ . '/../components/public/intake_panel.php';
+          if (!empty($ikShowBook)) include __DIR__ . '/../components/public/book_now_panel.php';
           if ($ikShowForm || $reg_success) include __DIR__ . '/../components/public/dazu_admission_form.php';
           $ikPart = 'after'; include __DIR__ . '/../components/public/intake_panel.php';
         ?>

@@ -35,6 +35,7 @@ if ($ikPart === 'prepare') {
         }
         $ikShowForm = $enState['open'] || $enEa || !en_hide_form($pdo);   // closed + hidden: the Enroll form is not shown (unless this person has early access)
     }
+    $ikShowBook = (bool) $enState['next'];
     return;
 }
 if (!en_installed($pdo) || empty($course['id'])) return;
@@ -42,7 +43,6 @@ $cid = (int) $course['id'];
 $cfg = en_cfg($pdo);
 $next = $enState['next'];
 $closedHidden = !$enState['open'] && !$enEa && en_hide_form($pdo);
-$bookUrl = fn($o) => url('intake/book.php?course=' . $cid . ($o ? '&opening=' . (int) $o['id'] : ''));
 $manageUrl = url('intake/manage.php');
 $nextFull = false;
 $nextSeats = ['limit' => null, 'left' => null];
@@ -81,7 +81,7 @@ e.textContent=(d?d+' day'+(d>1?'s ':' '):'')+(d||h?h+' h ':'')+m+' min '+x+' s';
   <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:14px">
     <?php $seatLeft = $enState['open'] ? en_seat_info($pdo, $enState['opening'], $cid) : null; ?>
     <?php if ($enState['open'] && ($seatLeft['left'] === null || $seatLeft['left'] > 0)): ?><a class="bn-btn" href="#enroll-form">Enroll now</a>
-    <?php elseif ($next): ?><a class="bn-btn" href="<?php echo en_e($bookUrl($next)); ?>">Book now</a><?php endif; ?>
+    <?php elseif ($next): ?><a class="bn-btn" href="#book-now-form">Book now</a><?php endif; ?>
     <a class="bn-btn ghost" href="<?php echo en_e(en_manage_url($enEaExpired)); ?>">Check my booking</a>
   </div>
 </div>
@@ -102,7 +102,7 @@ e.textContent=(d?d+' day'+(d>1?'s ':' '):'')+(d||h?h+' h ':'')+m+' min '+x+' s';
         <p class="text-[11px] font-semibold text-slate-500 mt-1"><?php echo $nextFull ? 'All slots are taken. You can join the waiting list.' : $nextSeats['left'] . ' of ' . $nextSeats['limit'] . ' slot' . ($nextSeats['limit'] === 1 ? '' : 's') . ' left'; ?></p></div>
       <?php endif; ?>
     </div>
-    <a href="<?php echo en_e($bookUrl($next)); ?>" class="bn-btn"><?php echo $nextFull ? 'Join the waiting list' : 'Book now'; ?></a>
+    <a href="#book-now-form" class="bn-btn"><?php echo $nextFull ? 'Join the waiting list' : 'Book now'; ?></a>
   </div>
   <?php if ($closedHidden): ?><p class="text-xs font-semibold text-slate-500 mt-4 pt-3 border-t border-slate-100">Already booked? <a class="bn-link" href="<?php echo en_e($manageUrl); ?>">Check my booking</a></p><?php endif; ?>
 </div>
@@ -142,7 +142,7 @@ if ($ikPart === 'after' && $enEa) { ?>
 if ($ikPart === 'after' && ($next || $enState['open'])) { ?>
 <div class="bn-mspace"></div>
 <div id="intake-mobile-bar" class="bn-mbar">
-  <?php if ($next): ?><a href="<?php echo en_e($bookUrl($next)); ?>" class="bn-btn"><?php echo $nextFull ? 'Join the waiting list' : 'Book now'; ?></a><?php endif; ?>
+  <?php if ($next): ?><a href="#book-now-form" class="bn-btn"><?php echo $nextFull ? 'Join the waiting list' : 'Book now'; ?></a><?php endif; ?>
   <?php if ($enState['open']): ?><a href="#enroll-form" class="bn-btn dark">Enroll now</a><?php endif; ?>
 </div>
 <?php }

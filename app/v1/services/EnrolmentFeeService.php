@@ -157,6 +157,92 @@ if (!function_exists('en_cfg')) {
         return ['verified' => false, 'source' => 'manual'];
     }
 
+    /**
+     * STK push already confirmed by Safaricom: mark the booking paid straight away (no manual review),
+     * issue a real institute registration number, record the payment with a receipt, email the receipt,
+     * and alert the office (informational only — nothing to confirm). Mirrors en_pay_confirm() for a
+     * manually-reviewed booking, but skips the review step since Daraja already verified the payment.
+     * @return array{ok:bool, error?:string, registration?:array, payment_id?:int, receipt_html?:string}
+     */
+    /** payments.recorded_by is a required FK to users — the earliest admin/superadmin account stands in for "the system" on an automatic STK payment. */
+    function en_system_admin_id(PDO $db): int
+    {
+        static $id = null;
+        if ($id === null) {
+            try {
+                $id = (int) $db->query("SELECT u.id FROM users u JOIN roles r ON r.id = u.role_id WHERE r.role_name IN ('admin','superadmin') ORDER BY u.id LIMIT 1")->fetchColumn();
+            } catch (Throwable $e) {
+                $id = 0;
+            }
+        }
+        return $id;
+    }
+
+    function en_after_stk_payment(PDO $db, array $b, string $mpesaReceipt): array
+    {
+        if (($b['status'] ?? '') !== 'payment_received') return ['ok' => false, 'error' => 'This booking is not awaiting payment.'];
+        $st = $db->prepare("UPDATE enrolment_bookings SET status = 'confirmed', payment_status = 'paid', paid_at = ?, receipt_sent_at = ? WHERE id = ? AND status = 'payment_received'");
+        $st->execute([en_now(), en_now(), (int) $b['id']]);
+        if (!$st->rowCount()) return ['ok' => false, 'error' => 'This booking was already handled.'];
+        $b = en_booking($db, (int) $b['id']);
+
+        require_once __DIR__ . '/../helpers/registration_number.php';
+        require_once __DIR__ . '/../helpers/course_fee_structure.php';
+        require_once __DIR__ . '/../models/RegistrationModel.php';
+        require_once __DIR__ . '/../models/PaymentModel.php';
+
+        $courseId = (int) $b['course_id'];
+        $locked = registration_number_lock($db);
+        try {
+            $regNo = registration_number_next($db, $courseId);
+            $courseFee = course_fee_for_mode(['id' => $courseId] + (array) ($db->query("SELECT * FROM courses WHERE id = $courseId")->fetch(PDO::FETCH_ASSOC) ?: []), (string) $b['study_mode']);
+            $regFee = \Models\RegistrationModel::registrationFeeFor((string) $b['study_mode']);
+            $db->prepare("INSERT INTO registrations (registration_no, full_name, email, phone, course_id, study_mode, id_document_path,
+                              registration_fee, course_fee, payment_plan, installment_count, installment_amount, payment_reference, created_at)
+                          VALUES (?, ?, ?, ?, ?, ?, 'public/enrolment', ?, ?, 'full', 1, ?, ?, ?)")
+               ->execute([$regNo, $b['full_name'], $b['email'], $b['phone'], $courseId, $b['study_mode'], $regFee, $courseFee, $courseFee,
+                          'Booking ' . $b['reference'] . ' M-PESA STK ' . $mpesaReceipt, en_now()]);
+            $registrationId = (int) $db->lastInsertId();
+        } finally {
+            if ($locked) registration_number_unlock($db);
+        }
+        $db->prepare("UPDATE enrolment_bookings SET converted_registration_id = ?, fee_applied_registration_id = ? WHERE id = ?")
+           ->execute([$registrationId, $registrationId, (int) $b['id']]);
+
+        $reg = $db->prepare("SELECT r.*, c.title AS course_title FROM registrations r JOIN courses c ON c.id = r.course_id WHERE r.id = ?");
+        $reg->execute([$registrationId]);
+        $reg = $reg->fetch(PDO::FETCH_ASSOC);
+
+        $paymentModel = new \Models\PaymentModel($db);
+        $paymentId = $paymentModel->recordInitial($registrationId, (float) $b['payment_amount'], $mpesaReceipt, en_system_admin_id($db), '', '');
+        $receiptNo = $paymentModel->generateReceiptNo($paymentId);
+        $payment = $paymentModel->getById($paymentId);
+        require_once __DIR__ . '/ReceiptGenerator.php';
+        $receiptHtml = ReceiptGenerator::generate($reg, ['receipt_no' => $receiptNo] + $payment, (float) $b['payment_amount']);
+        $db->prepare("UPDATE payments SET receipt_no = ?, receipt_html = ? WHERE id = ?")->execute([$receiptNo, $receiptHtml, $paymentId]);
+
+        try {
+            $cfg = require __DIR__ . '/../config/mail.php';
+            $subject = 'Your receipt — ' . $regNo;
+            $intro = '<p style="font-family:Poppins,Arial,sans-serif;font-size:14px;color:#1d1b1c;max-width:640px;margin:0 auto 16px;">'
+                . 'Hello ' . en_e(en_first((string) $b['full_name'])) . ', thank you for your payment. Your institute registration number is <strong>' . en_e($regNo) . '</strong>. '
+                . 'Keep this receipt for your records.</p>';
+            $html = '<div style="background:#f4f5f1;padding:24px 12px;">' . $intro . $receiptHtml . '</div>';
+            require_once __DIR__ . '/../helpers/receipt_pdf.php';
+            $pdfBytes = receipt_pdf_render($reg, $payment + ['receipt_no' => $receiptNo], (float) $b['payment_amount']);
+            $tmpFile = sys_get_temp_dir() . '/receipt-' . $paymentId . '.pdf';
+            file_put_contents($tmpFile, $pdfBytes);
+            (new Mailer($cfg))->sendWithAttachment((string) $b['email'], (string) $b['full_name'], $subject, $html, $tmpFile, 'receipt-' . $regNo . '.pdf');
+            @unlink($tmpFile);
+        } catch (Throwable $e) {
+            error_log('[enrolment stk] receipt email: ' . $e->getMessage());
+        }
+
+        en_notify_office($db, $b);
+
+        return ['ok' => true, 'registration' => $reg, 'payment_id' => $paymentId, 'receipt_html' => $receiptHtml, 'registration_no' => $regNo];
+    }
+
     /** A valid code is in: tell the student it was received and the office that a payment waits. */
     function en_after_payment_code(PDO $db, array $b): void
     {
@@ -361,6 +447,17 @@ if (!function_exists('en_cfg')) {
     function en_token(array $b): string
     {
         return (int) $b['id'] . '-' . substr(hash_hmac('sha256', (int) $b['id'] . '|' . $b['token_salt'], en_link_key()), 0, 40);
+    }
+
+    /** Signed token for public/intake/receipt.php — scoped to one payment and its registration number. */
+    function en_receipt_token(int $paymentId, string $regNo): string
+    {
+        return substr(hash_hmac('sha256', $paymentId . '|' . $regNo, en_link_key()), 0, 40);
+    }
+
+    function en_receipt_url(int $paymentId, string $regNo): string
+    {
+        return en_abs('intake/receipt.php?p=' . $paymentId . '&t=' . en_receipt_token($paymentId, $regNo));
     }
 
     function en_manage_url(array $b): string

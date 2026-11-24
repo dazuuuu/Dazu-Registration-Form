@@ -9,8 +9,6 @@ require_once __DIR__ . '/../../../app/v1/models/Connection.php';
 require_once __DIR__ . '/../../../app/v1/models/Session.php';
 require_once __DIR__ . '/../../../app/v1/services/TranscriptService.php';
 
-use Models\SessionModel;
-
 Middleware::requireAdmin();
 $db = \Models\Connection::getInstance()->getConnection();
 $e = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');

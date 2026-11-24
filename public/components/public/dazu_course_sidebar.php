@@ -90,6 +90,54 @@ $enrollWindow = $isFree ? dazu_course_enrollment_window($course) : ['label' => n
       <?php endif; ?>
     </div>
 
+    <?php if (!empty($courseChoices) && count($courseChoices) > 1): ?>
+    <div class="relative" id="courseSwitchBox">
+      <span class="block text-slate-400 uppercase tracking-widest text-[9px] font-extrabold mb-1">Switch course</span>
+      <input type="text" id="courseSwitchInput" autocomplete="off" placeholder="Search a course…"
+             value="<?php echo htmlspecialchars($course['title']); ?>"
+             class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:outline-none focus:border-green-600">
+      <ul id="courseSwitchList" class="hidden absolute z-20 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-64 overflow-y-auto"></ul>
+    </div>
+    <script>
+    (function () {
+      var courses = <?php echo json_encode(array_map(fn($c) => ['id' => (int) $c['id'], 'title' => $c['title']], $courseChoices)); ?>;
+      var input = document.getElementById('courseSwitchInput'), list = document.getElementById('courseSwitchList');
+      if (!input || !courses.length) return;
+      function snapshotAndGo(id) {
+        try {
+          var form = document.querySelector('form[id$="Form"]');
+          if (form) {
+            var data = {};
+            form.querySelectorAll('input[name],select[name],textarea[name]').forEach(function (f) {
+              if (f.name === 'course_id' || f.name === 'csrf_token' || f.type === 'file') return;
+              if (f.type === 'radio') { if (f.checked) data[f.name] = f.value; return; }
+              data[f.name] = f.value;
+            });
+            sessionStorage.setItem('dazu-adm-view', JSON.stringify({ t: Date.now(), d: data }));
+          }
+        } catch (e) {}
+        window.location.href = <?php echo json_encode(url('courses/view.php')); ?> + '?id=' + encodeURIComponent(id);
+      }
+      function render(q) {
+        var f = courses.filter(function (c) { return c.title.toLowerCase().indexOf(q.toLowerCase()) !== -1; }).slice(0, 8);
+        list.innerHTML = '';
+        if (!f.length) { list.classList.add('hidden'); return; }
+        f.forEach(function (c) {
+          var li = document.createElement('li');
+          li.className = 'px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-green-50 cursor-pointer';
+          li.textContent = c.title;
+          li.addEventListener('click', function () { snapshotAndGo(c.id); });
+          list.appendChild(li);
+        });
+        list.classList.remove('hidden');
+      }
+      input.addEventListener('focus', function () { render(''); });
+      input.addEventListener('input', function () { render(input.value); });
+      document.addEventListener('click', function (e) { if (!document.getElementById('courseSwitchBox').contains(e.target)) list.classList.add('hidden'); });
+    })();
+    </script>
+    <?php endif; ?>
+
     <?php if ($schedule !== '' || $onlineSchedule !== '' || $physicalSchedule !== ''): ?>
     <details class="group border border-slate-200 rounded-xl bg-white overflow-hidden">
       <summary class="list-none cursor-pointer flex items-center justify-between gap-3 px-4 py-3 hover:bg-slate-50">

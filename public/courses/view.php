@@ -122,6 +122,7 @@ ob_start();
       </div>
       <div class="lg:col-span-7">
         <?php $ikPart = 'top'; include __DIR__ . '/../components/public/intake_panel.php'; ?>
+        <?php if (!empty($ikShowBook)): include __DIR__ . '/../components/public/book_now_panel.php'; endif; ?>
         <?php if ($ikShowForm || $reg_success): $pfx = 'view'; include __DIR__ . '/../components/public/dazu_admission_form.php'; endif; ?>
         <?php $ikPart = 'after'; include __DIR__ . '/../components/public/intake_panel.php'; ?>
       </div>

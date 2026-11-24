@@ -264,6 +264,66 @@ if (!function_exists('en_installed')) {
         return ['ok' => true, 'booking' => $b];
     }
 
+    /**
+     * Create a booking after Daraja has already confirmed payment (STK push). Skips the manual payment-code
+     * check — the M-Pesa receipt from Safaricom's callback is proof enough. If the seat filled while the STK
+     * push was in flight, the booking is still created, but on the waiting list (no refund path yet; the office
+     * must follow up by hand). $in: opening_id, full_name, email, phone, phone2, study_mode, class_time, campus.
+     * @return array{ok:bool, error?:string, booking?:array, waitlisted?:bool}
+     */
+    function en_book_after_stk(PDO $db, array $course, array $in, string $ip, string $mpesaReceipt, float $amount): array
+    {
+        $courseId = (int) $course['id'];
+        $state = en_state($db, $courseId);
+        $o = null;
+        foreach ($state['bookable'] as $cand) if ((int) $cand['id'] === (int) ($in['opening_id'] ?? 0)) $o = $cand;
+        if (!$o) return ['ok' => false, 'error' => 'That intake is not taking bookings right now.'];
+
+        $name = trim(preg_replace('/\s+/', ' ', (string) ($in['full_name'] ?? '')));
+        $email = strtolower(trim((string) ($in['email'] ?? '')));
+        $phone = en_phone((string) ($in['phone'] ?? ''));
+        $phone2Raw = trim((string) ($in['phone2'] ?? ''));
+        $phone2 = $phone2Raw === '' ? null : en_phone($phone2Raw);
+        $mode = ($in['study_mode'] ?? '') === 'physical' ? 'physical' : 'online';
+        $time = (string) ($in['class_time'] ?? '');
+        $campus = $mode === 'physical' && in_array($in['campus'] ?? '', ['thika', 'nairobi'], true) ? (string) $in['campus'] : '';
+        if (mb_strlen($name) < 3 || mb_strlen($name) > 150) return ['ok' => false, 'error' => 'Enter your full name.'];
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) return ['ok' => false, 'error' => 'Enter a valid email address.'];
+        if (!$phone) return ['ok' => false, 'error' => 'Enter a valid Kenyan phone number.'];
+
+        $db->beginTransaction();
+        try {
+            $db->prepare("SELECT id FROM enrolment_openings WHERE id = ? FOR UPDATE")->execute([(int) $o['id']]);
+            $seat = en_seat_info($db, $o, $courseId);
+            $full = $seat['left'] !== null && $seat['left'] <= 0;
+            do {
+                $ref = 'BK-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+                $chk = $db->prepare("SELECT 1 FROM enrolment_bookings WHERE reference = ?");
+                $chk->execute([$ref]);
+            } while ($chk->fetchColumn());
+            $cfg = en_cfg($db);
+            $db->prepare("INSERT INTO enrolment_bookings (opening_id, course_id, reference, full_name, email, phone, phone2, study_mode, campus, class_time, consent, source, status, payment_status,
+                              payment_amount, payment_reference, pay_method, fee_kind, token_salt, ip, created_at)
+                          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, 'unpaid', ?, ?, 'mpesa_stk', ?, ?, ?, ?)")
+               ->execute([(int) $o['id'], $courseId, $ref, mb_substr($name, 0, 150), $email, $phone, $phone2, $mode, $campus ?: null, $time, en_source(),
+                          $full ? 'waiting' : 'payment_received', $full ? null : $amount, $full ? null : $mpesaReceipt,
+                          $full ? null : en_fee_kind($mode), bin2hex(random_bytes(16)), $ip, en_now()]);
+            $id = (int) $db->lastInsertId();
+            $db->commit();
+        } catch (Throwable $e) {
+            if ($db->inTransaction()) $db->rollBack();
+            error_log('[enrolment] book_after_stk: ' . $e->getMessage());
+            return ['ok' => false, 'error' => 'We could not save your booking.'];
+        }
+        $b = en_booking($db, $id);
+        if ($b['status'] === 'waiting') {
+            en_mail_waiting($db, $b);
+            error_log('[enrolment] STK paid but seat filled first — booking ' . $b['reference'] . ' waitlisted, manual follow-up needed for M-Pesa receipt ' . $mpesaReceipt);
+            return ['ok' => true, 'booking' => $b, 'waitlisted' => true];
+        }
+        return ['ok' => true, 'booking' => $b];
+    }
+
     function en_booking(PDO $db, int $id): ?array
     {
         $st = $db->prepare("SELECT b.*, c.title AS course_title, o.title AS opening_title, o.classes_start, o.seats, o.course_id AS opening_course, o.opens_at, o.closes_at
