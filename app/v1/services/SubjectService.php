@@ -320,6 +320,74 @@ if (!function_exists('subjectMarks')) {
         return $out;
     }
 
+    /* ---------------- the tutor's own subject library (templates pushed into courses) ---------------- */
+
+    /** A tutor's reusable subject templates, newest first. */
+    function subj_tpl_list(PDO $db, int $tutorId): array
+    {
+        $st = $db->prepare('SELECT * FROM tutor_subject_templates WHERE tutor_id = ? ORDER BY name');
+        $st->execute([$tutorId]);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    function subj_tpl_get(PDO $db, int $id, int $tutorId): ?array
+    {
+        $st = $db->prepare('SELECT * FROM tutor_subject_templates WHERE id = ? AND tutor_id = ?');
+        $st->execute([$id, $tutorId]);
+        return $st->fetch(PDO::FETCH_ASSOC) ?: null;
+    }
+
+    /** @return array{ok:bool, id?:int, error?:string} */
+    function subj_tpl_create(PDO $db, int $tutorId, array $in): array
+    {
+        [$d, $errors] = subj_clean($in);
+        if ($errors) return ['ok' => false, 'error' => implode(' ', $errors)];
+        $st = $db->prepare('SELECT COUNT(*) FROM tutor_subject_templates WHERE tutor_id = ? AND LOWER(name) = LOWER(?)');
+        $st->execute([$tutorId, $d['name']]);
+        if ($st->fetchColumn() > 0) return ['ok' => false, 'error' => 'You already have a subject with that name in your library.'];
+        $db->prepare('INSERT INTO tutor_subject_templates (tutor_id, name, code, weight, monthly_expected) VALUES (?, ?, ?, ?, ?)')
+           ->execute([$tutorId, $d['name'], $d['code'], $d['weight'], $d['monthly_expected']]);
+        return ['ok' => true, 'id' => (int) $db->lastInsertId()];
+    }
+
+    function subj_tpl_update(PDO $db, int $tutorId, int $id, array $in): array
+    {
+        if (!subj_tpl_get($db, $id, $tutorId)) return ['ok' => false, 'error' => 'Not found.'];
+        [$d, $errors] = subj_clean($in);
+        if ($errors) return ['ok' => false, 'error' => implode(' ', $errors)];
+        $db->prepare('UPDATE tutor_subject_templates SET name = ?, code = ?, weight = ?, monthly_expected = ?, updated_at = ? WHERE id = ? AND tutor_id = ?')
+           ->execute([$d['name'], $d['code'], $d['weight'], $d['monthly_expected'], gmdate('Y-m-d H:i:s'), $id, $tutorId]);
+        return ['ok' => true];
+    }
+
+    function subj_tpl_remove(PDO $db, int $tutorId, int $id): array
+    {
+        if (!subj_tpl_get($db, $id, $tutorId)) return ['ok' => false, 'error' => 'Not found.'];
+        $db->prepare('DELETE FROM tutor_subject_templates WHERE id = ? AND tutor_id = ?')->execute([$id, $tutorId]);
+        return ['ok' => true];
+    }
+
+    /**
+     * Push one template into each chosen course as a normal subject of this tutor (reuses subj_create,
+     * so numbering, logging and name-clash rules are identical to adding a subject by hand).
+     * @param int[] $courseIds
+     * @return array{pushed:int, skipped:int, errors:string[]}
+     */
+    function subj_tpl_push(PDO $db, int $tutorId, int $actorUserId, array $template, array $courseIds): array
+    {
+        $pushed = 0; $skipped = 0; $errors = [];
+        foreach ($courseIds as $courseId) {
+            $r = subj_create($db, $tutorId, $actorUserId, (int) $courseId, [
+                'name' => $template['name'], 'code' => (string) ($template['code'] ?? ''),
+                'weight' => $template['weight'] === null ? '' : (string) $template['weight'],
+                'monthly_expected' => $template['monthly_expected'],
+            ]);
+            if ($r['ok']) $pushed++;
+            else { $skipped++; $errors[] = 'Course #' . (int) $courseId . ': ' . $r['error']; }
+        }
+        return ['pushed' => $pushed, 'skipped' => $skipped, 'errors' => $errors];
+    }
+
     /** The card on the tutor's assignment page: this subject for every student who has the assignment. */
     function subj_card(PDO $db, array $assignment, array $studentUserIds): ?array
     {

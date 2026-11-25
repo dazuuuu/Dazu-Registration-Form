@@ -11,6 +11,9 @@ if (!defined('ASG_IMAGE_MAX')) {
     define('ASG_MAX_IMAGES', 10);
     define('ASG_MAX_FILES', 5);
     define('ASG_MAX_ATTACHMENTS', 10);
+    // Instant-graded quiz questions (MCQ/true-false/code-answer): pass mark and retries per question.
+    define('ASG_QUIZ_PASS_PERCENT', 70);
+    define('ASG_QUIZ_MAX_ATTEMPTS', 5);
     // Sites a tutor can restrict links to (host suffix => label).
     define('ASG_LINK_SITES', [
         'github.com' => 'GitHub', 'gitlab.com' => 'GitLab', 'docs.google.com' => 'Google Docs, Sheets, Slides',

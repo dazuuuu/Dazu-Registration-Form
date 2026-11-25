@@ -247,8 +247,36 @@ $maxWant = $item['due'] ? gmdate('Y-m-d H:i:s', AssignmentModel::ts($item['due']
         <?php foreach ($questions as $n => $q): ?><div class="asg-box mb-2 small"><strong>Q<?php echo $n + 1; ?></strong> <?php echo nl2br(asg_e($q['text'])); ?></div><?php endforeach; ?>
         <?php if ($attachments || $a['attachment_path']): ?>
             <div class="asg-section">Attachments</div>
-            <?php foreach ($attachments as $att): ?><a class="asg-pill" target="_blank" rel="noopener noreferrer" href="<?php echo asg_e($att['kind'] === 'link' ? $att['url'] : asg_files_url('att', (int) $att['id'])); ?>"><i class="fas <?php echo $att['kind'] === 'link' ? 'fa-link' : ($att['kind'] === 'pdf' ? 'fa-file-pdf' : 'fa-image'); ?>"></i><?php echo asg_e($att['label']); ?></a><?php endforeach; ?>
+            <?php foreach ($attachments as $att): $attUrl = $att['kind'] === 'link' ? $att['url'] : asg_files_url('att', (int) $att['id']); ?>
+                <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                    <a class="asg-pill" target="_blank" rel="noopener noreferrer" href="<?php echo asg_e($attUrl); ?>"><i class="fas <?php echo $att['kind'] === 'link' ? 'fa-link' : ($att['kind'] === 'pdf' ? 'fa-file-pdf' : 'fa-image'); ?>"></i><?php echo asg_e($att['label']); ?></a>
+                    <?php if ($att['kind'] === 'pdf' || $att['kind'] === 'image'): ?>
+                        <button type="button" class="btn btn-sm btn-outline-secondary asg-preview-btn" data-kind="<?php echo asg_e($att['kind']); ?>" data-url="<?php echo asg_e($attUrl); ?>" data-label="<?php echo asg_e($att['label']); ?>">Preview</button>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
             <?php if ($a['attachment_path']): ?><a class="asg-pill" target="_blank" rel="noopener" href="<?php echo asg_e(settings_asset_url($a['attachment_path'])); ?>"><i class="fas fa-paperclip"></i>Attachment</a><?php endif; ?>
+            <div id="asgPreviewBox" class="asg-box mt-2" style="display:none">
+                <div class="d-flex justify-content-between align-items-center mb-2"><strong id="asgPreviewLabel" class="small"></strong><button type="button" class="btn btn-sm btn-outline-dark" id="asgPreviewClose">Close</button></div>
+                <div id="asgPreviewBody"></div>
+            </div>
+            <script>
+            (function () {
+                var box = document.getElementById('asgPreviewBox'), body = document.getElementById('asgPreviewBody'), label = document.getElementById('asgPreviewLabel');
+                document.querySelectorAll('.asg-preview-btn').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        label.textContent = btn.dataset.label || '';
+                        body.innerHTML = btn.dataset.kind === 'image'
+                            ? '<img src="' + btn.dataset.url + '" style="max-width:100%" alt="">'
+                            : '<iframe src="' + btn.dataset.url + '#view=FitH&toolbar=0" style="width:100%;height:70vh;border:0" title="Document preview"></iframe>';
+                        box.style.display = '';
+                        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    });
+                });
+                var closeBtn = document.getElementById('asgPreviewClose');
+                if (closeBtn) closeBtn.addEventListener('click', function () { box.style.display = 'none'; body.innerHTML = ''; });
+            })();
+            </script>
         <?php endif; ?>
         <?php if ($a['details'] && $a['instructions']): ?><div class="asg-section">Instructions</div><div class="asg-box"><?php echo nl2br(asg_e($a['instructions'])); ?><?php echo $editable ? ' You can save a draft and come back later.' : ''; ?></div><?php endif; ?>
     </div>
@@ -290,14 +318,43 @@ $maxWant = $item['due'] ? gmdate('Y-m-d H:i:s', AssignmentModel::ts($item['due']
             <textarea name="code" class="form-control mb-2 asg-code" rows="8" spellcheck="false" maxlength="20000"><?php echo asg_e((string) ($sub['code_text'] ?? '')); ?></textarea>
         <?php endif; ?>
         <?php if ((int) ($a['submit_quiz'] ?? 0) && ($quizQs = $am->quizQuestions($id))): $qa = $sub ? $am->quizAnswers((int) $sub['id']) : []; ?>
-            <div class="asg-section">Quiz <span class="text-muted fw-normal">(marked by the system; answers show when grades are released)</span></div>
-            <?php foreach ($quizQs as $n => $q): ?>
-                <div class="asg-box mb-2"><div class="small fw-semibold mb-1"><?php echo $n + 1; ?>. <?php echo asg_e($q['prompt']); ?></div>
-                <?php foreach ($q['options'] as $oi => $opt): ?>
-                    <div class="form-check small"><input class="form-check-input" type="radio" name="quiz[<?php echo (int) $q['id']; ?>]" value="<?php echo $oi; ?>" id="q<?php echo (int) $q['id'] . '_' . $oi; ?>" <?php echo ($qa[(int) $q['id']] ?? null) === $oi ? 'checked' : ''; ?>>
-                        <label class="form-check-label" for="q<?php echo (int) $q['id'] . '_' . $oi; ?>"><?php echo asg_e($opt); ?></label></div>
-                <?php endforeach; ?></div>
+            <div class="asg-section">Quiz <span class="text-muted fw-normal">(marked instantly; each question allows up to <?php echo ASG_QUIZ_MAX_ATTEMPTS; ?> attempts to clear <?php echo ASG_QUIZ_PASS_PERCENT; ?>%)</span></div>
+            <div id="quizPages" data-max-attempts="<?php echo (int) ASG_QUIZ_MAX_ATTEMPTS; ?>">
+            <?php foreach (array_chunk($quizQs, 2, true) as $pageIdx => $pageQs): ?>
+                <div class="quiz-page" data-page="<?php echo $pageIdx; ?>" <?php echo $pageIdx === 0 ? '' : 'style="display:none"'; ?>>
+                <?php foreach ($pageQs as $n => $q):
+                    $attempts = $sub ? $am->quizAnswerAttempts((int) $sub['id'], (int) $q['id']) : [];
+                    $lastAtt = $attempts ? end($attempts) : null;
+                    $passed = $lastAtt && (int) $lastAtt['is_correct'] === 1;
+                    $attemptsLeft = max(0, ASG_QUIZ_MAX_ATTEMPTS - count($attempts));
+                    $locked = $passed || $attemptsLeft <= 0;
+                ?>
+                    <div class="qz-q" style="<?php echo ($n > 0 || $pageIdx > 0) ? 'border-top:1px solid #e5e7eb;padding-top:12px;margin-top:12px;' : ''; ?>" data-qid="<?php echo (int) $q['id']; ?>" data-type="<?php echo asg_e($q['qtype']); ?>">
+                        <div class="small fw-semibold mb-2"><?php echo $n + 1; ?>. <?php echo asg_e($q['prompt']); ?></div>
+                        <div class="qz-answer-box mb-2">
+                        <?php if ($q['qtype'] === 'text_answer'): ?>
+                            <textarea class="form-control form-control-sm qz-text" rows="3" placeholder="Type your answer" <?php echo $locked ? 'disabled' : ''; ?>><?php echo $lastAtt ? asg_e((string) $lastAtt['answer_text']) : ''; ?></textarea>
+                        <?php else: ?>
+                            <?php foreach ($q['options'] as $oi => $opt): ?>
+                                <div class="form-check small"><input class="form-check-input qz-opt" type="radio" name="quiz[<?php echo (int) $q['id']; ?>]" value="<?php echo $oi; ?>" id="q<?php echo (int) $q['id'] . '_' . $oi; ?>" <?php echo ($qa[(int) $q['id']] ?? null) === $oi ? 'checked' : ''; ?> <?php echo $locked ? 'disabled' : ''; ?>>
+                                    <label class="form-check-label" for="q<?php echo (int) $q['id'] . '_' . $oi; ?>"><?php echo asg_e($opt); ?></label></div>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-success qz-check" <?php echo $locked ? 'disabled' : ''; ?>>Check answer</button>
+                        <span class="small ms-2 qz-feedback <?php echo $passed ? 'text-success fw-semibold' : ''; ?>"><?php echo $passed ? 'Passed.' : ($attemptsLeft <= 0 ? 'No attempts left.' : ($attempts ? 'Attempt ' . count($attempts) . ' of ' . ASG_QUIZ_MAX_ATTEMPTS . '.' : '')); ?></span>
+                    </div>
+                <?php endforeach; ?>
+                </div>
             <?php endforeach; ?>
+            </div>
+            <?php if (count($quizQs) > 2): ?>
+            <div class="d-flex gap-2 align-items-center mt-2">
+                <button type="button" class="btn btn-sm btn-outline-dark" id="quizPrev">← Previous</button>
+                <span class="small text-muted" id="quizPageInfo"></span>
+                <button type="button" class="btn btn-sm btn-outline-dark" id="quizNext">Next →</button>
+            </div>
+            <?php endif; ?>
         <?php endif; ?>
         <?php if ((int) ($a['submit_audio'] ?? 0)): ?>
             <label class="form-label small mb-1">Record your answer <span class="text-muted">(up to 2 minutes)</span></label>
@@ -459,6 +516,64 @@ if ($editable) {
                 }).catch(function () { document.getElementById('recNo').textContent = 'We could not use your microphone. Allow it in your browser and try again.'; document.getElementById('recNo').classList.remove('d-none'); });
             });
         }
+    }
+
+    // Quiz: Prev/Next pager (2 questions per page) and instant per-question "Check answer".
+    var quizPages = document.querySelectorAll('#quizPages .quiz-page');
+    var quizMaxAttempts = document.getElementById('quizPages') ? (document.getElementById('quizPages').dataset.maxAttempts || '5') : '5';
+    if (quizPages.length) {
+        var curPage = 0;
+        function showPage(n) {
+            curPage = Math.max(0, Math.min(quizPages.length - 1, n));
+            quizPages.forEach(function (p, i) { p.style.display = i === curPage ? '' : 'none'; });
+            var info = document.getElementById('quizPageInfo');
+            if (info) info.textContent = 'Page ' + (curPage + 1) + ' of ' + quizPages.length;
+            var prev = document.getElementById('quizPrev'), next = document.getElementById('quizNext');
+            if (prev) prev.disabled = curPage === 0;
+            if (next) next.disabled = curPage === quizPages.length - 1;
+        }
+        if (document.getElementById('quizPrev')) document.getElementById('quizPrev').addEventListener('click', function () { showPage(curPage - 1); });
+        if (document.getElementById('quizNext')) document.getElementById('quizNext').addEventListener('click', function () { showPage(curPage + 1); });
+        showPage(0);
+
+        document.querySelectorAll('.qz-q').forEach(function (block) {
+            var btn = block.querySelector('.qz-check'), fb = block.querySelector('.qz-feedback');
+            if (!btn) return;
+            btn.addEventListener('click', function () {
+                var qid = block.dataset.qid, type = block.dataset.type, fd = new FormData();
+                fd.append('csrf_token', document.querySelector('#workForm input[name=csrf_token]').value);
+                fd.append('id', new URLSearchParams(location.search).get('id'));
+                fd.append('question_id', qid);
+                if (type === 'text_answer') {
+                    fd.append('text', block.querySelector('.qz-text').value);
+                } else {
+                    var sel = block.querySelector('.qz-opt:checked');
+                    if (!sel) { fb.textContent = 'Choose an answer first.'; fb.className = 'small ms-2 qz-feedback text-danger'; return; }
+                    fd.append('option', sel.value);
+                }
+                btn.disabled = true;
+                fetch(location.pathname.replace(/view\.php$/, 'quiz_answer.php'), { method: 'POST', body: fd, credentials: 'same-origin' })
+                    .then(function (r) { return r.json(); })
+                    .then(function (j) {
+                        if (!j.ok) {
+                            fb.textContent = j.error || 'Could not check that answer.';
+                            fb.className = 'small ms-2 qz-feedback text-danger';
+                            btn.disabled = !!j.locked;
+                            return;
+                        }
+                        fb.textContent = j.passed
+                            ? 'Passed.'
+                            : (j.attempts_left > 0 ? (j.correct ? 'Correct.' : 'Not quite. Attempt ' + j.attempt_no + ' of ' + quizMaxAttempts + ', ' + j.attempts_left + ' left.') : 'No attempts left.');
+                        fb.className = 'small ms-2 qz-feedback' + (j.passed ? ' text-success fw-semibold' : '');
+                        if (j.passed || j.attempts_left <= 0) {
+                            btn.disabled = true;
+                            block.querySelectorAll('.qz-opt, .qz-text').forEach(function (i) { i.disabled = true; });
+                        } else {
+                            btn.disabled = false;
+                        }
+                    }).catch(function () { fb.textContent = 'Could not reach the server. Try again.'; fb.className = 'small ms-2 qz-feedback text-danger'; btn.disabled = false; });
+            });
+        });
     }
 })();
 </script>

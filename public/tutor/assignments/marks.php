@@ -13,6 +13,10 @@ $students = $am->assignmentStudents($a);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     asg_csrf_or_back($self);
+    // Re-check right before any write, same reasoning as edit.php: a stale tab can still carry an
+    // $id whose assignment was archived or unpublished since the page was loaded.
+    $a = $am->getForTutor($id, $tutorId);
+    if (!$a || !(int) ($a['no_submission'] ?? 0) || $a['status'] !== 'published') asg_back('index.php', null, 'Practical marks are only for published "No submission" assignments.');
     $notifier = new AssignmentNotifier($pdo, $am);
     $held = AssignmentModel::gradesHeld($a);
     $saved = 0;

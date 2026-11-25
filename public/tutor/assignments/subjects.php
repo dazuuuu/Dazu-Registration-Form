@@ -50,6 +50,7 @@ ob_start();
     <h5 class="mb-1">Subjects</h5>
     <p class="small text-muted mb-3">A subject is a part of what you teach, for example Python Programming. Set them up once, then pick one on every assignment and monthly project.
         The subject mark is worked out by itself from the marks under it. Nobody types it.</p>
+    <p class="small mb-3">Courses that share the same subjects (e.g. Month 1 to Month 3)? Build them once in your <a href="subject_library.php">Subject Library</a> and push them into each course instead of retyping them here.</p>
     <form method="GET" class="d-flex gap-2 align-items-end flex-wrap">
         <div><label class="form-label small fw-semibold mb-0" for="courseSel">Course</label>
             <select name="course" id="courseSel" class="form-select" onchange="this.form.submit()"><option value="">Choose a course…</option>

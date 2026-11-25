@@ -69,6 +69,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$courseId) $back(null, 'Choose a course first.');
     $id = (int) ($_POST['id'] ?? 0);
     $action = (string) ($_POST['action'] ?? '');
+    if ($action === 'copy') {
+        $fromCourseId = (int) ($_POST['from_course'] ?? 0);
+        if (!$fromCourseId || !isset($courses[$fromCourseId]) || $fromCourseId === $courseId) $back(null, 'Choose a different course to copy from.');
+        $ids = array_values(array_unique(array_map('intval', (array) ($_POST['subject_ids'] ?? []))));
+        if (!$ids) $back(null, 'Choose at least one subject to copy.');
+        $copied = 0; $skipped = 0;
+        foreach ($ids as $sid) {
+            $srcSt = $db->prepare('SELECT * FROM course_subjects WHERE id = ? AND course_id = ? AND tutor_id = 0');
+            $srcSt->execute([$sid, $fromCourseId]);
+            $src = $srcSt->fetch(PDO::FETCH_ASSOC);
+            if (!$src) continue;
+            $dup = $db->prepare('SELECT COUNT(*) FROM course_subjects WHERE course_id = ? AND tutor_id = 0 AND LOWER(name) = LOWER(?)');
+            $dup->execute([$courseId, $src['name']]);
+            if ($dup->fetchColumn()) { $skipped++; continue; }
+            $db->prepare('INSERT INTO course_subjects (course_id, tutor_id, name, code, weight, monthly_expected, month_no, sort_order, is_active, updated_at) VALUES (?, 0, ?, ?, NULL, ?, ?, ?, 1, ?)')
+               ->execute([$courseId, $src['name'], $src['code'], $src['monthly_expected'], $src['month_no'], $src['month_no'], gmdate('Y-m-d H:i:s')]);
+            $newId = (int) $db->lastInsertId();
+            tr_number_one_subject($db, $newId, $courseId);
+            $log($newId, 'subject_copied', ['name' => $src['name'], 'from_course_id' => $fromCourseId]);
+            $copied++;
+        }
+        $msg = $copied . ' subject' . ($copied === 1 ? '' : 's') . ' copied.' . ($skipped ? ' ' . $skipped . ' skipped (already exists in this course).' : '');
+        $back($copied ? $msg : null, $copied ? null : 'Nothing was copied. ' . ($skipped ? $skipped . ' already existed in this course.' : 'No matching subjects found.'));
+    }
     if ($action === 'create' || $action === 'update') {
         [$d, $err] = $clean($_POST);
         if ($err) $back(null, $err);
@@ -117,6 +141,15 @@ $byMonth = [];
 foreach ($subjects as $s) $byMonth[(int) $s['month_no']][] = $s;
 $nextMonth = $subjects ? max(array_map(fn($s) => (int) $s['month_no'], $subjects)) : 1;
 
+$fromId = (int) ($_GET['from'] ?? 0);
+if (!isset($courses[$fromId]) || $fromId === $courseId) $fromId = 0;
+$fromSubjects = [];
+if ($courseId && $fromId) {
+    $st = $db->prepare('SELECT * FROM course_subjects WHERE course_id = ? AND tutor_id = 0 ORDER BY COALESCE(month_no, 99), sort_order, id');
+    $st->execute([$fromId]);
+    $fromSubjects = $st->fetchAll(PDO::FETCH_ASSOC);
+}
+
 ob_start();
 ?>
 <div class="card mb-3"><div class="card-body">
@@ -156,6 +189,39 @@ ob_start();
         </form>
         <?php endforeach; ?>
     <?php endforeach; ?>
+</div></div>
+
+<div class="card mb-3"><div class="card-body">
+    <h6 class="fw-bold mb-1">Copy subjects from another course</h6>
+    <p class="text-muted small mb-3">Some courses share the same subjects (e.g. Month 1 to Month 3). Pick the course to copy from, choose which subjects to bring in, and they are added here with the same month, short code and monthly-project count. A subject already in this course (same name) is skipped.</p>
+    <form method="GET" class="d-flex gap-2 flex-wrap align-items-end mb-3">
+        <input type="hidden" name="course" value="<?= $courseId ?>">
+        <div><label class="form-label small fw-semibold mb-0" for="fromSel">Copy from</label>
+            <select name="from" id="fromSel" class="form-select" onchange="this.form.submit()">
+                <option value="">Choose a course…</option>
+                <?php foreach ($courses as $cid => $ct): if ((int) $cid === $courseId) continue; ?>
+                <option value="<?= (int) $cid ?>" <?= (int) $cid === $fromId ? 'selected' : '' ?>><?= $e($ct) ?><?= !empty($counts[$cid]) ? ' (' . (int) $counts[$cid] . ')' : '' ?></option>
+                <?php endforeach; ?>
+            </select></div>
+        <noscript><button class="btn btn-outline-dark">Show</button></noscript>
+    </form>
+    <?php if ($fromId && !$fromSubjects): ?><p class="text-muted small mb-0"><?= $e($courses[$fromId]) ?> has no subjects yet.</p><?php endif; ?>
+    <?php if ($fromSubjects): ?>
+    <form method="POST">
+        <?= csrf_field() ?><input type="hidden" name="course_id" value="<?= $courseId ?>"><input type="hidden" name="action" value="copy"><input type="hidden" name="from_course" value="<?= $fromId ?>">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="small fw-semibold mb-0"><input type="checkbox" onclick="this.closest('form').querySelectorAll('.copy-chk').forEach(c=>c.checked=this.checked)"> Select all</label>
+            <button class="btn btn-success btn-sm">Copy selected subjects</button>
+        </div>
+        <?php foreach ($fromSubjects as $s): ?>
+        <label class="d-flex align-items-center gap-2 border rounded p-2 mb-1 small">
+            <input type="checkbox" class="copy-chk" name="subject_ids[]" value="<?= (int) $s['id'] ?>">
+            <span class="fw-semibold"><?= $e($s['name']) ?></span>
+            <span class="text-muted">Month <?= (int) $s['month_no'] ?><?= $s['code'] ? ' · ' . $e($s['code']) : '' ?></span>
+        </label>
+        <?php endforeach; ?>
+    </form>
+    <?php endif; ?>
 </div></div>
 
 <form method="POST" class="card"><div class="card-body"><?= csrf_field() ?><input type="hidden" name="course_id" value="<?= $courseId ?>"><input type="hidden" name="action" value="create">

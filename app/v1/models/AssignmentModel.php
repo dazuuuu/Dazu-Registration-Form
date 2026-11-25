@@ -8,6 +8,7 @@ namespace Models;
 
 require_once __DIR__ . '/../services/LinkRules.php';
 require_once __DIR__ . '/../helpers/tutor_active.php';
+require_once __DIR__ . '/../helpers/assignment_files.php';
 
 use PDO;
 
@@ -1275,43 +1276,106 @@ class AssignmentModel {
         $st = $this->db->prepare("SELECT * FROM tutor_assignment_quiz_questions WHERE assignment_id = ? ORDER BY position, id");
         $st->execute([$assignmentId]);
         $rows = $st->fetchAll(PDO::FETCH_ASSOC);
-        foreach ($rows as &$r) $r['options'] = $r['qtype'] === 'truefalse' ? ['True', 'False'] : (json_decode((string) $r['options_json'], true) ?: []);
+        foreach ($rows as &$r) {
+            if ($r['qtype'] === 'text_answer') {
+                $r['options'] = [];
+                $r['correct_answer_text'] = (string) (json_decode((string) $r['options_json'], true)['answer'] ?? '');
+            } else {
+                $r['options'] = $r['qtype'] === 'truefalse' ? ['True', 'False'] : (json_decode((string) $r['options_json'], true) ?: []);
+                $r['correct_answer_text'] = null;
+            }
+        }
         return $rows;
     }
 
-    /** $rows: list of [id|null, qtype, prompt, options[], correct index, points]. Answers keep pointing at kept rows. */
+    /** $rows: list of [id|null, qtype, prompt, options[]|answer text, correct index (ignored for text_answer), points]. Answers keep pointing at kept rows. */
     public function saveQuizQuestions(int $assignmentId, array $rows): void {
         $this->syncRows('tutor_assignment_quiz_questions', $assignmentId, $rows, fn($q) => [
-            'qtype' => $q[1], 'prompt' => $q[2], 'options_json' => $q[1] === 'mcq' ? json_encode(array_values($q[3]), JSON_UNESCAPED_UNICODE) : null,
-            'correct_option' => (int) $q[4], 'points' => $q[5],
+            'qtype' => $q[1],
+            'prompt' => $q[2],
+            'options_json' => $q[1] === 'text_answer'
+                ? json_encode(['answer' => mb_substr(trim((string) $q[3]), 0, 1000)], JSON_UNESCAPED_UNICODE)
+                : ($q[1] === 'mcq' ? json_encode(array_values($q[3]), JSON_UNESCAPED_UNICODE) : null),
+            'correct_option' => $q[1] === 'text_answer' ? 0 : (int) $q[4],
+            'points' => $q[5],
         ]);
     }
 
-    /** question_id => selected option (or null). */
+    /** question_id => selected option (or null). Kept for the whole-assignment-submit path; text_answer questions are not represented here. */
     public function quizAnswers(int $submissionId): array {
-        $st = $this->db->prepare("SELECT question_id, selected_option FROM tutor_assignment_quiz_answers WHERE submission_id = ?");
+        $st = $this->db->prepare("SELECT question_id, selected_option FROM tutor_assignment_quiz_answers WHERE submission_id = ? AND selected_option IS NOT NULL
+                                   AND attempt_no = (SELECT MAX(a2.attempt_no) FROM tutor_assignment_quiz_answers a2 WHERE a2.submission_id = tutor_assignment_quiz_answers.submission_id AND a2.question_id = tutor_assignment_quiz_answers.question_id)");
         $st->execute([$submissionId]);
         return array_map(fn($v) => $v === null ? null : (int) $v, $st->fetchAll(PDO::FETCH_KEY_PAIR));
     }
 
+    /** Attempt history for one question, oldest first. */
+    public function quizAnswerAttempts(int $submissionId, int $questionId): array {
+        $st = $this->db->prepare("SELECT * FROM tutor_assignment_quiz_answers WHERE submission_id = ? AND question_id = ? ORDER BY attempt_no");
+        $st->execute([$submissionId, $questionId]);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Whole-assignment-submit fallback: records the latest attempt for any question not already individually checked. Attempt-number-aware (caps at ASG_QUIZ_MAX_ATTEMPTS; silently skips past that, since this path has no per-call error channel). */
     public function saveQuizAnswers(int $assignmentId, int $uid, array $answers): void {
         $subId = $this->ensureSubmission($assignmentId, $uid);
         $valid = [];
-        foreach ($this->quizQuestions($assignmentId) as $q) $valid[(int) $q['id']] = count($q['options']);
-        $up = $this->db->prepare("INSERT INTO tutor_assignment_quiz_answers (submission_id, question_id, selected_option) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE selected_option = VALUES(selected_option)");
+        foreach ($this->quizQuestions($assignmentId) as $q) $valid[(int) $q['id']] = ['n' => count($q['options']), 'correct' => (int) $q['correct_option'], 'points' => (float) $q['points']];
         foreach ($answers as $qid => $opt) {
-            if (!isset($valid[(int) $qid]) || $opt === '' || $opt === null || (int) $opt < 0 || (int) $opt >= $valid[(int) $qid]) continue;
-            $up->execute([$subId, (int) $qid, (int) $opt]);
+            $qid = (int) $qid;
+            if (!isset($valid[$qid]) || $opt === '' || $opt === null || (int) $opt < 0 || (int) $opt >= $valid[$qid]['n']) continue;
+            $attempts = $this->quizAnswerAttempts($subId, $qid);
+            if (count($attempts) >= ASG_QUIZ_MAX_ATTEMPTS) continue;
+            $last = end($attempts);
+            if ($last && (int) $last['is_correct'] === 1) continue;
+            $opt = (int) $opt;
+            $correct = $opt === $valid[$qid]['correct'];
+            $this->db->prepare("INSERT INTO tutor_assignment_quiz_answers (submission_id, question_id, attempt_no, selected_option, is_correct, points_awarded, graded_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                ->execute([$subId, $qid, count($attempts) + 1, $opt, $correct ? 1 : 0, $correct ? $valid[$qid]['points'] : 0, self::now()]);
         }
     }
 
-    /** Marked by the system: ['got' => points, 'of' => points]. */
+    /** Instant per-question grading. $raw: selected option index (mcq/truefalse) or answer text (text_answer). */
+    public function gradeQuizAnswer(array $item, int $uid, int $questionId, $raw): array {
+        $q = null;
+        foreach ($this->quizQuestions((int) $item['id']) as $cand) if ((int) $cand['id'] === $questionId) { $q = $cand; break; }
+        if (!$q) return ['ok' => false, 'error' => 'That question was not found.'];
+        $subId = $this->ensureSubmission((int) $item['id'], $uid);
+        $attempts = $this->quizAnswerAttempts($subId, $questionId);
+        if (count($attempts) >= ASG_QUIZ_MAX_ATTEMPTS) return ['ok' => false, 'error' => 'No attempts left for this question.', 'locked' => true, 'attempts_left' => 0];
+        $last = end($attempts);
+        if ($last && (int) $last['is_correct'] === 1) return ['ok' => false, 'error' => 'You have already passed this question.', 'locked' => true, 'attempts_left' => max(0, ASG_QUIZ_MAX_ATTEMPTS - count($attempts))];
+
+        $selectedOption = null;
+        $answerText = null;
+        if ($q['qtype'] === 'text_answer') {
+            $answerText = mb_substr(trim((string) $raw), 0, 5000);
+            $norm = fn($s) => trim(preg_replace('/\s+/u', ' ', (string) $s));
+            $correct = $answerText !== '' && $norm($answerText) === $norm($q['correct_answer_text']);
+        } else {
+            if ($raw === '' || $raw === null || !is_numeric($raw)) return ['ok' => false, 'error' => 'Choose an answer.'];
+            $selectedOption = (int) $raw;
+            if ($selectedOption < 0 || $selectedOption >= count($q['options'])) return ['ok' => false, 'error' => 'Choose a valid answer.'];
+            $correct = $selectedOption === (int) $q['correct_option'];
+        }
+        $percent = $correct ? 100.0 : 0.0;
+        $nextAttempt = count($attempts) + 1;
+        $this->db->prepare("INSERT INTO tutor_assignment_quiz_answers (submission_id, question_id, attempt_no, selected_option, answer_text, is_correct, points_awarded, graded_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+            ->execute([$subId, $questionId, $nextAttempt, $selectedOption, $answerText, $correct ? 1 : 0, $correct ? (float) $q['points'] : 0, self::now()]);
+        return [
+            'ok' => true, 'correct' => $correct, 'percent' => $percent, 'attempt_no' => $nextAttempt,
+            'attempts_left' => max(0, ASG_QUIZ_MAX_ATTEMPTS - $nextAttempt), 'passed' => $percent >= ASG_QUIZ_PASS_PERCENT,
+        ];
+    }
+
+    /** Marked by the system: ['got' => points, 'of' => points]. Best attempt per question. */
     public function quizScore(int $assignmentId, int $submissionId): array {
-        $ans = $this->quizAnswers($submissionId);
         $got = $of = 0.0;
         foreach ($this->quizQuestions($assignmentId) as $q) {
             $of += (float) $q['points'];
-            if (($ans[(int) $q['id']] ?? null) === (int) $q['correct_option']) $got += (float) $q['points'];
+            foreach ($this->quizAnswerAttempts($submissionId, (int) $q['id']) as $att) {
+                if ((int) $att['is_correct'] === 1) { $got += (float) $q['points']; break; }
+            }
         }
         return ['got' => $got, 'of' => $of];
     }

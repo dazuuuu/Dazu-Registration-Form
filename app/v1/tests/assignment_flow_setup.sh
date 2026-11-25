@@ -19,5 +19,5 @@ INSERT INTO users VALUES (1,'tutor','t@x.com'),(2,'tutor2','t2@x.com'),(11,'amin
 INSERT INTO tutors VALUES (1,1),(2,2); INSERT INTO courses VALUES (1,'Cyber');
 INSERT INTO tutor_students VALUES (1,11),(1,12),(1,13);
 INSERT INTO registrations (user_id,course_id,status,full_name,registration_no) VALUES (11,1,'approved','Amina','R1'),(12,1,'approved','Brian','R2'),(13,1,'approved','Cynthia','R3');"
-for m in 065_assignments_and_quizzes 066_assignments_full 083_assignments_daily_weekly; do $MYSQL -f $DB < "$DIR/$m.sql" 2>/dev/null || true; done
+for m in 065_assignments_and_quizzes 066_assignments_full 083_assignments_daily_weekly 091_subjects 137_quiz_text_answers_attempts; do $MYSQL -f $DB < "$DIR/$m.sql" 2>/dev/null || true; done
 ASG_TEST_DSN="mysql:host=localhost;dbname=$DB" php "$(dirname "$0")/assignment_flow_test.php"

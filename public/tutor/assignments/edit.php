@@ -26,7 +26,7 @@ $f = $a ? [
     'recipients' => $am->recipientIds($id),
     'kind' => (string) ($a['kind'] ?? 'daily'), 'weight' => (float) ($a['weight'] ?? 1), 'allow_resubmission' => ($a['allow_resubmission'] ?? null) === null ? 1 : (int) $a['allow_resubmission'],
     'subject_id' => (int) ($a['subject_id'] ?? 0),
-    'class_session_id' => (int) ($a['class_session_id'] ?? 0), 'quiz' => array_map(fn($q) => [(int) $q['id'], $q['qtype'], $q['prompt'], $q['options'], (int) $q['correct_option'], (float) $q['points']], $am->quizQuestions($id)),
+    'class_session_id' => (int) ($a['class_session_id'] ?? 0), 'quiz' => array_map(fn($q) => [(int) $q['id'], $q['qtype'], $q['prompt'], $q['qtype'] === 'text_answer' ? $q['correct_answer_text'] : $q['options'], (int) $q['correct_option'], (float) $q['points']], $am->quizQuestions($id)),
     'overrides' => [], 'groups_on' => (int) !empty($a['group_size']), 'groups' => $am->groupMap($id),
     'show_at' => !empty($a['publish_at']) ? 'later' : 'now', 'publish_date' => AssignmentModel::local($a['publish_at'] ?? null, 'Y-m-d'), 'publish_time' => AssignmentModel::local($a['publish_at'] ?? null, 'H:i') ?: '08:00',
     'release' => !empty($a['release_grades_at']) ? 'later' : 'now', 'release_date' => AssignmentModel::local($a['release_grades_at'] ?? null, 'Y-m-d'), 'release_time' => AssignmentModel::local($a['release_grades_at'] ?? null, 'H:i') ?: '09:00',
@@ -45,6 +45,13 @@ $tutorClasses = $am->tutorClasses($me);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     asg_csrf_or_back('edit.php' . ($id ? '?id=' . $id : ''));
+    // Re-check right before any write: a stale tab can still carry an $id whose assignment was
+    // archived (e.g. by Reset Course) since the page was loaded. Re-fetching here, not just at the
+    // top-of-file GET check, closes that window regardless of how the POST reached this branch.
+    if ($id) {
+        $a = $am->getForTutor($id, $tutorId);
+        if (!$a || $a['status'] === 'archived') asg_back('index.php', null, 'Assignment not found.');
+    }
     $p = $_POST;
     // A template is never shown to students: Use it from the Templates tab to make a real assignment.
     $publish = ($p['action'] ?? '') === 'publish' && !(int) ($a['is_template'] ?? 0);
@@ -83,12 +90,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach ((array) ($p['qz_prompt'] ?? []) as $i => $qp) {
         $qp = trim((string) $qp);
         if ($qp === '') continue;
-        $qt = ($p['qz_type'][$i] ?? '') === 'truefalse' ? 'truefalse' : 'mcq';
+        $qtRaw = (string) ($p['qz_type'][$i] ?? '');
+        $qt = $qtRaw === 'truefalse' ? 'truefalse' : ($qtRaw === 'text_answer' ? 'text_answer' : 'mcq');
+        $points = max(0.5, min(100, round((float) ($p['qz_points'][$i] ?? 1), 2)));
+        if ($qt === 'text_answer') {
+            $answerText = trim((string) ($p['qz_answer'][$i] ?? ''));
+            if ($answerText === '') { $errors[] = 'Quiz question ' . (count($f['quiz']) + 1) . ' needs the expected answer.'; continue; }
+            $f['quiz'][] = [(int) ($p['qz_id'][$i] ?? 0), 'text_answer', mb_substr($qp, 0, 1000), $answerText, 0, $points];
+            continue;
+        }
         $opts = $qt === 'mcq' ? array_values(array_filter(array_map(fn($o) => mb_substr(trim((string) $o), 0, 200), explode("\n", (string) ($p['qz_options'][$i] ?? ''))), 'strlen')) : ['True', 'False'];
         $correct = (int) ($p['qz_correct'][$i] ?? 1) - 1;
         if ($qt === 'mcq' && (count($opts) < 2 || count($opts) > 6)) $errors[] = 'Quiz question ' . (count($f['quiz']) + 1) . ' needs 2 to 6 choices (one per line).';
         if ($correct < 0 || $correct >= count($opts)) $correct = 0;
-        $f['quiz'][] = [(int) ($p['qz_id'][$i] ?? 0), $qt, mb_substr($qp, 0, 1000), $opts, $correct, max(0.5, min(100, round((float) ($p['qz_points'][$i] ?? 1), 2)))];
+        $f['quiz'][] = [(int) ($p['qz_id'][$i] ?? 0), $qt, mb_substr($qp, 0, 1000), $opts, $correct, $points];
     }
     if ($f['submit_quiz'] && !$f['quiz']) $errors[] = 'Add at least one quiz question, or turn Quiz questions off.';
     $f['groups_on'] = !empty($p['groups_on']) ? 1 : 0;
@@ -258,6 +273,9 @@ ob_start();
             <h5 class="mb-0"><?php echo $a ? asg_e($a['title']) : 'New assignment'; ?></h5>
             <span class="badge <?php echo $isDraft ? 'bg-secondary' : 'bg-success'; ?>"><?php echo $isDraft ? 'DRAFT' : 'PUBLISHED'; ?></span>
         </div>
+        <?php if ((int) ($a['is_template'] ?? 0)): ?>
+        <div class="alert alert-warning small py-2 mb-3">This is a template — attachments and content saved here are only copied into new assignments made with "Use" after this point; students never see templates directly.</div>
+        <?php endif; ?>
         <div class="mb-3">
             <label class="form-label fw-semibold">Course</label>
             <select name="course_id" id="courseSel" class="form-select" required>
@@ -404,15 +422,21 @@ ob_start();
         <div id="quizBox" class="mt-2 <?php echo $f['submit_quiz'] ? '' : 'd-none'; ?>">
             <div class="small fw-semibold mb-1">Quiz questions <span class="text-muted fw-normal">(multiple choice: one choice per line; wrong answers are hidden until grades are released)</span></div>
             <div id="qzList">
-            <?php foreach ($f['quiz'] ?: [[0, 'mcq', '', [], 0, 1]] as $q): ?>
-                <div class="asg-box mb-2 qz-row"><input type="hidden" name="qz_id[]" value="<?php echo (int) $q[0]; ?>">
-                    <div class="d-flex gap-2 mb-1"><select name="qz_type[]" class="form-select form-select-sm w-auto"><option value="mcq">Multiple choice</option><option value="truefalse" <?php echo $q[1] === 'truefalse' ? 'selected' : ''; ?>>True or false</option></select>
+            <?php foreach ($f['quiz'] ?: [[0, 'mcq', '', [], 0, 1]] as $q): $isText = $q[1] === 'text_answer'; ?>
+                <div class="asg-box mb-2 qz-row" data-qtype="<?php echo asg_e($q[1]); ?>"><input type="hidden" name="qz_id[]" value="<?php echo (int) $q[0]; ?>">
+                    <div class="d-flex gap-2 mb-1"><select name="qz_type[]" class="form-select form-select-sm w-auto qz-type">
+                            <option value="mcq" <?php echo $q[1] === 'mcq' ? 'selected' : ''; ?>>Multiple choice</option>
+                            <option value="truefalse" <?php echo $q[1] === 'truefalse' ? 'selected' : ''; ?>>True or false</option>
+                            <option value="text_answer" <?php echo $isText ? 'selected' : ''; ?>>Code / text answer</option>
+                        </select>
                         <input name="qz_points[]" type="number" min="0.5" step="0.5" class="form-control form-control-sm" style="max-width:90px" value="<?php echo asg_e((string) $q[5]); ?>" title="Points">
-                        <input name="qz_correct[]" type="number" min="1" class="form-control form-control-sm qz-c" style="max-width:110px" value="<?php echo (int) $q[4] + 1; ?>" title="Correct choice number">
+                        <input name="qz_correct[]" type="number" min="1" class="form-control form-control-sm qz-c" style="max-width:110px <?php echo $isText ? 'display:none' : ''; ?>" value="<?php echo (int) $q[4] + 1; ?>" title="Correct choice number">
                         <button type="button" class="btn btn-sm btn-outline-secondary qz-del" aria-label="Remove">×</button></div>
                     <input name="qz_prompt[]" class="form-control form-control-sm mb-1" placeholder="Question" value="<?php echo asg_e($q[2]); ?>">
-                    <textarea name="qz_options[]" class="form-control form-control-sm" rows="3" placeholder="Choices, one per line (multiple choice only)"><?php echo asg_e($q[1] === 'mcq' ? implode("\n", $q[3]) : ''); ?></textarea>
-                    <div class="small text-muted">The correct choice is the number in the third box (1 = first line; for True or false, 1 = True).</div></div>
+                    <textarea name="qz_options[]" class="form-control form-control-sm qz-options" rows="3" placeholder="Choices, one per line (multiple choice only)" <?php echo $isText ? 'style="display:none"' : ''; ?>><?php echo asg_e($q[1] === 'mcq' ? implode("\n", $q[3]) : ''); ?></textarea>
+                    <textarea name="qz_answer[]" class="form-control form-control-sm qz-answer" rows="3" placeholder="The exact expected answer (graded by matching text, trimmed and whitespace-normalized)" <?php echo $isText ? '' : 'style="display:none"'; ?>><?php echo asg_e($isText ? $q[3] : ''); ?></textarea>
+                    <div class="small text-muted qz-hint-mc" <?php echo $isText ? 'style="display:none"' : ''; ?>>The correct choice is the number in the third box (1 = first line; for True or false, 1 = True).</div>
+                    <div class="small text-muted qz-hint-text" <?php echo $isText ? '' : 'style="display:none"'; ?>>Graded instantly against this exact answer. The student gets up to <?php echo ASG_QUIZ_MAX_ATTEMPTS; ?> attempts.</div></div>
             <?php endforeach; ?>
             </div>
             <button type="button" class="btn btn-sm btn-outline-success" id="qzAdd">Add a quiz question</button>
@@ -611,19 +635,30 @@ $extra_js = <<<'JS'
         $$('#stuList .stu').forEach(function (r) { if (r.style.display !== 'none') $('input', r).checked = on; }); picker();
     });
     picker();
-    // Quiz questions: show when the switch is on; add and remove rows.
+    // Quiz questions: show when the switch is on; add and remove rows; toggle fields by question type.
     var qz = $('#swsubmit_quiz');
     var sg = $('#swGroups');
     if (sg) sg.addEventListener('change', function () { $('#groupBox').classList.toggle('d-none', !this.checked); });
     if (qz) qz.addEventListener('change', function () { $('#quizBox').classList.toggle('d-none', !this.checked); });
+    function qzToggle(row) {
+        var isText = $('.qz-type', row).value === 'text_answer';
+        $('.qz-c', row).style.display = isText ? 'none' : '';
+        $('.qz-options', row).style.display = isText ? 'none' : '';
+        $('.qz-answer', row).style.display = isText ? '' : 'none';
+        $('.qz-hint-mc', row).style.display = isText ? 'none' : '';
+        $('.qz-hint-text', row).style.display = isText ? '' : 'none';
+    }
     $('#qzAdd').addEventListener('click', function () {
         var row = $('#qzList .qz-row').cloneNode(true);
         $$('input, textarea', row).forEach(function (i) { i.value = i.name === 'qz_points[]' || i.name === 'qz_correct[]' ? '1' : (i.name === 'qz_id[]' ? '0' : ''); });
+        $('.qz-type', row).value = 'mcq';
+        qzToggle(row);
         $('#qzList').appendChild(row);
     });
     $('#qzList').addEventListener('click', function (e) {
         if (e.target.classList.contains('qz-del') && $$('#qzList .qz-row').length > 1) e.target.closest('.qz-row').remove();
     });
+    $('#qzList').addEventListener('change', function (e) { if (e.target.classList.contains('qz-type')) qzToggle(e.target.closest('.qz-row')); });
 })();
 </script>
 JS;

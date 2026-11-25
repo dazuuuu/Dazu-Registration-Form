@@ -120,6 +120,28 @@ $am->saveQuizAnswers($quiz, 12, [$q[0]['id'] => 1, $q[1]['id'] => 1]);
 check('quiz marked by the system', $am->quizScore($quiz, (int) $am->submission($quiz, 12)['id']), ['got' => 2.0, 'of' => 3.0]);
 check('quiz-only work can be sent', $am->submit($am->itemForStudent(12, $quiz), 12)['ok'], true);
 
+// Instant per-question grading: MCQ retry, text-answer exact match, attempt cap, best-attempt scoring.
+$iq = $make(['title' => 'Instant quiz', 'sequential_lock' => 0, 'submit_quiz' => 1, 'submit_text' => 0]);
+$am->saveQuizQuestions($iq, [[0, 'mcq', 'Pick B', ['A', 'B', 'C'], 1, 2], [0, 'text_answer', 'print("hi")', 'print("hi")', 0, 3], [0, 'text_answer', 'Always wrong', 'unreachable answer', 0, 1]]);
+$iqQs = $am->quizQuestions($iq);
+[$mcqQ, $txtQ, $capQ] = $iqQs;
+check('text_answer options are empty', $txtQ['options'], []);
+check('text_answer correct answer decoded', $txtQ['correct_answer_text'], 'print("hi")');
+$item13 = $am->itemForStudent(13, $iq);
+$r1 = $am->gradeQuizAnswer($item13, 13, (int) $mcqQ['id'], 0);
+check('first wrong MCQ attempt', [$r1['ok'], $r1['correct'], $r1['attempt_no'], $r1['passed']], [true, false, 1, false]);
+$r2 = $am->gradeQuizAnswer($item13, 13, (int) $mcqQ['id'], 1);
+check('second correct MCQ attempt', [$r2['ok'], $r2['correct'], $r2['attempt_no'], $r2['passed']], [true, true, 2, true]);
+$r3 = $am->gradeQuizAnswer($item13, 13, (int) $mcqQ['id'], 1);
+check('no more attempts after a pass', $r3['ok'], false);
+check('normalized exact match (extra spaces/trim)', $am->gradeQuizAnswer($item13, 13, (int) $txtQ['id'], '  print("hi")  ')['correct'], true);
+$subId13 = $am->submission($iq, 13)['id'];
+for ($i = 0; $i < 10; $i++) $am->gradeQuizAnswer($item13, 13, (int) $capQ['id'], 'wrong ' . $i);
+$capped = $am->gradeQuizAnswer($item13, 13, (int) $capQ['id'], 'wrong again');
+check('attempt cap enforced (5 max)', $capped['ok'], false);
+check('attempts never exceed the cap', count($am->quizAnswerAttempts((int) $subId13, (int) $capQ['id'])), 5);
+check('best-attempt scoring: MCQ passed + text passed + cap-question failed', $am->quizScore($iq, (int) $subId13), ['got' => 5.0, 'of' => 6.0]);
+
 // Groups: one submission, same mark for every member, only one row to grade.
 $grp = $make(['title' => 'Group', 'sequential_lock' => 0, 'group_size' => 3]);
 $am->saveGroups($grp, [11 => 1, 12 => 1, 13 => 0]);
