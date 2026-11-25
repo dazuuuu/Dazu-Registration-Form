@@ -12,7 +12,7 @@
 if (!class_exists('CourseImportService')) {
 class CourseImportService
 {
-    public const HEADERS = ['Type', 'Unit', 'Title', 'Description', 'What students learn', 'Lesson notes', 'Video link', 'Answer type', 'Options', 'Correct option', 'Marks'];
+    public const HEADERS = ['Type', 'Unit', 'Subject', 'Title', 'Description', 'What students learn', 'Lesson notes', 'Video link', 'Answer type', 'Options', 'Correct option', 'Marks'];
     private const MODES = ['text' => 'text', 'written' => 'text', 'choice' => 'choice', 'multiple choice' => 'choice', 'mcq' => 'choice',
                            'file' => 'file', 'upload' => 'file', 'link' => 'github', 'github' => 'github', 'url' => 'github'];
 
@@ -21,18 +21,19 @@ class CourseImportService
     {
         return [
             self::HEADERS,
-            ['# HOW TO FILL', 'Delete these # lines and the example rows, then add your own. Keep the first row (the headers) exactly as it is.', '', '', '', '', '', '', '', '', ''],
-            ['# Type', 'UNIT = a new unit/module. LESSON = notes inside a unit. QUESTION = a question inside a unit. ASSIGNMENT = final assignment (opens after the whole course is done).', '', '', '', '', '', '', '', '', ''],
-            ['# Unit', 'The unit number the row belongs to (1, 2, 3…). Leave it empty for ASSIGNMENT rows.', '', '', '', '', '', '', '', '', ''],
-            ['# Answer type', 'For QUESTION / ASSIGNMENT: text, choice, file or link. For choice: Options like  A | B | C  and Correct option = 2.', '', '', '', '', '', '', '', '', ''],
-            ['UNIT', '1', 'Introduction to Python', 'Get set up and write your first programs.', 'Install Python; run a script; use variables and print()', '', 'https://www.youtube.com/watch?v=example', '', '', '', ''],
-            ['LESSON', '1', 'Installing Python', '', '', 'Download Python from python.org, install it and tick "Add to PATH". Open a terminal and type python --version.', '', '', '', '', ''],
-            ['QUESTION', '1', 'Which command shows the Python version?', '', '', '', '', 'choice', 'python --version | python -v | version python', '1', '5'],
-            ['QUESTION', '1', 'Write a program that prints your name and age.', 'Paste your code.', '', '', '', 'text', '', '', '10'],
-            ['UNIT', '2', 'Control flow', 'Make decisions and repeat work.', 'if / elif / else; for and while loops', '', '', '', '', '', ''],
-            ['LESSON', '2', 'If statements', '', '', 'Use if to run code only when a condition is true...', '', '', '', '', ''],
-            ['QUESTION', '2', 'Upload a script that prints the numbers 1 to 10.', '', '', '', '', 'file', '', '', '10'],
-            ['ASSIGNMENT', '', 'Final project: a simple calculator', 'Build a calculator that adds, subtracts, multiplies and divides. Share your GitHub link.', '', '', '', 'link', '', '', '50'],
+            ['# HOW TO FILL', 'Delete these # lines and the example rows, then add your own. Keep the first row (the headers) exactly as it is.', '', '', '', '', '', '', '', '', '', ''],
+            ['# Type', 'UNIT = a new unit/module. LESSON = notes inside a unit. QUESTION = a question inside a unit. ASSIGNMENT = final assignment (opens after the whole course is done).', '', '', '', '', '', '', '', '', '', ''],
+            ['# Unit', 'The unit number the row belongs to (1, 2, 3…). Leave it empty for ASSIGNMENT rows.', '', '', '', '', '', '', '', '', '', ''],
+            ['# Subject', 'Only on UNIT rows. The subject this unit belongs to, e.g. Python Programming. If it does not exist yet in the course it is created automatically. Leave empty for no subject.', '', '', '', '', '', '', '', '', '', ''],
+            ['# Answer type', 'For QUESTION / ASSIGNMENT: text, choice, file or link. For choice: Options like  A | B | C  and Correct option = 2.', '', '', '', '', '', '', '', '', '', ''],
+            ['UNIT', '1', 'Python Programming', 'Introduction to Python', 'Get set up and write your first programs.', 'Install Python; run a script; use variables and print()', '', 'https://www.youtube.com/watch?v=example', '', '', '', ''],
+            ['LESSON', '1', '', 'Installing Python', '', '', 'Download Python from python.org, install it and tick "Add to PATH". Open a terminal and type python --version.', '', '', '', '', ''],
+            ['QUESTION', '1', '', 'Which command shows the Python version?', '', '', '', '', 'choice', 'python --version | python -v | version python', '1', '5'],
+            ['QUESTION', '1', '', 'Write a program that prints your name and age.', 'Paste your code.', '', '', '', 'text', '', '', '10'],
+            ['UNIT', '2', 'Python Programming', 'Control flow', 'Make decisions and repeat work.', 'if / elif / else; for and while loops', '', '', '', '', '', ''],
+            ['LESSON', '2', '', 'If statements', '', '', 'Use if to run code only when a condition is true...', '', '', '', '', ''],
+            ['QUESTION', '2', '', 'Upload a script that prints the numbers 1 to 10.', '', '', '', '', 'file', '', '', '10'],
+            ['ASSIGNMENT', '', '', 'Final project: a simple calculator', 'Build a calculator that adds, subtracts, multiplies and divides. Share your GitHub link.', '', '', '', 'link', '', '', '50'],
         ];
     }
 
@@ -43,6 +44,59 @@ class CourseImportService
         foreach (self::templateRows() as $r) fputcsv($fh, $r, ',', '"', '');
         rewind($fh);
         return "\xEF\xBB\xBF" . stream_get_contents($fh);
+    }
+
+    /** The template as a real, minimal single-sheet .xlsx (built by hand, no library — mirrors readXlsx() below). */
+    public static function templateXlsx(): string
+    {
+        if (!class_exists('ZipArchive')) throw new RuntimeException('This server cannot build Excel files.');
+        $rows = self::templateRows();
+        $shared = [];
+        $idx = [];
+        foreach ($rows as $r) foreach ($r as $v) {
+            $v = (string) $v;
+            if ($v === '') continue;
+            if (!isset($idx[$v])) { $idx[$v] = count($shared); $shared[] = $v; }
+        }
+        $xmlEsc = fn(string $s) => htmlspecialchars($s, ENT_QUOTES | ENT_XML1, 'UTF-8');
+        $colLetter = function (int $i): string {
+            $s = '';
+            $i++;
+            while ($i > 0) { $m = ($i - 1) % 26; $s = chr(65 + $m) . $s; $i = intdiv($i - 1, 26); }
+            return $s;
+        };
+        $sheetRows = '';
+        foreach ($rows as $rn => $r) {
+            $cells = '';
+            foreach ($r as $cn => $v) {
+                $v = (string) $v;
+                if ($v === '') continue;
+                $cells .= '<c r="' . $colLetter($cn) . ($rn + 1) . '" t="s"><v>' . (int) $idx[$v] . '</v></c>';
+            }
+            $sheetRows .= '<row r="' . ($rn + 1) . '">' . $cells . '</row>';
+        }
+        $sst = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="' . count($shared) . '" uniqueCount="' . count($shared) . '">';
+        foreach ($shared as $s) $sst .= '<si><t xml:space="preserve">' . $xmlEsc($s) . '</t></si>';
+        $sst .= '</sst>';
+        $sheet = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>' . $sheetRows . '</sheetData></worksheet>';
+        $workbook = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Course" sheetId="1" r:id="rId1"/></sheets></workbook>';
+        $wbRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>';
+        $rootRels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>';
+        $contentTypes = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>';
+
+        $tmp = tempnam(sys_get_temp_dir(), 'xlsx');
+        $z = new ZipArchive();
+        $z->open($tmp, ZipArchive::OVERWRITE);
+        $z->addFromString('[Content_Types].xml', $contentTypes);
+        $z->addFromString('_rels/.rels', $rootRels);
+        $z->addFromString('xl/workbook.xml', $workbook);
+        $z->addFromString('xl/_rels/workbook.xml.rels', $wbRels);
+        $z->addFromString('xl/worksheets/sheet1.xml', $sheet);
+        $z->addFromString('xl/sharedStrings.xml', $sst);
+        $z->close();
+        $bin = (string) file_get_contents($tmp);
+        unlink($tmp);
+        return $bin;
     }
 
     /** Rows of a .csv or .xlsx file (first sheet). @return array<int,array<int,string>> */
@@ -120,7 +174,7 @@ class CourseImportService
                 if ($unit === '') { $errors[] = "Row $line: give the unit a number in the Unit column."; continue; }
                 if (isset($units[$unit]['title'])) { $errors[] = "Row $line: unit $unit appears twice."; continue; }
                 $units[$unit] = ($units[$unit] ?? ['items' => []]) + ['title' => $title, 'description' => $get($r, 'Description'),
-                    'learn' => $get($r, 'What students learn'), 'video' => $get($r, 'Video link'), 'line' => $line];
+                    'subject' => $get($r, 'Subject'), 'learn' => $get($r, 'What students learn'), 'video' => $get($r, 'Video link'), 'line' => $line];
                 continue;
             }
             if (!in_array($type, ['LESSON', 'QUESTION', 'ASSIGNMENT'], true)) { $errors[] = "Row $line: Type must be UNIT, LESSON, QUESTION or ASSIGNMENT."; continue; }
@@ -155,13 +209,15 @@ class CourseImportService
     }
 
     /** Save the plan into each course. $replace removes modules made by earlier imports first. @return int modules created */
-    public static function apply(PDO $db, \Models\TutorCourseModel $tc, int $tutorUserId, array $courseIds, array $plan, bool $replace): int
+    public static function apply(PDO $db, \Models\TutorCourseModel $tc, int $tutorUserId, array $courseIds, array $plan, bool $replace, int $tutorId = 0): int
     {
+        require_once __DIR__ . '/SubjectService.php';
         $batch = date('YmdHis') . '-' . bin2hex(random_bytes(3));
         $made = 0;
         $db->beginTransaction();
         try {
             foreach ($courseIds as $courseId) {
+                $subjectIds = [];   // subject name => course_subjects.id, cached per course
                 if ($replace) {
                     $st = $db->prepare("SELECT id FROM course_modules WHERE course_id = ? AND tutor_id = ? AND import_batch IS NOT NULL");
                     $st->execute([$courseId, $tutorUserId]);
@@ -173,7 +229,14 @@ class CourseImportService
                 foreach ($mods as $u) {
                     $mid = $tc->saveModule($tutorUserId, (int) $courseId, null, ['title' => mb_substr($u['title'], 0, 200), 'description' => $u['description'] ?? '',
                         'instructions' => ($u['learn'] ?? '') !== '' ? "What you will learn:\n" . $u['learn'] : '', 'video_url' => $u['video'] ?? '']);
-                    $db->prepare("UPDATE course_modules SET import_batch = ?, unlock_after_all = ? WHERE id = ?")->execute([$batch, !empty($u['final']) ? 1 : 0, $mid]);
+                    $subjectId = null;
+                    $subjectName = trim((string) ($u['subject'] ?? ''));
+                    if ($subjectName !== '' && $tutorId > 0) {
+                        $key = mb_strtolower($subjectName);
+                        $subjectIds[$key] ??= subj_find_or_create($db, $tutorId, $tutorUserId, (int) $courseId, $subjectName);
+                        $subjectId = $subjectIds[$key];
+                    }
+                    $db->prepare("UPDATE course_modules SET import_batch = ?, unlock_after_all = ?, subject_id = ? WHERE id = ?")->execute([$batch, !empty($u['final']) ? 1 : 0, $subjectId, $mid]);
                     foreach ($u['items'] as $it) {
                         $r = $tc->saveItem($mid, null, $it, null, false);
                         if (!$r['ok']) throw new RuntimeException('"' . $it['title'] . '": ' . $r['error']);

@@ -320,6 +320,19 @@ if (!function_exists('subjectMarks')) {
         return $out;
     }
 
+    /** The id of a subject by name in this course (this tutor's own, or the admin's), creating it for this tutor if none matches. */
+    function subj_find_or_create(PDO $db, int $tutorId, int $actorUserId, int $courseId, string $name): ?int
+    {
+        $name = trim(preg_replace('/\s+/', ' ', $name));
+        if ($name === '') return null;
+        $st = $db->prepare('SELECT id FROM course_subjects WHERE course_id = ? AND tutor_id IN (?, 0) AND LOWER(name) = LOWER(?) LIMIT 1');
+        $st->execute([$courseId, $tutorId, $name]);
+        $id = $st->fetchColumn();
+        if ($id) return (int) $id;
+        $r = subj_create($db, $tutorId, $actorUserId, $courseId, ['name' => $name]);
+        return $r['ok'] ? (int) $r['id'] : null;
+    }
+
     /* ---------------- the tutor's own subject library (templates pushed into courses) ---------------- */
 
     /** A tutor's reusable subject templates, newest first. */
