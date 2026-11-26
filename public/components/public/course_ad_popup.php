@@ -25,12 +25,14 @@ if ($ad):
     $img = settings_asset_url($ad['image_path'] ?: $ad['cover_image']);
     $title = $ad['title'] ?: $ad['course_title'];
     $endsAtIso = $ad['ends_at'] ? gmdate('Y-m-d\TH:i:s\Z', strtotime($ad['ends_at'])) : '';
+    // Auto-opens centered only on the landing page (public/index.php); every other public page just shows the bubble.
+    $isHome = !empty($_SERVER['SCRIPT_FILENAME']) && realpath($_SERVER['SCRIPT_FILENAME']) === realpath(__DIR__ . '/../../index.php');
 ?>
-<div id="dazuAdWrap" data-ad-id="<?php echo (int) $ad['id']; ?>" data-ends="<?php echo $e($endsAtIso); ?>">
+<div id="dazuAdWrap" data-ad-id="<?php echo (int) $ad['id']; ?>" data-ends="<?php echo $e($endsAtIso); ?>" data-autoopen="<?php echo $isHome ? '1' : '0'; ?>">
   <div id="dazuAdOverlay" class="dazu-ad-overlay">
     <div class="dazu-ad-modal">
       <button type="button" class="dazu-ad-x" aria-label="Close" onclick="dazuAdMinimize()">&times;</button>
-      <?php if ($endsAtIso): ?><div class="dazu-ad-timer" id="dazuAdTimer"></div><?php endif; ?>
+      <?php if ($endsAtIso): ?><div class="dazu-ad-timer" id="dazuAdTimer"><i class="fas fa-clock"></i> <span></span></div><?php endif; ?>
       <div class="dazu-ad-imgwrap">
         <img src="<?php echo $e($img); ?>" alt="<?php echo $e($title); ?>">
         <a href="<?php echo $e($adUrl); ?>" class="dazu-ad-apply"><?php echo $e($ad['button_text']); ?></a>
@@ -52,7 +54,7 @@ if ($ad):
 .dazu-ad-modal{position:relative;width:100%;max-width:380px;background:#fff;border-radius:1.25rem;overflow:hidden;box-shadow:0 24px 70px rgba(0,0,0,.4);animation:dazuAdPop .22s ease}
 @keyframes dazuAdPop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}}
 .dazu-ad-x{position:absolute;top:10px;right:10px;z-index:3;width:32px;height:32px;border-radius:999px;border:none;background:rgba(15,23,42,.55);color:#fff;font-size:1.3rem;line-height:1;cursor:pointer}
-.dazu-ad-timer{position:absolute;top:12px;left:12px;z-index:3;background:rgba(220,38,38,.95);color:#fff;font-weight:800;font-size:.72rem;letter-spacing:.02em;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.dazu-ad-timer{position:absolute;top:12px;left:12px;z-index:3;color:#ef4444;font-weight:800;font-size:.8rem;letter-spacing:.02em;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .dazu-ad-imgwrap{position:relative}
 .dazu-ad-imgwrap img{width:100%;max-height:60vh;object-fit:cover;display:block}
 .dazu-ad-apply{position:absolute;right:12px;bottom:12px;background:rgba(22,163,74,.95);color:#fff;font-weight:700;font-size:.85rem;padding:.5rem .9rem;border-radius:999px;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,.3);transition:background .15s ease}
@@ -62,11 +64,13 @@ if ($ad):
 .dazu-ad-subtitle{font-size:.8rem;color:#64748b;margin-top:3px}
 
 .dazu-ad-bubble{position:fixed;right:18px;bottom:18px;z-index:1050;width:60px;height:60px;border-radius:999px;border:3px solid #fff;padding:0;overflow:visible;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.25);background:#16a34a;display:none}
-.dazu-ad-bubble.show{display:block}
+.dazu-ad-bubble.show{display:block;animation:dazuAdPulseRing 2.2s ease-out infinite}
 .dazu-ad-bubble img{width:100%;height:100%;object-fit:cover;display:block;border-radius:999px}
-.dazu-ad-bubble.bounce{animation:dazuAdBounce 1s ease 2}
-.dazu-ad-dot{position:absolute;top:-2px;right:-2px;width:14px;height:14px;border-radius:999px;background:#dc2626;border:2px solid #fff}
-@keyframes dazuAdBounce{0%,100%{transform:translateY(0)}25%{transform:translateY(-14px)}50%{transform:translateY(0)}75%{transform:translateY(-7px)}}
+.dazu-ad-bubble.bounce{animation:dazuAdBounce .9s ease 3}
+.dazu-ad-dot{position:absolute;top:-2px;right:-2px;width:14px;height:14px;border-radius:999px;background:#dc2626;border:2px solid #fff;animation:dazuAdDotPulse 1.4s ease-in-out infinite}
+@keyframes dazuAdBounce{0%,100%{transform:translateY(0) scale(1)}20%{transform:translateY(-16px) scale(1.04)}45%{transform:translateY(0) scale(.98)}65%{transform:translateY(-8px)}85%{transform:translateY(0)}}
+@keyframes dazuAdPulseRing{0%{box-shadow:0 8px 24px rgba(0,0,0,.25),0 0 0 0 rgba(22,163,74,.55)}70%{box-shadow:0 8px 24px rgba(0,0,0,.25),0 0 0 14px rgba(22,163,74,0)}100%{box-shadow:0 8px 24px rgba(0,0,0,.25),0 0 0 0 rgba(22,163,74,0)}}
+@keyframes dazuAdDotPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.75}}
 @media (max-width:420px){.dazu-ad-modal{max-width:calc(100vw - 32px)}}
 </style>
 <script>
@@ -78,8 +82,25 @@ if ($ad):
   var overlay = document.getElementById('dazuAdOverlay');
   var bubble = document.getElementById('dazuAdBubble');
   var bounceKey = 'dazu-ad-last-bounce-' + adId;
-  var BOUNCE_EVERY = 3 * 60 * 1000;
+  var BOUNCE_EVERY = 15 * 1000;
+
+  function ding() {
+    try {
+      var Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return;
+      var ctx = new Ctx();
+      var osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = 'sine'; osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.start(); osc.stop(ctx.currentTime + 0.32);
+      osc.onended = function(){ ctx.close(); };
+    } catch (e) {}
+  }
   var endMs = ends ? new Date(ends).getTime() : null;
+  var autoOpen = wrap.getAttribute('data-autoopen') === '1';
 
   function expired() { return endMs !== null && Date.now() >= endMs; }
 
@@ -93,23 +114,27 @@ if ($ad):
     if (!expired()) bubble.classList.add('show');
   };
 
-  if (!expired()) setTimeout(window.dazuAdOpen, 700);
+  if (autoOpen && !expired()) setTimeout(window.dazuAdOpen, 700);
+  else if (!expired()) bubble.classList.add('show');
 
+  bubble.addEventListener('animationend', function(ev){ if (ev.animationName === 'dazuAdBounce') bubble.classList.remove('bounce'); });
   function bounce() {
-    if (overlay.classList.contains('show') || expired()) return;
+    if (overlay.classList.contains('show') || expired() || !bubble.classList.contains('show')) return;
     bubble.classList.remove('bounce'); void bubble.offsetWidth; bubble.classList.add('bounce');
+    ding();
     try { sessionStorage.setItem(bounceKey, String(Date.now())); } catch (e) {}
   }
+  setTimeout(bounce, 2500);
   setInterval(function(){
     var last = 0;
     try { last = parseInt(sessionStorage.getItem(bounceKey) || '0', 10); } catch (e) {}
     if (Date.now() - last >= BOUNCE_EVERY) bounce();
-  }, 10000);
+  }, 2000);
 
   overlay.addEventListener('click', function(ev){ if (ev.target === overlay) window.dazuAdMinimize(); });
 
   if (endMs !== null) {
-    var el = document.getElementById('dazuAdTimer');
+    var el = document.querySelector('#dazuAdTimer span');
     function tick() {
       var s = Math.max(0, Math.floor((endMs - Date.now()) / 1000));
       if (s <= 0) { overlay.classList.remove('show'); bubble.classList.remove('show'); return; }
