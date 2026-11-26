@@ -176,7 +176,7 @@ function isSmsSection($section) {
                                 </div>
                             </div>
                         </div>
-                        <?php $sysCoursesActive = in_array($current_dir, ['courses', 'free-courses'], true); ?>
+                        <?php $sysCoursesActive = in_array($current_dir, ['courses', 'free-courses', 'course-ads'], true); ?>
                         <div class="nav-item">
                             <a href="#sysCoursesMenu" class="nav-link <?php echo $sysCoursesActive ? 'active' : ''; ?>"
                                data-bs-toggle="collapse" role="button" aria-expanded="false">
@@ -205,6 +205,11 @@ function isSmsSection($section) {
                                        class="nav-link <?php echo $current_dir == 'free-courses' ? 'active' : ''; ?>">
                                         <i class="fas fa-gift"></i>
                                         <span>Free Courses</span>
+                                    </a>
+                                    <a href="<?php echo url('admin/course-ads/index.php'); ?>"
+                                       class="nav-link <?php echo $current_dir == 'course-ads' ? 'active' : ''; ?>">
+                                        <i class="fas fa-bullhorn"></i>
+                                        <span>Course Ads</span>
                                     </a>
                                     <a href="<?php echo url('admin/courses/classes.php'); ?>"
                                        class="nav-link <?php echo basename($_SERVER['PHP_SELF'] ?? '') === 'classes.php' ? 'active' : ''; ?>">
@@ -658,6 +663,7 @@ $adm_sheets = [
         ['Brochure', 'admin/courses/brochure.php', 'fa-file-pdf'],
         ['Course subjects', 'admin/courses/subjects.php', 'fa-list-ol'],
         ['Free courses', 'admin/free-courses/index.php', 'fa-gift'],
+        ['Course ads', 'admin/course-ads/index.php', 'fa-bullhorn'],
         ['Classes', 'admin/courses/classes.php', 'fa-layer-group'],
         ['Pending approvals', 'admin/registrations/index.php?status=pending', 'fa-user-clock'],
         ['Tutors', 'admin/tutors/index.php', 'fa-chalkboard-teacher'],
