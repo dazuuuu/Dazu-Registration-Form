@@ -179,3 +179,6 @@ c
 
 # Book now: the secret key that signs "Check my booking" and early-access links (generated on first use)
 app/v1/storage/enrolment_link.key
+
+# Local deploy config (holds the real server path) — never committed
+.deploy.conf

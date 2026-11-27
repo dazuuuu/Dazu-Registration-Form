@@ -39,7 +39,8 @@ function acc_back(string $to, ?string $ok, ?string $err = null): void
 /** Tab bar shared by the Accounting pages; $pending: counts to show on Requests. */
 function acc_tabs(string $on, int $pending = 0): string
 {
-    $tabs = ['index.php' => ['Overview', 'fa-chart-pie'], 'requests.php' => ['Requests', 'fa-inbox'], 'expenses.php' => ['Expense tracker', 'fa-receipt'],
+    $tabs = ['index.php' => ['Overview', 'fa-chart-pie'], 'requests.php' => ['Requests', 'fa-inbox'], 'record.php' => ['Record expenses', 'fa-table-cells'],
+             'expenses.php' => ['View expenses', 'fa-receipt'], 'expense_categories.php' => ['Categories', 'fa-tags'],
              'statement.php' => ['Statement', 'fa-file-invoice-dollar']];
     $h = '<div class="d-flex flex-wrap gap-2 mb-3">';
     foreach ($tabs as $file => [$label, $icon]) {

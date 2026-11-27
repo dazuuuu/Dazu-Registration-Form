@@ -202,6 +202,107 @@ class ExpenseModel
         return ['ok' => true, 'spent' => round($amount, 2), 'balance' => round((float) $r['amount_given'] - $amount, 2), 'source' => $source];
     }
 
+    /* ================= Expense categories (superadmin-managed) ================= */
+
+    /** Admin-managed categories, in display order. Falls back to the old fixed list if migration 142 isn't run yet. */
+    public function categories(bool $onlyActive = true): array
+    {
+        try {
+            $sql = "SELECT * FROM expense_categories" . ($onlyActive ? " WHERE is_active = 1" : "") . " ORDER BY sort_order, name";
+            return $this->db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+        } catch (\Throwable $e) {
+            $i = 0;
+            return array_map(fn($k, $l) => ['id' => 0, 'code' => $k, 'name' => $l, 'icon' => 'fa-receipt', 'sort_order' => $i++, 'is_active' => 1], array_keys(self::CATEGORIES), self::CATEGORIES);
+        }
+    }
+
+    public function categoryName(string $code): string
+    {
+        static $map = null;
+        if ($map === null) {
+            $map = [];
+            foreach ($this->categories(false) as $c) $map[$c['code']] = $c['name'];
+        }
+        return $map[$code] ?? (self::CATEGORIES[$code] ?? ucfirst(str_replace('_', ' ', $code)));
+    }
+
+    /** A category code that is safe to save: an existing one, or 'other'. */
+    public function validCategoryCode(string $code): string
+    {
+        foreach ($this->categories(false) as $c) {
+            if ($c['code'] === $code) return $code;
+        }
+        return isset(self::CATEGORIES[$code]) ? $code : 'other';
+    }
+
+    /** @return array{ok:bool, error?:string} */
+    public function addCategory(string $name, string $icon, int $actor): array
+    {
+        $name = trim($name);
+        if ($name === '') return ['ok' => false, 'error' => 'Name the category.'];
+        $code = trim(preg_replace('/[^a-z0-9]+/', '_', strtolower($name)), '_');
+        if ($code === '') return ['ok' => false, 'error' => 'Give the category a proper name.'];
+        try {
+            $max = (int) $this->db->query("SELECT COALESCE(MAX(sort_order), 0) FROM expense_categories")->fetchColumn();
+            $this->db->prepare("INSERT INTO expense_categories (code, name, icon, sort_order, created_at) VALUES (?, ?, ?, ?, NOW())
+                                ON DUPLICATE KEY UPDATE name = VALUES(name), icon = VALUES(icon), is_active = 1")
+                ->execute([$code, mb_substr($name, 0, 100), $icon !== '' ? mb_substr($icon, 0, 40) : 'fa-receipt', $max + 1]);
+        } catch (\Throwable $e) {
+            return ['ok' => false, 'error' => 'Could not save the category. Run System Updates first (migration 142).'];
+        }
+        $this->log($actor, 'add', 'expense_category', null, ['name' => $name]);
+        return ['ok' => true];
+    }
+
+    /** Deletes an unused category; hides (keeps) one already used by recorded expenses. @return array{ok:bool, error?:string, note?:string} */
+    public function removeCategory(int $id, int $actor): array
+    {
+        $st = $this->db->prepare("SELECT code FROM expense_categories WHERE id = ?");
+        $st->execute([$id]);
+        $code = $st->fetchColumn();
+        if (!$code) return ['ok' => false, 'error' => 'Category not found.'];
+        $st = $this->db->prepare("SELECT COUNT(*) FROM expenses WHERE category = ?");
+        $st->execute([$code]);
+        if ((int) $st->fetchColumn() > 0) {
+            $this->db->prepare("UPDATE expense_categories SET is_active = 0 WHERE id = ?")->execute([$id]);
+            $this->log($actor, 'deactivate', 'expense_category', $id);
+            return ['ok' => true, 'note' => 'This category is used by past expenses, so it was hidden instead of deleted.'];
+        }
+        $this->db->prepare("DELETE FROM expense_categories WHERE id = ?")->execute([$id]);
+        $this->log($actor, 'delete', 'expense_category', $id);
+        return ['ok' => true];
+    }
+
+    /* ================= Daily expense sheet (record page) ================= */
+
+    /** Today's one-time, non-purchase expense rows. $category narrows to one card; null = all of today. */
+    public function todayEntries(?string $category = null): array
+    {
+        $sql = "SELECT * FROM expenses WHERE start_date = ? AND repeat_every = 'once' AND request_id IS NULL";
+        $args = [self::today()];
+        if ($category !== null) { $sql .= " AND category = ?"; $args[] = $category; }
+        $st = $this->db->prepare($sql . " ORDER BY id DESC");
+        $st->execute($args);
+        return $st->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Saves one or more sheet rows (same category) typed into the daily "excel form" at once. @return array{ok:bool, count:int} */
+    public function addDailyRows(string $category, array $titles, array $branches, array $amounts, int $actor): array
+    {
+        $cat = $this->validCategoryCode($category);
+        $count = 0;
+        foreach ($titles as $i => $t) {
+            $t = trim((string) $t);
+            if ($t === '') continue;
+            $amount = round((float) str_replace(',', '', (string) ($amounts[$i] ?? 0)), 2);
+            if ($amount <= 0) continue;
+            $branch = isset(self::BRANCHES[$branches[$i] ?? '']) ? $branches[$i] : 'general';
+            $r = $this->addExpense(['title' => $t, 'category' => $cat, 'branch' => $branch, 'amount' => $amount, 'repeat_every' => 'once', 'start_date' => self::today()], null, null, $actor);
+            if ($r['ok']) $count++;
+        }
+        return ['ok' => true, 'count' => $count];
+    }
+
     /* ================= Expense tracker (superadmin) ================= */
 
     public function expenses(bool $withStopped = true): array
@@ -232,7 +333,7 @@ class ExpenseModel
         $repeat = isset(self::REPEATS[$d['repeat_every'] ?? '']) ? $d['repeat_every'] : 'once';
         $this->db->prepare("INSERT INTO expenses (title, category, branch, amount, repeat_every, start_date, end_date, note, receipt_path, receipt_name, receipt_mime, created_by, created_at)
                             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())")
-            ->execute([mb_substr($title, 0, 200), isset(self::CATEGORIES[$d['category'] ?? '']) ? $d['category'] : 'other',
+            ->execute([mb_substr($title, 0, 200), $this->validCategoryCode((string) ($d['category'] ?? '')),
                        isset(self::BRANCHES[$d['branch'] ?? '']) ? $d['branch'] : 'general', $amount, $repeat, $start->format('Y-m-d'),
                        $repeat === 'once' ? null : ($end ? $end->format('Y-m-d') : null), trim((string) ($d['note'] ?? '')) ?: null,
                        $receipt['path'] ?? null, $receipt ? mb_substr(basename((string) $receiptName), 0, 255) : null, $receipt['mime'] ?? null, $actor]);

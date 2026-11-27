@@ -1,7 +1,7 @@
 <?php
-// Superadmin: the expense tracker. Record any cost (rent, electricity, food, what was bought...), one time or
-// repeating every day / week / month, for a branch or the whole institute, with an optional receipt.
-// Branch purchases appear here automatically once their receipt is uploaded.
+// Superadmin: View expenses — every cost recorded (daily sheet rows, repeating expenses, branch
+// purchases), with totals for a date range. To add a one-time expense, use the Record expenses
+// sheet; repeating expenses (rent, etc.) are still added here.
 require __DIR__ . '/_boot.php';
 
 use Models\ExpenseModel;
@@ -37,19 +37,35 @@ echo acc_tabs('expenses.php', acc_pending($pdo));
 <?php if (!$accInstalled): ?><div class="alert alert-warning">Run System Updates first (migration 084).</div><?php else: ?>
 <div class="row g-3">
 <div class="col-lg-4">
-    <div class="card"><div class="card-header fw-semibold">Add an expense</div><div class="card-body">
+    <div class="card"><div class="card-header fw-semibold">Add a repeating expense <span class="small text-muted fw-normal">(rent, subscriptions...)</span></div><div class="card-body">
+        <div class="alert alert-light border small mb-3">One-off daily costs go on the <a href="record.php">Record expenses</a> sheet instead.</div>
         <form method="POST" enctype="multipart/form-data"><?php echo csrf_field(); ?><input type="hidden" name="action" value="add">
             <label class="form-label small fw-semibold">What is it?</label><input name="title" class="form-control form-control-sm mb-2" maxlength="200" required placeholder="e.g. Rent Thika office">
-            <div class="row g-2 mb-2">
-                <div class="col-6"><label class="form-label small fw-semibold">Kind</label><select name="category" class="form-select form-select-sm"><?php foreach (ExpenseModel::CATEGORIES as $k => $l): ?><option value="<?php echo $k; ?>"><?php echo $e($l); ?></option><?php endforeach; ?></select></div>
-                <div class="col-6"><label class="form-label small fw-semibold">Branch</label><select name="branch" class="form-select form-select-sm"><?php foreach (ExpenseModel::BRANCHES as $k => $l): ?><option value="<?php echo $k; ?>" <?php echo $k === 'general' ? 'selected' : ''; ?>><?php echo $e($l); ?></option><?php endforeach; ?></select></div>
+            <label class="form-label small fw-semibold">Category</label>
+            <div class="d-flex flex-wrap gap-2 mb-2">
+            <?php foreach ($ex->categories() as $c): ?>
+                <input type="radio" class="btn-check" name="category" value="<?php echo $e($c['code']); ?>" id="ec_<?php echo $e($c['code']); ?>" <?php echo $c['code'] === 'rent' ? 'checked' : ''; ?>>
+                <label class="btn btn-sm btn-outline-secondary" for="ec_<?php echo $e($c['code']); ?>"><i class="fas <?php echo $e($c['icon']); ?> me-1"></i><?php echo $e($c['name']); ?></label>
+            <?php endforeach; ?>
+            </div>
+            <label class="form-label small fw-semibold">Branch</label>
+            <div class="d-flex flex-wrap gap-2 mb-2">
+            <?php foreach (ExpenseModel::BRANCHES as $k => $l): ?>
+                <input type="radio" class="btn-check" name="branch" value="<?php echo $e($k); ?>" id="eb_<?php echo $e($k); ?>" <?php echo $k === 'general' ? 'checked' : ''; ?>>
+                <label class="btn btn-sm btn-outline-secondary" for="eb_<?php echo $e($k); ?>"><?php echo $e($l); ?></label>
+            <?php endforeach; ?>
             </div>
             <label class="form-label small fw-semibold">Amount (KES)</label><input name="amount" class="form-control form-control-sm mb-2" inputmode="decimal" required>
             <label class="form-label small fw-semibold">How often?</label>
-            <select name="repeat_every" class="form-select form-select-sm mb-2" id="repeatSel"><?php foreach (ExpenseModel::REPEATS as $k => $l): ?><option value="<?php echo $k; ?>"><?php echo $e($l); ?></option><?php endforeach; ?></select>
+            <div class="d-flex flex-wrap gap-2 mb-2" id="repeatPick">
+            <?php foreach (ExpenseModel::REPEATS as $k => $l): ?>
+                <input type="radio" class="btn-check" name="repeat_every" value="<?php echo $e($k); ?>" id="rp_<?php echo $e($k); ?>" <?php echo $k === 'monthly' ? 'checked' : ''; ?>>
+                <label class="btn btn-sm btn-outline-secondary" for="rp_<?php echo $e($k); ?>"><?php echo $e($l); ?></label>
+            <?php endforeach; ?>
+            </div>
             <div class="row g-2 mb-2">
-                <div class="col-6"><label class="form-label small fw-semibold" id="startLbl">Date</label><input type="date" name="start_date" class="form-control form-control-sm" value="<?php echo $e(ExpenseModel::today()); ?>" required></div>
-                <div class="col-6 d-none" id="endBox"><label class="form-label small fw-semibold">Until <span class="text-muted fw-normal">(optional)</span></label><input type="date" name="end_date" class="form-control form-control-sm"></div>
+                <div class="col-6"><label class="form-label small fw-semibold" id="startLbl">First date</label><input type="date" name="start_date" class="form-control form-control-sm" value="<?php echo $e(ExpenseModel::today()); ?>" required></div>
+                <div class="col-6" id="endBox"><label class="form-label small fw-semibold">Until <span class="text-muted fw-normal">(optional)</span></label><input type="date" name="end_date" class="form-control form-control-sm"></div>
             </div>
             <label class="form-label small fw-semibold">Receipt <span class="text-muted fw-normal">(optional, PDF or photo)</span></label><input type="file" name="receipt" class="form-control form-control-sm mb-2" accept=".pdf,image/*">
             <label class="form-label small fw-semibold">Note <span class="text-muted fw-normal">(optional)</span></label><textarea name="note" class="form-control form-control-sm mb-3" rows="2"></textarea>
@@ -65,7 +81,7 @@ echo acc_tabs('expenses.php', acc_pending($pdo));
         <?php if (!$list): ?><tr><td colspan="5" class="text-muted small p-3">Nothing recorded yet.</td></tr><?php endif; ?>
         <?php foreach ($list as $x): $stopped = $x['repeat_every'] !== 'once' && $x['end_date'] && $x['end_date'] < ExpenseModel::today(); ?>
             <tr class="<?php echo $stopped ? 'text-muted' : ''; ?>">
-                <td><div class="fw-semibold"><?php echo $e($x['title']); ?></div><div class="small text-muted"><?php echo $e(ExpenseModel::CATEGORIES[$x['category']] ?? $x['category']); ?>
+                <td><div class="fw-semibold"><?php echo $e($x['title']); ?></div><div class="small text-muted"><?php echo $e($ex->categoryName($x['category'])); ?>
                     <?php echo $x['request_id'] ? ' · branch purchase #' . (int) $x['request_id'] : ''; ?><?php echo $x['note'] ? ' · ' . $e($x['note']) : ''; ?></div></td>
                 <td class="small"><?php echo $e(ExpenseModel::BRANCHES[$x['branch']]); ?></td>
                 <td class="small"><?php echo $e(ExpenseModel::REPEATS[$x['repeat_every']]); ?><div class="text-muted"><?php echo $x['repeat_every'] === 'once' ? $e(date('j M Y', strtotime($x['start_date']))) : 'from ' . $e(date('j M Y', strtotime($x['start_date']))) . ($x['end_date'] ? ' to ' . $e(date('j M Y', strtotime($x['end_date']))) : ''); ?></div></td>
@@ -97,10 +113,14 @@ $content = ob_get_clean();
 $extra_js = <<<'JS'
 <script>
 (function () {
-    var s = document.getElementById('repeatSel');
-    if (!s) return;
-    function up() { var once = s.value === 'once'; document.getElementById('endBox').classList.toggle('d-none', once); document.getElementById('startLbl').textContent = once ? 'Date' : 'First date'; }
-    s.addEventListener('change', up); up();
+    var g = document.getElementById('repeatPick');
+    if (!g) return;
+    function up() {
+        var checked = g.querySelector('input:checked'), once = checked && checked.value === 'once';
+        document.getElementById('endBox').classList.toggle('d-none', once);
+        document.getElementById('startLbl').textContent = once ? 'Date' : 'First date';
+    }
+    g.addEventListener('change', up); up();
 })();
 </script>
 JS;
